@@ -4,6 +4,7 @@ import {
   findPredictionResultRecord,
   loadStoredPredictionResults,
   PREDICTION_RESULT_STORAGE_KEY,
+  useIsMobile,
   type PredictionResultMap,
 } from "./PageImplementations";
 import type { ReactNode } from "react";
@@ -1591,6 +1592,8 @@ const buildRacesPagePredictionCandidates = (
 
 export default function RacesPage() {
   const { generatedTodayRaces, generatedAt } = useGeneratedTodayRaces();
+  const isMobile = useIsMobile();
+
   const effectiveTodayRaces = generatedTodayRaces.length > 0
     ? generatedTodayRaces
     : todayRaces.map(mapStaticRaceToLiveVenue);
@@ -2664,28 +2667,71 @@ const selectedRaceSLeaderCarNo = selectedRaceResult?.sLeaderCarNo ?? "";
     };
   });
 
-  const renderMiniTable = (headers: string[], rows: ReactNode[][]) => (
-    <div style={{ overflowX: "auto", borderRadius: "18px", border: "1px solid #ebe3f3", background: "rgba(255,255,255,0.96)" }}>
-      <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, minWidth: `${Math.max(720, headers.length * 110)}px` }}>
-        <thead>
-          <tr style={{ background: "#faf7fd" }}>
-            {headers.map((header, index) => (
-              <th key={`${header}-${index}`} style={{ padding: "12px 10px", fontSize: "11px", fontWeight: 900, color: "#6b5f91", borderBottom: "1px solid #ece5f6", textAlign: index === 0 ? "left" : "center", whiteSpace: "nowrap" }}>{header}</th>
+const renderMiniTable = (headers: string[], rows: ReactNode[][]) => (
+  <div
+    style={{
+      overflowX: "auto",
+      borderRadius: isMobile ? "16px" : "18px",
+      border: "1px solid #ebe3f3",
+      background: "rgba(255,255,255,0.96)",
+      WebkitOverflowScrolling: "touch",
+    }}
+  >
+    <table
+      style={{
+        width: "100%",
+        borderCollapse: "separate",
+        borderSpacing: 0,
+        minWidth: isMobile
+          ? `${Math.max(620, headers.length * 96)}px`
+          : `${Math.max(720, headers.length * 110)}px`,
+      }}
+    >
+      <thead>
+        <tr style={{ background: "#faf7fd" }}>
+          {headers.map((header, index) => (
+            <th
+              key={`${header}-${index}`}
+              style={{
+                padding: isMobile ? "10px 8px" : "12px 10px",
+                fontSize: isMobile ? "10px" : "11px",
+                fontWeight: 900,
+                color: "#6b5f91",
+                borderBottom: "1px solid #ece5f6",
+                textAlign: index === 0 ? "left" : "center",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {header}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row, rowIndex) => (
+          <tr key={`row-${rowIndex}`}>
+            {row.map((cell, cellIndex) => (
+              <td
+                key={`cell-${rowIndex}-${cellIndex}`}
+                style={{
+                  padding: isMobile ? "10px 8px" : "12px 10px",
+                  borderBottom: rowIndex === rows.length - 1 ? "none" : "1px solid #f2edf8",
+                  textAlign: cellIndex === 0 ? "left" : "center",
+                  fontSize: isMobile ? "12px" : "13px",
+                  color: "#081224",
+                  whiteSpace: cellIndex === 0 ? "nowrap" : "normal",
+                  lineHeight: 1.55,
+                }}
+              >
+                {cell}
+              </td>
             ))}
           </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, rowIndex) => (
-            <tr key={`row-${rowIndex}`}>
-              {row.map((cell, cellIndex) => (
-                <td key={`cell-${rowIndex}-${cellIndex}`} style={{ padding: "12px 10px", borderBottom: rowIndex === rows.length - 1 ? "none" : "1px solid #f2edf8", textAlign: cellIndex === 0 ? "left" : "center", fontSize: "13px", color: "#081224", whiteSpace: cellIndex === 0 ? "nowrap" : "normal" }}>{cell}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+        ))}
+      </tbody>
+    </table>
+  </div>
+);
 
 const activeCardAnalysisPanel = (() => {
     if (activeCardDataTab === "データ分析") {
@@ -2897,22 +2943,22 @@ const activeCardAnalysisPanel = (() => {
     <SiteHeader activeKey="races" />
 
     <section
-      id="races-page"
-      style={{
-        maxWidth: PAGE_MAX_WIDTH,
-        margin: "0 auto",
-        padding: "26px 24px 120px",
-        display: "grid",
-        gap: "18px",
-      }}
-    >
+  id="races-page"
+  style={{
+    maxWidth: PAGE_MAX_WIDTH,
+    margin: "0 auto",
+    padding: isMobile ? "16px 12px 80px" : "26px 24px 120px",
+    display: "grid",
+    gap: isMobile ? "14px" : "18px",
+  }}
+>
       <section
-        style={{
-          position: "relative",
-          overflow: "hidden",
-          borderRadius: "40px",
-          padding: "34px 34px 30px",
-          border: "1px solid #ebe3f3",
+  style={{
+    position: "relative",
+    overflow: "hidden",
+    borderRadius: isMobile ? "28px" : "40px",
+    padding: isMobile ? "22px 18px 22px" : "34px 34px 30px",
+    border: "1px solid #ebe3f3",
           backgroundImage:
             'linear-gradient(135deg, rgba(255,255,255,0.48) 0%, rgba(248,242,255,0.42) 48%, rgba(238,248,255,0.46) 100%), url("/races-page/races-page-hero-bg-soft-pastel.png")',
           backgroundSize: "112% auto",
@@ -2937,17 +2983,25 @@ const activeCardAnalysisPanel = (() => {
           alt="ちゃりごん"
           style={{
             position: "absolute",
-            left: "-8px",
-            bottom: "0px",
-            width: "520px",
-            maxWidth: "46vw",
+            left: isMobile ? "-34px" : "-8px",
+            bottom: isMobile ? "-4px" : "0px",
+            width: isMobile ? "260px" : "520px",
+            maxWidth: isMobile ? "72vw" : "46vw",
+            opacity: isMobile ? 0.72 : 1,
             objectFit: "contain",
             pointerEvents: "none",
             zIndex: 1,
           }}
         />
 
-        <div style={{ position: "relative", zIndex: 2, display: "grid", gap: "22px" }}>
+        <div
+  style={{
+    position: "relative",
+    zIndex: 2,
+    display: "grid",
+    gap: isMobile ? "16px" : "22px",
+  }}
+>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "14px", flexWrap: "wrap" }}>
             <div style={{ display: "inline-flex", alignItems: "center", gap: "10px", borderRadius: "9999px", padding: "8px 12px", background: "rgba(255,255,255,0.82)", border: "1px solid #e8dff4", boxShadow: "0 8px 16px rgba(15, 23, 42, 0.04)" }}>
               <span style={{ width: "8px", height: "8px", borderRadius: "9999px", background: "#8c63c7", display: "inline-block" }} />
@@ -2975,9 +3029,24 @@ const activeCardAnalysisPanel = (() => {
             </a>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1.18fr 0.82fr", gap: "20px", alignItems: "stretch" }}>
+          <div
+  style={{
+    display: "grid",
+    gridTemplateColumns: isMobile ? "1fr" : "1.18fr 0.82fr",
+    gap: isMobile ? "16px" : "20px",
+    alignItems: "stretch",
+  }}
+>
             <div style={{ display: "grid", gap: "14px", paddingRight: "8px", minHeight: "248px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "18px", flexWrap: "nowrap" }}>
+              <div
+  style={{
+    display: "flex",
+    alignItems: isMobile ? "flex-start" : "center",
+    justifyContent: "space-between",
+    gap: isMobile ? "10px" : "18px",
+    flexWrap: isMobile ? "wrap" : "nowrap",
+  }}
+>
                 <div style={{ flex: "1 1 auto", minWidth: 0 }}>
                   <img
                     src={toPublicPath("/races-page/races-page-title-todays-venues-logo.png")}
@@ -2989,21 +3058,31 @@ const activeCardAnalysisPanel = (() => {
                       height: "auto",
                       objectFit: "contain",
                       filter: "drop-shadow(0 10px 24px rgba(255,255,255,0.55))",
-                      transform: "translateY(-20px)",
+                      transform: isMobile ? "translateY(-8px)" : "translateY(-20px)",
                     }}
                   />
                 </div>
 
-                <div style={{ position: "relative", width: "392px", minWidth: "392px", height: "344px", flexShrink: 0, overflow: "visible" }}>
+                <div
+  style={{
+    position: "relative",
+    width: isMobile ? "100%" : "392px",
+    minWidth: isMobile ? 0 : "392px",
+    height: isMobile ? "190px" : "344px",
+    flexShrink: 0,
+    overflow: "visible",
+    marginTop: isMobile ? "-8px" : 0,
+  }}
+>
                   <img
                     src={toPublicPath("/races-page/races-page-side-naughty-stand.png")}
                     alt="ノーティ"
                     style={{
                       position: "absolute",
-                      left: "122px",
-                      bottom: "-15px",
+                      left: isMobile ? "42%" : "122px",
+                      bottom: isMobile ? "-8px" : "-15px",
                       width: "auto",
-                      height: "443px",
+                      height: isMobile ? "218px" : "443px",
                       objectFit: "contain",
                       filter: "drop-shadow(0 16px 24px rgba(15,23,42,0.14))",
                       zIndex: 1,
@@ -3014,10 +3093,10 @@ const activeCardAnalysisPanel = (() => {
                     alt="くらり"
                     style={{
                       position: "absolute",
-                      left: "18px",
-                      bottom: "-20px",
+                      left: isMobile ? "6%" : "18px",
+                      bottom: isMobile ? "-8px" : "-20px",
                       width: "auto",
-                      height: "390px",
+                      height: isMobile ? "196px" : "390px",
                       objectFit: "contain",
                       filter: "drop-shadow(0 18px 26px rgba(15,23,42,0.16))",
                       zIndex: 3,
@@ -3028,10 +3107,10 @@ const activeCardAnalysisPanel = (() => {
                     alt="ちゃりごん"
                     style={{
                       position: "absolute",
-                      left: "200px",
-                      bottom: "-20px",
+                      left: isMobile ? "63%" : "200px",
+                      bottom: isMobile ? "-8px" : "-20px",
                       width: "auto",
-                      height: "390px",
+                      height: isMobile ? "196px" : "390px",
                       objectFit: "contain",
                       filter: "drop-shadow(0 18px 26px rgba(15,23,42,0.16))",
                       zIndex: 3,
@@ -3042,25 +3121,36 @@ const activeCardAnalysisPanel = (() => {
             </div>
 
             <div style={{ display: "grid", alignContent: "start" }}>
-              <div
-                style={{
-                  borderRadius: "30px",
-                  border: "1px solid rgba(235,227,243,0.78)",
-                  background: "rgba(255,255,255,0.72)",
-                  padding: "26px 24px 24px",
-                  boxShadow: "0 10px 22px rgba(15, 23, 42, 0.035)",
-                  minHeight: "276px",
-                  display: "grid",
-                  alignContent: "start",
-                  gap: "0",
-                  backdropFilter: "blur(8px)",
-                }}
-              >
+<div
+  style={{
+    borderRadius: isMobile ? "24px" : "30px",
+    border: "1px solid rgba(235,227,243,0.78)",
+    background: "rgba(255,255,255,0.72)",
+    padding: isMobile ? "20px 18px 20px" : "26px 24px 24px",
+    boxShadow: "0 10px 22px rgba(15, 23, 42, 0.035)",
+    minHeight: isMobile ? "auto" : "276px",
+    display: "grid",
+    alignContent: "start",
+    gap: "0",
+    backdropFilter: "blur(8px)",
+  }}
+>
                 {/* 英字小見出し */}
                 <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.22em", color: "rgba(140,99,199,0.82)", marginBottom: "8px" }}>TODAY'S VENUES</div>
 
                 {/* 主役タイトル */}
-                <div style={{ fontSize: "28px", fontWeight: 900, lineHeight: 1.25, letterSpacing: "-0.03em", color: "#081224", marginBottom: "16px" }}>今日の開催一覧</div>
+                <div
+  style={{
+    fontSize: isMobile ? "24px" : "28px",
+    fontWeight: 900,
+    lineHeight: 1.25,
+    letterSpacing: "-0.03em",
+    color: "#081224",
+    marginBottom: isMobile ? "12px" : "16px",
+  }}
+>
+  今日の開催一覧
+</div>
 
                 {/* 日付・更新・開催数 */}
                 <div style={{ display: "grid", gap: "0", marginBottom: "20px" }}>
@@ -3088,16 +3178,26 @@ const activeCardAnalysisPanel = (() => {
                       return (
                         <div
                           key={`hero-rec-${i}`}
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "1fr auto auto",
-                            alignItems: "baseline",
-                            columnGap: "10px",
-                            padding: "4px 0",
-                          }}
+style={{
+  display: "grid",
+  gridTemplateColumns: isMobile ? "1fr auto" : "1fr auto auto",
+  alignItems: "baseline",
+  columnGap: isMobile ? "8px" : "10px",
+  rowGap: "2px",
+  padding: "4px 0",
+}}
                         >
                           <div style={{ fontSize: "14px", fontWeight: 800, color: "#081224" }}>{r.venue} {r.raceNo}R</div>
-                          <div style={{ fontSize: "13px", fontWeight: 700, color: "#64748b" }}>{r.time}</div>
+<div
+  style={{
+    display: isMobile ? "none" : "block",
+    fontSize: "13px",
+    fontWeight: 700,
+    color: "#64748b",
+  }}
+>
+  {r.time}
+</div>
                           <div style={{ fontSize: "16px", fontWeight: 900, color: "#6f5aa9" }}>{bestOdds?.toFixed(1)}倍</div>
                         </div>
                       );
@@ -3109,17 +3209,17 @@ const activeCardAnalysisPanel = (() => {
           </div>
         </div>
       </section>
-      <section
-        style={{
-          borderRadius: "36px",
-          padding: "20px",
-          border: "1px solid #ebe3f3",
-          background: "linear-gradient(180deg, #fffefe 0%, #fbf9fe 100%)",
-          boxShadow: "0 18px 34px rgba(15, 23, 42, 0.05)",
-          display: "grid",
-          gap: "16px",
-        }}
-      >
+<section
+  style={{
+    borderRadius: isMobile ? "26px" : "36px",
+    padding: isMobile ? "14px" : "20px",
+    border: "1px solid #ebe3f3",
+    background: "linear-gradient(180deg, #fffefe 0%, #fbf9fe 100%)",
+    boxShadow: "0 18px 34px rgba(15, 23, 42, 0.05)",
+    display: "grid",
+    gap: isMobile ? "12px" : "16px",
+  }}
+>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
           <div>
             <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7", marginBottom: "4px" }}>TODAY'S VENUES · PICK A TRACK</div>
@@ -3146,8 +3246,8 @@ const activeCardAnalysisPanel = (() => {
                   key={`venue-row-${rowIdx}`}
                   style={{
                     display: "grid",
-                    gridTemplateColumns: `repeat(${row.length}, minmax(0, 1fr))`,
-                    gap: "12px",
+gridTemplateColumns: isMobile ? "1fr" : `repeat(${row.length}, minmax(0, 1fr))`,
+gap: isMobile ? "10px" : "12px",
                   }}
                 >
                   {row.map((venue: LiveTodayVenueItem) => {
@@ -3175,18 +3275,18 @@ const activeCardAnalysisPanel = (() => {
                 onClick={() => setSelectedVenueId(venue.id)}
                 style={{
                   textAlign: "left",
-                  borderRadius: "28px",
+                  borderRadius: isMobile ? "22px" : "28px",
                   border: active ? "1.5px solid #d3c2f0" : "1px solid #ebe3f3",
                   background: active
                     ? "linear-gradient(180deg, #f8f1ff 0%, #ffffff 54%, #f2f9ff 100%)"
                     : "linear-gradient(180deg, #ffffff 0%, #fcfbfe 100%)",
-                  padding: "17px 17px 15px",
+                  padding: isMobile ? "14px 14px 13px" : "17px 17px 15px",
                   boxShadow: active
                     ? "0 16px 32px rgba(122,103,184,0.11)"
                     : "0 10px 20px rgba(15, 23, 42, 0.04)",
                   cursor: "pointer",
                   display: "grid",
-                  gap: "10px",
+                  gap: isMobile ? "8px" : "10px",
                   transition: "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease",
                 }}
                 onMouseEnter={(event) => {
@@ -3198,7 +3298,7 @@ const activeCardAnalysisPanel = (() => {
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "5px" : "6px", minWidth: 0 }}>
                       <span style={{ fontSize: "20px", fontWeight: 900, color: "#081224", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0, flex: "1 1 auto" }}>{venue.venue}</span>
                       {hasFavoriteRiderInVenue(venue) && (
                         <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", borderRadius: "9999px", padding: "4px 8px", fontSize: "10px", fontWeight: 900, background: "#fff4f7", color: "#c35b68", border: "1px solid #f3c8cf" }}>❤ 推し</span>
@@ -3216,16 +3316,22 @@ const activeCardAnalysisPanel = (() => {
                   <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "5px 9px", fontSize: "10px", fontWeight: 900, background: "#eef8ff", color: "#3d6b98", border: "1px solid #cfe6fb" }}>{stage}</span>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "8px" }}>
-                  <div style={{ borderRadius: "16px", padding: "10px 10px 9px", background: "rgba(255,255,255,0.82)", border: "1px solid #ece5f6" }}>
+<div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    gap: isMobile ? "6px" : "8px",
+  }}
+>
+                  <div style={{ borderRadius: "16px", padding: isMobile ? "8px 8px 7px" : "10px 10px 9px", background: "rgba(255,255,255,0.82)", border: "1px solid #ece5f6" }}>
                     <div style={{ fontSize: "9px", fontWeight: 900, color: "#7b8a9d", letterSpacing: "0.14em", marginBottom: "5px" }}>1R</div>
                     <div style={{ fontSize: "14px", fontWeight: 900, color: "#081224" }}>{firstTime}</div>
                   </div>
-                  <div style={{ borderRadius: "16px", padding: "10px 10px 9px", background: "rgba(255,255,255,0.82)", border: "1px solid #ece5f6" }}>
+                  <div style={{ borderRadius: "16px", padding: isMobile ? "8px 8px 7px" : "10px 10px 9px", background: "rgba(255,255,255,0.82)", border: "1px solid #ece5f6" }}>
                     <div style={{ fontSize: "9px", fontWeight: 900, color: "#7b8a9d", letterSpacing: "0.14em", marginBottom: "5px" }}>LAST</div>
                     <div style={{ fontSize: "14px", fontWeight: 900, color: "#081224" }}>{lastTime}</div>
                   </div>
-                  <div style={{ borderRadius: "16px", padding: "10px 10px 9px", background: "rgba(255,255,255,0.82)", border: "1px solid #ece5f6" }}>
+                  <div style={{ borderRadius: "16px", padding: isMobile ? "8px 8px 7px" : "10px 10px 9px", background: "rgba(255,255,255,0.82)", border: "1px solid #ece5f6" }}>
                     <div style={{ fontSize: "9px", fontWeight: 900, color: "#7b8a9d", letterSpacing: "0.14em", marginBottom: "5px" }}>RACE</div>
                     <div style={{ fontSize: "14px", fontWeight: 900, color: "#081224" }}>{venue.races?.length ?? 0}R</div>
                   </div>
@@ -3254,23 +3360,34 @@ const activeCardAnalysisPanel = (() => {
         const _spotlightSub = selectedVenueBankSummary?.target || _spotlightProfile.mainMemo;
         const _spotlightSessionLabel = getRacesPageVenueSessionLabel(selectedVenue);
         return (
-          <section
-            style={{
-              borderRadius: "32px",
-              border: "1px solid #ebe3f3",
-              background: "linear-gradient(135deg, #ffffff 0%, #faf7ff 55%, #f4f9ff 100%)",
-              boxShadow: "0 12px 28px rgba(15, 23, 42, 0.045)",
-              padding: "26px 28px",
-              display: "grid",
-              gridTemplateColumns: "1fr 380px",
-              gap: "28px",
-              alignItems: "center",
-            }}
-          >
+<section
+  style={{
+    borderRadius: isMobile ? "26px" : "32px",
+    border: "1px solid #ebe3f3",
+    background: "linear-gradient(135deg, #ffffff 0%, #faf7ff 55%, #f4f9ff 100%)",
+    boxShadow: "0 12px 28px rgba(15, 23, 42, 0.045)",
+    padding: isMobile ? "20px 18px" : "26px 28px",
+    display: "grid",
+    gridTemplateColumns: isMobile ? "1fr" : "1fr 380px",
+    gap: isMobile ? "18px" : "28px",
+    alignItems: "center",
+  }}
+>
             {/* 左側：テキスト */}
             <div style={{ display: "grid", alignContent: "start", gap: "0" }}>
               <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7", marginBottom: "10px" }}>VENUE SPOTLIGHT</div>
-              <div style={{ fontSize: "34px", fontWeight: 900, lineHeight: 1.2, color: "#081224", letterSpacing: "-0.02em", marginBottom: "14px" }}>{selectedVenue.venue}</div>
+              <div
+  style={{
+    fontSize: isMobile ? "28px" : "34px",
+    fontWeight: 900,
+    lineHeight: 1.2,
+    color: "#081224",
+    letterSpacing: "-0.02em",
+    marginBottom: isMobile ? "10px" : "14px",
+  }}
+>
+  {selectedVenue.venue}
+</div>
               <div style={{ fontSize: "16px", fontWeight: 800, color: "#425266", lineHeight: 1.8, marginBottom: "10px" }}>{_spotlightCatch}</div>
               <div style={{ fontSize: "13px", color: "#64748b", lineHeight: 1.9, marginBottom: "16px" }}>{_spotlightSub}</div>
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
@@ -3280,18 +3397,18 @@ const activeCardAnalysisPanel = (() => {
             </div>
 
             {/* 右側：画像 */}
-            <div
-              style={{
-                borderRadius: "24px",
-                overflow: "hidden",
-                background: "linear-gradient(135deg, #f4effe 0%, #eef5ff 100%)",
-                border: "1px solid rgba(224,214,244,0.6)",
-                height: "220px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
+<div
+  style={{
+    borderRadius: isMobile ? "20px" : "24px",
+    overflow: "hidden",
+    background: "linear-gradient(135deg, #f4effe 0%, #eef5ff 100%)",
+    border: "1px solid rgba(224,214,244,0.6)",
+    height: isMobile ? "170px" : "220px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  }}
+>
               {_spotlightImage ? (
                 <img
                   src={_spotlightImage}
@@ -3311,7 +3428,14 @@ const activeCardAnalysisPanel = (() => {
         );
       })()}
 
-      <section style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "14px", alignItems: "center" }}>
+      <section
+  style={{
+    display: "grid",
+    gridTemplateColumns: isMobile ? "1fr" : "1fr auto",
+    gap: isMobile ? "10px" : "14px",
+    alignItems: isMobile ? "start" : "center",
+  }}
+>
         <div>
           <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7", marginBottom: "6px" }}>RACE SELECTOR · QUICK JUMP</div>
           <div style={{ fontSize: "14px", color: "#64748b", fontWeight: 700 }}>{selectedVenue ? `${selectedVenue.venue} のRバー` : "会場選択待ち"}</div>
@@ -3322,7 +3446,15 @@ const activeCardAnalysisPanel = (() => {
         </div>
       </section>
 
-      <section style={{ display: "grid", gap: "12px", gridTemplateColumns: "repeat(auto-fit, minmax(94px, 1fr))" }}>
+      <section
+  style={{
+    display: "grid",
+    gap: isMobile ? "10px" : "12px",
+    gridTemplateColumns: isMobile
+      ? "repeat(auto-fit, minmax(72px, 1fr))"
+      : "repeat(auto-fit, minmax(94px, 1fr))",
+  }}
+>
         {selectedVenueRaces.map((race) => {
           const active = race.raceNo === selectedRace?.raceNo;
           return (
@@ -3331,16 +3463,16 @@ const activeCardAnalysisPanel = (() => {
               type="button"
               onClick={() => setSelectedRaceNo(race.raceNo)}
               style={{
-                borderRadius: "22px",
+                borderRadius: isMobile ? "18px" : "22px",
                 border: active ? "1.5px solid #cdbff0" : "1px solid #ebe3f3",
                 background: active
                   ? "linear-gradient(180deg, #f7f0ff 0%, #ffffff 55%, #f3f9ff 100%)"
                   : "linear-gradient(180deg, #ffffff 0%, #fbf9fe 100%)",
-                padding: "15px 12px",
+                padding: isMobile ? "12px 9px" : "15px 12px",
                 boxShadow: active ? "0 14px 28px rgba(122,103,184,0.10)" : "0 10px 20px rgba(15, 23, 42, 0.04)",
                 cursor: "pointer",
                 display: "grid",
-                gap: "6px",
+                gap: isMobile ? "5px" : "6px",
               }}
             >
               <div style={{ fontSize: "17px", fontWeight: 900, color: "#081224", lineHeight: 1 }}>{race.raceNo}R</div>
@@ -3351,10 +3483,33 @@ const activeCardAnalysisPanel = (() => {
         })}
       </section>
 
-      <section style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.2fr) minmax(330px, 0.8fr)", gap: "20px", alignItems: "start" }}>
+      <section
+  style={{
+    display: "grid",
+    gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.2fr) minmax(330px, 0.8fr)",
+    gap: isMobile ? "16px" : "20px",
+    alignItems: "start",
+  }}
+>
         <article style={{ display: "grid", gap: "20px" }}>
-          <section style={{ borderRadius: "36px", border: "1px solid #ebe3f3", background: "linear-gradient(180deg, #fffefe 0%, #fbf8fe 100%)", boxShadow: "0 18px 40px rgba(15, 23, 42, 0.06)", padding: "26px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "24px", alignItems: "center", marginBottom: "18px" }}>
+          <section
+  style={{
+    borderRadius: isMobile ? "26px" : "36px",
+    border: "1px solid #ebe3f3",
+    background: "linear-gradient(180deg, #fffefe 0%, #fbf8fe 100%)",
+    boxShadow: "0 18px 40px rgba(15, 23, 42, 0.06)",
+    padding: isMobile ? "18px" : "26px",
+  }}
+>
+<div
+  style={{
+    display: "grid",
+    gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(320px, 1fr))",
+    gap: isMobile ? "16px" : "24px",
+    alignItems: "center",
+    marginBottom: isMobile ? "14px" : "18px",
+  }}
+>
               <div style={{ display: "grid", gap: "18px", minWidth: 0 }}>
                 <div style={{ display: "grid", gap: "10px" }}>
                   <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
@@ -3362,15 +3517,35 @@ const activeCardAnalysisPanel = (() => {
                     <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 10px", fontSize: "11px", fontWeight: 900, background: "#ffffff", color: "#526072", border: "1px solid #ebe3f3" }}>{selectedRace?.raceNo ?? "-"}R</span>
                     <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 10px", fontSize: "11px", fontWeight: 900, background: "#eef8ff", color: "#3d6b98", border: "1px solid #cfe6fb" }}>{selectedRace?.time || "—"} 発走</span>
                   </div>
-                  <h2 style={{ margin: 0, fontSize: "38px", lineHeight: 1.08, letterSpacing: "-0.03em", color: "#081224" }}>{raceTitleLabel}</h2>
-                  <p style={{ margin: 0, fontSize: "15px", lineHeight: 1.9, color: "#64748b", maxWidth: "820px" }}>
+                  <h2
+  style={{
+    margin: 0,
+    fontSize: isMobile ? "28px" : "38px",
+    lineHeight: isMobile ? 1.18 : 1.08,
+    letterSpacing: isMobile ? "-0.02em" : "-0.03em",
+    color: "#081224",
+    wordBreak: "keep-all",
+    overflowWrap: "break-word",
+  }}
+>
+  {raceTitleLabel}
+</h2>
+<p
+  style={{
+    margin: 0,
+    fontSize: isMobile ? "13px" : "15px",
+    lineHeight: isMobile ? 1.75 : 1.9,
+    color: "#64748b",
+    maxWidth: "820px",
+  }}
+>
                     レースの軸情報を大きく見せて、判断材料は下と右に整理。カード・タブ・情報パネルの見せ方はスポーツダッシュボード系のレイアウトを参考に、競輪向けにやわらかく寄せています。
                   </p>
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(120px, 1fr))", gap: "10px", minWidth: "260px", maxWidth: "560px" }}>
                   {raceCompassItems.map((item) => (
-                    <div key={item.label} style={{ borderRadius: "22px", border: "1px solid #ece5f6", background: "linear-gradient(180deg, #ffffff 0%, #faf8fd 100%)", padding: "14px 14px 12px", boxShadow: "0 8px 18px rgba(15, 23, 42, 0.04)" }}>
+                    <div key={item.label} style={{ borderRadius: isMobile ? "18px" : "22px", border: "1px solid #ece5f6", background: "linear-gradient(180deg, #ffffff 0%, #faf8fd 100%)", padding: "14px 14px 12px", boxShadow: "0 8px 18px rgba(15, 23, 42, 0.04)" }}>
                       <div style={{ fontSize: "9px", fontWeight: 900, letterSpacing: "0.16em", color: "#7b8a9d", marginBottom: "8px" }}>{item.label}</div>
                       <div style={{ fontSize: "20px", fontWeight: 900, color: "#081224", lineHeight: 1.1 }}>{item.value}</div>
                       <div style={{ marginTop: "6px", fontSize: "11px", fontWeight: 700, color: "#64748b" }}>{item.sub}</div>
@@ -3408,7 +3583,7 @@ const activeCardAnalysisPanel = (() => {
                   <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
                     {predictionMarks.map((item) => (
                       <div key={`hero-${item.label}`} style={{ minWidth: "112px", borderRadius: "18px", border: `1px solid ${item.tone.border}`, background: "rgba(255,255,255,0.92)", padding: "10px 12px", boxShadow: "0 8px 18px rgba(15, 23, 42, 0.04)" }}>
-                        <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginBottom: "6px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.12em", color: item.tone.text }}>
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: isMobile ? "5px" : "6px", marginBottom: "6px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.12em", color: item.tone.text }}>
                           <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px", height: "20px", borderRadius: "9999px", background: item.tone.bg, border: `1px solid ${item.tone.border}` }}>{markSymbolMap[item.label] ?? "注"}</span>
                           <span>{item.label}</span>
                         </div>
@@ -3433,7 +3608,14 @@ const activeCardAnalysisPanel = (() => {
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "12px", marginBottom: "14px" }}>
+              <div
+  style={{
+    display: "grid",
+    gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))",
+    gap: isMobile ? "10px" : "12px",
+    marginBottom: "14px",
+  }}
+>
                 {selectedRaceResultCards.map((item) => (
                   <div key={item.label} style={{ borderRadius: "18px", border: "1px solid #e5edf5", background: "#ffffff", padding: "12px 13px" }}>
                     <div style={{ fontSize: "9px", fontWeight: 900, letterSpacing: "0.16em", color: "#7b8a9d", marginBottom: "6px" }}>{item.label}</div>
@@ -3443,7 +3625,14 @@ const activeCardAnalysisPanel = (() => {
                 ))}
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px", marginBottom: "14px" }}>
+              <div
+  style={{
+    display: "grid",
+    gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))",
+    gap: isMobile ? "8px" : "10px",
+    marginBottom: "14px",
+  }}
+>
                 {[
                   { label: "天候", value: selectedRaceWeatherActual?.weather || "--" },
                   { label: "風向", value: selectedRaceWeatherActual?.windDirection || "--" },
@@ -3458,7 +3647,13 @@ const activeCardAnalysisPanel = (() => {
                 ))}
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.05fr) minmax(260px, 0.95fr)", gap: "12px" }}>
+<div
+  style={{
+    display: "grid",
+    gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.05fr) minmax(260px, 0.95fr)",
+    gap: "12px",
+  }}
+>
                 <div style={{ borderRadius: "18px", border: "1px solid #ece5f6", background: "#fffefe", padding: "14px" }}>
                   <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#7b8a9d", marginBottom: "8px" }}>全着順</div>
                   {selectedRaceAllRows.length > 0 ? (
@@ -3470,7 +3665,19 @@ const activeCardAnalysisPanel = (() => {
   const displayResultName = item.name.replace(/\s*お気に入り選手\s*[-ー−–—]*>\s*/g, "").trim();
 
   return (
-                          <div key={`${item.place}-${item.carNo}-${item.name}`} style={{ display: "grid", gridTemplateColumns: "44px 52px minmax(0, 1fr) auto", gap: "10px", alignItems: "center", borderRadius: "14px", border: "1px solid #edf2f7", background: "#ffffff", padding: "10px 12px" }}>
+                          <div
+  key={`${item.place}-${item.carNo}-${item.name}`}
+  style={{
+    display: "grid",
+    gridTemplateColumns: isMobile ? "38px 42px minmax(0, 1fr) auto" : "44px 52px minmax(0, 1fr) auto",
+    gap: isMobile ? "7px" : "10px",
+    alignItems: "center",
+    borderRadius: "14px",
+    border: "1px solid #edf2f7",
+    background: "#ffffff",
+    padding: isMobile ? "9px 9px" : "10px 12px",
+  }}
+>
                             <div style={{ fontSize: "15px", fontWeight: 900, color: "#081224" }}>{item.place}着</div>
                             <div>
                               <div style={{ fontSize: "15px", fontWeight: 900, color: "#7a67b8" }}>{item.carNo}</div>
@@ -3530,7 +3737,16 @@ const activeCardAnalysisPanel = (() => {
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: "10px", marginBottom: "16px" }}>
+              <div
+  style={{
+    display: isMobile ? "flex" : "grid",
+    gridTemplateColumns: isMobile ? undefined : "repeat(5, minmax(0, 1fr))",
+    gap: isMobile ? "8px" : "10px",
+    marginBottom: "16px",
+    overflowX: isMobile ? "auto" : "visible",
+    paddingBottom: isMobile ? "2px" : 0,
+  }}
+>
                 {raceInfoTabs.map((tab) => {
                   const active = activeRaceInfoTab === tab.key;
                   return (
@@ -3540,14 +3756,16 @@ const activeCardAnalysisPanel = (() => {
                       onClick={() => setActiveRaceInfoTab(tab.key)}
                       style={{
                         textAlign: "left",
-                        borderRadius: "20px",
+                        borderRadius: isMobile ? "18px" : "20px",
                         border: active ? "1.5px solid #ccbaf0" : "1px solid #ebe3f3",
                         background: active ? "linear-gradient(180deg, #f7f0ff 0%, #ffffff 60%, #f3f9ff 100%)" : "linear-gradient(180deg, #ffffff 0%, #fbf9fe 100%)",
-                        padding: "13px 12px",
+                        padding: isMobile ? "11px 12px" : "13px 12px",
                         boxShadow: active ? "0 12px 24px rgba(122,103,184,0.10)" : "0 6px 14px rgba(15, 23, 42, 0.03)",
                         cursor: "pointer",
                         display: "grid",
                         gap: "4px",
+                        minWidth: isMobile ? "112px" : undefined,
+                        flexShrink: isMobile ? 0 : undefined,
                       }}
                     >
                       <div style={{ fontSize: "13px", fontWeight: 900, color: "#081224" }}>{tab.label}</div>
@@ -3587,7 +3805,13 @@ const activeCardAnalysisPanel = (() => {
                     })}
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1.05fr 0.95fr", gap: "12px" }}>
+                  <div
+  style={{
+    display: "grid",
+    gridTemplateColumns: isMobile ? "1fr" : "1.05fr 0.95fr",
+    gap: "12px",
+  }}
+>
                     <div style={{ borderRadius: "18px", border: "1px solid #ece5f6", background: "#fffefe", padding: "14px" }}>
                       <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#7b8a9d", marginBottom: "8px" }}>並び予想</div>
                       <div style={{ display: "grid", gap: "10px" }}>
@@ -3646,14 +3870,20 @@ const activeCardAnalysisPanel = (() => {
                     </div>
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "12px" }}>
+                  <div
+  style={{
+    display: "grid",
+    gridTemplateColumns: isMobile ? "1fr" : "repeat(4, minmax(0, 1fr))",
+    gap: "12px",
+  }}
+>
                     {enhancedRiderRows.slice(0, 4).map(({ rider, metrics, markInfo, profileLine }) => {
                       const tone = getRacesPageCarTone(rider.carNo);
                       return (
                         <div key={`rider-summary-${rider.carNo}`} style={{ borderRadius: "18px", border: "1px solid #ebe3f3", background: "linear-gradient(180deg, #ffffff 0%, #faf8fd 100%)", padding: "14px", boxShadow: "0 8px 18px rgba(15, 23, 42, 0.04)" }}>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", marginBottom: "10px" }}>
                             <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "34px", height: "34px", borderRadius: "9999px", background: tone.bg, color: tone.text, border: `1px solid ${tone.border}`, fontWeight: 900 }}>{rider.carNo}</span>
-                            <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
+                            <div style={{ display: "flex", gap: isMobile ? "5px" : "6px", alignItems: "center", flexWrap: "wrap" }}>
                               {markInfo && <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: "28px", height: "28px", borderRadius: "9999px", fontSize: "12px", fontWeight: 900, background: markInfo.tone.bg, color: markInfo.tone.text, border: `1px solid ${markInfo.tone.border}` }}>{markInfo.symbol}</span>}
                               <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "4px 8px", fontSize: "10px", fontWeight: 800, background: "#f8fafc", color: "#526072", border: "1px solid #e5edf5" }}>{rider.style || "脚質待ち"}</span>
                             </div>
@@ -3689,7 +3919,7 @@ const activeCardAnalysisPanel = (() => {
               )}
 
               {activeRaceInfoTab === "recent" && (
-                <div style={{ overflowX: "auto", borderRadius: "22px", border: "1px solid #ebe3f3", background: "rgba(255,255,255,0.94)" }}>
+                <div style={{ overflowX: "auto", borderRadius: isMobile ? "18px" : "22px", border: "1px solid #ebe3f3", background: "rgba(255,255,255,0.94)" }}>
                   <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, minWidth: "860px" }}>
                     <thead>
                       <tr>
@@ -3719,7 +3949,7 @@ const activeCardAnalysisPanel = (() => {
               )}
 
               {activeRaceInfoTab === "matchup" && (
-                <div style={{ overflowX: "auto", borderRadius: "22px", border: "1px solid #ebe3f3", background: "rgba(255,255,255,0.94)" }}>
+                <div style={{ overflowX: "auto", borderRadius: isMobile ? "18px" : "22px", border: "1px solid #ebe3f3", background: "rgba(255,255,255,0.94)" }}>
                   <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, minWidth: "860px" }}>
                     <thead>
                       <tr>
@@ -3746,7 +3976,7 @@ const activeCardAnalysisPanel = (() => {
               )}
 
               {activeRaceInfoTab === "track" && (
-                <div style={{ overflowX: "auto", borderRadius: "22px", border: "1px solid #ebe3f3", background: "rgba(255,255,255,0.94)" }}>
+                <div style={{ overflowX: "auto", borderRadius: isMobile ? "18px" : "22px", border: "1px solid #ebe3f3", background: "rgba(255,255,255,0.94)" }}>
                   <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, minWidth: "860px" }}>
                     <thead>
                       <tr>
@@ -3803,11 +4033,11 @@ const activeCardAnalysisPanel = (() => {
               </div>
 
               {trifectaOddsRows.length === 0 ? (
-                <div style={{ borderRadius: "22px", border: "1px dashed #ddd1f3", background: "linear-gradient(180deg, #fffefe 0%, #faf8fd 100%)", padding: "18px", fontSize: "13px", lineHeight: 1.9, color: "#64748b" }}>
+                <div style={{ borderRadius: isMobile ? "18px" : "22px", border: "1px dashed #ddd1f3", background: "linear-gradient(180deg, #fffefe 0%, #faf8fd 100%)", padding: "18px", fontSize: "13px", lineHeight: 1.9, color: "#64748b" }}>
                   3連単オッズ未取得
                 </div>
               ) : (
-                <div style={{ borderRadius: "22px", border: "1px solid #ddd5ee", background: "rgba(255,255,255,0.96)", overflow: "hidden", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.7)" }}>
+                <div style={{ borderRadius: isMobile ? "18px" : "22px", border: "1px solid #ddd5ee", background: "rgba(255,255,255,0.96)", overflow: "hidden", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.7)" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", padding: "12px 14px", borderBottom: "1px solid #ece5f6", background: "linear-gradient(180deg, #fbf8fe 0%, #f6f1fb 100%)" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
@@ -3822,17 +4052,18 @@ const activeCardAnalysisPanel = (() => {
                               key={option.key}
                               type="button"
                               onClick={() => setOddsSortMode(option.key as "popularity" | "odds")}
-                              style={{
-                                borderRadius: "9999px",
-                                border: `1px solid ${isActive ? "#cfc0eb" : "#dfd6ef"}`,
-                                background: isActive ? "#efe7fb" : "rgba(255,255,255,0.9)",
-                                color: isActive ? "#6b54a4" : "#66758a",
-                                fontSize: "12px",
-                                fontWeight: 800,
-                                padding: "6px 11px",
-                                lineHeight: 1,
-                                cursor: "pointer",
-                              }}
+style={{
+  borderRadius: "9999px",
+  border: `1px solid ${isActive ? "#cfc0eb" : "#dfd6ef"}`,
+  background: isActive ? "#efe7fb" : "rgba(255,255,255,0.9)",
+  color: isActive ? "#6b54a4" : "#66758a",
+  fontSize: isMobile ? "11px" : "12px",
+  fontWeight: 800,
+  padding: isMobile ? "6px 10px" : "6px 11px",
+  lineHeight: 1,
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+}}
                             >
                               {option.label}
                             </button>
@@ -3852,17 +4083,18 @@ const activeCardAnalysisPanel = (() => {
                               key={String(option.key)}
                               type="button"
                               onClick={() => setOddsDisplayLimit(option.key as 50 | 100 | "all")}
-                              style={{
-                                borderRadius: "9999px",
-                                border: `1px solid ${isActive ? "#cfc0eb" : "#dfd6ef"}`,
-                                background: isActive ? "#efe7fb" : "rgba(255,255,255,0.9)",
-                                color: isActive ? "#6b54a4" : "#66758a",
-                                fontSize: "12px",
-                                fontWeight: 800,
-                                padding: "6px 11px",
-                                lineHeight: 1,
-                                cursor: "pointer",
-                              }}
+style={{
+  borderRadius: "9999px",
+  border: `1px solid ${isActive ? "#cfc0eb" : "#dfd6ef"}`,
+  background: isActive ? "#efe7fb" : "rgba(255,255,255,0.9)",
+  color: isActive ? "#6b54a4" : "#66758a",
+  fontSize: isMobile ? "11px" : "12px",
+  fontWeight: 800,
+  padding: isMobile ? "6px 10px" : "6px 11px",
+  lineHeight: 1,
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+}}
                             >
                               {option.label}
                             </button>
@@ -3870,15 +4102,54 @@ const activeCardAnalysisPanel = (() => {
                         })}
                       </div>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
-                      <span style={{ fontSize: "11px", fontWeight: 800, color: "#6b7280" }}>{`${oddsDataSourceLabel}: ${oddsFetchedCount}件`}</span>
-                      <span style={{ width: "4px", height: "4px", borderRadius: "9999px", background: "#c8bbdf", display: "inline-block" }} />
-                      <span style={{ fontSize: "11px", fontWeight: 800, color: "#6b7280" }}>{`表示: ${oddsVisibleCount}件`}</span>
-                    </div>
-                  </div>
+                  <div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: isMobile ? "6px" : "8px",
+    flexWrap: "wrap",
+    justifyContent: isMobile ? "flex-start" : "flex-end",
+  }}
+>
+<span
+  style={{
+    fontSize: isMobile ? "10.5px" : "11px",
+    fontWeight: 800,
+    color: "#6b7280",
+  }}
+>
+  {`${oddsDataSourceLabel}: ${oddsFetchedCount}件`}
+</span>
+<span style={{ width: "4px", height: "4px", borderRadius: "9999px", background: "#c8bbdf", display: "inline-block" }} />
+<span
+  style={{
+    fontSize: isMobile ? "10.5px" : "11px",
+    fontWeight: 800,
+    color: "#6b7280",
+  }}
+>
+  {`表示: ${oddsVisibleCount}件`}
+</span>
+</div>
+</div>
 
-                  <div style={{ maxHeight: "480px", overflow: "auto", background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(252,249,255,0.98) 100%)" }}>
-                    <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, minWidth: "620px", tableLayout: "fixed" }}>
+<div
+  style={{
+    maxHeight: isMobile ? "420px" : "480px",
+    overflow: "auto",
+    background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(252,249,255,0.98) 100%)",
+    WebkitOverflowScrolling: "touch",
+  }}
+>
+<table
+  style={{
+    width: "100%",
+    borderCollapse: "separate",
+    borderSpacing: 0,
+    minWidth: isMobile ? "560px" : "620px",
+    tableLayout: "fixed",
+  }}
+>
                       <thead>
                         <tr style={{ background: "#f7f2fc" }}>
                           {[
@@ -3889,20 +4160,20 @@ const activeCardAnalysisPanel = (() => {
                           ].map((column) => (
                             <th
                               key={column.label}
-                              style={{
-                                position: "sticky",
-                                top: 0,
-                                zIndex: 2,
-                                padding: "10px 12px",
-                                fontSize: "10px",
-                                fontWeight: 900,
-                                letterSpacing: "0.16em",
-                                color: "#7a67b8",
-                                textAlign: column.align,
-                                borderBottom: "1px solid #e6ddf4",
-                                background: "#f7f2fc",
-                                whiteSpace: "nowrap",
-                              }}
+style={{
+  position: "sticky",
+  top: 0,
+  zIndex: 2,
+  padding: isMobile ? "9px 9px" : "10px 12px",
+  fontSize: isMobile ? "9.5px" : "10px",
+  fontWeight: 900,
+  letterSpacing: "0.16em",
+  color: "#7a67b8",
+  textAlign: column.align,
+  borderBottom: "1px solid #e6ddf4",
+  background: "#f7f2fc",
+  whiteSpace: "nowrap",
+}}
                             >
                               {column.label}
                             </th>
@@ -3912,70 +4183,242 @@ const activeCardAnalysisPanel = (() => {
                       <tbody>
                         {displayedTrifectaOddsRows.map((item, index) => (
                           <tr key={`trifecta-odds-${item.combo}-${index}`} style={{ background: index % 2 === 0 ? "rgba(255,255,255,0.98)" : "#fcfaff" }}>
-                            <td style={{ width: "86px", padding: "8px 12px", borderBottom: "1px solid #f0e8f8", textAlign: "center", verticalAlign: "middle" }}>
-                              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: "34px", height: "26px", borderRadius: "9999px", background: "#f3ecfb", color: "#6f5aa9", fontSize: "12px", fontWeight: 900, border: "1px solid #e2d8f4" }}>
-                                {item.popularityRank}
-                              </span>
-                            </td>
-                            <td style={{ width: "44%", padding: "8px 12px", borderBottom: "1px solid #f0e8f8", verticalAlign: "middle" }}>
-                              <div style={{ fontSize: "17px", fontWeight: 900, color: "#12213c", lineHeight: 1.1, letterSpacing: "0.01em" }}>{item.comboDisplay}</div>
-                              {item.points >= 2 ? (
-                                <div style={{ marginTop: "3px", fontSize: "10px", fontWeight: 800, color: "#7b8a9d", letterSpacing: "0.08em" }}>{`${item.points}点まとめ表示`}</div>
-                              ) : null}
-                            </td>
-                            <td style={{ width: "28%", padding: "8px 12px", borderBottom: "1px solid #f0e8f8", verticalAlign: "middle" }}>
-                              <div style={{ display: "grid", gap: "3px" }}>
-                                <div style={{ fontSize: "21px", fontWeight: 900, color: "#5b4698", lineHeight: 1.02, fontVariantNumeric: "tabular-nums" }}>{formatOddsValue(item.floorOdds)}</div>
-                                {item.ceilingOdds !== null && item.ceilingOdds !== item.floorOdds ? (
-                                  <div style={{ fontSize: "11px", fontWeight: 800, color: "#8b78bc", lineHeight: 1.25, fontVariantNumeric: "tabular-nums" }}>{`最高 ${formatOddsValue(item.ceilingOdds)}`}</div>
-                                ) : null}
-                              </div>
-                            </td>
-                            <td style={{ width: "100px", padding: "8px 12px", borderBottom: "1px solid #f0e8f8", textAlign: "center", verticalAlign: "middle" }}>
-                              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "4px 9px", fontSize: "10px", fontWeight: 900, color: item.band.tone.text, background: item.band.tone.bg, border: `1px solid ${item.band.tone.border}`, whiteSpace: "nowrap" }}>
-                                {item.band.label}
-                              </span>
-                            </td>
+<td
+  style={{
+    width: isMobile ? "70px" : "86px",
+    padding: isMobile ? "7px 9px" : "8px 12px",
+    borderBottom: "1px solid #f0e8f8",
+    textAlign: "center",
+    verticalAlign: "middle",
+  }}
+>
+<span
+  style={{
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: isMobile ? "30px" : "34px",
+    height: isMobile ? "24px" : "26px",
+    borderRadius: "9999px",
+    background: "#f3ecfb",
+    color: "#6f5aa9",
+    fontSize: isMobile ? "11px" : "12px",
+    fontWeight: 900,
+    border: "1px solid #e2d8f4",
+  }}
+>
+{item.popularityRank}
+</span>
+</td>
+<td
+  style={{
+    width: "44%",
+    padding: isMobile ? "7px 9px" : "8px 12px",
+    borderBottom: "1px solid #f0e8f8",
+    verticalAlign: "middle",
+  }}
+>
+<div
+  style={{
+    fontSize: isMobile ? "15px" : "17px",
+    fontWeight: 900,
+    color: "#12213c",
+    lineHeight: 1.12,
+    letterSpacing: "0.01em",
+  }}
+>
+  {item.comboDisplay}
+</div>
+{item.points >= 2 ? (
+<div
+  style={{
+    marginTop: "3px",
+    fontSize: isMobile ? "9.5px" : "10px",
+    fontWeight: 800,
+    color: "#7b8a9d",
+    letterSpacing: "0.08em",
+  }}
+>
+  {`${item.points}点まとめ表示`}
+</div>
+) : null}
+</td>
+<td
+  style={{
+    width: "28%",
+    padding: isMobile ? "7px 9px" : "8px 12px",
+    borderBottom: "1px solid #f0e8f8",
+    verticalAlign: "middle",
+  }}
+>
+<div style={{ display: "grid", gap: "3px" }}>
+<div
+  style={{
+    fontSize: isMobile ? "18px" : "21px",
+    fontWeight: 900,
+    color: "#5b4698",
+    lineHeight: 1.04,
+    fontVariantNumeric: "tabular-nums",
+  }}
+>
+  {formatOddsValue(item.floorOdds)}
+</div>
+{item.ceilingOdds !== null && item.ceilingOdds !== item.floorOdds ? (
+<div
+  style={{
+    fontSize: isMobile ? "10px" : "11px",
+    fontWeight: 800,
+    color: "#8b78bc",
+    lineHeight: 1.25,
+    fontVariantNumeric: "tabular-nums",
+  }}
+>
+  {`最高 ${formatOddsValue(item.ceilingOdds)}`}
+</div>
+) : null}
+</div>
+</td>
+<td
+  style={{
+    width: isMobile ? "86px" : "100px",
+    padding: isMobile ? "7px 9px" : "8px 12px",
+    borderBottom: "1px solid #f0e8f8",
+    textAlign: "center",
+    verticalAlign: "middle",
+  }}
+>
+  <span
+    style={{
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: "9999px",
+      padding: isMobile ? "4px 8px" : "4px 9px",
+      fontSize: isMobile ? "9.5px" : "10px",
+      fontWeight: 900,
+      color: item.band.tone.text,
+      background: item.band.tone.bg,
+      border: `1px solid ${item.band.tone.border}`,
+      whiteSpace: "nowrap",
+    }}
+  >
+    {item.band.label}
+  </span>
+</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", padding: "10px 14px", borderTop: "1px solid #ece5f6", background: "#fbf9fe" }}>
-                    <span style={{ fontSize: "11px", fontWeight: 800, color: "#66758a" }}>{`${oddsDataSourceLabel}: ${oddsFetchedCount}件`}</span>
-                    <span style={{ fontSize: "11px", fontWeight: 800, color: "#66758a" }}>
-                      {oddsDisplayLimit === "all" ? `全件表示中: ${oddsVisibleCount}件` : `${oddsVisibleCount}件を表示中`}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </section>
+<div
+  style={{
+    display: "flex",
+    alignItems: isMobile ? "flex-start" : "center",
+    justifyContent: isMobile ? "flex-start" : "space-between",
+    gap: isMobile ? "6px 10px" : "12px",
+    flexWrap: "wrap",
+    padding: isMobile ? "9px 12px" : "10px 14px",
+    borderTop: "1px solid #ece5f6",
+    background: "#fbf9fe",
+  }}
+>
+  <span
+    style={{
+      fontSize: isMobile ? "10.5px" : "11px",
+      fontWeight: 800,
+      color: "#66758a",
+      lineHeight: 1.5,
+      whiteSpace: "nowrap",
+    }}
+  >
+    {`${oddsDataSourceLabel}: ${oddsFetchedCount}件`}
+  </span>
+  <span
+    style={{
+      fontSize: isMobile ? "10.5px" : "11px",
+      fontWeight: 800,
+      color: "#66758a",
+      lineHeight: 1.5,
+      whiteSpace: "nowrap",
+    }}
+  >
+    {oddsDisplayLimit === "all" ? `全件表示中: ${oddsVisibleCount}件` : `${oddsVisibleCount}件を表示中`}
+  </span>
+  </div>
+  </div>
+   )}
+  </section>
 
-          </section>
+  </section>
 
-        </article>
+  </article>
 
-        <aside style={{ display: "grid", gap: "18px" }}>
-          <article style={{ borderRadius: "32px", border: "1px solid #ebe3f3", background: "linear-gradient(180deg, #fffefe 0%, #f8f0ff 56%, #f3f9ff 100%)", boxShadow: "0 18px 40px rgba(15, 23, 42, 0.06)", padding: "24px 22px" }}>
-            <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7", marginBottom: "14px" }}>INFORMATION SIDE</div>
-            <div style={{ display: "grid", gap: "12px" }}>
+<aside
+  style={{
+    display: "grid",
+    gap: isMobile ? "14px" : "18px",
+  }}
+>
+<article
+  style={{
+    borderRadius: isMobile ? "24px" : "32px",
+    border: "1px solid #ebe3f3",
+    background: "linear-gradient(180deg, #fffefe 0%, #f8f0ff 56%, #f3f9ff 100%)",
+    boxShadow: "0 18px 40px rgba(15, 23, 42, 0.06)",
+    padding: isMobile ? "18px 16px" : "24px 22px",
+  }}
+>
+<div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7", marginBottom: "14px" }}>INFORMATION SIDE</div>
+<div
+  style={{
+    display: "grid",
+    gap: isMobile ? "10px" : "12px",
+  }}
+>
               {sideInsightCards.map((item) => (
                 item.kind === "weather" ? (
-                  <div
-                    key={item.label}
-                    style={{
-                      borderRadius: "24px",
-                      border: item.tone.border,
-                      background: item.tone.background,
-                      padding: "16px 16px 15px",
-                      boxShadow: "0 10px 22px rgba(15, 23, 42, 0.04)",
-                      display: "grid",
-                      gap: "14px",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "42px 1fr", gap: "12px", alignItems: "center", minWidth: 0 }}>
-                        <div style={{ width: "42px", height: "42px", borderRadius: "14px", background: item.tone.accentSoft, border: `1px solid ${item.tone.accentSoft}`, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "22px" }}>
+<div
+  key={item.label}
+  style={{
+    borderRadius: isMobile ? "20px" : "24px",
+    border: item.tone.border,
+    background: item.tone.background,
+    padding: isMobile ? "14px 13px" : "16px 16px 15px",
+    boxShadow: "0 10px 22px rgba(15, 23, 42, 0.04)",
+    display: "grid",
+    gap: isMobile ? "11px" : "14px",
+  }}
+>
+<div
+  style={{
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: isMobile ? "9px" : "12px",
+  }}
+>
+<div
+  style={{
+    display: "grid",
+    gridTemplateColumns: isMobile ? "38px 1fr" : "42px 1fr",
+    gap: isMobile ? "9px" : "12px",
+    alignItems: "center",
+    minWidth: 0,
+  }}
+>
+<div
+  style={{
+    width: isMobile ? "38px" : "42px",
+    height: isMobile ? "38px" : "42px",
+    borderRadius: isMobile ? "12px" : "14px",
+    background: item.tone.accentSoft,
+    border: `1px solid ${item.tone.accentSoft}`,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: isMobile ? "20px" : "22px",
+  }}
+>
                           {item.icon}
                         </div>
                         <div style={{ minWidth: 0 }}>
@@ -3998,68 +4441,273 @@ const activeCardAnalysisPanel = (() => {
                     </div>
                   </div>
                 ) : (
-                  <div
-                    key={item.label}
-                    style={{
-                      borderRadius: "22px",
-                      border: item.tone.border,
-                      background: item.tone.background,
-                      padding: "16px 16px 15px",
-                      boxShadow: "0 10px 22px rgba(15, 23, 42, 0.035)",
-                      display: "grid",
-                      gap: "10px",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
-                      <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
-                        <span style={{ width: "9px", height: "9px", borderRadius: "9999px", background: item.tone.accent, boxShadow: `0 0 0 6px ${item.tone.accentSoft}` }} />
+<div
+  key={item.label}
+  style={{
+    borderRadius: isMobile ? "18px" : "22px",
+    border: item.tone.border,
+    background: item.tone.background,
+    padding: isMobile ? "14px 13px" : "16px 16px 15px",
+    boxShadow: "0 10px 22px rgba(15, 23, 42, 0.035)",
+    display: "grid",
+    gap: isMobile ? "8px" : "10px",
+  }}
+>
+<div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: isMobile ? "8px" : "10px",
+  }}
+>
+<div
+  style={{
+    display: "inline-flex",
+    alignItems: "center",
+    gap: isMobile ? "7px" : "8px",
+    minWidth: 0,
+  }}
+>
+<span
+  style={{
+    width: isMobile ? "8px" : "9px",
+    height: isMobile ? "8px" : "9px",
+    borderRadius: "9999px",
+    background: item.tone.accent,
+    boxShadow: `0 0 0 ${isMobile ? "4px" : "6px"} ${item.tone.accentSoft}`,
+    flexShrink: 0,
+  }}
+/>
                         <div style={{ minWidth: 0 }}>
                           <div style={{ fontSize: "9.5px", fontWeight: 900, letterSpacing: "0.18em", color: item.tone.label, marginBottom: "3px" }}>{item.eyebrow}</div>
                           <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b8a9d" }}>{item.label}</div>
                         </div>
                       </div>
-                      <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "4px 8px", fontSize: "10px", fontWeight: 800, background: "rgba(255,255,255,0.82)", color: item.tone.accent, border: `1px solid ${item.tone.accentSoft}` }}>{item.badge}</span>
+<span
+  style={{
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "9999px",
+    padding: isMobile ? "4px 7px" : "4px 8px",
+    fontSize: isMobile ? "9.5px" : "10px",
+    fontWeight: 800,
+    background: "rgba(255,255,255,0.82)",
+    color: item.tone.accent,
+    border: `1px solid ${item.tone.accentSoft}`,
+    whiteSpace: "nowrap",
+    flexShrink: 0,
+  }}
+>
+  {item.badge}
+</span>
                     </div>
-                    <div style={{ fontSize: "16px", fontWeight: 900, color: item.muted ? "#6d798d" : "#081224", lineHeight: 1.72, letterSpacing: item.muted ? "0.01em" : "-0.01em" }}>{item.value}</div>
-                    <div style={{ fontSize: "11.5px", color: item.muted ? "#8b95a7" : "#64748b", lineHeight: 1.8 }}>{item.note}</div>
-                  </div>
-                )
-              ))}
-            </div>
-          </article>
+<div
+  style={{
+    fontSize: isMobile ? "14.5px" : "16px",
+    fontWeight: 900,
+    color: item.muted ? "#6d798d" : "#081224",
+    lineHeight: isMobile ? 1.62 : 1.72,
+    letterSpacing: item.muted ? "0.01em" : "-0.01em",
+    wordBreak: "break-word",
+  }}
+>
+  {item.value}
+</div>
+<div
+  style={{
+    fontSize: isMobile ? "11px" : "11.5px",
+    color: item.muted ? "#8b95a7" : "#64748b",
+    lineHeight: isMobile ? 1.65 : 1.8,
+  }}
+>
+  {item.note}
+</div>
+</div>
+)
+))}
+</div>
+</article>
 
-          <article style={{ borderRadius: "32px", border: "1px solid #ebe3f3", background: "linear-gradient(180deg, #fffefe 0%, #fbf8fe 100%)", boxShadow: "0 18px 40px rgba(15, 23, 42, 0.05)", padding: "22px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", marginBottom: "12px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", flexWrap: "wrap" }}><div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7" }}>BANK / PACE</div><span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "5px 9px", fontSize: "10px", fontWeight: 800, background: "#fffafc", color: "#8a3557", border: "1px solid #f3d7e2" }}>{selectedVenueGuideSummary.statusLabel}</span></div>
-              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "5px 9px", fontSize: "10px", fontWeight: 900, background: chaosTone.bg, color: chaosTone.text, border: `1px solid ${chaosTone.border}` }}>{selectedVenueGuideSummary.volatility.label}</span>
-            </div>
-            <div style={{ display: "grid", gap: "10px", marginBottom: "12px" }}>
-              <div style={{ borderRadius: "20px", border: "1px solid #e8def4", background: "rgba(255,255,255,0.94)", padding: "14px 14px 13px" }}>
+<article
+  style={{
+    borderRadius: isMobile ? "24px" : "32px",
+    border: "1px solid #ebe3f3",
+    background: "linear-gradient(180deg, #fffefe 0%, #fbf8fe 100%)",
+    boxShadow: "0 18px 40px rgba(15, 23, 42, 0.05)",
+    padding: isMobile ? "18px 16px" : "22px",
+  }}
+>
+<div
+  style={{
+    display: "flex",
+    alignItems: isMobile ? "flex-start" : "center",
+    justifyContent: "space-between",
+    gap: isMobile ? "8px" : "10px",
+    marginBottom: isMobile ? "10px" : "12px",
+    flexWrap: "wrap",
+  }}
+>
+<div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    gap: isMobile ? "7px" : "10px",
+    flexWrap: "wrap",
+    minWidth: 0,
+  }}
+>
+              <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7" }}>BANK / PACE</div>
+              <span
+  style={{
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "9999px",
+    padding: isMobile ? "5px 8px" : "5px 9px",
+    fontSize: isMobile ? "9.5px" : "10px",
+    fontWeight: 800,
+    background: "#fffafc",
+    color: "#8a3557",
+    border: "1px solid #f3d7e2",
+    whiteSpace: "nowrap",
+    maxWidth: isMobile ? "100%" : undefined,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  }}
+>
+  {selectedVenueGuideSummary.statusLabel}
+</span>
+</div>
+<span
+  style={{
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "9999px",
+    padding: isMobile ? "5px 8px" : "5px 9px",
+    fontSize: isMobile ? "9.5px" : "10px",
+    fontWeight: 900,
+    background: chaosTone.bg,
+    color: chaosTone.text,
+    border: `1px solid ${chaosTone.border}`,
+    whiteSpace: "nowrap",
+    flexShrink: 0,
+  }}
+>
+  {selectedVenueGuideSummary.volatility.label}
+</span>
+</div>
+<div
+  style={{
+    display: "grid",
+    gap: isMobile ? "8px" : "10px",
+    marginBottom: isMobile ? "10px" : "12px",
+  }}
+>
+<div
+  style={{
+    borderRadius: isMobile ? "18px" : "20px",
+    border: "1px solid #e8def4",
+    background: "rgba(255,255,255,0.94)",
+    padding: isMobile ? "12px 12px 11px" : "14px 14px 13px",
+  }}
+>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", marginBottom: "8px" }}>
                   <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b8a9d" }}>会場タイプ</div>
                   <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "5px 9px", fontSize: "10px", fontWeight: 900, background: "#f5efff", color: "#6f5aa9", border: "1px solid #ddd1f3" }}>{selectedVenueGuideSummary.venueType}</span>
                 </div>
                 <div style={{ fontSize: "13px", lineHeight: 1.85, color: "#425266" }}>{selectedVenueGuideSummary.venueMemo}</div>
               </div>
-              {bankGuideItems.map((item) => (
-                <div key={item.label} style={{ borderRadius: "18px", border: "1px solid #e8def4", background: "rgba(255,255,255,0.92)", padding: "13px 14px" }}>
-                  <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b8a9d", marginBottom: "6px" }}>{item.label}</div>
-                  <div style={{ fontSize: "13px", lineHeight: 1.85, color: "#425266" }}>{item.value}</div>
-                </div>
-              ))}
-            </div>
-          </article>
+{bankGuideItems.map((item) => (
+  <div
+    key={item.label}
+    style={{
+      borderRadius: isMobile ? "16px" : "18px",
+      border: "1px solid #e8def4",
+      background: "rgba(255,255,255,0.92)",
+      padding: isMobile ? "11px 12px" : "13px 14px",
+    }}
+  >
+    <div
+      style={{
+        fontSize: isMobile ? "9.5px" : "10px",
+        fontWeight: 900,
+        letterSpacing: "0.14em",
+        color: "#7b8a9d",
+        marginBottom: isMobile ? "5px" : "6px",
+      }}
+    >
+      {item.label}
+    </div>
+    <div
+      style={{
+        fontSize: isMobile ? "12.5px" : "13px",
+        lineHeight: isMobile ? 1.7 : 1.85,
+        color: "#425266",
+        wordBreak: "break-word",
+      }}
+    >
+      {item.value}
+    </div>
+  </div>
+))}
+</div>
+</article>
 
-          <article style={{ borderRadius: "32px", border: "1px solid #ebe3f3", background: "linear-gradient(180deg, #fffefe 0%, #fbf8fe 100%)", boxShadow: "0 18px 40px rgba(15, 23, 42, 0.05)", padding: "22px" }}>
-            <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7", marginBottom: "10px" }}>GPT用素材テンプレ</div>
-            <div style={{ fontSize: "12px", fontWeight: 900, color: parsedRaceLineup ? "#5b4b89" : "#b45309", marginBottom: "10px" }}>{raceLineupFixedCaption}</div>
-            <div style={{ borderRadius: "22px", border: "1px solid #e8def4", background: "rgba(255,255,255,0.9)", padding: "16px", fontSize: "13px", lineHeight: 1.9, color: "#425266", whiteSpace: "pre-wrap" }}>
-              {gptTemplate}
-            </div>
-          </article>
-        </aside>
-      </section>
-    </section>
-  </>
+<article
+  style={{
+    borderRadius: isMobile ? "24px" : "32px",
+    border: "1px solid #ebe3f3",
+    background: "linear-gradient(180deg, #fffefe 0%, #fbf8fe 100%)",
+    boxShadow: "0 18px 40px rgba(15, 23, 42, 0.05)",
+    padding: isMobile ? "18px 16px" : "22px",
+  }}
+>
+<div
+  style={{
+    fontSize: isMobile ? "10.5px" : "11px",
+    fontWeight: 900,
+    letterSpacing: "0.18em",
+    color: "#8c63c7",
+    marginBottom: isMobile ? "8px" : "10px",
+  }}
+>
+  GPT用素材テンプレ
+</div>
+<div
+  style={{
+    fontSize: isMobile ? "11.5px" : "12px",
+    fontWeight: 900,
+    color: parsedRaceLineup ? "#5b4b89" : "#b45309",
+    marginBottom: isMobile ? "8px" : "10px",
+    lineHeight: 1.6,
+  }}
+>
+  {raceLineupFixedCaption}
+</div>
+<div
+  style={{
+    borderRadius: isMobile ? "18px" : "22px",
+    border: "1px solid #e8def4",
+    background: "rgba(255,255,255,0.9)",
+    padding: isMobile ? "13px 12px" : "16px",
+    fontSize: isMobile ? "12px" : "13px",
+    lineHeight: isMobile ? 1.75 : 1.9,
+    color: "#425266",
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
+    overflowWrap: "anywhere",
+  }}
+>
+  {gptTemplate}
+</div>
+</article>
+</aside>
+</section>
+</section>
+</>
 );
 }
