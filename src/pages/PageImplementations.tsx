@@ -132,6 +132,27 @@ export function useDashboardNow() {
   return dashboardNow;
 }
 
+export function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.innerWidth <= breakpoint;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= breakpoint);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [breakpoint]);
+
+  return isMobile;
+}
 export type PredictionTodayFeed = {
   generatedAt?: string;
   date: string;
@@ -3393,6 +3414,7 @@ export function CalendarSectionInApp({ favoriteRiderFeed }: { favoriteRiderFeed:
   const [isMetricModalOpen, setIsMetricModalOpen] = useState(false);
   const [metricFormState, setMetricFormState] = useState<DailyMetricFormState>(createMetricFormState());
   const [favoriteRiderFormState, setFavoriteRiderFormState] = useState<FavoriteRiderName[]>([]);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     setCustomMetricsMap(loadStoredDailyMetrics());
@@ -4204,7 +4226,14 @@ export function CalendarSectionInApp({ favoriteRiderFeed }: { favoriteRiderFeed:
             </div>
 
             <div style={{ display: "grid", gap: "14px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "12px", alignItems: "start" }}>
+              <div
+  style={{
+    display: "grid",
+    gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
+    gap: isMobile ? "10px" : "12px",
+    alignItems: "start",
+  }}
+>
                 <label style={{ display: "grid", gap: "8px", minWidth: 0 }}>
                   <span style={{ fontSize: hasFinderFilters ? "10px" : "11px", fontWeight: 800, letterSpacing: "0.14em", color: "#64748b" }}>収支</span>
                   <input
@@ -4395,6 +4424,7 @@ export function DashboardPage() {
   const [dashboardVenueSummaryMap, setDashboardVenueSummaryMap] = useState<Record<string, PredictionVenueSummary>>({});
   const [predictionResultMap, setPredictionResultMap] = useState<PredictionResultMap>(() => loadStoredPredictionResults());
   const dashboardNow = useDashboardNow();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     let isActive = true;
@@ -4686,13 +4716,56 @@ export function DashboardPage() {
       <SiteHeader activeKey="dashboard" />
 
       <main style={{ scrollBehavior: "smooth" }}>
-        <section style={{ maxWidth: PAGE_MAX_WIDTH, margin: "0 auto", padding: "88px 24px 12px" }}>
-          <div style={{ borderRadius: "40px", border: "1px solid #eee8f6", background: "linear-gradient(180deg, #fffefe 0%, #faf1ff 40%, #edf8ff 78%, #fff5fb 100%)", boxShadow: "0 18px 44px rgba(15, 23, 42, 0.045)", padding: "38px 34px 34px" }}>
-            <div style={{ marginBottom: "32px", display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "24px" }}>
-              <div>
+        <section
+  style={{
+    maxWidth: PAGE_MAX_WIDTH,
+    margin: "0 auto",
+    padding: isMobile ? "32px 14px 8px" : "88px 24px 12px",
+  }}
+>
+<div
+  style={{
+    borderRadius: isMobile ? "28px" : "40px",
+    border: "1px solid #eee8f6",
+    background: "linear-gradient(180deg, #fffefe 0%, #faf1ff 40%, #edf8ff 78%, #fff5fb 100%)",
+    boxShadow: "0 18px 44px rgba(15, 23, 42, 0.045)",
+    padding: isMobile ? "26px 20px 24px" : "38px 34px 34px",
+  }}
+>
+<div
+  style={{
+    marginBottom: isMobile ? "22px" : "32px",
+    display: "flex",
+    flexDirection: isMobile ? "column" : "row",
+    alignItems: isMobile ? "flex-start" : "flex-end",
+    justifyContent: "space-between",
+    gap: isMobile ? "14px" : "24px",
+  }}
+>
+<div>
                 <p style={{ margin: "0 0 12px 0", fontSize: "12px", fontWeight: 800, letterSpacing: "0.28em", color: "#8c63c7" }}>RACE SCHEDULE</p>
-                <h2 style={{ margin: 0, fontSize: "36px", lineHeight: 1.14, color: "#081224", letterSpacing: "-0.02em" }}>直近の開催スケジュール</h2>
-                <p style={{ margin: "14px 0 0 0", maxWidth: "760px", fontSize: "15px", lineHeight: 1.95, color: "#64748b" }}>
+                <h2
+  style={{
+    margin: 0,
+    fontSize: isMobile ? "30px" : "36px",
+    lineHeight: isMobile ? 1.22 : 1.14,
+    color: "#081224",
+    letterSpacing: isMobile ? "-0.01em" : "-0.02em",
+    wordBreak: "keep-all",
+    overflowWrap: "normal",
+  }}
+>
+  直近の開催スケジュール
+</h2>
+<p
+  style={{
+    margin: "14px 0 0 0",
+    maxWidth: isMobile ? "100%" : "760px",
+    fontSize: isMobile ? "13px" : "15px",
+    lineHeight: isMobile ? 1.8 : 1.95,
+    color: "#5b6b7f",
+  }}
+>
                   グレード開催と注目日程を先に確認できる、上品で見やすいスケジュール一覧です。推しがいる開催もここでひと目で追えます。
                 </p>
               </div>
@@ -4777,7 +4850,15 @@ export function DashboardPage() {
                 <a href="#venue-features-page" onClick={(event) => { event.preventDefault(); navigateDashboardHashTop("#venue-features-page"); }} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", background: "rgba(242,236,251,0.9)", color: "#7a67b8", border: "1px solid #e0d6f4", borderRadius: "9999px", padding: "16px 32px", fontWeight: 900, fontSize: "13px", letterSpacing: "0.04em", boxShadow: "0 14px 28px rgba(122, 103, 184, 0.08)", cursor: "pointer", textDecoration: "none" }}>会場の特徴を見る</a>
               </div>
 
-              <div style={{ marginTop: "46px", display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "18px", maxWidth: "880px" }}>
+              <div
+  style={{
+    marginTop: isMobile ? "28px" : "46px",
+    display: "grid",
+    gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
+    gap: isMobile ? "14px" : "18px",
+    maxWidth: "880px",
+  }}
+>
                 {overviewStats.map((item) => (
                   <div
                     key={item.label}
@@ -4858,7 +4939,13 @@ export function DashboardPage() {
         </section>
 
         <section id="players" style={{ maxWidth: PAGE_MAX_WIDTH, margin: "0 auto", padding: "40px 24px 120px", scrollMarginTop: "110px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "22px" }}>
+<div
+  style={{
+    display: "grid",
+    gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
+    gap: isMobile ? "16px" : "22px",
+  }}
+>
             {[
               {
                 label: "RACES",
@@ -4999,8 +5086,8 @@ export function DashboardPage() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: getTodayRacesGridTemplateColumns(dashboardTodayRaces.length),
-                gap: "20px",
+                gridTemplateColumns: isMobile ? "1fr" : getTodayRacesGridTemplateColumns(dashboardTodayRaces.length),
+                gap: isMobile ? "14px" : "20px",
               }}
             >
               {dashboardTodayRaces.map((race) => {
@@ -6835,7 +6922,13 @@ export function PlayersPage() {
             </div>
 
             <div style={{ borderRadius: "30px", border: "1px solid #e7def3", background: "linear-gradient(180deg, rgba(255,251,254,0.98) 0%, rgba(245,239,255,0.98) 54%, rgba(241,248,255,0.98) 100%)", boxShadow: "0 18px 40px rgba(123, 102, 193, 0.12), 0 10px 24px rgba(73, 151, 224, 0.08)", padding: "22px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "12px" }}>
+<div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+gap: "12px",
+  }}
+>
                 {[
                   { label: "登録人数", value: `${playerIndex.length}人` },
                   { label: "検索結果", value: hasFinderFilters ? `${matchedPlayers.length}人` : "待機中" },
@@ -7312,16 +7405,122 @@ export type SiteHeaderActiveKey =
 }; 
   export function SiteHeader({ activeKey }: SiteHeaderProps) { 
     const headerNow = useDashboardNow(); 
+    const isMobile = useIsMobile();
     const getNavStyle = (key: SiteHeaderActiveKey): CSSProperties => { 
       const isActive = activeKey === key; 
       return { color: isActive ? "white" : "rgba(255,255,255,0.78)", 
-        textDecoration: "none", padding: "10px 16px", 
-        borderRadius: "9999px", fontSize: "12px", 
+        textDecoration: "none", padding: isMobile ? "8px 11px" : "10px 16px", 
+        borderRadius: "9999px", fontSize: isMobile ? "11px" : "12px", 
         fontWeight: 800, 
         border: isActive ? "1px solid rgba(255,255,255,0.18)" : "1px solid rgba(255,255,255,0.10)", 
         background: isActive ? "linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.08) 100%)" : "rgba(255,255,255,0.02)", 
         boxShadow: isActive ? "inset 0 1px 0 rgba(255,255,255,0.18), 0 10px 20px rgba(8,18,36,0.14)" : "none", 
-        lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", minHeight: "36px", whiteSpace: "nowrap", }; }; const goHashTop = (hash: string) => (event: ReactMouseEvent<HTMLAnchorElement>) => { event.preventDefault(); window.location.hash = hash; window.requestAnimationFrame(() => { window.scrollTo({ top: 0, behavior: "auto" }); }); }; const goDashboardSection = (id: string) => (event: ReactMouseEvent<HTMLAnchorElement>) => { event.preventDefault(); window.location.hash = id; window.requestAnimationFrame(() => { const target = document.getElementById(id.replace("#", "")); if (target) { target.scrollIntoView({ block: "start", behavior: "smooth" }); } else { window.scrollTo({ top: 0, behavior: "auto" }); } }); }; return ( <header style={{ background: "rgba(7, 17, 31, 0.82)", color: "white", borderBottom: "1px solid rgba(255,255,255,0.08)", position: "sticky", top: 0, zIndex: 20, backdropFilter: "blur(16px)", boxShadow: "0 14px 34px rgba(8, 18, 36, 0.10)", }} > <div style={{ maxWidth: PAGE_MAX_WIDTH, margin: "0 auto", padding: "18px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "20px", }} > <div style={{ display: "flex", alignItems: "center", gap: "14px" }}> <div style={{ width: "12px", height: "12px", borderRadius: "9999px", background: "linear-gradient(135deg, #c8b8f2 0%, #8b78cf 100%)", boxShadow: "0 0 0 5px rgba(200,184,242,0.12)", flexShrink: 0, }} /> <div> <div style={{ fontSize: "22px", fontWeight: 900, letterSpacing: "0.08em", lineHeight: 1, }} > KURARI DATA LAVO </div> <div style={{ marginTop: "5px", fontSize: "10px", fontWeight: 800, letterSpacing: "0.22em", color: "rgba(255,255,255,0.58)", }} > RACE DATA &amp; ANALYSIS </div> </div> </div> <div style={{ display: "flex", alignItems: "center", gap: "14px" }}> <div style={{ minWidth: "112px", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", padding: "10px 12px", textAlign: "center", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)", }} > <div style={{ fontSize: "9px", fontWeight: 900, letterSpacing: "0.14em", color: "rgba(255,255,255,0.52)", lineHeight: 1.1, }} > LIVE JST </div> <div style={{ marginTop: "3px", fontSize: "10px", fontWeight: 800, color: "rgba(255,255,255,0.70)", lineHeight: 1.1, }} > {formatDashboardDateInJst(headerNow)} </div> <div style={{ marginTop: "4px", fontSize: "18px", fontWeight: 900, letterSpacing: "0.05em", color: "rgba(255,255,255,0.92)", lineHeight: 1, }} > {formatDashboardTimeInJst(headerNow)} </div> </div> <nav style={{ display: "flex", gap: "12px", alignItems: "center", }} > <a href="#top" onClick={goHashTop("#top")} style={getNavStyle("dashboard")}> Dashboard </a> <a href="#prediction-page" onClick={goHashTop("#prediction-page")} style={getNavStyle("prediction")}> Prediction </a> <a href="#review-page" onClick={goHashTop("#review-page")} style={getNavStyle("review")}> Review </a> <a href="#featured-race" onClick={goDashboardSection("#featured-race")} style={getNavStyle("analysis")}> Analysis </a> <a href="#races-page" onClick={goHashTop("#races-page")} style={getNavStyle("races")}> Races </a> <a href="#players-page" onClick={goHashTop("#players-page")} style={getNavStyle("players")}> Players </a> <a href="#calendar" onClick={goDashboardSection("#calendar")} style={getNavStyle("calendar")}> Calendar </a> </nav> </div> </div> </header> ); }
+        lineHeight: 1, display: "inline-flex", alignItems: "center", 
+        justifyContent: "center", minHeight: "36px", whiteSpace: "nowrap", }; }; 
+        const goHashTop = (hash: string) => (event: ReactMouseEvent<HTMLAnchorElement>) => 
+          { event.preventDefault(); window.location.hash = hash; window.requestAnimationFrame(() => 
+            { window.scrollTo({ top: 0, behavior: "auto" }); }); }; 
+            const goDashboardSection = (id: string) => (event: ReactMouseEvent<HTMLAnchorElement>) => 
+              { event.preventDefault(); window.location.hash = id; window.requestAnimationFrame(() => 
+                { const target = document.getElementById(id.replace("#", "")); if (target) 
+                  { target.scrollIntoView({ block: "start", behavior: "smooth" }); } 
+                  else { window.scrollTo({ top: 0, behavior: "auto" }); } }); }; 
+                  return ( <header style={{ background: "rgba(7, 17, 31, 0.82)", 
+                    color: "white", borderBottom: "1px solid rgba(255,255,255,0.08)", 
+                    position: "sticky", top: 0, zIndex: 20, backdropFilter: "blur(16px)", 
+                    boxShadow: "0 14px 34px rgba(8, 18, 36, 0.10)", }} > 
+                    <div
+  style={{
+    maxWidth: PAGE_MAX_WIDTH,
+    margin: "0 auto",
+    padding: isMobile ? "14px 14px" : "18px 24px",
+    display: "flex",
+    flexDirection: isMobile ? "column" : "row",
+    alignItems: isMobile ? "flex-start" : "center",
+    justifyContent: "space-between",
+    gap: isMobile ? "14px" : "20px",
+    width: "100%",
+    boxSizing: "border-box",
+    overflow: "hidden",
+  }}
+> 
+<div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: isMobile ? "10px" : "14px",
+    width: isMobile ? "100%" : "auto",
+    minWidth: 0,
+  }}
+> 
+                      <div style={{ width: isMobile ? "10px" : "12px", height: isMobile ? "10px" : "12px", borderRadius: "9999px", 
+                      background: "linear-gradient(135deg, #c8b8f2 0%, #8b78cf 100%)", 
+                      boxShadow: "0 0 0 5px rgba(200,184,242,0.12)", flexShrink: 0, }} /> 
+                      <div> 
+                        <div
+  style={{
+    fontSize: isMobile ? "18px" : "22px",
+    fontWeight: 900,
+    letterSpacing: isMobile ? "0.05em" : "0.08em",
+    lineHeight: 1,
+    whiteSpace: "nowrap",
+  }}
+>
+  KURARI DATA LAVO
+</div> 
+<div
+  style={{
+    marginTop: "5px",
+    fontSize: isMobile ? "9px" : "10px",
+    fontWeight: 800,
+    letterSpacing: isMobile ? "0.14em" : "0.22em",
+    color: "rgba(255,255,255,0.58)",
+    whiteSpace: "nowrap",
+  }}
+>
+  RACE DATA &amp; ANALYSIS
+</div> 
+                        </div> 
+                        </div> 
+                        <div
+  style={{
+    display: "flex",
+    alignItems: isMobile ? "flex-start" : "center",
+    flexDirection: isMobile ? "column" : "row",
+    gap: isMobile ? "10px" : "14px",
+    width: isMobile ? "100%" : "auto",
+  }}
+>
+<div
+  style={{
+    minWidth: isMobile ? "104px" : "112px",
+    borderRadius: "16px",
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.04)",
+    padding: isMobile ? "8px 10px" : "10px 12px",
+    textAlign: "center",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
+  }}
+> 
+                          <div style={{ fontSize: isMobile ? "8px" : "9px", fontWeight: 900, 
+                          letterSpacing: "0.14em", color: "rgba(255,255,255,0.52)", lineHeight: 1.1, }} > LIVE JST 
+                          </div> 
+                          <div style={{ marginTop: "3px", fontSize: "10px", fontWeight: 800, color: "rgba(255,255,255,0.70)", 
+                          lineHeight: 1.1, }} > {formatDashboardDateInJst(headerNow)} 
+                          </div> 
+                          <div style={{ marginTop: "4px", fontSize: "18px", fontWeight: 900, 
+                          letterSpacing: "0.05em", color: "rgba(255,255,255,0.92)", lineHeight: 1, }} > 
+                          {formatDashboardTimeInJst(headerNow)} </div> </div> <nav
+  style={{
+    display: "flex",
+    gap: isMobile ? "8px" : "12px",
+    alignItems: "center",
+    flexWrap: "wrap",
+    width: isMobile ? "100%" : "auto",
+    justifyContent: isMobile ? "flex-start" : "flex-end",
+  }}
+> <a href="#top" onClick={goHashTop("#top")} 
+style={getNavStyle("dashboard")}> Dashboard </a> <a href="#prediction-page" onClick={goHashTop("#prediction-page")} style={getNavStyle("prediction")}> Prediction </a> <a href="#review-page" onClick={goHashTop("#review-page")} style={getNavStyle("review")}> Review </a> <a href="#featured-race" onClick={goDashboardSection("#featured-race")} style={getNavStyle("analysis")}> Analysis </a> <a href="#races-page" onClick={goHashTop("#races-page")} style={getNavStyle("races")}> Races </a> <a href="#players-page" onClick={goHashTop("#players-page")} style={getNavStyle("players")}> Players </a> <a href="#calendar" onClick={goDashboardSection("#calendar")} style={getNavStyle("calendar")}> Calendar </a> </nav> </div> </div> </header> ); }
 
 function SubPageShell({
   eyebrow,
@@ -7416,12 +7615,58 @@ function SubPageShell({
 
 function PredictionHeaderClock() {
   const dashboardNow = useDashboardNow();
+  const isMobile = useIsMobile();
 
   return (
-    <div style={{ display: "grid", gap: "2px", justifyItems: "end", padding: "8px 12px", borderRadius: "16px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)", flexShrink: 0 }}>
-      <div style={{ fontSize: "9px", fontWeight: 900, letterSpacing: "0.18em", color: "rgba(214, 201, 245, 0.82)" }}>LIVE JST</div>
-      <div style={{ fontSize: "11px", fontWeight: 700, color: "rgba(255,255,255,0.72)", lineHeight: 1.35 }}>{formatDashboardDateInJst(dashboardNow)}</div>
-      <div style={{ fontSize: "16px", fontWeight: 900, letterSpacing: "0.08em", color: "rgba(255,255,255,0.96)", lineHeight: 1 }}>{formatDashboardTimeInJst(dashboardNow)}</div>
+    <div
+      style={{
+        display: "grid",
+        gap: isMobile ? "1px" : "2px",
+        justifyItems: isMobile ? "start" : "end",
+        padding: isMobile ? "7px 10px" : "8px 12px",
+        borderRadius: "16px",
+        background: "rgba(255,255,255,0.04)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
+        flexShrink: 0,
+        maxWidth: isMobile ? "100%" : undefined,
+      }}
+    >
+      <div
+        style={{
+          fontSize: isMobile ? "8px" : "9px",
+          fontWeight: 900,
+          letterSpacing: isMobile ? "0.14em" : "0.18em",
+          color: "rgba(214, 201, 245, 0.82)",
+        }}
+      >
+        LIVE JST
+      </div>
+
+      <div
+        style={{
+          fontSize: isMobile ? "10px" : "11px",
+          fontWeight: 700,
+          color: "rgba(255,255,255,0.72)",
+          lineHeight: 1.35,
+          whiteSpace: "nowrap",
+        }}
+      >
+        {formatDashboardDateInJst(dashboardNow)}
+      </div>
+
+      <div
+        style={{
+          fontSize: isMobile ? "15px" : "16px",
+          fontWeight: 900,
+          letterSpacing: isMobile ? "0.06em" : "0.08em",
+          color: "rgba(255,255,255,0.96)",
+          lineHeight: 1,
+          whiteSpace: "nowrap",
+        }}
+      >
+        {formatDashboardTimeInJst(dashboardNow)}
+      </div>
     </div>
   );
 }
@@ -9112,7 +9357,13 @@ const record = normalizePredictionResultRecord({
                   {predictionSlotStatus ? <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 10px", fontSize: "10px", fontWeight: 900, background: "#f2ecfb", color: "#7a67b8", border: "1px solid #e0d6f4", whiteSpace: "nowrap" }}>{predictionSlotStatus}</span> : null}
                 </div>
                 <div style={{ display: "grid", gap: "14px" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "10px" }}>
+                  <div
+  style={{
+    display: "grid",
+    gridTemplateColumns:"repeat(3, minmax(0, 1fr))",
+    gap:"10px",
+  }}
+>
                     <div style={{ borderRadius: "18px", border: "1px solid #ece4f6", background: "rgba(255,255,255,0.90)", padding: "11px 12px" }}>
                       <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b8a9d", marginBottom: "5px" }}>対象レース</div>
                       <div style={{ fontSize: "13px", fontWeight: 800, color: "#081224", lineHeight: 1.8 }}>{selectedPredictionTargetLabel}</div>
@@ -9462,7 +9713,13 @@ export function AnalysisMaterialPage() {
       title="展開分析の素材置き場"
       lead="ライン、主導権、番手、位置取り、飛びつきなどの分析素材をまとめるページ予定地です。いまはルート切替で落ちないための安定ページとして置いています。"
     >
-      <section style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "20px" }}>
+<section
+  style={{
+    display: "grid",
+    gridTemplateColumns:"repeat(3, minmax(0, 1fr))",
+    gap:"20px",
+  }}
+>
         {[
           { title: "ライン想定", body: "並び予想と別線の並走ポイントを整理" },
           { title: "主導権争い", body: "先行争い・叩き合い・カマシの可能性を置く枠" },
