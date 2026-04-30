@@ -2,17 +2,21 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
   TODAY,
   PREDICTION_RESULT_STORAGE_KEY,
+  PREDICTION_SLOT_STORAGE_KEY,
   PREDICTION_TODAY_DATA_URL,
+  findPredictionSlotRecord,
   getGradeBadgeTone,
   getPredictionResultAggregate,
   getSessionLabel,
   loadStoredPredictionResults,
+  loadStoredPredictionSlots,
   mergeTodayRaceCardItems,
   normalizePredictionVenueName,
-  openPredictionPageForVenue,
   todayRaces,
   type DashboardTodayRaceCard,
+  type PredictionRaceItem,
   type PredictionResultMap,
+  type PredictionSlotMap,
   type PredictionTodayFeed,
   type PredictionVenueItem,
 } from "./PageImplementations";
@@ -101,6 +105,15 @@ const lightButtonStyle: CSSProperties = {
   boxShadow: "0 10px 20px rgba(122, 103, 184, 0.07)",
 };
 
+const mobileGlassPanelStyle: CSSProperties = {
+  borderRadius: "24px",
+  background: "linear-gradient(135deg, rgba(255,255,255,0.92) 0%, rgba(248,243,255,0.96) 100%)",
+  border: "1px solid rgba(222, 211, 244, 0.95)",
+  boxShadow: "0 14px 30px rgba(122, 103, 184, 0.08)",
+  boxSizing: "border-box",
+  minWidth: 0,
+};
+
 const formatYen = (value?: number) => {
   if (value === undefined) return "—";
   if (value === 0) return "0円";
@@ -129,6 +142,88 @@ const getFirstRaceTimeLabel = (venue?: PredictionVenueItem) => {
   const firstRaceTime = venue?.races?.[0]?.time;
   if (!firstRaceTime) return "時刻確認中";
   return `${firstRaceTime}開始`;
+};
+
+const clipMobilePredictionText = (value?: string | null) => {
+  const lines = String(value ?? "")
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) return "";
+
+  const pickedLines = lines.slice(0, 8);
+  const text = pickedLines.join("\n");
+
+  if (text.length <= 260) return text;
+  return `${text.slice(0, 260).replace(/[、。・,\s]+$/g, "")}…`;
+};
+
+const getMobileRaceResultLabel = (race: PredictionRaceItem) => {
+  if (race.resultStatus === "confirmed" || race.result?.status === "confirmed") return "結果あり";
+  return "結果待ち";
+};
+
+const getMobileRaceResultTone = (race: PredictionRaceItem) => {
+  if (race.resultStatus === "confirmed" || race.result?.status === "confirmed") {
+    return {
+      background: "#f0fbf9",
+      color: "#0f766e",
+      border: "#cdece6",
+    };
+  }
+
+  return {
+    background: "#faf8fd",
+    color: "#64748b",
+    border: "#ede7f5",
+  };
+};
+
+const getMobileSavedResultTone = (hitStatus?: string, hasSavedPrediction = false) => {
+  if (hitStatus === "hit") {
+    return {
+      label: "的中",
+      background: "#f4effc",
+      color: "#705eb0",
+      border: "#ded3f4",
+    };
+  }
+
+  if (hitStatus === "miss") {
+    return {
+      label: "不的中",
+      background: "#fff7ed",
+      color: "#b45309",
+      border: "#fed7aa",
+    };
+  }
+
+  if (hitStatus === "pending") {
+    return {
+      label: "保留",
+      background: "#f8fafc",
+      color: "#475569",
+      border: "#e2e8f0",
+    };
+  }
+
+  if (hasSavedPrediction) {
+    return {
+      label: "予想保存",
+      background: "#f2ecfb",
+      color: "#7a67b8",
+      border: "#e0d6f4",
+    };
+  }
+
+  return {
+    label: "保存なし",
+    background: "#ffffff",
+    color: "#94a3b8",
+    border: "#edf1f7",
+  };
 };
 
 function MobileMetricCard({
@@ -187,22 +282,143 @@ function MobileMetricCard({
   );
 }
 
+function MobileHitTicker({
+  hitItems,
+}: {
+  hitItems: Array<{
+    id: string;
+    venue: string;
+    raceNumber: number;
+    hitBetType?: string;
+    hitCombination?: string;
+    profitLoss?: number;
+  }>;
+}) {
+  const hasHits = hitItems.length > 0;
+  const tickerText = hasHits
+    ? hitItems
+        .map((item) => {
+          const betType = item.hitBetType ?? "的中";
+          const combo = item.hitCombination ? ` ${item.hitCombination}` : "";
+          const profit = item.profitLoss !== undefined ? ` ${formatYen(item.profitLoss)}` : "";
+          return `🎯 ${item.venue} ${item.raceNumber}R ${betType}${combo}${profit}`;
+        })
+        .join("　　")
+    : "今日はまだ的中ログがありません。結果が反映されると、ここに的中レースが流れます。";
+
+  return (
+    <section id="mobile-hit-log" style={{ ...mobileCardStyle, overflow: "hidden" }}>
+      <style>
+        {`
+          @keyframes kurariMobileHitTicker {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+        `}
+      </style>
+
+      <div style={{ display: "grid", gap: "12px" }}>
+        <div style={{ display: "grid", gap: "5px" }}>
+          <p style={eyebrowStyle}>HIT LOG</p>
+          <h2 style={sectionTitleStyle}>的中ログ</h2>
+        </div>
+
+        <div
+          style={{
+            ...mobileGlassPanelStyle,
+            overflow: "hidden",
+            padding: "12px 0",
+            position: "relative",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: "42px",
+              background: "linear-gradient(90deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 100%)",
+              zIndex: 2,
+              pointerEvents: "none",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              right: 0,
+              top: 0,
+              bottom: 0,
+              width: "42px",
+              background: "linear-gradient(270deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 100%)",
+              zIndex: 2,
+              pointerEvents: "none",
+            }}
+          />
+
+          <div
+            style={{
+              display: "flex",
+              width: "max-content",
+              animation: hasHits ? "kurariMobileHitTicker 34s linear infinite" : "none",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {[tickerText, tickerText].map((text, index) => (
+              <div
+                key={`hit-log-${index}`}
+                style={{
+                  padding: "0 24px",
+                  fontSize: "13px",
+                  lineHeight: 1.7,
+                  fontWeight: 900,
+                  color: hasHits ? "#705eb0" : "#64748b",
+                  letterSpacing: "0.01em",
+                }}
+              >
+                {text}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function MobileVenueCard({
   race,
   predictionVenue,
   savedRaceCount,
   profitLoss,
+  predictionResultMap,
+  predictionSlotMap,
+  isOpen,
+  onToggle,
 }: {
   race: DashboardTodayRaceCard;
   predictionVenue?: PredictionVenueItem;
   savedRaceCount?: number;
   profitLoss?: number;
+  predictionResultMap: PredictionResultMap;
+  predictionSlotMap: PredictionSlotMap;
+  isOpen: boolean;
+  onToggle: () => void;
 }) {
   const gradeTone = getGradeBadgeTone(race.displayGradeLabel ?? race.grade);
   const venueResultLabel = getVenueResultLabel(predictionVenue);
   const raceCountLabel = getVenueRaceCountLabel(predictionVenue);
   const firstRaceTimeLabel = getFirstRaceTimeLabel(predictionVenue);
   const normalizedVenue = normalizePredictionVenueName(race.venue);
+  const venueRaceRows = predictionVenue?.races ?? [];
+  const savedResultsForVenue = Object.values(predictionResultMap).filter(
+    (item) =>
+      item.date === TODAY &&
+      normalizePredictionVenueName(item.venue) === normalizedVenue
+  );
+
+  const getSavedResultForRace = (raceNumber: number) =>
+    savedResultsForVenue.find((item) => item.raceNumber === raceNumber);
 
   return (
     <article
@@ -341,23 +557,267 @@ function MobileVenueCard({
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+      <div
+        style={{
+          ...mobileGlassPanelStyle,
+          padding: "12px",
+          display: "grid",
+          gap: "10px",
+        }}
+      >
         <button
           type="button"
-          onClick={() => openPredictionPageForVenue(race.venue)}
+          onClick={onToggle}
           style={{
-            ...primaryButtonStyle,
             width: "100%",
-            border: "none",
+            minHeight: "42px",
+            borderRadius: "9999px",
+            border: "1px solid #ded3f4",
+            background: isOpen
+              ? "linear-gradient(135deg, #f4effc 0%, #ffffff 100%)"
+              : "linear-gradient(135deg, #081224 0%, #162745 100%)",
+            color: isOpen ? "#6f5aa9" : "#ffffff",
+            fontSize: "12px",
+            fontWeight: 950,
+            letterSpacing: "0.04em",
             cursor: "pointer",
+            boxShadow: isOpen
+              ? "0 10px 20px rgba(122, 103, 184, 0.07)"
+              : "0 12px 24px rgba(8, 18, 36, 0.14)",
           }}
         >
-          予想を見る
+          {isOpen ? "レース一覧を閉じる" : "レース一覧を開く"}
         </button>
 
-        <a href="#races-page" style={{ ...lightButtonStyle, width: "100%" }}>
-          レース内容
-        </a>
+        {isOpen && (
+          <div style={{ display: "grid", gap: "8px" }}>
+            {venueRaceRows.length > 0 ? (
+              venueRaceRows.map((venueRace) => {
+                const resultTone = getMobileRaceResultTone(venueRace);
+                const savedResult = getSavedResultForRace(venueRace.raceNo);
+                const savedSlotLookup = findPredictionSlotRecord(
+                  predictionSlotMap,
+                  TODAY,
+                  predictionVenue,
+                  venueRace
+                );
+                const savedPredictionText = clipMobilePredictionText(savedSlotLookup.record?.predictionText);
+                const hasSavedPrediction = Boolean(savedPredictionText);
+                const savedTone = getMobileSavedResultTone(savedResult?.hitStatus, hasSavedPrediction);
+                const resultOrderText =
+                  venueRace.result?.finishOrder?.length
+                    ? venueRace.result.finishOrder.join("-")
+                    : savedResult?.resultOrder || "";
+
+                return (
+                  <div
+                    key={`${normalizedVenue}-${venueRace.raceNo}`}
+                    style={{
+                      borderRadius: "18px",
+                      padding: "11px 12px",
+                      background: "rgba(255,255,255,0.88)",
+                      border: "1px solid #ece4f6",
+                      display: "grid",
+                      gap: "8px",
+                      minWidth: 0,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        justifyContent: "space-between",
+                        gap: "10px",
+                      }}
+                    >
+                      <div style={{ minWidth: 0, display: "grid", gap: "3px" }}>
+                        <div
+                          style={{
+                            fontSize: "15px",
+                            fontWeight: 950,
+                            color: "#081224",
+                            letterSpacing: "-0.02em",
+                          }}
+                        >
+                          {venueRace.raceNo}R
+                          <span
+                            style={{
+                              marginLeft: "8px",
+                              fontSize: "12px",
+                              fontWeight: 850,
+                              color: "#64748b",
+                            }}
+                          >
+                            {venueRace.time ?? "時刻未取得"}
+                          </span>
+                        </div>
+
+                        <div
+                          style={{
+                            fontSize: "12px",
+                            lineHeight: 1.55,
+                            fontWeight: 750,
+                            color: "#526072",
+                            overflowWrap: "anywhere",
+                          }}
+                        >
+                          {venueRace.title ?? `${race.venue} ${venueRace.raceNo}R`}
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "grid",
+                          gap: "5px",
+                          justifyItems: "end",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <span
+                          style={{
+                            borderRadius: "9999px",
+                            padding: "4px 8px",
+                            fontSize: "10px",
+                            fontWeight: 900,
+                            background: resultTone.background,
+                            color: resultTone.color,
+                            border: `1px solid ${resultTone.border}`,
+                          }}
+                        >
+                          {getMobileRaceResultLabel(venueRace)}
+                        </span>
+
+                        <span
+                          style={{
+                            borderRadius: "9999px",
+                            padding: "4px 8px",
+                            fontSize: "10px",
+                            fontWeight: 900,
+                            background: savedTone.background,
+                            color: savedTone.color,
+                            border: `1px solid ${savedTone.border}`,
+                          }}
+                        >
+                          {savedTone.label}
+                        </span>
+                      </div>
+                    </div>
+
+                    {savedPredictionText && (
+                      <div
+                        style={{
+                          borderRadius: "14px",
+                          padding: "10px",
+                          background: "linear-gradient(180deg, #ffffff 0%, #faf7fd 100%)",
+                          border: "1px solid #e7dbf7",
+                          display: "grid",
+                          gap: "6px",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: "10px",
+                            fontWeight: 900,
+                            letterSpacing: "0.14em",
+                            color: "#8c63c7",
+                          }}
+                        >
+                          SAVED PREDICTION
+                        </div>
+                        <pre
+                          style={{
+                            margin: 0,
+                            whiteSpace: "pre-wrap",
+                            wordBreak: "break-word",
+                            color: "#334155",
+                            fontSize: "11px",
+                            lineHeight: 1.65,
+                            fontFamily: "inherit",
+                            fontWeight: 750,
+                          }}
+                        >
+                          {savedPredictionText}
+                        </pre>
+                      </div>
+                    )}
+
+                    {(savedResult || venueRace.result) && (
+                      <div
+                        style={{
+                          borderRadius: "14px",
+                          padding: "9px 10px",
+                          background: "#faf8fd",
+                          border: "1px solid #ede7f5",
+                          display: "grid",
+                          gap: "7px",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: "10px",
+                            fontWeight: 900,
+                            letterSpacing: "0.14em",
+                            color: "#8c63c7",
+                          }}
+                        >
+                          RESULT CHECK
+                        </div>
+
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                            gap: "6px",
+                            fontSize: "11px",
+                            fontWeight: 850,
+                            color: "#334155",
+                          }}
+                        >
+                          <span>着順 {resultOrderText || "—"}</span>
+                          <span>投資 {formatYen(savedResult?.investment)}</span>
+                          <span>払戻 {formatYen(savedResult?.payout)}</span>
+                          <span>収支 {formatYen(savedResult?.profitLoss)}</span>
+                          <span>回収 {formatPercent(savedResult?.roi)}</span>
+                          <span>決まり手 {venueRace.result?.kimarite ?? "—"}</span>
+                        </div>
+
+                        {(venueRace.result?.payout3tan || venueRace.result?.payout2tan) && (
+                          <div
+                            style={{
+                              display: "grid",
+                              gap: "5px",
+                              borderTop: "1px solid #ebe3f3",
+                              paddingTop: "7px",
+                              color: "#475569",
+                              fontSize: "11px",
+                              lineHeight: 1.6,
+                              fontWeight: 800,
+                            }}
+                          >
+                            {venueRace.result?.payout3tan && (
+                              <span>
+                                3連単 {venueRace.result.payout3tan.combination} / {venueRace.result.payout3tan.payout}
+                              </span>
+                            )}
+                            {venueRace.result?.payout2tan && (
+                              <span>
+                                2車単 {venueRace.result.payout2tan.combination} / {venueRace.result.payout2tan.payout}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            ) : (
+              <p style={{ ...mutedTextStyle, fontSize: "12px" }}>
+                この会場のレース一覧はまだ取得待ちです。
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </article>
   );
@@ -366,7 +826,9 @@ function MobileVenueCard({
 export default function MobileDashboardPage() {
   const [todayPredictionFeed, setTodayPredictionFeed] = useState<PredictionTodayFeed | null>(null);
   const [predictionResultMap, setPredictionResultMap] = useState<PredictionResultMap>(() => loadStoredPredictionResults());
+  const [predictionSlotMap, setPredictionSlotMap] = useState<PredictionSlotMap>(() => loadStoredPredictionSlots());
   const [feedStatus, setFeedStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [openVenueKey, setOpenVenueKey] = useState<string | null>(null);
 
   useEffect(() => {
     let isActive = true;
@@ -394,19 +856,24 @@ export default function MobileDashboardPage() {
   }, []);
 
   useEffect(() => {
-    const refreshResults = () => {
+    const refreshStoredPredictionData = () => {
       setPredictionResultMap(loadStoredPredictionResults());
+      setPredictionSlotMap(loadStoredPredictionSlots());
     };
 
     const handleStorage = (event: StorageEvent) => {
-      if (!event.key || event.key === PREDICTION_RESULT_STORAGE_KEY) {
-        refreshResults();
+      if (
+        !event.key ||
+        event.key === PREDICTION_RESULT_STORAGE_KEY ||
+        event.key === PREDICTION_SLOT_STORAGE_KEY
+      ) {
+        refreshStoredPredictionData();
       }
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        refreshResults();
+        refreshStoredPredictionData();
       }
     };
 
@@ -442,6 +909,22 @@ export default function MobileDashboardPage() {
 
   const todaySummary = predictionAggregate.dailySummary;
   const todayVenueSummaryMap = predictionAggregate.venueSummaryMap ?? {};
+  const todayHitLogItems = useMemo(
+    () =>
+      Object.values(predictionResultMap)
+        .filter((item) => item.date === TODAY && item.hitStatus === "hit")
+        .sort((a, b) => b.savedAt.localeCompare(a.savedAt))
+        .slice(0, 12)
+        .map((item) => ({
+          id: item.raceKey,
+          venue: item.venue,
+          raceNumber: item.raceNumber,
+          hitBetType: item.hitBetType,
+          hitCombination: item.hitCombination,
+          profitLoss: item.profitLoss,
+        })),
+    [predictionResultMap]
+  );
   const totalRaceCount = todayPredictionFeed?.venues.reduce((sum, venue) => sum + venue.races.length, 0) ?? 0;
   const confirmedRaceCount =
     todayPredictionFeed?.venues.reduce(
@@ -491,23 +974,23 @@ export default function MobileDashboardPage() {
                 gap: "8px",
               }}
             >
-              <a href="#prediction-page" style={{ ...primaryButtonStyle, width: "100%" }}>
-                Prediction
+              <a href="#mobile-today-races" style={{ ...primaryButtonStyle, width: "100%" }}>
+                Today
               </a>
-              <a href="#races-page" style={{ ...lightButtonStyle, width: "100%" }}>
-                Races
+              <a href="#mobile-results" style={{ ...lightButtonStyle, width: "100%" }}>
+                Results
               </a>
-              <a href="#calendar" style={{ ...lightButtonStyle, width: "100%" }}>
+              <a href="#mobile-hit-log" style={{ ...lightButtonStyle, width: "100%" }}>
+                Hit Log
+              </a>
+              <a href="#mobile-calendar" style={{ ...lightButtonStyle, width: "100%" }}>
                 Calendar
-              </a>
-              <a href="#top" style={{ ...lightButtonStyle, width: "100%" }}>
-                PC Top
               </a>
             </div>
           </div>
         </section>
 
-        <section style={mobileCardStyle}>
+        <section id="mobile-results" style={mobileCardStyle}>
           <div style={{ display: "grid", gap: "12px" }}>
             <div style={{ display: "grid", gap: "5px" }}>
               <p style={eyebrowStyle}>TODAY SUMMARY</p>
@@ -539,13 +1022,15 @@ export default function MobileDashboardPage() {
           </div>
         </section>
 
-        <section style={mobileCardStyle}>
+        <MobileHitTicker hitItems={todayHitLogItems} />
+
+        <section id="mobile-today-races" style={mobileCardStyle}>
           <div style={{ display: "grid", gap: "12px" }}>
             <div style={{ display: "grid", gap: "5px" }}>
               <p style={eyebrowStyle}>TODAY RACES</p>
               <h2 style={sectionTitleStyle}>今日の開催レース</h2>
               <p style={mutedTextStyle}>
-                予想を見る場合は各会場カードの「予想を見る」から、詳細確認は「レース内容」から進めます。
+                今日の開催をスマホ用カードで確認します。次の修正で、各会場カード内にレース一覧・結果・保存済み予想を展開します。
               </p>
             </div>
 
@@ -563,6 +1048,12 @@ export default function MobileDashboardPage() {
                       predictionVenue={predictionVenue}
                       savedRaceCount={venueSummary?.savedRaceCount}
                       profitLoss={venueSummary?.profitLoss}
+                      predictionResultMap={predictionResultMap}
+                      predictionSlotMap={predictionSlotMap}
+                      isOpen={openVenueKey === venueKey}
+                      onToggle={() => {
+                        setOpenVenueKey((current) => (current === venueKey ? null : venueKey));
+                      }}
                     />
                   );
                 })
@@ -586,24 +1077,36 @@ export default function MobileDashboardPage() {
           </div>
         </section>
 
-        <section style={mobileCardStyle}>
+        <section id="mobile-calendar" style={mobileCardStyle}>
           <div style={{ display: "grid", gap: "12px" }}>
             <div style={{ display: "grid", gap: "5px" }}>
-              <p style={eyebrowStyle}>SHORTCUTS</p>
-              <h2 style={sectionTitleStyle}>よく使うページ</h2>
+              <p style={eyebrowStyle}>MOBILE CALENDAR</p>
+              <h2 style={sectionTitleStyle}>簡易カレンダー</h2>
+              <p style={mutedTextStyle}>
+                ここには次の修正で、今日・明日・今週のGレースをスマホ用カードとして表示します。
+                PC版の大きなカレンダーへ飛ばさず、このページ内で軽く確認できる形にします。
+              </p>
             </div>
 
-            <div style={{ display: "grid", gap: "8px" }}>
-              <a href="#prediction-page" style={{ ...primaryButtonStyle, width: "100%" }}>
-                予想・保存済み予想を見る
-              </a>
-              <a href="#races-page" style={{ ...lightButtonStyle, width: "100%" }}>
-                出走表・結果・払戻を見る
-              </a>
-              <a href="#calendar" style={{ ...lightButtonStyle, width: "100%" }}>
-                開催カレンダーを見る
-              </a>
+            <div
+              style={{
+                ...mobileGlassPanelStyle,
+                padding: "14px",
+                display: "grid",
+                gap: "8px",
+              }}
+            >
+              <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#8c63c7" }}>
+                NEXT STEP
+              </div>
+              <p style={{ ...mutedTextStyle, fontSize: "12px" }}>
+                次に、会場カードをタップした時のレース一覧展開と、簡易カレンダーの今日・明日・今週表示を追加します。
+              </p>
             </div>
+
+            <a href="#top" style={{ ...lightButtonStyle, width: "100%" }}>
+              PC版トップへ戻る
+            </a>
           </div>
         </section>
       </div>
