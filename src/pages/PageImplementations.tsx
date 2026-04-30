@@ -4822,8 +4822,27 @@ export function DashboardPage() {
           </div>
         </section>
 
-        <section id="dashboard" style={{ background: "linear-gradient(180deg, #ffffff 0%, #fbf9fe 55%, #ffffff 100%)", scrollMarginTop: "110px" }}>
-          <div style={{ maxWidth: PAGE_MAX_WIDTH, margin: "0 auto", padding: "156px 24px 132px", display: "grid", gridTemplateColumns: "1.06fr 0.94fr", alignItems: "center", gap: "72px" }}>
+<section
+  id="dashboard"
+  style={{
+    background: "linear-gradient(180deg, #ffffff 0%, #fbf9fe 55%, #ffffff 100%)",
+    scrollMarginTop: "110px",
+    overflowX: "hidden",
+  }}
+>
+  <div
+    style={{
+      maxWidth: PAGE_MAX_WIDTH,
+      width: "100%",
+      boxSizing: "border-box",
+      margin: "0 auto",
+      padding: isMobile ? "52px 16px 72px" : "156px 24px 132px",
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr" : "1.06fr 0.94fr",
+      alignItems: "center",
+      gap: isMobile ? "34px" : "72px",
+    }}
+  >
             <div>
               <div style={{ display: "inline-flex", alignItems: "center", gap: "10px", borderRadius: "9999px", padding: "8px 14px", background: "rgba(244,239,252,0.92)", border: "1px solid #e0d6f4", marginBottom: "20px" }}>
                 <span style={{ width: "8px", height: "8px", borderRadius: "9999px", background: "#7a67b8", display: "inline-block" }} />
@@ -4832,19 +4851,47 @@ export function DashboardPage() {
                 </span>
               </div>
 
-              <h1 style={{ margin: 0, fontSize: "74px", lineHeight: 1.02, fontWeight: 900, letterSpacing: "-0.04em", color: "#081224", maxWidth: "820px" }}>
+<h1
+  style={{
+    margin: 0,
+    fontSize: isMobile ? "42px" : "74px",
+    lineHeight: isMobile ? 1.12 : 1.02,
+    fontWeight: 900,
+    letterSpacing: isMobile ? "-0.025em" : "-0.04em",
+    color: "#081224",
+    maxWidth: isMobile ? "100%" : "820px",
+    wordBreak: "keep-all",
+    overflowWrap: "normal",
+  }}
+>
                 勝てる根拠で、
                 <br />
                 レースを見る。
               </h1>
 
-              <p style={{ marginTop: "34px", maxWidth: "720px", fontSize: "18px", lineHeight: 2.0, color: "#526072" }}>
+<p
+  style={{
+    marginTop: isMobile ? "22px" : "34px",
+    maxWidth: isMobile ? "100%" : "720px",
+    fontSize: isMobile ? "14px" : "18px",
+    lineHeight: isMobile ? 1.9 : 2.0,
+    color: "#526072",
+  }}
+>
                 ライン、脚質、直近成績、開催場傾向まで。
                 感覚だけに頼らず、根拠で比較し、展開を読み、
                 自分の予想スタイルを磨ける競輪サイトへ。
               </p>
 
-              <div style={{ marginTop: "50px", display: "flex", gap: "18px", flexWrap: "wrap", alignItems: "center" }}>
+              <div
+                style={{
+                  marginTop: isMobile ? "28px" : "50px",
+                  display: "flex",
+                  gap: isMobile ? "12px" : "18px",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                }}
+              >
                 <a href="#prediction-page" onClick={(event) => { event.preventDefault(); navigateDashboardHashTop("#prediction-page"); }} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #081224 0%, #162745 100%)", color: "white", border: "none", borderRadius: "9999px", padding: "16px 32px", fontWeight: 900, fontSize: "13px", letterSpacing: "0.04em", boxShadow: "0 18px 32px rgba(8, 18, 36, 0.18)", cursor: "pointer", textDecoration: "none" }}>レース予想を見る</a>
                 <a href="#players-page" onClick={(event) => { event.preventDefault(); navigateDashboardHashTop("#players-page"); }} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.96)", color: "#081224", border: "1px solid #d9e0ec", borderRadius: "9999px", padding: "16px 32px", fontWeight: 900, fontSize: "13px", letterSpacing: "0.04em", boxShadow: "0 14px 28px rgba(15, 23, 42, 0.05)", cursor: "pointer", textDecoration: "none" }}>選手データを見る</a>
                 <a href="#venue-features-page" onClick={(event) => { event.preventDefault(); navigateDashboardHashTop("#venue-features-page"); }} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", background: "rgba(242,236,251,0.9)", color: "#7a67b8", border: "1px solid #e0d6f4", borderRadius: "9999px", padding: "16px 32px", fontWeight: 900, fontSize: "13px", letterSpacing: "0.04em", boxShadow: "0 14px 28px rgba(122, 103, 184, 0.08)", cursor: "pointer", textDecoration: "none" }}>会場の特徴を見る</a>
@@ -4884,17 +4931,25 @@ export function DashboardPage() {
               </div>
             </div>
 
-            <div style={{ minHeight: "560px", display: "flex", alignItems: "center" }}>
+<div
+  style={{
+    minHeight: isMobile ? 0 : "560px",
+    display: "flex",
+    alignItems: "center",
+    width: "100%",
+    minWidth: 0,
+  }}
+>
               <div
                 style={{
                   width: "100%",
-                  height: "576px",
-                  borderRadius: "42px",
+                  height: isMobile ? "300px" : "576px",
+                  borderRadius: isMobile ? "30px" : "42px",
                   backgroundImage: `url("${toPublicPath("/hero-bg-keirin.jpg")}")`,
                   backgroundSize: "cover",
                   backgroundPosition: "center",
                   border: "1px solid rgba(15, 23, 42, 0.08)",
-                  boxShadow: "0 30px 92px rgba(15, 23, 42, 0.11)",
+                  boxShadow: isMobile ? "0 18px 42px rgba(15, 23, 42, 0.08)" : "0 30px 92px rgba(15, 23, 42, 0.11)",
                   position: "relative",
                   overflow: "visible",
                 }}
@@ -4920,10 +4975,10 @@ export function DashboardPage() {
                 <div
                   style={{
                     position: "absolute",
-                    right: "18px",
-                    bottom: "14px",
-                    width: "286px",
-                    height: "338px",
+                    right: isMobile ? "8px" : "18px",
+                    bottom: isMobile ? "8px" : "14px",
+                    width: isMobile ? "176px" : "286px",
+                    height: isMobile ? "218px" : "338px",
                     backgroundImage: `url("${toPublicPath("/kurari-hero-chibi.png")}")`,
                     backgroundSize: "contain",
                     backgroundRepeat: "no-repeat",
@@ -7399,7 +7454,8 @@ export type SiteHeaderActiveKey =
   | "analysis"
   | "races"
   | "players"
-  | "calendar"; 
+  | "calendar"
+  | "mobile";
   export type SiteHeaderProps = {
   activeKey: SiteHeaderActiveKey;
 }; 
@@ -7520,7 +7576,7 @@ export type SiteHeaderActiveKey =
     justifyContent: isMobile ? "flex-start" : "flex-end",
   }}
 > <a href="#top" onClick={goHashTop("#top")} 
-style={getNavStyle("dashboard")}> Dashboard </a> <a href="#prediction-page" onClick={goHashTop("#prediction-page")} style={getNavStyle("prediction")}> Prediction </a> <a href="#review-page" onClick={goHashTop("#review-page")} style={getNavStyle("review")}> Review </a> <a href="#featured-race" onClick={goDashboardSection("#featured-race")} style={getNavStyle("analysis")}> Analysis </a> <a href="#races-page" onClick={goHashTop("#races-page")} style={getNavStyle("races")}> Races </a> <a href="#players-page" onClick={goHashTop("#players-page")} style={getNavStyle("players")}> Players </a> <a href="#calendar" onClick={goDashboardSection("#calendar")} style={getNavStyle("calendar")}> Calendar </a> </nav> </div> </div> </header> ); }
+style={getNavStyle("dashboard")}> Dashboard </a> <a href="#prediction-page" onClick={goHashTop("#prediction-page")} style={getNavStyle("prediction")}> Prediction </a> <a href="#review-page" onClick={goHashTop("#review-page")} style={getNavStyle("review")}> Review </a> <a href="#featured-race" onClick={goDashboardSection("#featured-race")} style={getNavStyle("analysis")}> Analysis </a> <a href="#races-page" onClick={goHashTop("#races-page")} style={getNavStyle("races")}> Races </a> <a href="#players-page" onClick={goHashTop("#players-page")} style={getNavStyle("players")}> Players </a> <a href="#calendar" onClick={goDashboardSection("#calendar")} style={getNavStyle("calendar")}> Calendar </a> <a href="#mobile-dashboard" onClick={goHashTop("#mobile-dashboard")} style={getNavStyle("mobile")}> Mobile </a> </nav> </div> </div> </header> ); }
 
 function SubPageShell({
   eyebrow,

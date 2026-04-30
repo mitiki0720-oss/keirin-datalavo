@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState } from "react";
 import AnalysisMaterialPage from "./pages/AnalysisMaterialPage";
 import DashboardPage from "./pages/DashboardPage";
+import MobileDashboardPage from "./pages/MobileDashboardPage";
 import PlayersPage from "./pages/PlayersPage";
 import PredictionPage from "./pages/PredictionPage";
 import RacesPage from "./pages/RacesPage";
@@ -76,6 +77,10 @@ export default function App() {
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
+
+  if (route.startsWith("mobile-dashboard")) {
+    return <MobileDashboardPage />;
+  }
 
   if (route.startsWith("players-page")) {
     return <PlayersPage />;
