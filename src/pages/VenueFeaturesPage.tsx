@@ -1,6 +1,13 @@
 ﻿import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { venueSpotlightData } from "../data/venueSpotlightData";
 
+const toPublicPath = (path: string) => {
+  const base = import.meta.env.BASE_URL || "/";
+  const normalizedBase = base.endsWith("/") ? base : `${base}/`;
+  const normalizedPath = path.replace(/^\/+/, "");
+  return `${normalizedBase}${normalizedPath}`;
+};
+
 // ─── Types ─────────────────────────────────────────────────────────────────────
 type VenueBankIndexItem = {
   venueKey: string;
@@ -969,9 +976,11 @@ export default function VenueFeaturesPage() {
   );
   const selectedVenueItem = venueIndex.find((item) => item.venueName === selectedVenueName);
   const selectedVenueFetchPath =
-    selectedVenueName === "いわき平"
-      ? "/data/venues/banks/iwaki-daira.md"
-      : selectedVenueItem?.file ?? "";
+  selectedVenueName === "いわき平"
+    ? toPublicPath("/data/venues/banks/iwaki-daira.md")
+    : selectedVenueItem?.file
+      ? toPublicPath(selectedVenueItem.file)
+      : "";
 
   useEffect(() => {
     const handler = () => setWindowWidth(window.innerWidth);
@@ -985,14 +994,14 @@ export default function VenueFeaturesPage() {
 
   // ── Load index + pre-fetch all bank summaries on mount ────────────
   useEffect(() => {
-    fetch("/data/venues/banks/index.json")
+    fetch(toPublicPath("/data/venues/banks/index.json"))
       .then((r) => r.json())
       .then((data: VenueBankIndexItem[]) => {
         setVenueIndex(data);
         if (data.length > 0) setSelectedVenueName(data[0].venueName);
         setLoadingIndex(false);
         data.forEach((item) => {
-          fetch(item.file)
+          fetch(toPublicPath(item.file))
             .then((r) => r.text())
             .then((md) =>
               setSummaryMap((prev) => ({
@@ -1117,7 +1126,9 @@ export default function VenueFeaturesPage() {
   // ── Selected venue data ────────────────────────────────────────────
   const selectedSummary = summaryMap[selectedVenueName] ?? DEFAULT_VENUE_BANK_SUMMARY;
   const selectedRegion = VENUE_REGION_MAP[selectedVenueName] ?? "—";
-  const selectedImage = VENUE_HERO_IMAGE_MAP[selectedVenueName];
+  const selectedImage = VENUE_HERO_IMAGE_MAP[selectedVenueName]
+  ? toPublicPath(VENUE_HERO_IMAGE_MAP[selectedVenueName])
+  : "";
   const showFallbackImage = !selectedImage || imageErrorSet.has(selectedVenueName);
   const selectedTags = deriveVenueTags(selectedSummary);
   const selectedSpotlight = venueSpotlightData[selectedVenueName];
@@ -1393,7 +1404,7 @@ export default function VenueFeaturesPage() {
           style={{
             backgroundImage: [
               "linear-gradient(135deg, rgba(255,255,255,0.84) 0%, rgba(248,243,255,0.78) 52%, rgba(239,245,255,0.76) 100%)",
-              "url(\"/venue-features/venue-features-hero-bg-lavender-bloom.png\")",
+              `url("${toPublicPath("/venue-features/venue-features-hero-bg-lavender-bloom.png")}")`,
             ].join(", "),
             backgroundSize: "100% auto",
             backgroundPosition: "right top",
@@ -1601,7 +1612,7 @@ export default function VenueFeaturesPage() {
                 }}
               >
                 <img
-                  src="/venue-features/venue-features-area-map-kurari-wide.png"
+                  src={toPublicPath("/venue-features/venue-features-area-map-kurari-wide.png")}
                   alt="全国の競輪場エリアマップ"
                   style={{
                     width: "100%",
@@ -1712,7 +1723,7 @@ export default function VenueFeaturesPage() {
                   }}
                 >
                   <img
-                    src="/venue-features/venue-features-map-side-select-bubble.png"
+                    src={toPublicPath("/venue-features/venue-features-map-side-select-bubble.png")}
                     alt=""
                     aria-hidden="true"
                     style={{
@@ -1725,7 +1736,7 @@ export default function VenueFeaturesPage() {
                   />
 
                   <img
-                    src="/venue-features/venue-features-map-side-kurari-charigon.png"
+                    src={toPublicPath("/venue-features/venue-features-map-side-kurari-charigon.png")}
                     alt=""
                     aria-hidden="true"
                     style={{
@@ -3302,7 +3313,9 @@ export default function VenueFeaturesPage() {
               const summary = summaryMap[venue.venueName] ?? DEFAULT_VENUE_BANK_SUMMARY;
               const isActive = venue.venueName === selectedVenueName;
               const region = VENUE_REGION_MAP[venue.venueName] ?? "—";
-              const heroImage = VENUE_HERO_IMAGE_MAP[venue.venueName];
+              const heroImage = VENUE_HERO_IMAGE_MAP[venue.venueName]
+              ? toPublicPath(VENUE_HERO_IMAGE_MAP[venue.venueName])
+              : "";
               const hasImage = !!heroImage && !imageErrorSet.has(venue.venueName);
               const tags = deriveVenueTags(summary);
               return (
