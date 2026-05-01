@@ -7837,9 +7837,8 @@ export function PredictionPage() {
   const [selectedRaceNo, setSelectedRaceNo] = useState<number>(1);
   const [predictionMemo, setPredictionMemo] = useState(DEFAULT_PREDICTION_MEMO);
   const [predictionSlotDraft, setPredictionSlotDraft] = useState("");
-  const [structuredPredictionPreview, setStructuredPredictionPreview] = useState<StructuredPrediction | null>(null);
-  const [predictionSlotStatus, setPredictionSlotStatus] = useState("");
   const [predictionResultDraft, setPredictionResultDraft] = useState<PredictionResultDraft>(() => createDefaultPredictionResultDraft());
+  const [predictionSlotStatus, setPredictionSlotStatus] = useState("");
   const [predictionResultStatus, setPredictionResultStatus] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
   const [savedPredictionSlots, setSavedPredictionSlots] = useState<PredictionSlotMap>(() => loadStoredPredictionSlots());
@@ -8367,7 +8366,6 @@ const resolvedPredictionSourceText = useMemo(
 
   useEffect(() => {
     setPredictionSlotDraft(selectedPredictionSlotLookup.record?.predictionText ?? "");
-    setStructuredPredictionPreview(selectedSavedPredictionSlot?.predictionJson ?? null);
   }, [selectedPredictionSlotLookup.record?.predictionText, selectedPredictionSlotRaceKey]);
 
   useEffect(() => {
@@ -8860,16 +8858,68 @@ if (
     window.URL.revokeObjectURL(url);
   };
 
-    const handlePredictionJsonize = () => {
-    const structured = parsePredictionTextToStructuredPrediction(predictionSlotDraft);
-    setStructuredPredictionPreview(structured);
+  const downloadPredictionPublicJsonFile = (records: PredictionSlotMap) => {
+    const payload = {
+      version: 1,
+      updatedAt: new Date().toISOString(),
+      source: "kurari-prediction-page",
+      records,
+      recordList: Object.values(records).sort((a, b) => {
+        const dateCompare = b.date.localeCompare(a.date);
+        if (dateCompare !== 0) return dateCompare;
 
-    if (structured.tickets.length === 0) {
-      setPredictionSlotStatus("JSON化しましたが、買い目を検出できませんでした");
+        const venueCompare = a.venue.localeCompare(b.venue, "ja");
+        if (venueCompare !== 0) return venueCompare;
+
+        return a.raceNumber - b.raceNumber;
+      }),
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json;charset=utf-8",
+    });
+
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "saved-predictions.generated.json";
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handlePredictionPublicJsonExport = () => {
+    if (!predictionFeed || !selectedVenue || !selectedRace || !selectedPredictionSlotRaceKey) {
+      setPredictionSlotStatus("レースを選択してから公開JSONを書き出してください");
       return;
     }
 
-    setPredictionSlotStatus(`JSON化しました：${structured.tickets.length}点`);
+    const predictionJson = parsePredictionTextToStructuredPrediction(predictionSlotDraft);
+
+    const record: PredictionSlotRecord = {
+      raceKey: selectedPredictionSlotRaceKey,
+      raceId: selectedVenue.raceIds?.[selectedRace.raceNo - 1] ?? "",
+      venue: selectedVenue.venue,
+      date: predictionFeed.date,
+      raceNumber: selectedRace.raceNo,
+      predictionText: predictionSlotDraft,
+      predictionJson,
+      savedAt: new Date().toISOString(),
+    };
+
+    const nextSlots = {
+      ...savedPredictionSlots,
+      [selectedPredictionSlotRaceKey]: record,
+    };
+
+    saveStoredPredictionSlots(nextSlots);
+    setSavedPredictionSlots(nextSlots);
+    downloadPredictionPublicJsonFile(nextSlots);
+
+    setPredictionSlotStatus(
+      `公開JSONを書き出しました：${Object.keys(nextSlots).length}件 / 次に自動push用スクリプトでiPhone側へ反映します`
+    );
   };
 
   const handlePredictionSlotSave = () => {
@@ -8885,7 +8935,7 @@ if (
       date: predictionFeed.date,
       raceNumber: selectedRace.raceNo,
       predictionText: predictionSlotDraft,
-      predictionJson: structuredPredictionPreview ?? parsePredictionTextToStructuredPrediction(predictionSlotDraft),
+      predictionJson: parsePredictionTextToStructuredPrediction(predictionSlotDraft),
       savedAt: new Date().toISOString(),
     };
     setSavedPredictionSlots((current) => {
@@ -8941,7 +8991,6 @@ if (
     }
 
     applyAutoInvestmentInput(autoInvestmentForSavedPrediction);
-    setStructuredPredictionPreview(record.predictionJson ?? null);
     setPredictionSlotStatus("保存済み");
   };
 
@@ -8954,7 +9003,6 @@ if (
       return next;
     });
     setPredictionSlotDraft("");
-    setStructuredPredictionPreview(null);
     setPredictionSlotStatus("削除しました");
   };
 
@@ -9563,7 +9611,7 @@ const record = normalizePredictionResultRecord({
                   <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
                     <button
                       type="button"
-                      onClick={handlePredictionJsonize}
+                      onClick={handlePredictionPublicJsonExport}
                       style={{
                         minWidth: "120px",
                         border: "1px solid rgba(122,96,194,0.24)",
@@ -9578,7 +9626,7 @@ const record = normalizePredictionResultRecord({
                         boxShadow: "0 10px 20px rgba(103, 96, 184, 0.08)",
                       }}
                     >
-                      JSON化
+                      公開JSONを書き出す
                     </button>
 
                     <button
@@ -9586,7 +9634,7 @@ const record = normalizePredictionResultRecord({
                       onClick={handlePredictionSlotSave}
                       style={{
                         flex: 1,
-                        minWidth: "160px",
+                        minWidth: "180px",
                         border: "none",
                         borderRadius: "9999px",
                         padding: "13px 16px",
@@ -9625,122 +9673,7 @@ const record = normalizePredictionResultRecord({
                     <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b8a9d", marginBottom: "8px" }}>保存済みプレビュー</div>
                     <div style={{ whiteSpace: "pre-wrap", fontSize: "12px", lineHeight: 1.9, color: "#526072", maxHeight: "220px", overflow: "auto" }}>{selectedSavedPredictionSlot?.predictionText || "このレースの保存済み予想はまだありません。"}</div>
                   </div>
-                                    {structuredPredictionPreview && (
-                    <div
-                      style={{
-                        borderRadius: "20px",
-                        border: "1px solid rgba(216, 201, 244, 0.92)",
-                        background: "linear-gradient(180deg, #ffffff 0%, #fbf8ff 100%)",
-                        padding: "14px 16px",
-                        display: "grid",
-                        gap: "10px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: "10px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: "10px",
-                            fontWeight: 900,
-                            letterSpacing: "0.14em",
-                            color: "#8c63c7",
-                          }}
-                        >
-                          JSON化プレビュー
-                        </div>
-
-                        <span
-                          style={{
-                            borderRadius: "9999px",
-                            padding: "5px 9px",
-                            background: "#f6f0ff",
-                            border: "1px solid #d8c9f4",
-                            color: "#6f5aa9",
-                            fontSize: "11px",
-                            fontWeight: 900,
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {structuredPredictionPreview.tickets.length}点
-                        </span>
-                      </div>
-
-                      {structuredPredictionPreview.summary.title && (
-                        <div
-                          style={{
-                            borderRadius: "14px",
-                            padding: "9px 10px",
-                            background: "#ffffff",
-                            border: "1px solid #e7dbf7",
-                            color: "#334155",
-                            fontSize: "12px",
-                            lineHeight: 1.7,
-                            fontWeight: 800,
-                          }}
-                        >
-                          {structuredPredictionPreview.summary.title}
-                        </div>
-                      )}
-
-                      <div style={{ display: "grid", gap: "6px" }}>
-                        {structuredPredictionPreview.tickets.slice(0, 12).map((ticket) => (
-                          <div
-                            key={`${ticket.index}-${ticket.betType}-${ticket.combination}`}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              gap: "10px",
-                              borderRadius: "14px",
-                              padding: "9px 10px",
-                              background: "#ffffff",
-                              border: "1px solid #e7dbf7",
-                              fontSize: "12px",
-                              fontWeight: 850,
-                              color: "#334155",
-                            }}
-                          >
-                            <span>
-                              {ticket.index}. {ticket.betType} {ticket.combination}
-                            </span>
-                            <span
-                              style={{
-                                color:
-                                  ticket.group === "厚め"
-                                    ? "#5f43a5"
-                                    : ticket.group === "穴狙い"
-                                      ? "#b45309"
-                                      : "#64748b",
-                                fontWeight: 950,
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              {ticket.group}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-
-                      {structuredPredictionPreview.tickets.length > 12 && (
-                        <div
-                          style={{
-                            color: "#64748b",
-                            fontSize: "11px",
-                            fontWeight: 850,
-                            textAlign: "center",
-                          }}
-                        >
-                          ほか {structuredPredictionPreview.tickets.length - 12}点
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  
                 </div>
               </article>
               </div>

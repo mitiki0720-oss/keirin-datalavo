@@ -32,6 +32,16 @@ import {
   type PredictionVenueItem,
 } from "./PageImplementations";
 
+type PublicPredictionSlotsFile = {
+  version?: number;
+  updatedAt?: string;
+  source?: string;
+  records?: PredictionSlotMap;
+  recordList?: unknown[];
+};
+
+const PUBLIC_PREDICTION_SLOTS_URL = toPublicPath("/data/predictions/saved-predictions.generated.json");
+
 const mobilePageShellStyle: CSSProperties = {
   width: "100%",
   maxWidth: "100vw",
@@ -95,6 +105,38 @@ const mobileGlassPanelStyle: CSSProperties = {
   boxShadow: "0 14px 30px rgba(122, 103, 184, 0.08)",
   boxSizing: "border-box",
   minWidth: 0,
+};
+
+const loadPublicPredictionSlots = async (): Promise<PredictionSlotMap> => {
+  try {
+    const response = await fetch(`${PUBLIC_PREDICTION_SLOTS_URL}?t=${Date.now()}`, {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return {};
+    }
+
+    const payload = (await response.json()) as PublicPredictionSlotsFile;
+
+    if (!payload.records || typeof payload.records !== "object") {
+      return {};
+    }
+
+    return payload.records;
+  } catch {
+    return {};
+  }
+};
+
+const mergePredictionSlotMaps = (
+  publicSlots: PredictionSlotMap,
+  localSlots: PredictionSlotMap
+): PredictionSlotMap => {
+  return {
+    ...publicSlots,
+    ...localSlots,
+  };
 };
 
 const formatYen = (value?: number) => {
@@ -1765,7 +1807,7 @@ function MobileVenueCard({
                               まだ保存済み予想はありません
                             </div>
                             <p style={{ ...mutedTextStyle, fontSize: "12px" }}>
-                              PC版PredictionPageで予想をJSON化して保存すると、ここに買い目カードとして表示されます。
+                              PC版PredictionPageで公開JSONを書き出すと、ここに買い目カードとして表示されます。
                             </p>
                           </div>
                         )}
@@ -1942,7 +1984,7 @@ function MobileVenueCard({
                                       fontWeight: 900,
                                     }}
                                   >
-                                    JSON化された予想がまだありません。PC版PredictionPageでJSON化して保存してください。
+                                    公開JSONの予想がまだありません。PC版PredictionPageで公開JSONを書き出してください。
                                   </div>
                                 )}
                               </div>
@@ -2055,11 +2097,16 @@ export default function MobileDashboardPage() {
   );
   const [todayPredictionFeed, setTodayPredictionFeed] = useState<PredictionTodayFeed | null>(null);
   const [predictionResultMap, setPredictionResultMap] = useState<PredictionResultMap>(() => loadStoredPredictionResults());
-  const [predictionSlotMap, setPredictionSlotMap] = useState<PredictionSlotMap>(() => loadStoredPredictionSlots());
+  const [localPredictionSlotMap, setLocalPredictionSlotMap] = useState<PredictionSlotMap>(() => loadStoredPredictionSlots());
+  const [publicPredictionSlotMap, setPublicPredictionSlotMap] = useState<PredictionSlotMap>({});
   const [feedStatus, setFeedStatus] = useState<"loading" | "ready" | "error">("loading");
   const [openVenueKey, setOpenVenueKey] = useState<string | null>(null);
   const [selectedCalendarIso, setSelectedCalendarIso] = useState(TODAY);
   const [activeMobileSection, setActiveMobileSection] = useState("mobile-calendar");
+    const predictionSlotMap = useMemo(
+    () => mergePredictionSlotMaps(publicPredictionSlotMap, localPredictionSlotMap),
+    [publicPredictionSlotMap, localPredictionSlotMap]
+  );
 
   useEffect(() => {
     let isActive = true;
@@ -2161,7 +2208,7 @@ export default function MobileDashboardPage() {
   useEffect(() => {
     const refreshStoredPredictionData = () => {
       setPredictionResultMap(loadStoredPredictionResults());
-      setPredictionSlotMap(loadStoredPredictionSlots());
+      setLocalPredictionSlotMap(loadStoredPredictionSlots());
     };
 
     const handleStorage = (event: StorageEvent) => {
@@ -2185,6 +2232,33 @@ export default function MobileDashboardPage() {
 
     return () => {
       window.removeEventListener("storage", handleStorage);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+    useEffect(() => {
+    let isActive = true;
+
+    const loadPublicSlots = async () => {
+      const publicSlots = await loadPublicPredictionSlots();
+      if (!isActive) return;
+      setPublicPredictionSlotMap(publicSlots);
+    };
+
+    loadPublicSlots();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        loadPublicSlots();
+      }
+    };
+
+    window.addEventListener("focus", loadPublicSlots);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      isActive = false;
+      window.removeEventListener("focus", loadPublicSlots);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
