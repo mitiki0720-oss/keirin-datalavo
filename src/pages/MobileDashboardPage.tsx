@@ -739,7 +739,10 @@ function MobileVenueCard({
     : { record: undefined };
 
   const selectedSavedPredictionText = clipMobilePredictionText(selectedSavedSlotLookup.record?.predictionText);
-  const selectedHasSavedPrediction = Boolean(selectedSavedPredictionText);
+  const selectedStructuredPrediction = selectedSavedSlotLookup.record?.predictionJson;
+  const selectedHasSavedPrediction = Boolean(
+  selectedSavedPredictionText || (selectedStructuredPrediction?.tickets.length ?? 0) > 0
+  );
   const selectedSavedTone = getMobileSavedResultTone(selectedSavedResult?.hitStatus, selectedHasSavedPrediction);
   const selectedResultTone = selectedVenueRace
     ? getMobileRaceResultTone(selectedVenueRace)
@@ -749,6 +752,58 @@ function MobileVenueCard({
     selectedVenueRace?.result?.finishOrder?.length
       ? selectedVenueRace.result.finishOrder.join("-")
       : selectedSavedResult?.resultOrder || "";
+
+  const selectedResultTop2Text = selectedResultOrderText
+    ? selectedResultOrderText.split("-").slice(0, 2).join("-")
+    : "";
+
+  const selectedStructuredHitTicket = selectedStructuredPrediction?.tickets.find((ticket) => {
+    if (!selectedResultOrderText) return false;
+
+    if (ticket.betType === "3連単") {
+      return ticket.combination === selectedResultOrderText;
+    }
+
+    if (ticket.betType === "2車単") {
+      return ticket.combination === selectedResultTop2Text;
+    }
+
+    return false;
+  });
+
+  const selectedStructuredPredictionResultLabel =
+    !selectedStructuredPrediction || selectedStructuredPrediction.tickets.length === 0
+      ? "JSON予想なし"
+      : !selectedResultOrderText
+        ? "結果待ち"
+        : selectedStructuredHitTicket
+          ? "的中"
+          : "不的中";
+
+  const selectedStructuredPredictionResultTone =
+    selectedStructuredPredictionResultLabel === "的中"
+      ? {
+          background: "linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%)",
+          border: "#99f6e4",
+          color: "#0f766e",
+        }
+      : selectedStructuredPredictionResultLabel === "不的中"
+        ? {
+            background: "linear-gradient(135deg, #fff7ed 0%, #ffffff 100%)",
+            border: "#fed7aa",
+            color: "#b45309",
+          }
+        : selectedStructuredPredictionResultLabel === "結果待ち"
+          ? {
+              background: "linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)",
+              border: "#e2e8f0",
+              color: "#475569",
+            }
+          : {
+              background: "linear-gradient(135deg, #ffffff 0%, #f6f0ff 100%)",
+              border: "#d8c9f4",
+              color: "#6f5aa9",
+            };
 
   const hasConfirmedVenueResult = Boolean(
     predictionVenue?.races.some(
@@ -1422,16 +1477,255 @@ function MobileVenueCard({
                       <div style={{ display: "grid", gap: "10px" }}>
                         <div
                           style={{
-                            fontSize: "10px",
-                            fontWeight: 900,
-                            letterSpacing: "0.14em",
-                            color: "#8c63c7",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: "10px",
                           }}
                         >
-                          SAVED PREDICTION
+                          <div
+                            style={{
+                              fontSize: "10px",
+                              fontWeight: 900,
+                              letterSpacing: "0.14em",
+                              color: "#8c63c7",
+                            }}
+                          >
+                            SAVED PREDICTION
+                          </div>
+
+                          {selectedStructuredPrediction && (
+                            <span
+                              style={{
+                                borderRadius: "999px",
+                                padding: "5px 9px",
+                                background: "#f6f0ff",
+                                border: "1px solid #d8c9f4",
+                                color: "#6f5aa9",
+                                fontSize: "11px",
+                                fontWeight: 950,
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              JSON {selectedStructuredPrediction.tickets.length}点
+                            </span>
+                          )}
                         </div>
 
-                        {selectedSavedPredictionText ? (
+                        {selectedStructuredPrediction && selectedStructuredPrediction.tickets.length > 0 ? (
+                          <div style={{ display: "grid", gap: "10px" }}>
+                            {selectedStructuredPrediction.summary.title && (
+                              <div
+                                style={{
+                                  borderRadius: "16px",
+                                  padding: "11px 12px",
+                                  background: "linear-gradient(135deg, #ffffff 0%, #fbf8ff 100%)",
+                                  border: "1px solid #e7dbf7",
+                                  color: "#334155",
+                                  fontSize: "12px",
+                                  lineHeight: 1.65,
+                                  fontWeight: 850,
+                                }}
+                              >
+                                {selectedStructuredPrediction.summary.title}
+                              </div>
+                            )}
+
+                            <div
+                              style={{
+                                display: "grid",
+                                gap: "7px",
+                              }}
+                            >
+                              {selectedStructuredPrediction.tickets.map((ticket) => {
+                                const isHit =
+                                  selectedSavedResult?.hitStatus === "hit" &&
+                                  selectedSavedResult.hitBetType === ticket.betType &&
+                                  selectedSavedResult.hitCombination === ticket.combination;
+
+                                return (
+                                  <div
+                                    key={`${ticket.index}-${ticket.betType}-${ticket.combination}`}
+                                    style={{
+                                      display: "grid",
+                                      gridTemplateColumns: "auto 1fr auto",
+                                      alignItems: "center",
+                                      gap: "8px",
+                                      borderRadius: "16px",
+                                      padding: "10px",
+                                      background: isHit
+                                        ? "linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%)"
+                                        : "#ffffff",
+                                      border: isHit ? "1px solid #99f6e4" : "1px solid #e7dbf7",
+                                      boxShadow: isHit
+                                        ? "0 10px 24px rgba(20, 184, 166, 0.10)"
+                                        : "0 8px 18px rgba(15, 23, 42, 0.035)",
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        width: "28px",
+                                        height: "28px",
+                                        borderRadius: "10px",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        background:
+                                          ticket.betType === "2車単"
+                                            ? "#eff6ff"
+                                            : "#f6f0ff",
+                                        color:
+                                          ticket.betType === "2車単"
+                                            ? "#2554ad"
+                                            : "#6542be",
+                                        border:
+                                          ticket.betType === "2車単"
+                                            ? "1px solid #d6e6fb"
+                                            : "1px solid #d8c9f4",
+                                        fontSize: "10px",
+                                        fontWeight: 950,
+                                      }}
+                                    >
+                                      {ticket.index}
+                                    </span>
+
+                                    <div style={{ minWidth: 0, display: "grid", gap: "3px" }}>
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          gap: "6px",
+                                          alignItems: "center",
+                                          flexWrap: "wrap",
+                                        }}
+                                      >
+                                        <span
+                                          style={{
+                                            fontSize: "11px",
+                                            fontWeight: 950,
+                                            color: ticket.betType === "2車単" ? "#2554ad" : "#6542be",
+                                          }}
+                                        >
+                                          {ticket.betType}
+                                        </span>
+                                        <span
+                                          style={{
+                                            fontSize: "15px",
+                                            fontWeight: 950,
+                                            color: "#081224",
+                                            letterSpacing: "0.02em",
+                                          }}
+                                        >
+                                          {ticket.combination}
+                                        </span>
+                                      </div>
+
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          gap: "6px",
+                                          flexWrap: "wrap",
+                                          alignItems: "center",
+                                        }}
+                                      >
+                                        <span
+                                          style={{
+                                            width: "fit-content",
+                                            borderRadius: "999px",
+                                            padding: "3px 7px",
+                                            background:
+                                              ticket.group === "厚め"
+                                                ? "#f6f0ff"
+                                                : ticket.group === "穴狙い"
+                                                  ? "#fff7ed"
+                                                  : "#f8fafc",
+                                            color:
+                                              ticket.group === "厚め"
+                                                ? "#6542be"
+                                                : ticket.group === "穴狙い"
+                                                  ? "#b45309"
+                                                  : "#64748b",
+                                            border:
+                                              ticket.group === "厚め"
+                                                ? "1px solid #d8c9f4"
+                                                : ticket.group === "穴狙い"
+                                                  ? "1px solid #fed7aa"
+                                                  : "1px solid #e2e8f0",
+                                            fontSize: "10px",
+                                            fontWeight: 900,
+                                          }}
+                                        >
+                                          {ticket.group}
+                                        </span>
+
+                                        {isHit && (
+                                          <span
+                                            style={{
+                                              width: "fit-content",
+                                              borderRadius: "999px",
+                                              padding: "3px 7px",
+                                              background: "#ccfbf1",
+                                              color: "#0f766e",
+                                              border: "1px solid #99f6e4",
+                                              fontSize: "10px",
+                                              fontWeight: 950,
+                                            }}
+                                          >
+                                            的中
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    <span
+                                      style={{
+                                        fontSize: "11px",
+                                        fontWeight: 950,
+                                        color: isHit ? "#0f766e" : "#94a3b8",
+                                        whiteSpace: "nowrap",
+                                      }}
+                                    >
+                                      {isHit ? "HIT" : "—"}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {(selectedStructuredPrediction.summary.lineup ||
+                              selectedStructuredPrediction.summary.scenario ||
+                              selectedStructuredPrediction.summary.memo) && (
+                              <div
+                                style={{
+                                  display: "grid",
+                                  gap: "7px",
+                                  borderRadius: "16px",
+                                  padding: "12px",
+                                  background: "linear-gradient(135deg, #ffffff 0%, #f8fbff 100%)",
+                                  border: "1px solid #e2e8f0",
+                                }}
+                              >
+                                {selectedStructuredPrediction.summary.lineup && (
+                                  <p style={{ ...mutedTextStyle, margin: 0, fontSize: "12px" }}>
+                                    <strong style={{ color: "#334155" }}>並び：</strong>
+                                    {selectedStructuredPrediction.summary.lineup}
+                                  </p>
+                                )}
+                                {selectedStructuredPrediction.summary.scenario && (
+                                  <p style={{ ...mutedTextStyle, margin: 0, fontSize: "12px" }}>
+                                    <strong style={{ color: "#334155" }}>展開：</strong>
+                                    {selectedStructuredPrediction.summary.scenario}
+                                  </p>
+                                )}
+                                {selectedStructuredPrediction.summary.memo && (
+                                  <p style={{ ...mutedTextStyle, margin: 0, fontSize: "12px" }}>
+                                    <strong style={{ color: "#334155" }}>メモ：</strong>
+                                    {selectedStructuredPrediction.summary.memo}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ) : selectedSavedPredictionText ? (
                           <pre
                             style={{
                               margin: 0,
@@ -1471,7 +1765,7 @@ function MobileVenueCard({
                               まだ保存済み予想はありません
                             </div>
                             <p style={{ ...mutedTextStyle, fontSize: "12px" }}>
-                              JSON化した予想データを追加すると、この場所に買い目・展開メモ・コメントを表示できます。
+                              PC版PredictionPageで予想をJSON化して保存すると、ここに買い目カードとして表示されます。
                             </p>
                           </div>
                         )}
@@ -1509,6 +1803,149 @@ function MobileVenueCard({
                               <span>収支 {formatYen(selectedSavedResult?.profitLoss)}</span>
                               <span>回収 {formatPercent(selectedSavedResult?.roi)}</span>
                               <span>決まり手 {selectedVenueRace.result?.kimarite ?? "—"}</span>
+                            </div>
+
+                                                        <div
+                              style={{
+                                borderRadius: "18px",
+                                padding: "12px",
+                                background: selectedStructuredPredictionResultTone.background,
+                                border: `1px solid ${selectedStructuredPredictionResultTone.border}`,
+                                display: "grid",
+                                gap: "9px",
+                                boxShadow:
+                                  selectedStructuredPredictionResultLabel === "的中"
+                                    ? "0 10px 22px rgba(20, 184, 166, 0.10)"
+                                    : "0 8px 18px rgba(15, 23, 42, 0.035)",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  gap: "10px",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    fontSize: "10px",
+                                    fontWeight: 950,
+                                    letterSpacing: "0.14em",
+                                    color: "#8c63c7",
+                                  }}
+                                >
+                                  JSON RESULT CHECK
+                                </div>
+
+                                <span
+                                  style={{
+                                    borderRadius: "999px",
+                                    padding: "5px 9px",
+                                    background: "#ffffff",
+                                    border: `1px solid ${selectedStructuredPredictionResultTone.border}`,
+                                    color: selectedStructuredPredictionResultTone.color,
+                                    fontSize: "11px",
+                                    fontWeight: 950,
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {selectedStructuredPredictionResultLabel}
+                                </span>
+                              </div>
+
+                              <div
+                                style={{
+                                  display: "grid",
+                                  gap: "6px",
+                                  color: "#334155",
+                                  fontSize: "12px",
+                                  lineHeight: 1.65,
+                                  fontWeight: 800,
+                                }}
+                              >
+                                {selectedStructuredPrediction && selectedStructuredPrediction.tickets.length > 0 ? (
+                                  <>
+                                    <div>
+                                      保存買い目：
+                                      <strong style={{ color: "#081224" }}>
+                                        {selectedStructuredPrediction.tickets.length}点
+                                      </strong>
+                                    </div>
+
+                                    <div>
+                                      結果：
+                                      <strong style={{ color: "#081224" }}>
+                                        {selectedResultOrderText || "結果待ち"}
+                                      </strong>
+                                      {selectedResultTop2Text && (
+                                        <span style={{ color: "#64748b" }}>
+                                          {" "}
+                                          / 2車単判定 {selectedResultTop2Text}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    {selectedStructuredHitTicket ? (
+                                      <div
+                                        style={{
+                                          borderRadius: "14px",
+                                          padding: "9px 10px",
+                                          background: "#ffffff",
+                                          border: "1px solid #99f6e4",
+                                          color: "#0f766e",
+                                          fontWeight: 950,
+                                        }}
+                                      >
+                                        的中買い目：{selectedStructuredHitTicket.betType}{" "}
+                                        {selectedStructuredHitTicket.combination}
+                                        <span style={{ marginLeft: "6px", color: "#64748b" }}>
+                                          / {selectedStructuredHitTicket.group}
+                                        </span>
+                                      </div>
+                                    ) : selectedResultOrderText ? (
+                                      <div
+                                        style={{
+                                          borderRadius: "14px",
+                                          padding: "9px 10px",
+                                          background: "#ffffff",
+                                          border: "1px solid #fed7aa",
+                                          color: "#b45309",
+                                          fontWeight: 900,
+                                        }}
+                                      >
+                                        JSON買い目内に一致はありません。
+                                      </div>
+                                    ) : (
+                                      <div
+                                        style={{
+                                          borderRadius: "14px",
+                                          padding: "9px 10px",
+                                          background: "#ffffff",
+                                          border: "1px solid #e2e8f0",
+                                          color: "#475569",
+                                          fontWeight: 900,
+                                        }}
+                                      >
+                                        結果確定後に、保存買い目と自動照合します。
+                                      </div>
+                                    )}
+                                  </>
+                                ) : (
+                                  <div
+                                    style={{
+                                      borderRadius: "14px",
+                                      padding: "9px 10px",
+                                      background: "#ffffff",
+                                      border: "1px solid #e7dbf7",
+                                      color: "#6f5aa9",
+                                      fontWeight: 900,
+                                    }}
+                                  >
+                                    JSON化された予想がまだありません。PC版PredictionPageでJSON化して保存してください。
+                                  </div>
+                                )}
+                              </div>
                             </div>
 
                             {(selectedVenueRace.result?.payout3tan || selectedVenueRace.result?.payout2tan) && (
