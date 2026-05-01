@@ -16,10 +16,31 @@ function Write-Log {
 
   $logDir = Split-Path -Parent $LogFile
   if (!(Test-Path $logDir)) {
-    New-Item -ItemType Directory -Path $logDir | Out-Null
+    New-Item -ItemType Directory -Path $logDir -Force | Out-Null
   }
 
   Add-Content -Path $LogFile -Value $line -Encoding UTF8
+}
+
+function Invoke-GitCommand {
+  param([string]$Command)
+
+  Set-Location $ProjectRoot
+
+  Write-Log "RUN: git $Command"
+
+  $output = cmd /c "git $Command 2>&1"
+  $exitCode = $LASTEXITCODE
+
+  if ($output) {
+    $output | ForEach-Object {
+      Write-Log "GIT: $_"
+    }
+  }
+
+  Write-Log "EXIT: $exitCode"
+
+  return $exitCode
 }
 
 function Wait-FileReady {
@@ -41,48 +62,55 @@ function Wait-FileReady {
 function Publish-PredictionJson {
   param([string]$SourceFile)
 
-  if (!(Test-Path $SourceFile)) {
-    Write-Log "Source file not found: $SourceFile"
-    return
-  }
+  try {
+    if (!(Test-Path $SourceFile)) {
+      Write-Log "Source file not found: $SourceFile"
+      return
+    }
 
-  if (!(Wait-FileReady -Path $SourceFile)) {
-    Write-Log "File is not ready: $SourceFile"
-    return
-  }
+    if (!(Wait-FileReady -Path $SourceFile)) {
+      Write-Log "File is not ready: $SourceFile"
+      return
+    }
 
-  if (!(Test-Path $TargetDir)) {
-    New-Item -ItemType Directory -Path $TargetDir -Force | Out-Null
-    Write-Log "Created target directory: $TargetDir"
-  }
+    if (!(Test-Path $TargetDir)) {
+      New-Item -ItemType Directory -Path $TargetDir -Force | Out-Null
+      Write-Log "Created target directory: $TargetDir"
+    }
 
-  Copy-Item -Path $SourceFile -Destination $TargetFile -Force
-  Write-Log "Copied json to target file."
+    Copy-Item -Path $SourceFile -Destination $TargetFile -Force
+    Write-Log "Copied json to target file."
 
-  Set-Location $ProjectRoot
+    $addExit = Invoke-GitCommand "add public/data/predictions/saved-predictions.generated.json"
+    if ($addExit -ne 0) {
+      Write-Log "git add failed."
+      return
+    }
 
-  git add "public/data/predictions/saved-predictions.generated.json"
+    $diffExit = Invoke-GitCommand "diff --cached --quiet"
 
-  git diff --cached --quiet
-  if ($LASTEXITCODE -eq 0) {
-    Write-Log "No git changes. Skip commit and push."
-    return
-  }
+    if ($diffExit -eq 0) {
+      Write-Log "No git changes. Skip commit and push."
+      return
+    }
 
-  $commitTime = Get-Date -Format "yyyy-MM-dd HH:mm"
-  git commit -m "Update saved prediction public data $commitTime"
+    $commitTime = Get-Date -Format "yyyy-MM-dd HH:mm"
+    $commitExit = Invoke-GitCommand "commit -m `"Update saved prediction public data $commitTime`""
 
-  if ($LASTEXITCODE -ne 0) {
-    Write-Log "git commit failed."
-    return
-  }
+    if ($commitExit -ne 0) {
+      Write-Log "git commit failed."
+      return
+    }
 
-  git push
+    $pushExit = Invoke-GitCommand "push"
 
-  if ($LASTEXITCODE -eq 0) {
-    Write-Log "git push completed. Reload iPhone page after a short wait."
-  } else {
-    Write-Log "git push failed."
+    if ($pushExit -eq 0) {
+      Write-Log "git push completed. Reload iPhone page after a short wait."
+    } else {
+      Write-Log "git push failed."
+    }
+  } catch {
+    Write-Log "ERROR: $($_.Exception.Message)"
   }
 }
 
