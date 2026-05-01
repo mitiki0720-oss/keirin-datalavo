@@ -1,19 +1,30 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { raceScheduleData } from "../data/raceScheduleData";
+import type { RaceScheduleItem } from "../types/raceSchedule";
 import {
   TODAY,
+  EMPTY_FAVORITE_RIDER_FEED,
+  FAVORITE_RIDER_FEED_POLL_INTERVAL_MS,
   PREDICTION_RESULT_STORAGE_KEY,
   PREDICTION_SLOT_STORAGE_KEY,
   PREDICTION_TODAY_DATA_URL,
+  fetchFavoriteRiderFeedFile,
   findPredictionSlotRecord,
+  getFavoriteRiderRaceLabel,
   getGradeBadgeTone,
   getPredictionResultAggregate,
   getSessionLabel,
+  loadCachedFavoriteRiderFeed,
   loadStoredPredictionResults,
   loadStoredPredictionSlots,
+  compareRaces,
+  isRaceOnDate,
   mergeTodayRaceCardItems,
   normalizePredictionVenueName,
   todayRaces,
+  toPublicPath,
   type DashboardTodayRaceCard,
+  type FavoriteRiderFeedItem,
   type PredictionRaceItem,
   type PredictionResultMap,
   type PredictionSlotMap,
@@ -27,8 +38,9 @@ const mobilePageShellStyle: CSSProperties = {
   minHeight: "100vh",
   boxSizing: "border-box",
   overflowX: "hidden",
-  background: "linear-gradient(180deg, #ffffff 0%, #fbf9fe 52%, #ffffff 100%)",
-  padding: "18px 14px 82px",
+  background:
+    "radial-gradient(circle at 12% 0%, rgba(140, 99, 199, 0.18) 0%, rgba(140, 99, 199, 0) 28%), radial-gradient(circle at 92% 8%, rgba(56, 189, 248, 0.16) 0%, rgba(56, 189, 248, 0) 26%), linear-gradient(180deg, #fffefe 0%, #f7f2ff 36%, #f7fbff 68%, #ffffff 100%)",
+  padding: "18px 14px 118px",
 };
 
 const mobileContentStyle: CSSProperties = {
@@ -41,13 +53,14 @@ const mobileContentStyle: CSSProperties = {
 };
 
 const mobileCardStyle: CSSProperties = {
-  borderRadius: "28px",
-  background: "linear-gradient(180deg, #ffffff 0%, #faf7fd 100%)",
-  border: "1px solid #ebe3f3",
-  boxShadow: "0 14px 34px rgba(15, 23, 42, 0.06)",
+  borderRadius: "30px",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(250,247,255,0.94) 100%)",
+  border: "1px solid rgba(224, 214, 244, 0.95)",
+  boxShadow: "0 18px 42px rgba(39, 33, 72, 0.08)",
   padding: "18px",
   boxSizing: "border-box",
   minWidth: 0,
+  backdropFilter: "blur(10px)",
 };
 
 const sectionTitleStyle: CSSProperties = {
@@ -73,36 +86,6 @@ const mutedTextStyle: CSSProperties = {
   fontSize: "13px",
   lineHeight: 1.8,
   fontWeight: 650,
-};
-
-const pillButtonStyle: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  minHeight: "42px",
-  borderRadius: "9999px",
-  padding: "10px 14px",
-  fontSize: "12px",
-  fontWeight: 900,
-  textDecoration: "none",
-  boxSizing: "border-box",
-  whiteSpace: "nowrap",
-};
-
-const primaryButtonStyle: CSSProperties = {
-  ...pillButtonStyle,
-  background: "linear-gradient(135deg, #081224 0%, #162745 100%)",
-  color: "#ffffff",
-  border: "1px solid #081224",
-  boxShadow: "0 12px 24px rgba(8, 18, 36, 0.14)",
-};
-
-const lightButtonStyle: CSSProperties = {
-  ...pillButtonStyle,
-  background: "linear-gradient(180deg, #ffffff 0%, #faf7fd 100%)",
-  color: "#6f5aa9",
-  border: "1px solid #ded3f4",
-  boxShadow: "0 10px 20px rgba(122, 103, 184, 0.07)",
 };
 
 const mobileGlassPanelStyle: CSSProperties = {
@@ -181,6 +164,118 @@ const getMobileRaceResultTone = (race: PredictionRaceItem) => {
   };
 };
 
+type MobileCalendarCell = {
+  key: string;
+  label: string;
+  iso: string | null;
+  isCurrentMonth: boolean;
+  isToday: boolean;
+  events: RaceScheduleItem[];
+};
+
+const mobileCalendarWeekLabels = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+
+const buildMobileMonthCalendar = (baseIso: string, schedules: RaceScheduleItem[] = []) => {
+  const baseDate = new Date(`${baseIso}T00:00:00`);
+  const year = baseDate.getFullYear();
+  const month = baseDate.getMonth();
+
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+
+  const startOffset = firstDay.getDay();
+  const totalDays = lastDay.getDate();
+
+  const cells: MobileCalendarCell[] = [];
+
+  for (let i = 0; i < startOffset; i += 1) {
+    const date = new Date(year, month, 1 - (startOffset - i));
+    const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+      date.getDate()
+    ).padStart(2, "0")}`;
+
+    cells.push({
+      key: `prev-${iso}`,
+      label: String(date.getDate()),
+      iso,
+      isCurrentMonth: false,
+      isToday: iso === baseIso,
+      events: schedules.filter((race) => isRaceOnDate(race, iso)).sort(compareRaces),
+    });
+  }
+
+  for (let day = 1; day <= totalDays; day += 1) {
+    const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    cells.push({
+      key: `current-${iso}`,
+      label: String(day),
+      iso,
+      isCurrentMonth: true,
+      isToday: iso === baseIso,
+      events: schedules.filter((race) => isRaceOnDate(race, iso)).sort(compareRaces),
+    });
+  }
+
+  while (cells.length % 7 !== 0) {
+    const nextIndex = cells.length - (startOffset + totalDays) + 1;
+    const date = new Date(year, month + 1, nextIndex);
+    const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+      date.getDate()
+    ).padStart(2, "0")}`;
+
+    cells.push({
+      key: `next-${iso}`,
+      label: String(date.getDate()),
+      iso,
+      isCurrentMonth: false,
+      isToday: iso === baseIso,
+      events: schedules.filter((race) => isRaceOnDate(race, iso)).sort(compareRaces),
+    });
+  }
+
+  const weeks: MobileCalendarCell[][] = [];
+  for (let i = 0; i < cells.length; i += 7) {
+    weeks.push(cells.slice(i, i + 7));
+  }
+
+  return {
+    monthLabel: `${year}.${String(month + 1).padStart(2, "0")}`,
+    weeks,
+  };
+};
+
+
+const mobileFavoriteRiderNames = ["眞杉匠", "恩田淳平", "片岡迪之"];
+
+const formatMobileCalendarDateLabel = (iso: string) => {
+  const date = new Date(`${iso}T00:00:00`);
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const week = ["日", "月", "火", "水", "木", "金", "土"][date.getDay()];
+  return `${month}/${day}(${week})`;
+};
+
+type MobileCalendarFavoriteEntry = {
+  key: string;
+  venue: string;
+  raceNo?: number;
+  time?: string;
+  riderName: string;
+  carNo?: string;
+  raceLabel?: string;
+  status?: string;
+  source: "today-feed" | "favorite-feed";
+};
+
+type MobileRaceDetailTab = "entry" | "prediction" | "result" | "info";
+
+const mobileRaceDetailTabs: Array<{ key: MobileRaceDetailTab; label: string; icon: string }> = [
+  { key: "entry", label: "出走表", icon: "🚴" },
+  { key: "prediction", label: "予想", icon: "✍️" },
+  { key: "result", label: "結果", icon: "🏆" },
+  { key: "info", label: "情報", icon: "📌" },
+];
+
 const getMobileSavedResultTone = (hitStatus?: string, hasSavedPrediction = false) => {
   if (hitStatus === "hit") {
     return {
@@ -226,6 +321,179 @@ const getMobileSavedResultTone = (hitStatus?: string, hasSavedPrediction = false
   };
 };
 
+const getMobileCarColorStyle = (carNo?: string) => {
+  switch (String(carNo ?? "")) {
+    case "1":
+      return { background: "#ffffff", color: "#081224", border: "#cbd5e1" };
+    case "2":
+      return { background: "#111827", color: "#ffffff", border: "#111827" };
+    case "3":
+      return { background: "#dc2626", color: "#ffffff", border: "#dc2626" };
+    case "4":
+      return { background: "#2563eb", color: "#ffffff", border: "#2563eb" };
+    case "5":
+      return { background: "#facc15", color: "#422006", border: "#eab308" };
+    case "6":
+      return { background: "#16a34a", color: "#ffffff", border: "#16a34a" };
+    case "7":
+      return { background: "#f97316", color: "#ffffff", border: "#f97316" };
+    case "8":
+      return { background: "#ec4899", color: "#ffffff", border: "#ec4899" };
+    case "9":
+      return { background: "#7c3aed", color: "#ffffff", border: "#7c3aed" };
+    default:
+      return { background: "#081224", color: "#ffffff", border: "#081224" };
+  }
+};
+
+const findTodayFavoriteEntriesFromPredictionFeed = (
+  feed: PredictionTodayFeed | null,
+): MobileCalendarFavoriteEntry[] => {
+  return (feed?.venues ?? []).flatMap((venue) =>
+    venue.races.flatMap((race) =>
+      (race.riders ?? [])
+        .filter((rider) =>
+          mobileFavoriteRiderNames.some((favoriteName) => rider.name?.includes(favoriteName))
+        )
+        .map((rider) => ({
+          key: `today-feed-${venue.venue}-${race.raceNo}-${rider.carNo}-${rider.name}`,
+          venue: venue.venue,
+          raceNo: race.raceNo,
+          time: race.time,
+          riderName: rider.name,
+          carNo: rider.carNo,
+          raceLabel: `${race.raceNo}R`,
+          source: "today-feed" as const,
+        }))
+    )
+  );
+};
+
+const findFavoriteEntriesFromFeedForDate = (
+  favoriteRiderFeed: FavoriteRiderFeedItem[],
+  isoDate: string,
+): MobileCalendarFavoriteEntry[] => {
+  return favoriteRiderFeed
+    .filter((entry) => entry.startDate <= isoDate && entry.endDate >= isoDate)
+    .map((entry) => ({
+      key: `favorite-feed-${isoDate}-${entry.rider}-${entry.venue}-${entry.raceNumber ?? "pending"}`,
+      venue: entry.venue,
+      raceNo: entry.raceNumber,
+      riderName: entry.rider,
+      raceLabel: getFavoriteRiderRaceLabel(entry),
+      status: entry.status,
+      source: "favorite-feed" as const,
+    }));
+};
+
+type MobileSelectedCalendarVenue = DashboardTodayRaceCard | RaceScheduleItem;
+
+const getMobileSelectedVenueKey = (venue: MobileSelectedCalendarVenue) => {
+  if ("id" in venue && venue.id) return String(venue.id);
+  return `${venue.venue}-${venue.startDate}-${venue.endDate}-${venue.grade}`;
+};
+
+const getMobileSelectedVenueGradeLabel = (venue: MobileSelectedCalendarVenue) => {
+  if ("displayGradeLabel" in venue && venue.displayGradeLabel) {
+    return venue.displayGradeLabel;
+  }
+
+  return venue.grade ?? "開催";
+};
+
+const getMobileSelectedVenueTitle = (venue: MobileSelectedCalendarVenue) => {
+  if ("title" in venue && venue.title) return venue.title;
+  return `${venue.venue} 開催`;
+};
+
+const getMobileSelectedVenuePeriodLabel = (venue: MobileSelectedCalendarVenue) => {
+  if (!venue.startDate || !venue.endDate) return "日程確認中";
+  if (venue.startDate === venue.endDate) return "単日開催";
+
+  const start = venue.startDate.slice(5).replace("-", "/");
+  const end = venue.endDate.slice(5).replace("-", "/");
+  return `${start}〜${end}`;
+};
+
+const mobileFloatingNavItems = [
+  { targetId: "mobile-calendar", label: "Calendar", icon: "📅" },
+  { targetId: "mobile-results", label: "Summary", icon: "📊" },
+  { targetId: "mobile-hit-log", label: "Hit", icon: "🎯" },
+  { targetId: "mobile-today-races", label: "Venues", icon: "🚴" },
+];
+
+function MobileFloatingNav({
+  activeTargetId,
+  onNavigate,
+}: {
+  activeTargetId: string;
+  onNavigate: (targetId: string) => void;
+}) {
+  return (
+    <nav
+      aria-label="Mobile page navigation"
+      style={{
+        position: "fixed",
+        left: "50%",
+        bottom: "14px",
+        transform: "translateX(-50%)",
+        width: "min(92vw, 470px)",
+        borderRadius: "9999px",
+        padding: "8px",
+        background: "linear-gradient(135deg, rgba(255,255,255,0.92) 0%, rgba(248,243,255,0.9) 100%)",
+        border: "1px solid rgba(216, 201, 244, 0.92)",
+        boxShadow: "0 18px 42px rgba(39, 33, 72, 0.18)",
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
+        zIndex: 50,
+        display: "grid",
+        gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+        gap: "6px",
+        boxSizing: "border-box",
+      }}
+    >
+      {mobileFloatingNavItems.map((item) => {
+        const isPrimary = activeTargetId === item.targetId;
+
+        return (
+          <button
+            key={item.targetId}
+            type="button"
+            onClick={() => onNavigate(item.targetId)}
+            style={{
+              minHeight: "48px",
+              borderRadius: "9999px",
+              display: "grid",
+              placeItems: "center",
+              gap: "2px",
+              textDecoration: "none",
+              background: isPrimary
+                ? "linear-gradient(135deg, #081224 0%, #24365f 100%)"
+                : "rgba(255,255,255,0.7)",
+              color: isPrimary ? "#ffffff" : "#59468c",
+              border: isPrimary ? "1px solid rgba(255,255,255,0.48)" : "1px solid rgba(231,221,245,0.95)",
+              boxShadow: isPrimary ? "0 10px 22px rgba(8, 18, 36, 0.2)" : "0 8px 16px rgba(39, 33, 72, 0.06)",
+              fontSize: "10px",
+              fontWeight: 950,
+              letterSpacing: "0.01em",
+              boxSizing: "border-box",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              appearance: "none",
+              WebkitAppearance: "none",
+              transition: "background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease",
+              transform: isPrimary ? "translateY(-1px)" : "translateY(0)",
+            }}
+          >
+            <span style={{ fontSize: "15px", lineHeight: 1 }}>{item.icon}</span>
+            <span style={{ lineHeight: 1 }}>{item.label}</span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
 function MobileMetricCard({
   label,
   value,
@@ -237,22 +505,43 @@ function MobileMetricCard({
 }) {
   const toneStyle =
     tone === "plus"
-      ? { color: "#705eb0", background: "#f4effc", border: "#ded3f4" }
+      ? {
+          color: "#5f43a5",
+          background: "linear-gradient(135deg, #f6f0ff 0%, #ffffff 100%)",
+          border: "#d8c9f4",
+          shadow: "0 12px 24px rgba(112, 94, 176, 0.12)",
+        }
       : tone === "minus"
-        ? { color: "#b45309", background: "#fff7ed", border: "#fed7aa" }
+        ? {
+            color: "#b45309",
+            background: "linear-gradient(135deg, #fff7ed 0%, #ffffff 100%)",
+            border: "#fed7aa",
+            shadow: "0 12px 24px rgba(180, 83, 9, 0.1)",
+          }
         : tone === "hit"
-          ? { color: "#0f766e", background: "#f0fbf9", border: "#cdece6" }
-          : { color: "#081224", background: "#ffffff", border: "#ebe3f3" };
+          ? {
+              color: "#047857",
+              background: "linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%)",
+              border: "#bfeadd",
+              shadow: "0 12px 24px rgba(15, 118, 110, 0.1)",
+            }
+          : {
+              color: "#081224",
+              background: "linear-gradient(135deg, #ffffff 0%, #f8f5ff 100%)",
+              border: "#e7ddf5",
+              shadow: "0 10px 20px rgba(39, 33, 72, 0.06)",
+            };
 
   return (
     <div
       style={{
-        borderRadius: "20px",
-        padding: "13px 12px",
+        borderRadius: "22px",
+        padding: "14px 13px",
         background: toneStyle.background,
         border: `1px solid ${toneStyle.border}`,
         boxSizing: "border-box",
         minWidth: 0,
+        boxShadow: toneStyle.shadow,
       }}
     >
       <div
@@ -307,7 +596,16 @@ function MobileHitTicker({
     : "今日はまだ的中ログがありません。結果が反映されると、ここに的中レースが流れます。";
 
   return (
-    <section id="mobile-hit-log" style={{ ...mobileCardStyle, overflow: "hidden" }}>
+    <section
+      id="mobile-hit-log"
+      style={{
+        ...mobileCardStyle,
+        overflow: "hidden",
+        background:
+          "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(246,240,255,0.96) 48%, rgba(240,253,250,0.92) 100%)",
+        border: "1px solid rgba(216, 201, 244, 0.95)",
+      }}
+    >
       <style>
         {`
           @keyframes kurariMobileHitTicker {
@@ -327,8 +625,10 @@ function MobileHitTicker({
           style={{
             ...mobileGlassPanelStyle,
             overflow: "hidden",
-            padding: "12px 0",
+            padding: "13px 0",
             position: "relative",
+            background: "linear-gradient(90deg, #081224 0%, #30235a 48%, #0f766e 100%)",
+            border: "1px solid rgba(255,255,255,0.72)",
           }}
         >
           <div
@@ -372,7 +672,7 @@ function MobileHitTicker({
                   fontSize: "13px",
                   lineHeight: 1.7,
                   fontWeight: 900,
-                  color: hasHits ? "#705eb0" : "#64748b",
+                  color: "#ffffff",
                   letterSpacing: "0.01em",
                 }}
               >
@@ -393,6 +693,7 @@ function MobileVenueCard({
   profitLoss,
   predictionResultMap,
   predictionSlotMap,
+  hasFavoriteVenue,
   isOpen,
   onToggle,
 }: {
@@ -402,6 +703,7 @@ function MobileVenueCard({
   profitLoss?: number;
   predictionResultMap: PredictionResultMap;
   predictionSlotMap: PredictionSlotMap;
+  hasFavoriteVenue: boolean;
   isOpen: boolean;
   onToggle: () => void;
 }) {
@@ -410,6 +712,7 @@ function MobileVenueCard({
   const raceCountLabel = getVenueRaceCountLabel(predictionVenue);
   const firstRaceTimeLabel = getFirstRaceTimeLabel(predictionVenue);
   const normalizedVenue = normalizePredictionVenueName(race.venue);
+  const mobileVenueCardDomId = `mobile-venue-card-${normalizedVenue}`;
   const venueRaceRows = predictionVenue?.races ?? [];
   const savedResultsForVenue = Object.values(predictionResultMap).filter(
     (item) =>
@@ -420,25 +723,136 @@ function MobileVenueCard({
   const getSavedResultForRace = (raceNumber: number) =>
     savedResultsForVenue.find((item) => item.raceNumber === raceNumber);
 
+  const [selectedRaceNo, setSelectedRaceNo] = useState<number | null>(null);
+  const [activeDetailTab, setActiveDetailTab] = useState<MobileRaceDetailTab>("entry");
+
+  const selectedVenueRace =
+    venueRaceRows.find((item) => item.raceNo === selectedRaceNo) ??
+    venueRaceRows[0];
+
+  const selectedSavedResult = selectedVenueRace
+    ? getSavedResultForRace(selectedVenueRace.raceNo)
+    : undefined;
+
+  const selectedSavedSlotLookup = selectedVenueRace
+    ? findPredictionSlotRecord(predictionSlotMap, TODAY, predictionVenue, selectedVenueRace)
+    : { record: undefined };
+
+  const selectedSavedPredictionText = clipMobilePredictionText(selectedSavedSlotLookup.record?.predictionText);
+  const selectedHasSavedPrediction = Boolean(selectedSavedPredictionText);
+  const selectedSavedTone = getMobileSavedResultTone(selectedSavedResult?.hitStatus, selectedHasSavedPrediction);
+  const selectedResultTone = selectedVenueRace
+    ? getMobileRaceResultTone(selectedVenueRace)
+    : { background: "#faf8fd", color: "#64748b", border: "#ede7f5" };
+
+  const selectedResultOrderText =
+    selectedVenueRace?.result?.finishOrder?.length
+      ? selectedVenueRace.result.finishOrder.join("-")
+      : selectedSavedResult?.resultOrder || "";
+
+  const hasConfirmedVenueResult = Boolean(
+    predictionVenue?.races.some(
+      (venueRace) => venueRace.resultStatus === "confirmed" || venueRace.result?.status === "confirmed"
+    )
+  );
+
+  const mobileVenueAttentionBadges: Array<{
+    label: string;
+    background: string;
+    color: string;
+    border: string;
+    shadow?: string;
+  }> = [];
+
+  if (hasFavoriteVenue) {
+    mobileVenueAttentionBadges.push({
+      label: "❤ PUSH",
+      background: "linear-gradient(135deg, #fff7fb 0%, #f6f0ff 100%)",
+      color: "#e56b93",
+      border: "#e9bfd0",
+      shadow: "0 8px 16px rgba(229,107,147,0.12)",
+    });
+  }
+
+  if ((savedRaceCount ?? 0) > 0) {
+    mobileVenueAttentionBadges.push({
+      label: `予想 ${savedRaceCount}R`,
+      background: "linear-gradient(135deg, #f6f0ff 0%, #ffffff 100%)",
+      color: "#6f5aa9",
+      border: "#d8c9f4",
+    });
+  }
+
+  if (hasConfirmedVenueResult) {
+    mobileVenueAttentionBadges.push({
+      label: "結果あり",
+      background: "linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%)",
+      color: "#047857",
+      border: "#bfeadd",
+    });
+  }
+
+  if (profitLoss !== undefined && profitLoss > 0) {
+    mobileVenueAttentionBadges.push({
+      label: `PLUS ${formatYen(profitLoss)}`,
+      background: "linear-gradient(135deg, #f4effc 0%, #ffffff 100%)",
+      color: "#5f43a5",
+      border: "#d8c9f4",
+      shadow: "0 8px 16px rgba(112,94,176,0.12)",
+    });
+  }
+
   return (
     <article
+      id={mobileVenueCardDomId}
       style={{
-        borderRadius: "26px",
+        borderRadius: "28px",
         padding: "16px",
-        background: "linear-gradient(180deg, #ffffff 0%, #fbfdff 100%)",
-        border: "1px solid #ebe3f3",
-        boxShadow: "0 12px 26px rgba(15, 23, 42, 0.045)",
+        background:
+          isOpen
+            ? "linear-gradient(180deg, #ffffff 0%, #faf6ff 52%, #f3fbff 100%)"
+            : "linear-gradient(180deg, #ffffff 0%, #fbf9ff 100%)",
+        border: isOpen ? "1px solid rgba(140, 99, 199, 0.28)" : "1px solid #edf0f5",
+        boxShadow: isOpen
+          ? "0 18px 42px rgba(89, 70, 140, 0.14)"
+          : "0 12px 28px rgba(15, 23, 42, 0.06)",
         boxSizing: "border-box",
         minWidth: 0,
+        position: "relative",
+        overflow: "hidden",
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", alignItems: "flex-start", marginBottom: "10px" }}>
-        <div style={{ minWidth: 0, display: "grid", gap: "4px" }}>
+      <div
+        style={{
+          position: "absolute",
+          right: "-34px",
+          top: "-42px",
+          width: "128px",
+          height: "128px",
+          borderRadius: "9999px",
+          background: isOpen
+            ? "radial-gradient(circle, rgba(140,99,199,0.22) 0%, rgba(140,99,199,0) 68%)"
+            : "radial-gradient(circle, rgba(56,189,248,0.14) 0%, rgba(56,189,248,0) 70%)",
+          pointerEvents: "none",
+        }}
+      />      
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) auto",
+          gap: "14px",
+          alignItems: "center",
+          marginBottom: "14px",
+          position: "relative",
+          zIndex: 2,
+        }}
+      >
+        <div style={{ minWidth: 0, display: "grid", gap: "7px" }}>
           <h3
             style={{
               margin: 0,
               fontSize: "20px",
-              lineHeight: 1.2,
+              lineHeight: 1.15,
               fontWeight: 950,
               color: "#081224",
               letterSpacing: "-0.02em",
@@ -447,6 +861,43 @@ function MobileVenueCard({
           >
             {race.venue}
           </h3>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "7px",
+                padding: "3px 7px",
+                fontSize: "11px",
+                fontWeight: 950,
+                background: gradeTone.background,
+                color: gradeTone.text,
+                border: `1px solid ${gradeTone.border}`,
+                boxShadow: gradeTone.shadow,
+              }}
+            >
+              {race.displayGradeLabel ?? race.grade}
+            </span>
+
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "7px",
+                padding: "3px 7px",
+                fontSize: "10px",
+                fontWeight: 900,
+                background: "#f8fafc",
+                color: "#64748b",
+                border: "1px solid #edf1f7",
+              }}
+            >
+              {race.startDate === race.endDate ? "初日" : `${race.startDate.slice(5).replace("-", "/")}〜`}
+            </span>
+          </div>
           <p
             style={{
               margin: 0,
@@ -457,103 +908,137 @@ function MobileVenueCard({
               overflowWrap: "anywhere",
             }}
           >
-            {race.title}
+            {isOpen
+              ? race.title
+              : `${getSessionLabel(race.session)} ・ ${firstRaceTimeLabel} ・ ${raceCountLabel}`}
           </p>
         </div>
 
-        <span
+        <button
+          type="button"
+          onClick={onToggle}
           style={{
-            flexShrink: 0,
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
+            width: "78px",
+            minHeight: "44px",
             borderRadius: "9999px",
-            padding: "5px 9px",
-            fontSize: "10px",
-            fontWeight: 900,
-            background: gradeTone.background,
-            color: gradeTone.text,
-            border: `1px solid ${gradeTone.border}`,
-            boxShadow: gradeTone.shadow,
+            border: isOpen ? "1px solid #d8c9f4" : "1px solid rgba(255,255,255,0.72)",
+            background: isOpen
+              ? "linear-gradient(135deg, #f6f0ff 0%, #ffffff 100%)"
+              : "linear-gradient(135deg, #00856f 0%, #13a88d 100%)",
+            color: isOpen ? "#6f5aa9" : "#ffffff",
+            fontSize: "13px",
+            fontWeight: 950,
+            letterSpacing: "0.02em",
+            cursor: "pointer",
+            boxShadow: isOpen
+              ? "0 10px 22px rgba(122,103,184,0.12)"
+              : "0 12px 26px rgba(0,133,111,0.24)",
+            flexShrink: 0,
           }}
         >
-          {race.displayGradeLabel ?? race.grade}
-        </span>
+          {isOpen ? "閉じる" : "詳細"}
+        </button>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-          gap: "8px",
-          marginBottom: "12px",
-        }}
-      >
-        {[
-          { label: "時間帯", value: getSessionLabel(race.session) },
-          { label: "開始", value: firstRaceTimeLabel },
-          { label: "レース", value: raceCountLabel },
-          { label: "結果", value: venueResultLabel },
-        ].map((item) => (
-          <div
-            key={`${normalizedVenue}-${item.label}`}
-            style={{
-              borderRadius: "16px",
-              padding: "9px 10px",
-              background: "#faf8fd",
-              border: "1px solid #ede7f5",
-              minWidth: 0,
-            }}
-          >
-            <div style={{ fontSize: "9px", fontWeight: 900, letterSpacing: "0.14em", color: "#64748b", marginBottom: "4px" }}>
-              {item.label}
-            </div>
-            <div style={{ fontSize: "12px", fontWeight: 850, color: "#081224", overflowWrap: "anywhere" }}>
-              {item.value}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {(savedRaceCount !== undefined || profitLoss !== undefined) && (
+      {isOpen ? (
         <div
           style={{
-            display: "flex",
-            flexWrap: "wrap",
+            display: "grid",
+            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
             gap: "8px",
             marginBottom: "12px",
           }}
         >
-          {savedRaceCount !== undefined && (
-            <span
+          {[
+            { label: "時間帯", value: getSessionLabel(race.session) },
+            { label: "開始", value: firstRaceTimeLabel },
+            { label: "レース", value: raceCountLabel },
+            { label: "結果", value: venueResultLabel },
+          ].map((item) => (
+            <div
+              key={`${normalizedVenue}-${item.label}`}
               style={{
-                borderRadius: "9999px",
-                padding: "5px 9px",
-                fontSize: "10px",
-                fontWeight: 900,
-                background: "#f2ecfb",
-                color: "#7a67b8",
-                border: "1px solid #e0d6f4",
+                borderRadius: "18px",
+                padding: "10px 11px",
+                background: "linear-gradient(135deg, #ffffff 0%, #f7f3ff 100%)",
+                border: "1px solid #e7ddf5",
+                minWidth: 0,
+                boxShadow: "0 8px 16px rgba(39, 33, 72, 0.045)",
               }}
             >
-              保存 {savedRaceCount}R
-            </span>
-          )}
-          {profitLoss !== undefined && (
+              <div style={{ fontSize: "9px", fontWeight: 900, letterSpacing: "0.14em", color: "#64748b", marginBottom: "4px" }}>
+                {item.label}
+              </div>
+              <div style={{ fontSize: "12px", fontWeight: 850, color: "#081224", overflowWrap: "anywhere" }}>
+                {item.value}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "7px",
+            marginBottom: "12px",
+          }}
+        >
+          {[
+            { label: firstRaceTimeLabel },
+            { label: raceCountLabel },
+            { label: venueResultLabel },
+          ].map((item) => (
             <span
+              key={`${normalizedVenue}-compact-${item.label}`}
               style={{
+                display: "inline-flex",
+                alignItems: "center",
                 borderRadius: "9999px",
-                padding: "5px 9px",
-                fontSize: "10px",
+                padding: "6px 9px",
+                background: "linear-gradient(135deg, #ffffff 0%, #f8f5ff 100%)",
+                border: "1px solid #e7ddf5",
+                color: "#334155",
+                fontSize: "11px",
+                lineHeight: 1.2,
                 fontWeight: 900,
-                background: profitLoss >= 0 ? "#f4effc" : "#fff7ed",
-                color: profitLoss >= 0 ? "#705eb0" : "#b45309",
-                border: profitLoss >= 0 ? "1px solid #ded3f4" : "1px solid #fed7aa",
+                boxShadow: "0 6px 12px rgba(39,33,72,0.045)",
               }}
             >
-              収支 {formatYen(profitLoss)}
+              {item.label}
             </span>
-          )}
+          ))}
+        </div>
+      )}
+
+      {mobileVenueAttentionBadges.length > 0 && (
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "7px",
+            marginBottom: "12px",
+          }}
+        >
+          {mobileVenueAttentionBadges.map((badge) => (
+            <span
+              key={`${normalizedVenue}-attention-${badge.label}`}
+              style={{
+                borderRadius: "9999px",
+                padding: "6px 9px",
+                fontSize: "10px",
+                lineHeight: 1.2,
+                fontWeight: 950,
+                background: badge.background,
+                color: badge.color,
+                border: `1px solid ${badge.border}`,
+                boxShadow: badge.shadow ?? "0 6px 12px rgba(39,33,72,0.045)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {badge.label}
+            </span>
+          ))}
         </div>
       )}
 
@@ -563,83 +1048,165 @@ function MobileVenueCard({
           padding: "12px",
           display: "grid",
           gap: "10px",
+          background:
+            isOpen
+              ? "linear-gradient(135deg, rgba(255,255,255,0.96) 0%, rgba(246,240,255,0.96) 100%)"
+              : "linear-gradient(135deg, rgba(255,255,255,0.92) 0%, rgba(248,251,255,0.96) 100%)",
+          border: isOpen ? "1px solid rgba(216, 201, 244, 0.95)" : "1px solid rgba(226,232,240,0.95)",
+          boxShadow: isOpen ? "0 12px 26px rgba(122, 103, 184, 0.1)" : "0 8px 18px rgba(15, 23, 42, 0.045)",
+          position: "relative",
+          zIndex: 2,
         }}
       >
-        <button
-          type="button"
-          onClick={onToggle}
+        <div
           style={{
-            width: "100%",
-            minHeight: "42px",
-            borderRadius: "9999px",
-            border: "1px solid #ded3f4",
-            background: isOpen
-              ? "linear-gradient(135deg, #f4effc 0%, #ffffff 100%)"
-              : "linear-gradient(135deg, #081224 0%, #162745 100%)",
-            color: isOpen ? "#6f5aa9" : "#ffffff",
-            fontSize: "12px",
-            fontWeight: 950,
-            letterSpacing: "0.04em",
-            cursor: "pointer",
-            boxShadow: isOpen
-              ? "0 10px 20px rgba(122, 103, 184, 0.07)"
-              : "0 12px 24px rgba(8, 18, 36, 0.14)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "8px",
+            borderBottom: isOpen ? "1px solid #ebe3f3" : "none",
+            paddingBottom: isOpen ? "10px" : 0,
           }}
         >
-          {isOpen ? "レース一覧を閉じる" : "レース一覧を開く"}
-        </button>
+          <span
+            style={{
+              fontSize: "10px",
+              fontWeight: 950,
+              letterSpacing: "0.18em",
+              color: "#8c63c7",
+            }}
+          >
+            RACE STATUS
+          </span>
+          <span
+            style={{
+              borderRadius: "9999px",
+              padding: "5px 9px",
+              fontSize: "10px",
+              fontWeight: 950,
+              color: isOpen ? "#ffffff" : "#0f766e",
+              background: isOpen
+                ? "linear-gradient(135deg, #00856f 0%, #13a88d 100%)"
+                : "#f0fbf9",
+              border: isOpen ? "1px solid rgba(255,255,255,0.72)" : "1px solid #cdece6",
+              boxShadow: isOpen ? "0 8px 16px rgba(0,133,111,0.18)" : "none",
+            }}
+          >
+            {isOpen ? "詳細表示中" : "詳細ボタンで展開"}
+          </span>
+        </div>
 
         {isOpen && (
-          <div style={{ display: "grid", gap: "8px" }}>
-            {venueRaceRows.length > 0 ? (
-              venueRaceRows.map((venueRace) => {
-                const resultTone = getMobileRaceResultTone(venueRace);
-                const savedResult = getSavedResultForRace(venueRace.raceNo);
-                const savedSlotLookup = findPredictionSlotRecord(
-                  predictionSlotMap,
-                  TODAY,
-                  predictionVenue,
-                  venueRace
-                );
-                const savedPredictionText = clipMobilePredictionText(savedSlotLookup.record?.predictionText);
-                const hasSavedPrediction = Boolean(savedPredictionText);
-                const savedTone = getMobileSavedResultTone(savedResult?.hitStatus, hasSavedPrediction);
-                const resultOrderText =
-                  venueRace.result?.finishOrder?.length
-                    ? venueRace.result.finishOrder.join("-")
-                    : savedResult?.resultOrder || "";
+          <div style={{ display: "grid", gap: "10px" }}>
+            {venueRaceRows.length > 0 && selectedVenueRace ? (
+              <>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "8px",
+                    overflowX: "auto",
+                    padding: "2px 2px 8px",
+                    WebkitOverflowScrolling: "touch",
+                  }}
+                >
+                  {venueRaceRows.map((venueRace) => {
+                    const isSelectedRace = venueRace.raceNo === selectedVenueRace.raceNo;
+                    const raceSavedResult = getSavedResultForRace(venueRace.raceNo);
+                    const raceSlotLookup = findPredictionSlotRecord(
+                      predictionSlotMap,
+                      TODAY,
+                      predictionVenue,
+                      venueRace
+                    );
+                    const hasPrediction = Boolean(clipMobilePredictionText(raceSlotLookup.record?.predictionText));
+                    const raceHasResult = venueRace.resultStatus === "confirmed" || venueRace.result?.status === "confirmed";
 
-                return (
+                    return (
+                      <button
+                        key={`${normalizedVenue}-selector-${venueRace.raceNo}`}
+                        type="button"
+                        onClick={() => {
+                          setSelectedRaceNo(venueRace.raceNo);
+                        }}
+                        style={{
+                          flex: "0 0 auto",
+                          minWidth: "78px",
+                          borderRadius: "20px",
+                          border: isSelectedRace ? "1px solid rgba(255,255,255,0.72)" : "1px solid #e5e7ef",
+                          background: isSelectedRace
+                            ? "linear-gradient(135deg, #081224 0%, #24365f 100%)"
+                            : "linear-gradient(180deg, #ffffff 0%, #f8f5ff 100%)",
+                          color: isSelectedRace ? "#ffffff" : "#081224",
+                          padding: "11px 10px",
+                          display: "grid",
+                          gap: "4px",
+                          textAlign: "center",
+                          cursor: "pointer",
+                          boxShadow: isSelectedRace
+                            ? "0 12px 24px rgba(8,18,36,0.22)"
+                            : "0 8px 18px rgba(39,33,72,0.06)",
+                        }}
+                      >
+                        <span style={{ fontSize: "15px", fontWeight: 950, lineHeight: 1 }}>
+                          {venueRace.raceNo}R
+                        </span>
+                        <span style={{ fontSize: "10px", fontWeight: 850, opacity: 0.82 }}>
+                          {venueRace.time ?? "--:--"}
+                        </span>
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            justifyContent: "center",
+                            gap: "3px",
+                            fontSize: "9px",
+                            fontWeight: 900,
+                            opacity: 0.9,
+                          }}
+                        >
+                          {raceHasResult ? "結果" : "待ち"}
+                          {raceSavedResult || hasPrediction ? "・予想" : ""}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
                   <div
-                    key={`${normalizedVenue}-${venueRace.raceNo}`}
                     style={{
-                      borderRadius: "18px",
-                      padding: "11px 12px",
-                      background: "rgba(255,255,255,0.88)",
-                      border: "1px solid #ece4f6",
-                      display: "grid",
-                      gap: "8px",
-                      minWidth: 0,
+                      borderRadius: "24px",
+                      background: "linear-gradient(180deg, #ffffff 0%, #fbf8ff 100%)",
+                      border: "1px solid rgba(216, 201, 244, 0.92)",
+                      overflow: "hidden",
+                      boxShadow: "0 16px 34px rgba(39, 33, 72, 0.1)",
                     }}
                   >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "flex-start",
+                  <div
+                    style={{
+                      padding: "15px 14px 13px",
+                      borderBottom: "1px solid rgba(237, 240, 245, 0.95)",
+                      display: "grid",
+                      gap: "8px",
+                      background: "linear-gradient(135deg, #ffffff 0%, #f7f2ff 100%)",
+                    }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
                         justifyContent: "space-between",
                         gap: "10px",
                       }}
                     >
-                      <div style={{ minWidth: 0, display: "grid", gap: "3px" }}>
+                      <div style={{ minWidth: 0, display: "grid", gap: "4px" }}>
                         <div
                           style={{
-                            fontSize: "15px",
+                            fontSize: "18px",
                             fontWeight: 950,
                             color: "#081224",
                             letterSpacing: "-0.02em",
                           }}
                         >
-                          {venueRace.raceNo}R
+                          {selectedVenueRace.raceNo}R
                           <span
                             style={{
                               marginLeft: "8px",
@@ -648,7 +1215,7 @@ function MobileVenueCard({
                               color: "#64748b",
                             }}
                           >
-                            {venueRace.time ?? "時刻未取得"}
+                            {selectedVenueRace.time ?? "時刻未取得"}
                           </span>
                         </div>
 
@@ -661,7 +1228,7 @@ function MobileVenueCard({
                             overflowWrap: "anywhere",
                           }}
                         >
-                          {venueRace.title ?? `${race.venue} ${venueRace.raceNo}R`}
+                          {selectedVenueRace.title ?? `${race.venue} ${selectedVenueRace.raceNo}R`}
                         </div>
                       </div>
 
@@ -679,12 +1246,12 @@ function MobileVenueCard({
                             padding: "4px 8px",
                             fontSize: "10px",
                             fontWeight: 900,
-                            background: resultTone.background,
-                            color: resultTone.color,
-                            border: `1px solid ${resultTone.border}`,
+                            background: selectedResultTone.background,
+                            color: selectedResultTone.color,
+                            border: `1px solid ${selectedResultTone.border}`,
                           }}
                         >
-                          {getMobileRaceResultLabel(venueRace)}
+                          {getMobileRaceResultLabel(selectedVenueRace)}
                         </span>
 
                         <span
@@ -693,27 +1260,166 @@ function MobileVenueCard({
                             padding: "4px 8px",
                             fontSize: "10px",
                             fontWeight: 900,
-                            background: savedTone.background,
-                            color: savedTone.color,
-                            border: `1px solid ${savedTone.border}`,
+                            background: selectedSavedTone.background,
+                            color: selectedSavedTone.color,
+                            border: `1px solid ${selectedSavedTone.border}`,
                           }}
                         >
-                          {savedTone.label}
+                          {selectedSavedTone.label}
                         </span>
                       </div>
                     </div>
+                  </div>
 
-                    {savedPredictionText && (
-                      <div
-                        style={{
-                          borderRadius: "14px",
-                          padding: "10px",
-                          background: "linear-gradient(180deg, #ffffff 0%, #faf7fd 100%)",
-                          border: "1px solid #e7dbf7",
-                          display: "grid",
-                          gap: "6px",
-                        }}
-                      >
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                      background: "linear-gradient(135deg, #171821 0%, #2a2440 52%, #1e293b 100%)",
+                      borderTop: "1px solid rgba(255,255,255,0.08)",
+                      borderBottom: "1px solid rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    {mobileRaceDetailTabs.map((tab) => {
+                      const isActive = activeDetailTab === tab.key;
+
+                      return (
+                        <button
+                          key={tab.key}
+                          type="button"
+                          onClick={() => setActiveDetailTab(tab.key)}
+                          style={{
+                            minHeight: "56px",
+                            border: "none",
+                            background: isActive
+                              ? "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(140,99,199,0.18) 100%)"
+                              : "transparent",
+                            color: "#ffffff",
+                            fontSize: "10px",
+                            fontWeight: 950,
+                            display: "grid",
+                            gap: "3px",
+                            placeItems: "center",
+                            cursor: "pointer",
+                            borderBottom: isActive ? "3px solid #d8b4fe" : "3px solid transparent",
+                            opacity: isActive ? 1 : 0.72,
+                          }}
+                        >
+                          <span style={{ fontSize: "15px", lineHeight: 1 }}>{tab.icon}</span>
+                          <span>{tab.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div
+                    style={{
+                      padding: "14px",
+                      background:
+                        "radial-gradient(circle at 10% 0%, rgba(140,99,199,0.1) 0%, rgba(140,99,199,0) 28%), linear-gradient(180deg, #ffffff 0%, #fbf9fe 100%)",
+                    }}
+                  >
+                    {activeDetailTab === "entry" && (
+                      <div style={{ display: "grid", gap: "10px" }}>
+                        <div
+                          style={{
+                            fontSize: "10px",
+                            fontWeight: 900,
+                            letterSpacing: "0.14em",
+                            color: "#8c63c7",
+                          }}
+                        >
+                          ENTRY
+                        </div>
+
+                        {(selectedVenueRace.riders?.length ?? 0) > 0 ? (
+                          <div style={{ display: "grid", gap: "8px" }}>
+{selectedVenueRace.riders?.map((rider) => {
+  const carColorStyle = getMobileCarColorStyle(rider.carNo);
+
+  return (
+    <div
+      key={`${normalizedVenue}-${selectedVenueRace.raceNo}-${rider.carNo}`}
+      style={{
+        display: "grid",
+        gridTemplateColumns: "36px minmax(0, 1fr) auto",
+        alignItems: "center",
+        gap: "10px",
+        borderRadius: "18px",
+        padding: "10px 11px",
+        background: "linear-gradient(135deg, #ffffff 0%, #f8f5ff 100%)",
+        border: "1px solid #e7ddf5",
+        boxShadow: "0 8px 16px rgba(39, 33, 72, 0.045)",
+      }}
+    >
+      <div
+        style={{
+          width: "32px",
+          height: "32px",
+          borderRadius: "10px",
+          display: "grid",
+          placeItems: "center",
+          background: carColorStyle.background,
+          color: carColorStyle.color,
+          border: `1px solid ${carColorStyle.border}`,
+          fontSize: "13px",
+          fontWeight: 950,
+          boxShadow: "0 6px 12px rgba(15,23,42,0.12)",
+        }}
+      >
+        {rider.carNo}
+      </div>
+
+      <div style={{ minWidth: 0 }}>
+        <div
+          style={{
+            fontSize: "13px",
+            fontWeight: 950,
+            color: "#081224",
+            overflowWrap: "anywhere",
+          }}
+        >
+          {rider.name}
+        </div>
+        <div
+          style={{
+            fontSize: "10px",
+            color: "#64748b",
+            fontWeight: 800,
+            marginTop: "2px",
+          }}
+        >
+          {rider.prefecture ?? "地区不明"} / {rider.age ?? "年齢不明"}歳 / {rider.grade ?? "級班不明"}
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gap: "2px",
+          justifyItems: "end",
+          fontSize: "10px",
+          fontWeight: 900,
+          color: "#334155",
+        }}
+      >
+        <span>{rider.style ?? "脚質—"}</span>
+        <span>{rider.score ?? "得点—"}</span>
+      </div>
+    </div>
+  );
+})}
+                          </div>
+                        ) : (
+                          <p style={{ ...mutedTextStyle, fontSize: "12px" }}>
+                            このレースの出走表はまだ取得待ちです。
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {activeDetailTab === "prediction" && (
+                      <div style={{ display: "grid", gap: "10px" }}>
                         <div
                           style={{
                             fontSize: "10px",
@@ -724,34 +1430,56 @@ function MobileVenueCard({
                         >
                           SAVED PREDICTION
                         </div>
-                        <pre
-                          style={{
-                            margin: 0,
-                            whiteSpace: "pre-wrap",
-                            wordBreak: "break-word",
-                            color: "#334155",
-                            fontSize: "11px",
-                            lineHeight: 1.65,
-                            fontFamily: "inherit",
-                            fontWeight: 750,
-                          }}
-                        >
-                          {savedPredictionText}
-                        </pre>
+
+                        {selectedSavedPredictionText ? (
+                          <pre
+                            style={{
+                              margin: 0,
+                              whiteSpace: "pre-wrap",
+                              wordBreak: "break-word",
+                              color: "#334155",
+                              fontSize: "12px",
+                              lineHeight: 1.75,
+                              fontFamily: "inherit",
+                              fontWeight: 750,
+                              borderRadius: "16px",
+                              padding: "12px",
+                              background: "#ffffff",
+                              border: "1px solid #e7dbf7",
+                            }}
+                          >
+                            {selectedSavedPredictionText}
+                          </pre>
+                        ) : (
+                          <div
+                            style={{
+                              borderRadius: "18px",
+                              padding: "14px",
+                              background: "linear-gradient(135deg, #ffffff 0%, #f6f0ff 100%)",
+                              border: "1px dashed #d8c9f4",
+                              display: "grid",
+                              gap: "6px",
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: "12px",
+                                fontWeight: 950,
+                                color: "#6f5aa9",
+                              }}
+                            >
+                              まだ保存済み予想はありません
+                            </div>
+                            <p style={{ ...mutedTextStyle, fontSize: "12px" }}>
+                              JSON化した予想データを追加すると、この場所に買い目・展開メモ・コメントを表示できます。
+                            </p>
+                          </div>
+                        )}
                       </div>
                     )}
 
-                    {(savedResult || venueRace.result) && (
-                      <div
-                        style={{
-                          borderRadius: "14px",
-                          padding: "9px 10px",
-                          background: "#faf8fd",
-                          border: "1px solid #ede7f5",
-                          display: "grid",
-                          gap: "7px",
-                        }}
-                      >
+                    {activeDetailTab === "result" && (
+                      <div style={{ display: "grid", gap: "10px" }}>
                         <div
                           style={{
                             fontSize: "10px",
@@ -763,54 +1491,115 @@ function MobileVenueCard({
                           RESULT CHECK
                         </div>
 
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                            gap: "6px",
-                            fontSize: "11px",
-                            fontWeight: 850,
-                            color: "#334155",
-                          }}
-                        >
-                          <span>着順 {resultOrderText || "—"}</span>
-                          <span>投資 {formatYen(savedResult?.investment)}</span>
-                          <span>払戻 {formatYen(savedResult?.payout)}</span>
-                          <span>収支 {formatYen(savedResult?.profitLoss)}</span>
-                          <span>回収 {formatPercent(savedResult?.roi)}</span>
-                          <span>決まり手 {venueRace.result?.kimarite ?? "—"}</span>
-                        </div>
+                        {(selectedSavedResult || selectedVenueRace.result) ? (
+                          <>
+                            <div
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                                gap: "7px",
+                                fontSize: "11px",
+                                fontWeight: 850,
+                                color: "#334155",
+                              }}
+                            >
+                              <span>着順 {selectedResultOrderText || "—"}</span>
+                              <span>投資 {formatYen(selectedSavedResult?.investment)}</span>
+                              <span>払戻 {formatYen(selectedSavedResult?.payout)}</span>
+                              <span>収支 {formatYen(selectedSavedResult?.profitLoss)}</span>
+                              <span>回収 {formatPercent(selectedSavedResult?.roi)}</span>
+                              <span>決まり手 {selectedVenueRace.result?.kimarite ?? "—"}</span>
+                            </div>
 
-                        {(venueRace.result?.payout3tan || venueRace.result?.payout2tan) && (
+                            {(selectedVenueRace.result?.payout3tan || selectedVenueRace.result?.payout2tan) && (
+                              <div
+                                style={{
+                                  display: "grid",
+                                  gap: "6px",
+                                  borderTop: "1px solid #ebe3f3",
+                                  paddingTop: "8px",
+                                  color: "#475569",
+                                  fontSize: "11px",
+                                  lineHeight: 1.6,
+                                  fontWeight: 800,
+                                }}
+                              >
+                                {selectedVenueRace.result?.payout3tan && (
+                                  <span>
+                                    3連単 {selectedVenueRace.result.payout3tan.combination} / {selectedVenueRace.result.payout3tan.payout}
+                                  </span>
+                                )}
+                                {selectedVenueRace.result?.payout2tan && (
+                                  <span>
+                                    2車単 {selectedVenueRace.result.payout2tan.combination} / {selectedVenueRace.result.payout2tan.payout}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        ) : (
                           <div
                             style={{
+                              borderRadius: "18px",
+                              padding: "14px",
+                              background: "linear-gradient(135deg, #ffffff 0%, #f0fbf9 100%)",
+                              border: "1px dashed #cdece6",
                               display: "grid",
-                              gap: "5px",
-                              borderTop: "1px solid #ebe3f3",
-                              paddingTop: "7px",
-                              color: "#475569",
-                              fontSize: "11px",
-                              lineHeight: 1.6,
-                              fontWeight: 800,
+                              gap: "6px",
                             }}
                           >
-                            {venueRace.result?.payout3tan && (
-                              <span>
-                                3連単 {venueRace.result.payout3tan.combination} / {venueRace.result.payout3tan.payout}
-                              </span>
-                            )}
-                            {venueRace.result?.payout2tan && (
-                              <span>
-                                2車単 {venueRace.result.payout2tan.combination} / {venueRace.result.payout2tan.payout}
-                              </span>
-                            )}
+                            <div
+                              style={{
+                                fontSize: "12px",
+                                fontWeight: 950,
+                                color: "#0f766e",
+                              }}
+                            >
+                              結果はまだ反映待ちです
+                            </div>
+                            <p style={{ ...mutedTextStyle, fontSize: "12px" }}>
+                              レース結果と払戻が取得されると、このタブに着順・決まり手・払戻が表示されます。
+                            </p>
                           </div>
                         )}
                       </div>
                     )}
+
+                    {activeDetailTab === "info" && (
+                      <div style={{ display: "grid", gap: "10px" }}>
+                        <div
+                          style={{
+                            fontSize: "10px",
+                            fontWeight: 900,
+                            letterSpacing: "0.14em",
+                            color: "#8c63c7",
+                          }}
+                        >
+                          RACE INFO
+                        </div>
+
+                        <div
+                          style={{
+                            display: "grid",
+                            gap: "8px",
+                            fontSize: "12px",
+                            lineHeight: 1.7,
+                            color: "#334155",
+                            fontWeight: 750,
+                          }}
+                        >
+                          <div>会場：{race.venue}</div>
+                          <div>レース：{selectedVenueRace.raceNo}R</div>
+                          <div>発走：{selectedVenueRace.time ?? "時刻未取得"}</div>
+                          <div>タイトル：{selectedVenueRace.title ?? "レース名未取得"}</div>
+                          <div>並び：{selectedVenueRace.lineup ?? selectedVenueRace.netkeirinLineupRaw ?? selectedVenueRace.winticketLineupRaw ?? "並び未取得"}</div>
+                          <div>メモ：{selectedVenueRace.sourceNote ?? selectedVenueRace.oddsNote ?? "補足情報なし"}</div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                );
-              })
+                </div>
+              </>
             ) : (
               <p style={{ ...mutedTextStyle, fontSize: "12px" }}>
                 この会場のレース一覧はまだ取得待ちです。
@@ -824,11 +1613,56 @@ function MobileVenueCard({
 }
 
 export default function MobileDashboardPage() {
+  const [favoriteRiderFeed, setFavoriteRiderFeed] = useState<FavoriteRiderFeedItem[]>(
+    () => loadCachedFavoriteRiderFeed()?.feed ?? EMPTY_FAVORITE_RIDER_FEED
+  );
   const [todayPredictionFeed, setTodayPredictionFeed] = useState<PredictionTodayFeed | null>(null);
   const [predictionResultMap, setPredictionResultMap] = useState<PredictionResultMap>(() => loadStoredPredictionResults());
   const [predictionSlotMap, setPredictionSlotMap] = useState<PredictionSlotMap>(() => loadStoredPredictionSlots());
   const [feedStatus, setFeedStatus] = useState<"loading" | "ready" | "error">("loading");
   const [openVenueKey, setOpenVenueKey] = useState<string | null>(null);
+  const [selectedCalendarIso, setSelectedCalendarIso] = useState(TODAY);
+  const [activeMobileSection, setActiveMobileSection] = useState("mobile-calendar");
+
+  useEffect(() => {
+    let isActive = true;
+
+    const applyLatestFavoriteFeed = async () => {
+      const result = await fetchFavoriteRiderFeedFile();
+      if (!isActive) return;
+
+      if (!result) {
+        setFavoriteRiderFeed(EMPTY_FAVORITE_RIDER_FEED);
+        return;
+      }
+
+      setFavoriteRiderFeed(result.feed);
+    };
+
+    applyLatestFavoriteFeed();
+
+    const intervalId = window.setInterval(applyLatestFavoriteFeed, FAVORITE_RIDER_FEED_POLL_INTERVAL_MS);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        applyLatestFavoriteFeed();
+      }
+    };
+
+    const handleFocus = () => {
+      applyLatestFavoriteFeed();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      isActive = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
     let isActive = true;
@@ -852,6 +1686,38 @@ export default function MobileDashboardPage() {
 
     return () => {
       isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleEntry = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+
+        if (visibleEntry?.target.id) {
+          setActiveMobileSection(visibleEntry.target.id);
+        }
+      },
+      {
+        root: null,
+        rootMargin: "-18% 0px -58% 0px",
+        threshold: [0.08, 0.2, 0.4],
+      }
+    );
+
+    mobileFloatingNavItems.forEach((item) => {
+      const target = document.getElementById(item.targetId);
+      if (target) {
+        observer.observe(target);
+      }
+    });
+
+    return () => {
+      observer.disconnect();
     };
   }, []);
 
@@ -926,6 +1792,30 @@ export default function MobileDashboardPage() {
     [predictionResultMap]
   );
   const totalRaceCount = todayPredictionFeed?.venues.reduce((sum, venue) => sum + venue.races.length, 0) ?? 0;
+
+  const mobileMonthCalendar = useMemo(() => buildMobileMonthCalendar(TODAY, raceScheduleData), []);
+  const mobileCalendarVenuePreview = dashboardTodayRaces.slice(0, 4).map((item) => item.venue);
+
+  const selectedCalendarLabel = formatMobileCalendarDateLabel(selectedCalendarIso);
+  const selectedCalendarIsToday = selectedCalendarIso === TODAY;
+  const selectedCalendarScheduleEvents =
+    mobileMonthCalendar.weeks.flat().find((cell) => cell.iso === selectedCalendarIso)?.events ?? [];
+  const selectedCalendarVenueCards = selectedCalendarIsToday ? dashboardTodayRaces : selectedCalendarScheduleEvents;
+
+  const selectedCalendarFavoriteEntries = useMemo(() => {
+    if (selectedCalendarIsToday) {
+      const todayFeedEntries = findTodayFavoriteEntriesFromPredictionFeed(todayPredictionFeed);
+      if (todayFeedEntries.length > 0) return todayFeedEntries;
+    }
+
+    return findFavoriteEntriesFromFeedForDate(favoriteRiderFeed, selectedCalendarIso);
+  }, [favoriteRiderFeed, selectedCalendarIsToday, selectedCalendarIso, todayPredictionFeed]);
+  const todayFavoriteEntries = useMemo(() => {
+    const todayFeedEntries = findTodayFavoriteEntriesFromPredictionFeed(todayPredictionFeed);
+    if (todayFeedEntries.length > 0) return todayFeedEntries;
+
+    return findFavoriteEntriesFromFeedForDate(favoriteRiderFeed, TODAY);
+  }, [favoriteRiderFeed, todayPredictionFeed]);
   const confirmedRaceCount =
     todayPredictionFeed?.venues.reduce(
       (sum, venue) =>
@@ -941,52 +1831,570 @@ export default function MobileDashboardPage() {
         ? "plus"
         : "minus";
 
+  const scrollToMobileVenueCard = (venueKey: string) => {
+    window.setTimeout(() => {
+      const target = document.getElementById(`mobile-venue-card-${venueKey}`);
+      if (!target) return;
+
+      target.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 120);
+  };
+
+    const handleMobileNavNavigate = (targetId: string) => {
+    setActiveMobileSection(targetId);
+
+    const target = document.getElementById(targetId);
+    if (!target) return;
+
+    target.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
+
   return (
     <main style={mobilePageShellStyle}>
       <div style={mobileContentStyle}>
-        <section style={{ ...mobileCardStyle, padding: "20px 18px" }}>
-          <div style={{ display: "grid", gap: "12px" }}>
-            <p style={eyebrowStyle}>KURARI MOBILE</p>
+        <section
+          id="mobile-calendar"
+          style={{
+            borderRadius: "30px",
+            padding: "18px 16px 16px",
+            background: "linear-gradient(180deg, #ffffff 0%, #faf6ff 52%, #f8fbff 100%)",
+            border: "1px solid #ebe3f3",
+            boxShadow: "0 16px 34px rgba(15, 23, 42, 0.06)",
+            display: "grid",
+            gap: "14px",
+            overflow: "hidden",
+            position: "relative",
+            isolation: "isolate",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              right: "0px",
+              top: "-70px",
+              width: "350px",
+              height: "360px",
+              backgroundImage: `url("${toPublicPath("/mobile/mobile-calendar-charigon-peek.png")}")`,
+              backgroundSize: "contain",
+              backgroundRepeat: "no-repeat",
+              backgroundPosition: "right top",
+              pointerEvents: "none",
+              filter: "drop-shadow(0 14px 22px rgba(8, 18, 36, 0.14))",
+              opacity: 0.96,
+              zIndex: 1,
+            }}
+          />
 
-            <div style={{ display: "grid", gap: "8px" }}>
-              <h1
-                style={{
-                  margin: 0,
-                  fontSize: "30px",
-                  lineHeight: 1.18,
-                  fontWeight: 950,
-                  letterSpacing: "-0.04em",
-                  color: "#081224",
-                }}
-              >
-                今日の競輪チェック
-              </h1>
-
-              <p style={mutedTextStyle}>
-                今日の開催・予想・結果・的中状況を、携帯で見やすい形にまとめた専用ページです。
-              </p>
-            </div>
+          <div style={{ display: "grid", gap: "6px", position: "relative", zIndex: 2 }}>
+            <p
+              style={{
+                margin: 0,
+                fontSize: "11px",
+                fontWeight: 900,
+                letterSpacing: "0.18em",
+                color: "#8c63c7",
+              }}
+            >
+              MONTHLY CALENDAR
+            </p>
 
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                gap: "8px",
+                display: "flex",
+                alignItems: "flex-end",
+                justifyContent: "space-between",
+                gap: "12px",
               }}
             >
-              <a href="#mobile-today-races" style={{ ...primaryButtonStyle, width: "100%" }}>
-                Today
-              </a>
-              <a href="#mobile-results" style={{ ...lightButtonStyle, width: "100%" }}>
-                Results
-              </a>
-              <a href="#mobile-hit-log" style={{ ...lightButtonStyle, width: "100%" }}>
-                Hit Log
-              </a>
-              <a href="#mobile-calendar" style={{ ...lightButtonStyle, width: "100%" }}>
-                Calendar
-              </a>
+              <div style={{ minWidth: 0 }}>
+                <h1
+                  style={{
+                    margin: 0,
+                    fontSize: "28px",
+                    lineHeight: 1.08,
+                    fontWeight: 950,
+                    letterSpacing: "-0.04em",
+                    color: "#081224",
+                  }}
+                >
+                  {mobileMonthCalendar.monthLabel}
+                </h1>
+                <p
+                  style={{
+                    margin: "6px 0 0",
+                    fontSize: "12px",
+                    lineHeight: 1.7,
+                    color: "#526072",
+                    fontWeight: 700,
+                  }}
+                >
+                  {mobileCalendarVenuePreview.length > 0
+                    ? `本日開催：${mobileCalendarVenuePreview.join(" ・ ")}${dashboardTodayRaces.length > 4 ? " ほか" : ""}`
+                    : "今月の開催カレンダー"}
+                </p>
+              </div>
+
+              <div
+                style={{
+                  flexShrink: 0,
+                  borderRadius: "18px",
+                  padding: "10px 12px",
+                  background: "linear-gradient(135deg, #081224 0%, #162745 100%)",
+                  color: "#ffffff",
+                  boxShadow: "0 10px 20px rgba(8, 18, 36, 0.16)",
+                  display: "grid",
+                  gap: "3px",
+                  textAlign: "center",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "10px",
+                    fontWeight: 900,
+                    letterSpacing: "0.14em",
+                    opacity: 0.82,
+                  }}
+                >
+                  TODAY
+                </span>
+                <span
+                  style={{
+                    fontSize: "20px",
+                    fontWeight: 950,
+                    lineHeight: 1,
+                  }}
+                >
+                  {Number(TODAY.slice(8, 10))}
+                </span>
+              </div>
             </div>
+          </div>
+
+          <div
+            style={{
+              borderRadius: "24px",
+              padding: "14px 12px 12px",
+              background: "rgba(255,255,255,0.84)",
+              border: "1px solid #eee5f6",
+              display: "grid",
+              gap: "10px",
+              position: "relative",
+              zIndex: 2,
+            }}
+          >
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+                gap: "6px",
+              }}
+            >
+              {mobileCalendarWeekLabels.map((label) => (
+                <div
+                  key={label}
+                  style={{
+                    textAlign: "center",
+                    fontSize: "9px",
+                    fontWeight: 900,
+                    letterSpacing: "0.12em",
+                    color: "#8c63c7",
+                  }}
+                >
+                  {label}
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: "grid", gap: "6px" }}>
+              {mobileMonthCalendar.weeks.map((week, weekIndex) => (
+                <div
+                  key={`week-${weekIndex}`}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+                    gap: "6px",
+                  }}
+                >
+                  {week.map((cell) => {
+                    const isSelected = cell.iso === selectedCalendarIso;
+                    const hasFavorite = Boolean(
+                      cell.iso &&
+                        favoriteRiderFeed.some((entry) => entry.startDate <= cell.iso! && entry.endDate >= cell.iso!)
+                    );
+
+                    return (
+                      <button
+                        key={cell.key}
+                        type="button"
+                        onClick={() => {
+                          if (cell.iso) {
+                            setSelectedCalendarIso(cell.iso);
+                          }
+                        }}
+                        style={{
+                          minHeight: "46px",
+                          borderRadius: "14px",
+                          padding: "6px 4px",
+                          background: cell.isToday
+                            ? "linear-gradient(135deg, #0d1630 0%, #1b2b4d 100%)"
+                            : isSelected
+                              ? "linear-gradient(135deg, #f3ecff 0%, #ffffff 100%)"
+                              : cell.isCurrentMonth
+                                ? "#ffffff"
+                                : "#f7f4fb",
+                          border: cell.isToday
+                            ? "1px solid #081224"
+                            : isSelected
+                              ? "1px solid #8c63c7"
+                              : cell.isCurrentMonth
+                                ? "1px solid #ece3f5"
+                                : "1px solid #f1eaf8",
+                          boxShadow: cell.isToday
+                            ? "0 10px 20px rgba(8, 18, 36, 0.14)"
+                            : isSelected
+                              ? "0 8px 18px rgba(140, 99, 199, 0.16)"
+                              : "none",
+                          display: "grid",
+                          alignContent: "space-between",
+                          justifyItems: "center",
+                          boxSizing: "border-box",
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            fontWeight: 900,
+                            color: cell.isToday ? "#ffffff" : cell.isCurrentMonth ? "#081224" : "#a9a2b7",
+                            lineHeight: 1,
+                          }}
+                        >
+                          {cell.label}
+                        </span>
+
+                        {cell.isToday ? (
+                          <span
+                            style={{
+                              fontSize: "8px",
+                              fontWeight: 900,
+                              letterSpacing: "0.08em",
+                              color: "#d6e4ff",
+                              lineHeight: 1,
+                            }}
+                          >
+                            TODAY
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              minWidth: isSelected ? "18px" : hasFavorite ? "15px" : "6px",
+                              height: "6px",
+                              borderRadius: "9999px",
+                              background: isSelected
+                                ? "linear-gradient(90deg, #8c63c7 0%, #38bdf8 100%)"
+                                : hasFavorite
+                                  ? "linear-gradient(90deg, #e56b93 0%, #8c63c7 100%)"
+                                  : cell.events.length > 0
+                                    ? "#8c63c7"
+                                    : cell.isCurrentMonth
+                                      ? "#e8dcfa"
+                                      : "transparent",
+                              boxShadow: hasFavorite ? "0 0 0 3px rgba(229,107,147,0.12)" : "none",
+                            }}
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div
+            style={{
+              borderRadius: "24px",
+              padding: "14px",
+              background: "linear-gradient(135deg, rgba(255,255,255,0.94) 0%, rgba(246,240,255,0.9) 100%)",
+              border: "1px solid rgba(216, 201, 244, 0.88)",
+              boxShadow: "0 12px 26px rgba(39, 33, 72, 0.08)",
+              display: "grid",
+              gap: "10px",
+              position: "relative",
+              zIndex: 2,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: "10px",
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <p style={{ ...eyebrowStyle, marginBottom: "5px" }}>SELECTED DATE</p>
+                <h2
+                  style={{
+                    margin: 0,
+                    fontSize: "18px",
+                    lineHeight: 1.25,
+                    fontWeight: 950,
+                    color: "#081224",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  {selectedCalendarLabel}
+                </h2>
+              </div>
+
+              <span
+                style={{
+                  borderRadius: "9999px",
+                  padding: "6px 10px",
+                  background: selectedCalendarIsToday
+                    ? "linear-gradient(135deg, #081224 0%, #24365f 100%)"
+                    : "linear-gradient(135deg, #f3ecff 0%, #ffffff 100%)",
+                  color: selectedCalendarIsToday ? "#ffffff" : "#6f5aa9",
+                  border: selectedCalendarIsToday ? "1px solid rgba(255,255,255,0.48)" : "1px solid #d8c9f4",
+                  fontSize: "10px",
+                  fontWeight: 950,
+                  whiteSpace: "nowrap",
+                  boxShadow: selectedCalendarIsToday ? "0 8px 16px rgba(8,18,36,0.18)" : "none",
+                }}
+              >
+                {selectedCalendarIsToday ? "本日データ" : "開催予定"}
+              </span>
+            </div>
+
+            {selectedCalendarVenueCards.length > 0 || selectedCalendarFavoriteEntries.length > 0 ? (
+              <div style={{ display: "grid", gap: "10px" }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                    gap: "8px",
+                  }}
+                >
+                  <div
+                    style={{
+                      borderRadius: "18px",
+                      padding: "11px 12px",
+                      background: "#ffffff",
+                      border: "1px solid #e7ddf5",
+                    }}
+                  >
+                    <div style={{ fontSize: "9px", fontWeight: 900, letterSpacing: "0.14em", color: "#8c63c7", marginBottom: "5px" }}>
+                      VENUES
+                    </div>
+                    <div style={{ fontSize: "18px", lineHeight: 1, fontWeight: 950, color: "#081224" }}>
+                      {selectedCalendarVenueCards.length}場
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      borderRadius: "18px",
+                      padding: "11px 12px",
+                      background: "#ffffff",
+                      border: "1px solid #dbeafe",
+                    }}
+                  >
+                    <div style={{ fontSize: "9px", fontWeight: 900, letterSpacing: "0.14em", color: "#2563eb", marginBottom: "5px" }}>
+                      FAVORITE
+                    </div>
+                    <div style={{ fontSize: "18px", lineHeight: 1, fontWeight: 950, color: "#081224" }}>
+                      {selectedCalendarFavoriteEntries.length}件
+                    </div>
+                  </div>
+                </div>
+
+                {selectedCalendarVenueCards.length > 0 && (
+                  <div style={{ display: "grid", gap: "8px" }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                        gap: "8px",
+                      }}
+                    >
+                      {selectedCalendarVenueCards.slice(0, 10).map((venue) => {
+                        const gradeLabel = getMobileSelectedVenueGradeLabel(venue);
+                        const gradeTone = getGradeBadgeTone(gradeLabel);
+                        const hasFavoriteVenue = selectedCalendarFavoriteEntries.some(
+                          (entry) =>
+                            normalizePredictionVenueName(entry.venue) ===
+                            normalizePredictionVenueName(venue.venue)
+                        );
+
+                        return (
+                          <div
+                            key={`selected-date-venue-${getMobileSelectedVenueKey(venue)}`}
+                            style={{
+                              borderRadius: "18px",
+                              padding: "11px 12px",
+                              background: hasFavoriteVenue
+                                ? "linear-gradient(135deg, #fff7fb 0%, #f6f0ff 100%)"
+                                : "linear-gradient(135deg, #ffffff 0%, #f8f5ff 100%)",
+                              border: hasFavoriteVenue ? "1px solid #e9bfd0" : "1px solid #e7ddf5",
+                              boxShadow: hasFavoriteVenue
+                                ? "0 10px 20px rgba(229, 107, 147, 0.12)"
+                                : "0 8px 16px rgba(39,33,72,0.05)",
+                              display: "grid",
+                              gap: "7px",
+                              minWidth: 0,
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: "7px",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  minWidth: 0,
+                                  color: "#081224",
+                                  fontSize: "13px",
+                                  lineHeight: 1.25,
+                                  fontWeight: 950,
+                                  overflowWrap: "anywhere",
+                                }}
+                              >
+                                {venue.venue}
+                              </div>
+
+                              <span
+                                style={{
+                                  flexShrink: 0,
+                                  borderRadius: "8px",
+                                  padding: "3px 7px",
+                                  fontSize: "10px",
+                                  lineHeight: 1.2,
+                                  fontWeight: 950,
+                                  background: gradeTone.background,
+                                  color: gradeTone.text,
+                                  border: `1px solid ${gradeTone.border}`,
+                                  boxShadow: gradeTone.shadow,
+                                }}
+                              >
+                                {gradeLabel}
+                              </span>
+                            </div>
+
+                            <div
+                              style={{
+                                color: "#526072",
+                                fontSize: "10px",
+                                lineHeight: 1.5,
+                                fontWeight: 800,
+                                overflowWrap: "anywhere",
+                              }}
+                            >
+                              {getMobileSelectedVenueTitle(venue)}
+                            </div>
+
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: "6px",
+                                color: "#64748b",
+                                fontSize: "10px",
+                                fontWeight: 900,
+                              }}
+                            >
+                              <span>{getMobileSelectedVenuePeriodLabel(venue)}</span>
+                              {hasFavoriteVenue && (
+                                <span
+                                  style={{
+                                    color: "#e56b93",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  ❤ 推しあり
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {selectedCalendarVenueCards.length > 10 && (
+                      <div
+                        style={{
+                          color: "#64748b",
+                          fontSize: "11px",
+                          fontWeight: 850,
+                          textAlign: "center",
+                        }}
+                      >
+                        ほか {selectedCalendarVenueCards.length - 10}場
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {selectedCalendarFavoriteEntries.length > 0 ? (
+                  <div style={{ display: "grid", gap: "7px" }}>
+                    {selectedCalendarFavoriteEntries.map((entry) => (
+                      <div
+                        key={entry.key}
+                        style={{
+                          borderRadius: "18px",
+                          padding: "11px 12px",
+                          background: "linear-gradient(135deg, #ffffff 0%, #f6f0ff 100%)",
+                          border: "1px solid #d8c9f4",
+                          display: "grid",
+                          gap: "4px",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: "12px",
+                            fontWeight: 950,
+                            color: "#081224",
+                          }}
+                        >
+                          ❤ {entry.riderName}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "11px",
+                            fontWeight: 800,
+                            color: "#526072",
+                          }}
+                        >
+                          {entry.venue}
+                          {entry.raceNo ? ` ${entry.raceNo}R` : entry.raceLabel ? ` ${entry.raceLabel}` : ""}
+                          {entry.time ? ` / ${entry.time}` : ""}
+                          {entry.carNo ? ` / ${entry.carNo}番車` : ""}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ ...mutedTextStyle, fontSize: "12px" }}>
+                    この日付では、推し選手の出走予定はまだ確認できていません。
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p style={{ ...mutedTextStyle, fontSize: "12px" }}>
+                この日付の開催予定はありません。
+              </p>
+            )}
           </div>
         </section>
 
@@ -1027,11 +2435,114 @@ export default function MobileDashboardPage() {
         <section id="mobile-today-races" style={mobileCardStyle}>
           <div style={{ display: "grid", gap: "12px" }}>
             <div style={{ display: "grid", gap: "5px" }}>
-              <p style={eyebrowStyle}>TODAY RACES</p>
-              <h2 style={sectionTitleStyle}>今日の開催レース</h2>
-              <p style={mutedTextStyle}>
-                今日の開催をスマホ用カードで確認します。次の修正で、各会場カード内にレース一覧・結果・保存済み予想を展開します。
-              </p>
+              <div
+                style={{
+                  borderRadius: "24px",
+                  padding: "16px 110px 14px 16px",
+                  minHeight: "126px",
+                  background: "linear-gradient(135deg, #ffffff 0%, #faf5ff 48%, #f4fbff 100%)",
+                  border: "1px solid #ebe3f3",
+                  boxShadow: "0 10px 24px rgba(122, 103, 184, 0.07)",
+                  display: "grid",
+                  gap: "10px",
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    position: "absolute",
+                    right: "10px",
+                    bottom: "-25px",
+                    width: "200px",
+                    height: "200px",
+                    backgroundImage: `url("${toPublicPath("/mobile/mobile-venues-kurari-guide.png")}")`,
+                    backgroundSize: "contain",
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "right bottom",
+                    pointerEvents: "none",
+                    filter: "drop-shadow(0 12px 20px rgba(8, 18, 36, 0.12))",
+                    opacity: 0.96,
+                    zIndex: 1,
+                  }}
+                />
+
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    justifyContent: "space-between",
+                    gap: "12px",
+                    position: "relative",
+                    zIndex: 2,
+                  }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ ...eyebrowStyle, marginBottom: "6px" }}>TODAY&apos;S VENUES</p>
+                    <h2
+                      style={{
+                        margin: 0,
+                        fontSize: "24px",
+                        lineHeight: 1.15,
+                        fontWeight: 950,
+                        letterSpacing: "-0.03em",
+                        color: "#081224",
+                      }}
+                    >
+                      本日開催
+                    </h2>
+                  </div>
+
+                  <div
+                    style={{
+                      flexShrink: 0,
+                      borderRadius: "18px",
+                      padding: "10px 12px",
+                      background: "linear-gradient(135deg, #f3ecff 0%, #ffffff 100%)",
+                      border: "1px solid #e4d8f6",
+                      display: "grid",
+                      gap: "3px",
+                      justifyItems: "center",
+                      minWidth: "76px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "9px",
+                        fontWeight: 900,
+                        letterSpacing: "0.14em",
+                        color: "#8c63c7",
+                      }}
+                    >
+                      VENUES
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "22px",
+                        lineHeight: 1,
+                        fontWeight: 950,
+                        color: "#081224",
+                      }}
+                    >
+                      {dashboardTodayRaces.length}
+                    </span>
+                  </div>
+                </div>
+
+                <p
+                  style={{
+                    margin: 0,
+                    color: "#526072",
+                    fontSize: "13px",
+                    lineHeight: 1.8,
+                    fontWeight: 700,
+                    position: "relative",
+                    zIndex: 2,
+                  }}
+                >
+                  会場カードを開くと、レース一覧・保存済み予想・結果をこのページ内で確認できます。
+                </p>
+              </div>
             </div>
 
             <div style={{ display: "grid", gap: "12px" }}>
@@ -1040,6 +2551,9 @@ export default function MobileDashboardPage() {
                   const venueKey = normalizePredictionVenueName(race.venue);
                   const predictionVenue = predictionVenueMap.get(venueKey);
                   const venueSummary = todayVenueSummaryMap[venueKey];
+                  const hasFavoriteVenue = todayFavoriteEntries.some(
+                    (entry) => normalizePredictionVenueName(entry.venue) === venueKey
+                  );
 
                   return (
                     <MobileVenueCard
@@ -1050,9 +2564,18 @@ export default function MobileDashboardPage() {
                       profitLoss={venueSummary?.profitLoss}
                       predictionResultMap={predictionResultMap}
                       predictionSlotMap={predictionSlotMap}
+                      hasFavoriteVenue={hasFavoriteVenue}
                       isOpen={openVenueKey === venueKey}
                       onToggle={() => {
-                        setOpenVenueKey((current) => (current === venueKey ? null : venueKey));
+                        setOpenVenueKey((current) => {
+                          const nextVenueKey = current === venueKey ? null : venueKey;
+
+                          if (nextVenueKey) {
+                            scrollToMobileVenueCard(nextVenueKey);
+                          }
+
+                          return nextVenueKey;
+                        });
                       }}
                     />
                   );
@@ -1077,39 +2600,29 @@ export default function MobileDashboardPage() {
           </div>
         </section>
 
-        <section id="mobile-calendar" style={mobileCardStyle}>
-          <div style={{ display: "grid", gap: "12px" }}>
-            <div style={{ display: "grid", gap: "5px" }}>
-              <p style={eyebrowStyle}>MOBILE CALENDAR</p>
-              <h2 style={sectionTitleStyle}>簡易カレンダー</h2>
-              <p style={mutedTextStyle}>
-                ここには次の修正で、今日・明日・今週のGレースをスマホ用カードとして表示します。
-                PC版の大きなカレンダーへ飛ばさず、このページ内で軽く確認できる形にします。
-              </p>
-            </div>
-
-            <div
-              style={{
-                ...mobileGlassPanelStyle,
-                padding: "14px",
-                display: "grid",
-                gap: "8px",
-              }}
-            >
-              <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#8c63c7" }}>
-                NEXT STEP
-              </div>
-              <p style={{ ...mutedTextStyle, fontSize: "12px" }}>
-                次に、会場カードをタップした時のレース一覧展開と、簡易カレンダーの今日・明日・今週表示を追加します。
-              </p>
-            </div>
-
-            <a href="#top" style={{ ...lightButtonStyle, width: "100%" }}>
-              PC版トップへ戻る
-            </a>
-          </div>
-        </section>
+        <a
+          href="#top"
+          style={{
+            display: "inline-flex",
+            justifyContent: "center",
+            alignItems: "center",
+            width: "fit-content",
+            margin: "4px auto 0",
+            color: "#8c63c7",
+            fontSize: "12px",
+            fontWeight: 900,
+            textDecoration: "none",
+            letterSpacing: "0.06em",
+          }}
+        >
+          PC版トップへ戻る
+        </a>
       </div>
+
+      <MobileFloatingNav
+        activeTargetId={activeMobileSection}
+        onNavigate={handleMobileNavNavigate}
+      />
     </main>
   );
 }
