@@ -1,5 +1,9 @@
 import { type ChangeEvent, useEffect, useMemo, useState } from "react";
-import { SiteHeader } from "./PageImplementations";
+import {
+  SiteHeader,
+  fetchPredictionVenueWeather,
+  type PredictionWeatherData,
+} from "./PageImplementations";
 
 type PredictionSlotRecord = {
   raceKey: string;
@@ -29,7 +33,7 @@ type PredictionResultRecord = {
   payout?: number;
   profitLoss?: number;
   roi?: number;
-　weatherActual?: PredictionRaceResultWeatherActual;
+  weatherActual?: PredictionRaceResultWeatherActual;
   memo?: string;
   savedAt?: string;
 };
@@ -58,6 +62,10 @@ type PredictionRaceResultWeatherActual = {
   windDirection?: string;
   windSpeed?: string;
   temperature?: string;
+  precipitation?: string;
+  fetchedAt?: string;
+  referenceText?: string;
+  source?: string;
 };
 
 type PredictionRaceResult = {
@@ -106,6 +114,7 @@ type PredictionTodayFeed = {
 };
 
 type ReviewRaceResultSnapshotMap = Record<string, PredictionRaceItem>;
+type ReviewWeatherActualMap = Record<string, PredictionRaceResultWeatherActual>;
 
 type ReviewReportRecord = {
   id: string;
@@ -621,6 +630,43 @@ function buildReviewFullResultLines(feedRace?: PredictionRaceItem) {
   });
 }
 
+function convertReviewWeatherToActual(weather: PredictionWeatherData): PredictionRaceResultWeatherActual {
+  return {
+    weather: weather.weatherLabel,
+    windDirection: weather.windDirectionText,
+    windSpeed: weather.windSpeedText,
+    temperature: weather.temperatureText,
+    precipitation: weather.precipitationText,
+    fetchedAt: weather.updatedAtText,
+    referenceText: weather.referenceText,
+    source: "review-open-meteo",
+  };
+}
+
+function hasReviewWeatherActual(
+  weatherActual?: PredictionRaceResultWeatherActual | null,
+): weatherActual is PredictionRaceResultWeatherActual {
+  return Boolean(
+    weatherActual?.weather ||
+      weatherActual?.windDirection ||
+      weatherActual?.windSpeed ||
+      weatherActual?.temperature ||
+      weatherActual?.precipitation ||
+      weatherActual?.referenceText
+  );
+}
+
+function formatReviewWeatherActualLines(weatherActual: PredictionRaceResultWeatherActual) {
+  return [
+    `天候: ${weatherActual.weather ?? "--"}`,
+    `風向: ${weatherActual.windDirection ?? "--"}`,
+    `風速: ${weatherActual.windSpeed ?? "--"}`,
+    `気温: ${weatherActual.temperature ?? "--"}`,
+    weatherActual.precipitation ? `降水: ${weatherActual.precipitation}` : "",
+    weatherActual.referenceText ? `基準: ${weatherActual.referenceText}` : "",
+  ].filter(Boolean);
+}
+
 function buildReviewWeatherLines(
   feedRace?: PredictionRaceItem,
   record?: PredictionResultRecord,
@@ -631,16 +677,27 @@ function buildReviewWeatherLines(
     feedRace?.result?.weatherActual ??
     fallbackWeatherActual;
 
-  if (weatherActual) {
-    return [
-      `天候: ${weatherActual.weather ?? "--"}`,
-      `風向: ${weatherActual.windDirection ?? "--"}`,
-      `風速: ${weatherActual.windSpeed ?? "--"}`,
-      `気温: ${weatherActual.temperature ?? "--"}`,
-    ];
+  if (hasReviewWeatherActual(weatherActual)) {
+    return formatReviewWeatherActualLines(weatherActual);
   }
 
-  return [`実天気/実風: ${getResultWeatherText(record)}`];
+  const memoWeatherText = getResultWeatherText(record);
+
+  if (memoWeatherText && memoWeatherText !== "接続待ち") {
+    return [`実天気/実風: ${memoWeatherText}`];
+  }
+
+  const resultStatus = feedRace?.result?.status ?? feedRace?.resultStatus;
+  const finalizedAt = feedRace?.result?.finalizedAt;
+
+  if (resultStatus === "confirmed") {
+    return [
+      "実天気/実風: 結果確定済み・天気スナップショット未保存",
+      finalizedAt ? `確定時刻: ${finalizedAt}` : "",
+    ].filter(Boolean);
+  }
+
+  return ["実天気/実風: 結果待ち / 天気取得待ち"];
 }
 
 function buildReviewFinalOddsLines(feedRace?: PredictionRaceItem) {
@@ -757,14 +814,21 @@ function buildPredictionCopy(group: VenueReviewGroup) {
   return lines.join("\n").trim();
 }
 
-function buildResultCopy(group: VenueReviewGroup) {
+function buildResultCopy(group: VenueReviewGroup, reviewWeatherActualMap: ReviewWeatherActualMap = {}) {
   const lines = [`${group.venue}｜${formatDateLabel(group.date)}｜結果照合用`];
   lines.push("");
 
   const groupFallbackWeatherActual =
     group.races
-      .map((race) => race.resultRecord?.weatherActual ?? race.feedRace?.result?.weatherActual)
-      .find((weatherActual) => Boolean(weatherActual?.weather || weatherActual?.windDirection || weatherActual?.windSpeed || weatherActual?.temperature));
+      .map((race) => {
+        const key = buildReviewRaceResultSnapshotKey(race.date, race.venue, race.raceNumber);
+        return (
+          race.resultRecord?.weatherActual ??
+          race.feedRace?.result?.weatherActual ??
+          reviewWeatherActualMap[key]
+        );
+      })
+      .find((weatherActual) => hasReviewWeatherActual(weatherActual));
 
   group.races.forEach((race) => {
     const resultOrder = getResultOrder(race.resultRecord, race.feedRace);
@@ -776,6 +840,11 @@ function buildResultCopy(group: VenueReviewGroup) {
     const kimarite = getKimarite(race.resultRecord, race.feedRace);
     const secondKimarite = getSecondKimarite(race.feedRace);
     const sbText = getSBMarkText(race.feedRace);
+    const raceWeatherKey = buildReviewRaceResultSnapshotKey(race.date, race.venue, race.raceNumber);
+    const raceWeatherActual =
+      race.resultRecord?.weatherActual ??
+      race.feedRace?.result?.weatherActual ??
+      reviewWeatherActualMap[raceWeatherKey];    
 
     lines.push(`■ ${group.venue} ${race.raceNumber}R`);
     lines.push(`レース名: ${race.feedRace?.title ?? group.title ?? "レース名未取得"}`);
@@ -800,7 +869,11 @@ function buildResultCopy(group: VenueReviewGroup) {
     lines.push("");
 
     lines.push("【WEATHER ACTUAL】");
-    buildReviewWeatherLines(race.feedRace, race.resultRecord, groupFallbackWeatherActual).forEach((line) => lines.push(line));
+    buildReviewWeatherLines(
+      race.feedRace,
+      race.resultRecord,
+      raceWeatherActual ?? groupFallbackWeatherActual
+    ).forEach((line) => lines.push(line));
     lines.push("");
 
     lines.push("【全着順】");
@@ -928,6 +1001,7 @@ export default function ReviewPage() {
   const [reportRecords, setReportRecords] = useState<ReviewReportRecord[]>([]);
   const [todayFeed, setTodayFeed] = useState<PredictionTodayFeed | null>(null);
   const [raceResultSnapshotMap, setRaceResultSnapshotMap] = useState<ReviewRaceResultSnapshotMap>({});
+  const [reviewWeatherActualMap, setReviewWeatherActualMap] = useState<ReviewWeatherActualMap>({});
   const [venueQuery, setVenueQuery] = useState("");
   const [playerQuery, setPlayerQuery] = useState("");
   const [keywordQuery, setKeywordQuery] = useState("");
@@ -1048,6 +1122,84 @@ const handleReviewVenueTickerMouseLeave = () => {
     ),
   [selectedDate, slotMap, resultMap, todayFeed, raceResultSnapshotMap],
 );
+  useEffect(() => {
+    if (venueGroups.length === 0) return;
+
+    let cancelled = false;
+
+    const targets = venueGroups.flatMap((group) =>
+      group.races
+        .map((race) => {
+          const key = buildReviewRaceResultSnapshotKey(race.date, race.venue, race.raceNumber);
+          const alreadyHasWeather =
+            hasReviewWeatherActual(race.resultRecord?.weatherActual) ||
+            hasReviewWeatherActual(race.feedRace?.result?.weatherActual) ||
+            hasReviewWeatherActual(reviewWeatherActualMap[key]);
+
+          if (alreadyHasWeather) return null;
+
+          return {
+            key,
+            venue: race.venue,
+            date: race.date,
+            time: race.feedRace?.time,
+          };
+        })
+        .filter(
+          (item): item is {
+            key: string;
+            venue: string;
+            date: string;
+            time: string | undefined;
+          } => item !== null
+        )
+    );
+
+    if (targets.length === 0) return;
+
+    Promise.allSettled(
+      targets.map(async (target) => {
+        const weather = await fetchPredictionVenueWeather(target.venue, {
+          isoDate: target.date,
+          raceTime: target.time,
+        });
+
+        return {
+          key: target.key,
+          weatherActual: convertReviewWeatherToActual(weather),
+        };
+      })
+    ).then((results) => {
+      if (cancelled) return;
+
+      const fulfilled = results
+        .filter(
+          (
+            result
+          ): result is PromiseFulfilledResult<{
+            key: string;
+            weatherActual: PredictionRaceResultWeatherActual;
+          }> => result.status === "fulfilled"
+        )
+        .map((result) => result.value);
+
+      if (fulfilled.length === 0) return;
+
+      setReviewWeatherActualMap((current) => {
+        const next = { ...current };
+        fulfilled.forEach((item) => {
+          if (!hasReviewWeatherActual(next[item.key])) {
+            next[item.key] = item.weatherActual;
+          }
+        });
+        return next;
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [reviewWeatherActualMap, venueGroups]);
 
   const filteredVenueGroups = useMemo(() => {
     const venueNeedle = venueQuery.trim();
@@ -1085,8 +1237,8 @@ const handleReviewVenueTickerMouseLeave = () => {
     [selectedVenueGroup],
   );
   const selectedResultCopy = useMemo(
-    () => (selectedVenueGroup ? buildResultCopy(selectedVenueGroup) : ""),
-    [selectedVenueGroup],
+    () => (selectedVenueGroup ? buildResultCopy(selectedVenueGroup, reviewWeatherActualMap) : ""),
+    [reviewWeatherActualMap, selectedVenueGroup],
   );
 
   const selectedReportRecord = useMemo(() => {
