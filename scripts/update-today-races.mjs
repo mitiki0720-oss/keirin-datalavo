@@ -579,15 +579,50 @@ async function writeNetkeirinResultDebugFiles(raceId, suffix, html, payload) {
   await fs.writeFile(path.join(DEBUG_ODDS_DIR, `${NETKEIRIN_RESULT_DEBUG_PREFIX}-${raceId}-${suffix}.json`), `${JSON.stringify(payload, null, 2)}\n`, "utf-8");
 }
 
+function normalizeNetkeirinResultSbText(value) {
+  return decodeHtml(String(value ?? ""))
+    .normalize("NFKC")
+    .replace(/\s+/g, "")
+    .replace(/[Ｓ]/g, "S")
+    .replace(/[Ｈ]/g, "H")
+    .replace(/[Ｂ]/g, "B")
+    .toUpperCase()
+    .trim();
+}
+
+function parseNetkeirinResultShbMarks(value) {
+  const text = normalizeNetkeirinResultSbText(value);
+
+  return {
+    sMark: text.includes("S"),
+    hMark: text.includes("H"),
+    bMark: text.includes("B"),
+  };
+}
+
+function getNetkeirinLeaderCarNoFromRows(rows, key) {
+  const row = rows.find((item) => item?.[key]);
+  return row?.carNo ? String(row.carNo) : "";
+}
+
 function extractNetkeirinResultTop3(html) {
   const tableHtml = html.match(/<table summary="全着順" class="RaceCard_Table RaceCard_Simple_Table ResultRefund" id="All_Result_Table">([\s\S]*?)<\/table>/i)?.[1] ?? "";
   if (!tableHtml) return [];
 
   const rows = Array.from(tableHtml.matchAll(/<tr class="PlayerList">([\s\S]*?)<\/tr>/gi)).map((match) => match[1]);
+
   return rows.map((rowHtml) => {
-    const cells = Array.from(rowHtml.matchAll(/<td class="[^"]*RaceCardCell01[^"]*">([\s\S]*?)<\/td>/gi)).map((match) => stripTags(match[1]).replace(/\s+/g, " ").trim());
-    const name = stripTags(rowHtml.match(/<dt class="PlayerName">([\s\S]*?)<\/dt>/i)?.[1] ?? "").replace(/\s+/g, " ").trim();
-    const sbMark = (cells[6] ?? "").trim();
+    const cells = Array.from(rowHtml.matchAll(/<td class="[^"]*RaceCardCell01[^"]*">([\s\S]*?)<\/td>/gi)).map((match) =>
+      stripTags(match[1]).replace(/\s+/g, " ").trim()
+    );
+
+    const name = stripTags(rowHtml.match(/<dt class="PlayerName">([\s\S]*?)<\/dt>/i)?.[1] ?? "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const sbText = cells[6] ?? "";
+    const shbMarks = parseNetkeirinResultShbMarks(sbText);
+
     return {
       place: cells[0] ?? "",
       carNo: cells[2] ?? "",
@@ -595,9 +630,9 @@ function extractNetkeirinResultTop3(html) {
       margin: cells[3] ?? "",
       agari: cells[4] ?? "",
       kimarite: cells[5] ?? "",
-      sMark: sbMark === "S",
-      hMark: sbMark === "H",
-      bMark: sbMark === "B",
+      sMark: shbMarks.sMark,
+      hMark: shbMarks.hMark,
+      bMark: shbMarks.bMark,
     };
   }).filter((item) => item.place && item.carNo && item.name);
 }
@@ -656,30 +691,49 @@ function extractNetkeirinResultData(html) {
   const payouts = payoutExtraction.payouts;
   const isConfirmed = resultTop3.length > 0 || payouts.length > 0 || /レースが確定しました/.test(html);
   const finishOrder = resultTop3.map((item) => item.carNo).filter(Boolean);
-  const result = {
-    status: isConfirmed ? "confirmed" : "pending",
-    finishOrder,
-    kimarite: resultTop3[0]?.kimarite ?? "",
-    secondKimarite: resultTop3[1]?.kimarite ?? "",
-    payout2tan: pickNetkeirinPayoutItem(payouts, ["2車単"]),
-    payout2fuku: pickNetkeirinPayoutItem(payouts, ["2車複", "二車複"], true),
-    payout3tan: pickNetkeirinPayoutItem(payouts, ["3連単"]),
-    payout3fuku: pickNetkeirinPayoutItem(payouts, ["3連複"]),
-    payoutWide: pickNetkeirinPayoutItem(payouts, ["ワイド"], true),
-    finalizedAt: isConfirmed ? extractNetkeirinResultFinalizedAt(html) : "",
-  };
+  const sLeaderCarNo = getNetkeirinLeaderCarNoFromRows(resultTop3, "sMark");
+  const hLeaderCarNo = getNetkeirinLeaderCarNoFromRows(resultTop3, "hMark");
+  const bLeaderCarNo = getNetkeirinLeaderCarNoFromRows(resultTop3, "bMark");
+const result = {
+  status: isConfirmed ? "confirmed" : "pending",
+  finishOrder,
+  kimarite: resultTop3[0]?.kimarite ?? "",
+  secondKimarite: resultTop3[1]?.kimarite ?? "",
+  sLeaderCarNo,
+  hLeaderCarNo,
+  bLeaderCarNo,
+  payout2tan: pickNetkeirinPayoutItem(payouts, ["2車単"]),
+  payout2fuku: pickNetkeirinPayoutItem(payouts, ["2車複", "二車複"], true),
+  payout3tan: pickNetkeirinPayoutItem(payouts, ["3連単"]),
+  payout3fuku: pickNetkeirinPayoutItem(payouts, ["3連複"]),
+  payoutWide: pickNetkeirinPayoutItem(payouts, ["ワイド"], true),
+  finalizedAt: isConfirmed ? extractNetkeirinResultFinalizedAt(html) : "",
+};
 
   return {
     resultStatus: result.status,
     resultTop3,
     payouts,
     result,
-    debug: {
-      finishOrderCount: finishOrder.length,
-      payoutTableFound: payoutExtraction.debug.tableFound,
-      payoutRowCount: payoutExtraction.debug.rowCount,
-      payoutCount: payouts.length,
-    },
+debug: {
+  finishOrderCount: finishOrder.length,
+  payoutTableFound: payoutExtraction.debug.tableFound,
+  payoutRowCount: payoutExtraction.debug.rowCount,
+  payoutCount: payouts.length,
+  markRows: resultTop3
+    .filter((row) => row.sMark || row.hMark || row.bMark)
+    .map((row) => ({
+      place: row.place,
+      carNo: row.carNo,
+      name: row.name,
+      sMark: row.sMark,
+      hMark: row.hMark,
+      bMark: row.bMark,
+    })),
+  sLeaderCarNo,
+  hLeaderCarNo,
+  bLeaderCarNo,
+},
   };
 }
 
@@ -848,21 +902,25 @@ async function fetchNetkeirinRaceDetail(todayIso, venueCode, raceNo, saveSample 
   });
 
   let resultData = {
-    resultStatus: "pending",
-    resultTop3: [],
-    payouts: [],
-    result: {
-      status: "pending",
-      finishOrder: [],
-      kimarite: "",
-      payout2tan: null,
-      payout2fuku: [],
-      payout3tan: null,
-      payout3fuku: null,
-      payoutWide: [],
-      finalizedAt: "",
-    },
-  };
+  resultStatus: "pending",
+  resultTop3: [],
+  payouts: [],
+  result: {
+    status: "pending",
+    finishOrder: [],
+    kimarite: "",
+    secondKimarite: "",
+    sLeaderCarNo: "",
+    hLeaderCarNo: "",
+    bLeaderCarNo: "",
+    payout2tan: null,
+    payout2fuku: [],
+    payout3tan: null,
+    payout3fuku: null,
+    payoutWide: [],
+    finalizedAt: "",
+  },
+};
   try {
     const resultResponse = await fetch(`${NETKEIRIN_RESULT_URL}?race_id=${raceId}`, {
       headers: {
@@ -874,8 +932,20 @@ async function fetchNetkeirinRaceDetail(todayIso, venueCode, raceNo, saveSample 
       const resultHtml = await resultResponse.text();
       resultData = extractNetkeirinResultData(resultHtml);
       console.log(
-        `[result] race_id=${raceId} status=${resultData.resultStatus} finishOrder=${resultData.debug.finishOrderCount} payoutTable=${resultData.debug.payoutTableFound ? "found" : "missing"} payoutRows=${resultData.debug.payoutRowCount} payoutCount=${resultData.debug.payoutCount}`,
-      );
+  `[result] race_id=${raceId} status=${resultData.resultStatus} finishOrder=${resultData.debug.finishOrderCount} payoutTable=${resultData.debug.payoutTableFound ? "found" : "missing"} payoutRows=${resultData.debug.payoutRowCount} payoutCount=${resultData.debug.payoutCount} SHB=${resultData.debug.sLeaderCarNo || "-"}:${resultData.debug.hLeaderCarNo || "-"}:${resultData.debug.bLeaderCarNo || "-"}`,
+);
+
+if (resultData.debug.markRows?.length) {
+  console.log("[netkeirin full result SHB debug]", {
+    raceId,
+    markRows: resultData.debug.markRows,
+    resultLeaderCarNos: {
+      s: resultData.debug.sLeaderCarNo,
+      h: resultData.debug.hLeaderCarNo,
+      b: resultData.debug.bLeaderCarNo,
+    },
+  });
+}
       if (resultData.resultStatus === "confirmed" && resultData.debug.payoutCount === 0) {
         await writeNetkeirinResultDebugFiles(raceId, "payout-missing", resultHtml, {
           raceId,
