@@ -173,7 +173,7 @@ const resolveMobileStructuredPredictionHit = (
 
   const resultTop2 = resultOrder.split("-").slice(0, 2).join("-");
 
-const hitTicket = tickets.find((ticket) => {
+    const hitTicket = tickets.find((ticket) => {
     const normalizedTicketCombination = normalizeMobileBetCombination(ticket.combination);
     const normalized3TanResult = normalizeMobileBetCombination(resultOrder);
     const normalized2ShaTanResult = normalizeMobileBetCombination(resultTop2);
@@ -925,7 +925,7 @@ function MobileVenueCard({
     ? selectedResultOrderText.split("-").slice(0, 2).join("-")
     : "";
 
-const selectedStructuredHitTicket = selectedStructuredPrediction?.tickets.find((ticket) => {
+  const selectedStructuredHitTicket = selectedStructuredPrediction?.tickets.find((ticket) => {
     if (!selectedResultOrderText) return false;
 
     const normalizedTicketCombination = normalizeMobileBetCombination(ticket.combination);
