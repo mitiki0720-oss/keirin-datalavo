@@ -616,6 +616,14 @@ function formatRacesPageResultPayoutList(items?: LiveRaceResultPayoutItem[] | st
   return items.map((item) => formatRacesPageResultPayout(item)).filter((item) => item !== "--").join(" / ") || "--";
 }
 
+function cleanRacesPageRiderName(value?: string) {
+  return String(value ?? "")
+    .replace(/お気に入り選手\s*-->/g, "")
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function findRacesPageResultEntryByCarNo(race: LiveRaceDetail | undefined, carNo?: string) {
   if (!carNo) return undefined;
   return (race?.resultTop3 ?? []).find((entry) => entry.carNo === carNo);
@@ -672,18 +680,21 @@ function formatRacesPageLeaderText(race: LiveRaceDetail | undefined) {
   const sEntry = findRacesPageResultEntryByCarNo(race, leaders.sLeaderCarNo);
   const hEntry = findRacesPageResultEntryByCarNo(race, leaders.hLeaderCarNo);
   const bEntry = findRacesPageResultEntryByCarNo(race, leaders.bLeaderCarNo);
+  const sName = cleanRacesPageRiderName(sEntry?.name);
+  const hName = cleanRacesPageRiderName(hEntry?.name);
+  const bName = cleanRacesPageRiderName(bEntry?.name);
 
   const parts = [
-    leaders.sLeaderCarNo
-      ? `S: ${leaders.sLeaderCarNo}${sEntry?.name ? ` ${sEntry.name}` : ""}`
-      : "",
-    leaders.hLeaderCarNo
-      ? `H: ${leaders.hLeaderCarNo}${hEntry?.name ? ` ${hEntry.name}` : ""}`
-      : "",
-    leaders.bLeaderCarNo
-      ? `B: ${leaders.bLeaderCarNo}${bEntry?.name ? ` ${bEntry.name}` : ""}`
-      : "",
-  ].filter(Boolean);
+  leaders.sLeaderCarNo
+    ? `S: ${leaders.sLeaderCarNo}${sName ? ` ${sName}` : ""}`
+    : "",
+  leaders.hLeaderCarNo
+    ? `H: ${leaders.hLeaderCarNo}${hName ? ` ${hName}` : ""}`
+    : "",
+  leaders.bLeaderCarNo
+    ? `B: ${leaders.bLeaderCarNo}${bName ? ` ${bName}` : ""}`
+    : "",
+].filter(Boolean);
 
   return parts.length > 0 ? parts.join(" / ") : "S/H/B 未取得";
 }
@@ -1983,7 +1994,8 @@ const selectedRaceResultCards = [
               row.bMark ? "B" : "",
             ].filter(Boolean).join("");
 
-            return `${marks}: ${row.carNo}${row.name ? ` ${row.name}` : ""}`;
+            const riderName = cleanRacesPageRiderName(row.name);
+            return `${marks}: ${row.carNo}${riderName ? ` ${riderName}` : ""}`;
           })
           .join(" / ") || "S/H/B 未取得",
   sub:
