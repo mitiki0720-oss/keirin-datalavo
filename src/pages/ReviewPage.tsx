@@ -568,16 +568,44 @@ function getSecondKimarite(feedRace?: PredictionRaceItem) {
   return feedRace?.result?.secondKimarite || feedRace?.resultTop3?.[1]?.kimarite || "";
 }
 
+function findReviewResultEntryByCarNo(feedRace: PredictionRaceItem | undefined, carNo?: string) {
+  if (!carNo) return undefined;
+  return (feedRace?.resultTop3 ?? []).find((entry) => entry.carNo === carNo);
+}
+
+function formatReviewLeaderMark(
+  label: "S" | "H" | "B",
+  carNo?: string,
+  entry?: PredictionRaceResultEntry
+) {
+  if (!carNo) return "";
+
+  const riderName = entry?.name ? ` ${cleanReviewRiderName(entry.name)}` : "";
+  return `${label}: ${carNo}${riderName}`;
+}
+
+function getReviewLeaderCarNoFromEntries(
+  entries: PredictionRaceResultEntry[],
+  mark: "sMark" | "hMark" | "bMark"
+) {
+  return entries.find((entry) => entry[mark])?.carNo;
+}
+
 function getSBMarkText(feedRace?: PredictionRaceItem) {
   const entries = feedRace?.resultTop3 ?? [];
-  const sEntry = entries.find((item) => item.sMark);
-  const hEntry = entries.find((item) => item.hMark);
-  const bEntry = entries.find((item) => item.bMark);
-  const parts: string[] = [];
 
-  if (sEntry) parts.push(`S: ${sEntry.carNo}${sEntry.name ? " " + cleanReviewRiderName(sEntry.name) : ""}`);
-  if (hEntry) parts.push(`H: ${hEntry.carNo}${hEntry.name ? " " + cleanReviewRiderName(hEntry.name) : ""}`);
-  if (bEntry) parts.push(`B: ${bEntry.carNo}${bEntry.name ? " " + cleanReviewRiderName(bEntry.name) : ""}`);
+  const sLeaderCarNo =
+    feedRace?.result?.sLeaderCarNo || getReviewLeaderCarNoFromEntries(entries, "sMark");
+  const hLeaderCarNo =
+    feedRace?.result?.hLeaderCarNo || getReviewLeaderCarNoFromEntries(entries, "hMark");
+  const bLeaderCarNo =
+    feedRace?.result?.bLeaderCarNo || getReviewLeaderCarNoFromEntries(entries, "bMark");
+
+  const parts = [
+    formatReviewLeaderMark("S", sLeaderCarNo, findReviewResultEntryByCarNo(feedRace, sLeaderCarNo)),
+    formatReviewLeaderMark("H", hLeaderCarNo, findReviewResultEntryByCarNo(feedRace, hLeaderCarNo)),
+    formatReviewLeaderMark("B", bLeaderCarNo, findReviewResultEntryByCarNo(feedRace, bLeaderCarNo)),
+  ].filter(Boolean);
 
   return parts.join(" / ");
 }
@@ -677,12 +705,8 @@ function pickReviewOddsPreview(
   const feedOdds = normalizeReviewOddsPreviewList(feedRace?.oddsPreview);
   const snapshotOdds = normalizeReviewOddsPreviewList(snapshotRace?.oddsPreview);
 
-  if (snapshotOdds.length > 0 && feedRace?.resultStatus !== "confirmed" && feedRace?.result?.status !== "confirmed") {
-    return snapshotOdds;
-  }
-
-  if (feedOdds.length > 0) return feedOdds;
   if (snapshotOdds.length > 0) return snapshotOdds;
+  if (feedOdds.length > 0) return feedOdds;
 
   return [];
 }
@@ -726,10 +750,10 @@ function buildReviewFullResultLines(feedRace?: PredictionRaceItem) {
 
   return entries.map((entry) => {
     const marks = [
-      entry.sMark ? "S" : "",
-      entry.hMark ? "H" : "",
-      entry.bMark ? "B" : "",
-    ].filter(Boolean);
+     entry.sMark || feedRace?.result?.sLeaderCarNo === entry.carNo ? "S" : "",
+     entry.hMark || feedRace?.result?.hLeaderCarNo === entry.carNo ? "H" : "",
+     entry.bMark || feedRace?.result?.bLeaderCarNo === entry.carNo ? "B" : "",
+     ].filter(Boolean);
 
     const markText = marks.length > 0 ? ` ${marks.join("")}` : "";
     const place = entry.place ? `${entry.place}着` : "着順不明";

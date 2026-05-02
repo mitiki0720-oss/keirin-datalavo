@@ -616,6 +616,53 @@ function formatRacesPageResultPayoutList(items?: LiveRaceResultPayoutItem[] | st
   return items.map((item) => formatRacesPageResultPayout(item)).filter((item) => item !== "--").join(" / ") || "--";
 }
 
+function findRacesPageResultEntryByCarNo(race: LiveRaceDetail | undefined, carNo?: string) {
+  if (!carNo) return undefined;
+  return (race?.resultTop3 ?? []).find((entry) => entry.carNo === carNo);
+}
+
+function getRacesPageLeaderCarNoFromEntries(
+  entries: LiveRaceResultEntry[],
+  mark: "sMark" | "hMark" | "bMark"
+) {
+  return entries.find((entry) => entry[mark])?.carNo;
+}
+
+function resolveRacesPageLeaderCarNos(race: LiveRaceDetail | undefined) {
+  const entries = race?.resultTop3 ?? [];
+
+  return {
+    sLeaderCarNo:
+      race?.result?.sLeaderCarNo || getRacesPageLeaderCarNoFromEntries(entries, "sMark"),
+    hLeaderCarNo:
+      race?.result?.hLeaderCarNo || getRacesPageLeaderCarNoFromEntries(entries, "hMark"),
+    bLeaderCarNo:
+      race?.result?.bLeaderCarNo || getRacesPageLeaderCarNoFromEntries(entries, "bMark"),
+  };
+}
+
+function formatRacesPageLeaderText(race: LiveRaceDetail | undefined) {
+  const leaders = resolveRacesPageLeaderCarNos(race);
+
+  const sEntry = findRacesPageResultEntryByCarNo(race, leaders.sLeaderCarNo);
+  const hEntry = findRacesPageResultEntryByCarNo(race, leaders.hLeaderCarNo);
+  const bEntry = findRacesPageResultEntryByCarNo(race, leaders.bLeaderCarNo);
+
+  const parts = [
+    leaders.sLeaderCarNo
+      ? `S: ${leaders.sLeaderCarNo}${sEntry?.name ? ` ${sEntry.name}` : ""}`
+      : "",
+    leaders.hLeaderCarNo
+      ? `H: ${leaders.hLeaderCarNo}${hEntry?.name ? ` ${hEntry.name}` : ""}`
+      : "",
+    leaders.bLeaderCarNo
+      ? `B: ${leaders.bLeaderCarNo}${bEntry?.name ? ` ${bEntry.name}` : ""}`
+      : "",
+  ].filter(Boolean);
+
+  return parts.length > 0 ? parts.join(" / ") : "S/H/B 未取得";
+}
+
 function findStaticRaceForLiveVenue(venue: string, startDate: string, session: RaceScheduleItem["session"]) {
   return todayRaces.find((race) =>
     race.venue === venue &&
@@ -1876,15 +1923,38 @@ useEffect(() => {
 }, [selectedVenue?.venue, selectedRace?.time]);
 
 const selectedRaceSLeaderCarNo = selectedRaceResult?.sLeaderCarNo ?? "";
-  const selectedRaceHLeaderCarNo = selectedRaceResult?.hLeaderCarNo ?? "";
-  const selectedRaceBLeaderCarNo = selectedRaceResult?.bLeaderCarNo ?? "";
-  const selectedRaceAllRows = selectedRace?.resultTop3 ?? [];
-  const selectedRaceResultCards = [
-    { label: "着順", value: formatRacesPageResultOrder(selectedRaceFinishOrder), sub: selectedRaceResultStatus === "confirmed" ? "3連単照合キー" : "未確定" },
-    { label: "決まり手", value: selectedRaceResultKimarite || "--", sub: "1着の決まり手" },
-    { label: "2着決まり手", value: selectedRaceSecondKimarite || "--", sub: "2着の決まり手" },
-    { label: "3連単", value: formatRacesPageResultPayout(selectedRaceResult?.payout3tan), sub: "払戻" },
-  ];
+const selectedRaceHLeaderCarNo = selectedRaceResult?.hLeaderCarNo ?? "";
+const selectedRaceBLeaderCarNo = selectedRaceResult?.bLeaderCarNo ?? "";
+const selectedRaceAllRows = selectedRace?.resultTop3 ?? [];
+const selectedRaceLeaderText = formatRacesPageLeaderText(selectedRace ?? undefined);
+
+const selectedRaceResultCards = [
+  {
+    label: "着順",
+    value: formatRacesPageResultOrder(selectedRaceFinishOrder),
+    sub: selectedRaceResultStatus === "confirmed" ? "3連単照合キー" : "未確定",
+  },
+  {
+    label: "決まり手",
+    value: selectedRaceResultKimarite || "--",
+    sub: "1着の決まり手",
+  },
+  {
+    label: "2着決まり手",
+    value: selectedRaceSecondKimarite || "--",
+    sub: "2着の決まり手",
+  },
+  {
+    label: "S/H/B",
+    value: selectedRaceLeaderText,
+    sub: selectedRaceLeaderText === "S/H/B 未取得" ? "全着順データ待ち" : "全着順マーク",
+  },
+  {
+    label: "3連単",
+    value: formatRacesPageResultPayout(selectedRaceResult?.payout3tan),
+    sub: "払戻",
+  },
+];
 
   const leadLabel = selectedRace?.lead?.trim() || "当日反映予定";
   const coreBuyLabel = selectedRace?.coreBuy?.trim() || "整理中";
@@ -3611,7 +3681,7 @@ gap: isMobile ? "10px" : "12px",
               <div
   style={{
     display: "grid",
-    gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))",
+    gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(5, minmax(0, 1fr))",
     gap: isMobile ? "10px" : "12px",
     marginBottom: "14px",
   }}
