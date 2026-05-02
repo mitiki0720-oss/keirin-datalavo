@@ -23,6 +23,10 @@ import {
   normalizePredictionVenueName,
   todayRaces,
   toPublicPath,
+  parsePredictionPayoutAmount,
+  resolvePredictionEffectivePayout,
+  type PredictionResultHitStatus,
+  type PredictionResultRecord,
   type DashboardTodayRaceCard,
   type FavoriteRiderFeedItem,
   type PredictionRaceItem,
@@ -137,6 +141,110 @@ const mergePredictionSlotMaps = (
     ...publicSlots,
     ...localSlots,
   };
+};
+const getMobileRaceResultOrderText = (race?: PredictionRaceItem | null) => {
+  const finishOrder = race?.result?.finishOrder?.filter(Boolean) ?? [];
+  if (finishOrder.length >= 3) return finishOrder.slice(0, 3).join("-");
+
+  const top3Order = race?.resultTop3?.map((item) => item.carNo).filter(Boolean) ?? [];
+  if (top3Order.length >= 3) return top3Order.slice(0, 3).join("-");
+
+  return "";
+};
+
+const resolveMobileStructuredPredictionHit = (
+  slot: PredictionSlotMap[string] | undefined,
+  resultOrder: string
+): {
+  status: PredictionResultHitStatus;
+  hitBetType?: "3連単" | "2車単";
+  hitCombination?: string;
+} => {
+  const tickets = slot?.predictionJson?.tickets ?? [];
+  if (!resultOrder || tickets.length === 0) return { status: "pending" };
+
+  const resultTop2 = resultOrder.split("-").slice(0, 2).join("-");
+
+  const hitTicket = tickets.find((ticket) => {
+    if (ticket.betType === "3連単") return ticket.combination === resultOrder;
+    if (ticket.betType === "2車単") return ticket.combination === resultTop2;
+    return false;
+  });
+
+  if (!hitTicket) return { status: "miss" };
+
+  return {
+    status: "hit",
+    hitBetType: hitTicket.betType as "3連単" | "2車単",
+    hitCombination: hitTicket.combination,
+  };
+};
+
+const buildMobileAutoPredictionResultMap = (
+  feed: PredictionTodayFeed | null,
+  slotMap: PredictionSlotMap
+): PredictionResultMap => {
+  if (!feed) return {};
+
+  const nextMap: PredictionResultMap = {};
+
+  feed.venues.forEach((venue) => {
+    venue.races.forEach((race) => {
+      const slotLookup = findPredictionSlotRecord(slotMap, feed.date, venue, race);
+      const slot = slotLookup.record;
+      if (!slot) return;
+
+      const resultOrder = getMobileRaceResultOrderText(race);
+      if (!resultOrder) return;
+
+      const hitDetail = resolveMobileStructuredPredictionHit(slot, resultOrder);
+      const hitStatus = hitDetail.status;
+
+      const rawPayout =
+        hitDetail.hitBetType === "2車単"
+          ? parsePredictionPayoutAmount(race.result?.payout2tan?.payout)
+          : hitDetail.hitBetType === "3連単"
+            ? parsePredictionPayoutAmount(race.result?.payout3tan?.payout)
+            : undefined;
+
+      const payout = resolvePredictionEffectivePayout(hitStatus, rawPayout);
+      const ticketCount = slot.predictionJson?.tickets.length ?? 0;
+      const investment = ticketCount > 0 ? ticketCount * 100 : undefined;
+      const profitLoss =
+        investment !== undefined && payout !== undefined
+          ? payout - investment
+          : undefined;
+      const roi =
+        investment !== undefined && payout !== undefined && investment > 0
+          ? (payout / investment) * 100
+          : undefined;
+
+      const resultRecord: PredictionResultRecord = {
+        raceKey: slotLookup.key || slot.raceKey,
+        raceId: slot.raceId || venue.raceIds?.[race.raceNo - 1] || "",
+        venue: venue.venue,
+        date: feed.date,
+        raceNumber: race.raceNo,
+        resultOrder,
+        autoHitStatus: hitStatus,
+        hitStatus,
+        hitBetType: hitStatus === "hit" ? hitDetail.hitBetType : undefined,
+        hitCombination: hitStatus === "hit" ? hitDetail.hitCombination : undefined,
+        investment,
+        investmentSource: "auto",
+        payout,
+        profitLoss,
+        roi,
+        weatherActual: race.result?.weatherActual,
+        memo: "モバイル公開JSONから自動照合",
+        savedAt: new Date().toISOString(),
+      };
+
+      nextMap[resultRecord.raceKey] = resultRecord;
+    });
+  });
+
+  return nextMap;
 };
 
 const formatYen = (value?: number) => {
@@ -783,9 +891,9 @@ function MobileVenueCard({
   const selectedSavedPredictionText = clipMobilePredictionText(selectedSavedSlotLookup.record?.predictionText);
   const selectedStructuredPrediction = selectedSavedSlotLookup.record?.predictionJson;
   const selectedHasSavedPrediction = Boolean(
-  selectedSavedPredictionText || (selectedStructuredPrediction?.tickets.length ?? 0) > 0
+    selectedSavedPredictionText || (selectedStructuredPrediction?.tickets.length ?? 0) > 0
   );
-  const selectedSavedTone = getMobileSavedResultTone(selectedSavedResult?.hitStatus, selectedHasSavedPrediction);
+
   const selectedResultTone = selectedVenueRace
     ? getMobileRaceResultTone(selectedVenueRace)
     : { background: "#faf8fd", color: "#64748b", border: "#ede7f5" };
@@ -821,6 +929,22 @@ function MobileVenueCard({
         : selectedStructuredHitTicket
           ? "的中"
           : "不的中";
+
+  const selectedResolvedHitStatus: PredictionResultHitStatus = selectedSavedResult?.hitStatus
+    ? selectedSavedResult.hitStatus
+    : selectedStructuredPredictionResultLabel === "的中"
+      ? "hit"
+      : selectedStructuredPredictionResultLabel === "不的中"
+        ? "miss"
+        : "pending";
+
+  const selectedResolvedHitBetType =
+    selectedSavedResult?.hitBetType ?? selectedStructuredHitTicket?.betType;
+
+  const selectedResolvedHitCombination =
+    selectedSavedResult?.hitCombination ?? selectedStructuredHitTicket?.combination;
+
+  const selectedSavedTone = getMobileSavedResultTone(selectedResolvedHitStatus, selectedHasSavedPrediction);
 
   const selectedStructuredPredictionResultTone =
     selectedStructuredPredictionResultLabel === "的中"
@@ -1215,7 +1339,10 @@ function MobileVenueCard({
                       predictionVenue,
                       venueRace
                     );
-                    const hasPrediction = Boolean(clipMobilePredictionText(raceSlotLookup.record?.predictionText));
+                    const hasPrediction = Boolean(
+                      clipMobilePredictionText(raceSlotLookup.record?.predictionText) ||
+                        (raceSlotLookup.record?.predictionJson?.tickets.length ?? 0) > 0
+                    );
                     const raceHasResult = venueRace.resultStatus === "confirmed" || venueRace.result?.status === "confirmed";
 
                     return (
@@ -1581,9 +1708,9 @@ function MobileVenueCard({
                             >
                               {selectedStructuredPrediction.tickets.map((ticket) => {
                                 const isHit =
-                                  selectedSavedResult?.hitStatus === "hit" &&
-                                  selectedSavedResult.hitBetType === ticket.betType &&
-                                  selectedSavedResult.hitCombination === ticket.combination;
+                                  selectedResolvedHitStatus === "hit" &&
+                                  selectedResolvedHitBetType === ticket.betType &&
+                                  selectedResolvedHitCombination === ticket.combination;
 
                                 return (
                                   <div
@@ -1939,8 +2066,23 @@ function MobileVenueCard({
                                           fontWeight: 950,
                                         }}
                                       >
-                                        的中買い目：{selectedStructuredHitTicket.betType}{" "}
-                                        {selectedStructuredHitTicket.combination}
+                                        <div
+                                          style={{
+                                            borderRadius: "16px",
+                                            padding: "12px",
+                                            background: "linear-gradient(135deg, #ccfbf1 0%, #ffffff 100%)",
+                                            border: "1px solid #5eead4",
+                                            color: "#0f766e",
+                                            fontWeight: 950,
+                                            boxShadow: "0 12px 24px rgba(20, 184, 166, 0.14)",
+                                          }}
+                                        >
+                                          🎯 的中買い目：{selectedStructuredHitTicket.betType}{" "}
+                                          {selectedStructuredHitTicket.combination}
+                                          <span style={{ marginLeft: "6px", color: "#64748b" }}>
+                                            / {selectedStructuredHitTicket.group}
+                                          </span>
+                                        </div>
                                         <span style={{ marginLeft: "6px", color: "#64748b" }}>
                                           / {selectedStructuredHitTicket.group}
                                         </span>
@@ -2106,6 +2248,19 @@ export default function MobileDashboardPage() {
     const predictionSlotMap = useMemo(
     () => mergePredictionSlotMaps(publicPredictionSlotMap, localPredictionSlotMap),
     [publicPredictionSlotMap, localPredictionSlotMap]
+  );
+
+    const publicAutoPredictionResultMap = useMemo(
+    () => buildMobileAutoPredictionResultMap(todayPredictionFeed, predictionSlotMap),
+    [todayPredictionFeed, predictionSlotMap]
+  );
+
+  const resolvedPredictionResultMap = useMemo<PredictionResultMap>(
+    () => ({
+      ...publicAutoPredictionResultMap,
+      ...predictionResultMap,
+    }),
+    [publicAutoPredictionResultMap, predictionResultMap]
   );
 
   useEffect(() => {
@@ -2280,15 +2435,15 @@ export default function MobileDashboardPage() {
   );
 
   const predictionAggregate = useMemo(
-    () => getPredictionResultAggregate(predictionResultMap, TODAY),
-    [predictionResultMap]
+    () => getPredictionResultAggregate(resolvedPredictionResultMap, TODAY),
+    [resolvedPredictionResultMap]
   );
 
   const todaySummary = predictionAggregate.dailySummary;
   const todayVenueSummaryMap = predictionAggregate.venueSummaryMap ?? {};
   const todayHitLogItems = useMemo(
     () =>
-      Object.values(predictionResultMap)
+      Object.values(resolvedPredictionResultMap)
         .filter((item) => item.date === TODAY && item.hitStatus === "hit")
         .sort((a, b) => b.savedAt.localeCompare(a.savedAt))
         .slice(0, 12)
@@ -2300,7 +2455,7 @@ export default function MobileDashboardPage() {
           hitCombination: item.hitCombination,
           profitLoss: item.profitLoss,
         })),
-    [predictionResultMap]
+    [resolvedPredictionResultMap]
   );
   const totalRaceCount = todayPredictionFeed?.venues.reduce((sum, venue) => sum + venue.races.length, 0) ?? 0;
 
@@ -3073,7 +3228,7 @@ export default function MobileDashboardPage() {
                       predictionVenue={predictionVenue}
                       savedRaceCount={venueSummary?.savedRaceCount}
                       profitLoss={venueSummary?.profitLoss}
-                      predictionResultMap={predictionResultMap}
+                      predictionResultMap={resolvedPredictionResultMap}
                       predictionSlotMap={predictionSlotMap}
                       hasFavoriteVenue={hasFavoriteVenue}
                       isOpen={openVenueKey === venueKey}
