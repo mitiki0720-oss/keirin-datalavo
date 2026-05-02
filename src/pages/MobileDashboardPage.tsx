@@ -13,6 +13,7 @@ import {
   getFavoriteRiderRaceLabel,
   getGradeBadgeTone,
   getPredictionResultAggregate,
+  getPredictionVenueStageLabel,
   getSessionLabel,
   loadCachedFavoriteRiderFeed,
   loadStoredPredictionResults,
@@ -592,15 +593,6 @@ const getMobileSelectedVenueTitle = (venue: MobileSelectedCalendarVenue) => {
   return `${venue.venue} 開催`;
 };
 
-const getMobileSelectedVenuePeriodLabel = (venue: MobileSelectedCalendarVenue) => {
-  if (!venue.startDate || !venue.endDate) return "日程確認中";
-  if (venue.startDate === venue.endDate) return "単日開催";
-
-  const start = venue.startDate.slice(5).replace("-", "/");
-  const end = venue.endDate.slice(5).replace("-", "/");
-  return `${start}〜${end}`;
-};
-
 const mobileFloatingNavItems = [
   { targetId: "mobile-calendar", label: "Calendar", icon: "📅" },
   { targetId: "mobile-results", label: "Summary", icon: "📊" },
@@ -1159,7 +1151,7 @@ const selectedResolvedHitBetType =
                 border: "1px solid #edf1f7",
               }}
             >
-              {race.startDate === race.endDate ? "初日" : `${race.startDate.slice(5).replace("-", "/")}〜`}
+              {getPredictionVenueStageLabel(race, TODAY)}
             </span>
           </div>
           <p
@@ -1214,11 +1206,12 @@ const selectedResolvedHitBetType =
           }}
         >
           {[
-            { label: "時間帯", value: getSessionLabel(race.session) },
-            { label: "開始", value: firstRaceTimeLabel },
-            { label: "レース", value: raceCountLabel },
-            { label: "結果", value: venueResultLabel },
-          ].map((item) => (
+  { label: "時間帯", value: getSessionLabel(race.session) },
+  { label: "開催", value: getPredictionVenueStageLabel(race, TODAY) },
+  { label: "開始", value: firstRaceTimeLabel },
+  { label: "レース", value: raceCountLabel },
+  { label: "結果", value: venueResultLabel },
+].map((item) => (
             <div
               key={`${normalizedVenue}-${item.label}`}
               style={{
@@ -3054,7 +3047,7 @@ const resolvedPredictionResultMap = useMemo<PredictionResultMap>(
                                 fontWeight: 900,
                               }}
                             >
-                              <span>{getMobileSelectedVenuePeriodLabel(venue)}</span>
+                              <span>{getPredictionVenueStageLabel(venue, selectedCalendarIso)}</span>
                               {hasFavoriteVenue && (
                                 <span
                                   style={{

@@ -2,6 +2,7 @@ import { type ChangeEvent, useEffect, useMemo, useState } from "react";
 import {
   SiteHeader,
   fetchPredictionVenueWeather,
+  getPredictionVenueStageLabel,
   type PredictionWeatherData,
 } from "./PageImplementations";
 
@@ -109,6 +110,8 @@ type PredictionVenueItem = {
   grade?: string;
   session?: string;
   title?: string;
+  startDate?: string;
+  endDate?: string;
   raceNos?: number[];
   races: PredictionRaceItem[];
 };
@@ -151,6 +154,8 @@ type VenueReviewGroup = {
   grade?: string;
   session?: string;
   title?: string;
+  startDate?: string;
+  endDate?: string;
   totalInvestment: number;
   totalPayout: number;
   settledCount: number;
@@ -931,6 +936,8 @@ const current = groups.get(key) ?? {
   grade: feedVenue?.grade,
   session: feedVenueSession,
   title: feedVenue?.title,
+  startDate: feedVenue?.startDate,
+  endDate: feedVenue?.endDate,
   totalInvestment: 0,
   totalPayout: 0,
   settledCount: 0,
@@ -955,7 +962,8 @@ const current = groups.get(key) ?? {
       current.settledCount += 1;
       if (resultRecord.hitStatus === "hit") current.hitCount += 1;
     }
-    if (!current.grade && feedVenue?.grade) current.grade = feedVenue.grade;
+    if (!current.startDate && feedVenue?.startDate) current.startDate = feedVenue.startDate;
+    if (!current.endDate && feedVenue?.endDate) current.endDate = feedVenue.endDate;
 
 const resolvedCurrentSession = resolveReviewVenueSession(
   current.session ?? feedVenue?.session,
@@ -1713,11 +1721,12 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
     }}
   >
     {sortedVenueGroupsForCards.map((group) => {
-      const tone = venueColorMap[group.venue] ?? heroTone;
-      const selected = selectedVenueGroup?.venue === group.venue;
-      const profitLoss = group.totalPayout - group.totalInvestment;
-      const hitRate = group.settledCount > 0 ? `${((group.hitCount / group.settledCount) * 100).toFixed(1)}%` : "--";
-      const hitSub = group.settledCount > 0 ? `${group.hitCount}-${group.settledCount}` : "接続待ち";
+        const tone = venueColorMap[group.venue] ?? heroTone;
+        const selected = selectedVenueGroup?.venue === group.venue;
+        const profitLoss = group.totalPayout - group.totalInvestment;
+        const hitRate = group.settledCount > 0 ? `${((group.hitCount / group.settledCount) * 100).toFixed(1)}%` : "--";
+        const hitSub = group.settledCount > 0 ? `${group.hitCount}-${group.settledCount}` : "接続待ち";
+        const stageLabel = getPredictionVenueStageLabel(group, group.date);
 
       return (
         <button
@@ -1754,18 +1763,33 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
 
             <div style={{ display: "grid", gap: "8px", justifyItems: "end", flexShrink: 0 }}>
               <span
-                style={{
-                  fontSize: "10px",
-                  fontWeight: 900,
-                  color: tone.text,
-                  background: tone.chip,
-                  border: `1px solid ${tone.border}`,
-                  padding: "6px 9px",
-                  borderRadius: "999px",
-                }}
-              >
-                {group.grade ?? "--"}
-              </span>
+  style={{
+    fontSize: "10px",
+    fontWeight: 900,
+    color: tone.text,
+    background: tone.chip,
+    border: `1px solid ${tone.border}`,
+    padding: "6px 9px",
+    borderRadius: "999px",
+  }}
+>
+  {group.grade ?? "--"}
+</span>
+
+<span
+  style={{
+    fontSize: "10px",
+    fontWeight: 900,
+    color: "#6d4fc2",
+    background: "rgba(250,247,255,0.96)",
+    border: "1px solid rgba(196, 181, 253, 0.75)",
+    padding: "6px 9px",
+    borderRadius: "999px",
+    whiteSpace: "nowrap",
+  }}
+>
+  {stageLabel}
+</span>
               <span style={{ fontSize: "10px", fontWeight: 900, color: "#748092" }}>
                 {sessionLabelMap[group.session ?? ""] ?? group.session ?? "接続待ち"}
               </span>
