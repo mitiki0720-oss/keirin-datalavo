@@ -641,6 +641,31 @@ function resolveRacesPageLeaderCarNos(race: LiveRaceDetail | undefined) {
   };
 }
 
+function normalizeRacesPageRaceWithLeaderMarks(race: LiveRaceDetail): LiveRaceDetail {
+  const leaders = resolveRacesPageLeaderCarNos(race);
+
+  if (!leaders.sLeaderCarNo && !leaders.hLeaderCarNo && !leaders.bLeaderCarNo) {
+    return race;
+  }
+
+  return {
+    ...race,
+    result: {
+      ...(race.result ?? { status: race.resultStatus ?? "pending" }),
+      sLeaderCarNo: leaders.sLeaderCarNo,
+      hLeaderCarNo: leaders.hLeaderCarNo,
+      bLeaderCarNo: leaders.bLeaderCarNo,
+    },
+  };
+}
+
+function normalizeRacesPageVenueWithLeaderMarks(venue: LiveTodayVenueItem): LiveTodayVenueItem {
+  return {
+    ...venue,
+    races: (venue.races ?? []).map(normalizeRacesPageRaceWithLeaderMarks),
+  };
+}
+
 function formatRacesPageLeaderText(race: LiveRaceDetail | undefined) {
   const leaders = resolveRacesPageLeaderCarNos(race);
 
@@ -802,7 +827,7 @@ function useGeneratedTodayRaces() {
               };
             })
           : [];
-        setGeneratedTodayRaces(venues);
+        setGeneratedTodayRaces(venues.map(normalizeRacesPageVenueWithLeaderMarks));
         setGeneratedAt(payload.generatedAt ?? "");
       })
       .catch(() => {
@@ -1944,11 +1969,28 @@ const selectedRaceResultCards = [
     value: selectedRaceSecondKimarite || "--",
     sub: "2着の決まり手",
   },
-  {
-    label: "S/H/B",
-    value: selectedRaceLeaderText,
-    sub: selectedRaceLeaderText === "S/H/B 未取得" ? "全着順データ待ち" : "全着順マーク",
-  },
+{
+  label: "S/H/B",
+  value:
+    selectedRaceLeaderText && selectedRaceLeaderText !== "S/H/B 未取得"
+      ? selectedRaceLeaderText
+      : selectedRaceAllRows
+          .filter((row) => row.sMark || row.hMark || row.bMark)
+          .map((row) => {
+            const marks = [
+              row.sMark ? "S" : "",
+              row.hMark ? "H" : "",
+              row.bMark ? "B" : "",
+            ].filter(Boolean).join("");
+
+            return `${marks}: ${row.carNo}${row.name ? ` ${row.name}` : ""}`;
+          })
+          .join(" / ") || "S/H/B 未取得",
+  sub:
+    selectedRaceAllRows.some((row) => row.sMark || row.hMark || row.bMark)
+      ? "全着順マーク"
+      : "全着順データ待ち",
+},
   {
     label: "3連単",
     value: formatRacesPageResultPayout(selectedRaceResult?.payout3tan),
