@@ -142,6 +142,14 @@ const mergePredictionSlotMaps = (
     ...localSlots,
   };
 };
+const normalizeMobileBetCombination = (value?: string | null) => {
+  return String(value ?? "")
+    .replace(/[＞>→]/g, "-")
+    .replace(/[－ー―‐]/g, "-")
+    .replace(/\s+/g, "")
+    .trim();
+};
+
 const getMobileRaceResultOrderText = (race?: PredictionRaceItem | null) => {
   const finishOrder = race?.result?.finishOrder?.filter(Boolean) ?? [];
   if (finishOrder.length >= 3) return finishOrder.slice(0, 3).join("-");
@@ -165,9 +173,19 @@ const resolveMobileStructuredPredictionHit = (
 
   const resultTop2 = resultOrder.split("-").slice(0, 2).join("-");
 
-  const hitTicket = tickets.find((ticket) => {
-    if (ticket.betType === "3連単") return ticket.combination === resultOrder;
-    if (ticket.betType === "2車単") return ticket.combination === resultTop2;
+const hitTicket = tickets.find((ticket) => {
+    const normalizedTicketCombination = normalizeMobileBetCombination(ticket.combination);
+    const normalized3TanResult = normalizeMobileBetCombination(resultOrder);
+    const normalized2ShaTanResult = normalizeMobileBetCombination(resultTop2);
+
+    if (ticket.betType === "3連単") {
+      return normalizedTicketCombination === normalized3TanResult;
+    }
+
+    if (ticket.betType === "2車単") {
+      return normalizedTicketCombination === normalized2ShaTanResult;
+    }
+
     return false;
   });
 
@@ -427,12 +445,12 @@ const mobileRaceDetailTabs: Array<{ key: MobileRaceDetailTab; label: string; ico
 ];
 
 const getMobileSavedResultTone = (hitStatus?: string, hasSavedPrediction = false) => {
-  if (hitStatus === "hit") {
+if (hitStatus === "hit") {
     return {
-      label: "的中",
-      background: "#f4effc",
-      color: "#705eb0",
-      border: "#ded3f4",
+      label: "🎯 的中",
+      background: "linear-gradient(135deg, #dcfce7 0%, #ecfeff 100%)",
+      color: "#047857",
+      border: "#5eead4",
     };
   }
 
@@ -907,15 +925,19 @@ function MobileVenueCard({
     ? selectedResultOrderText.split("-").slice(0, 2).join("-")
     : "";
 
-  const selectedStructuredHitTicket = selectedStructuredPrediction?.tickets.find((ticket) => {
+const selectedStructuredHitTicket = selectedStructuredPrediction?.tickets.find((ticket) => {
     if (!selectedResultOrderText) return false;
 
+    const normalizedTicketCombination = normalizeMobileBetCombination(ticket.combination);
+    const normalized3TanResult = normalizeMobileBetCombination(selectedResultOrderText);
+    const normalized2ShaTanResult = normalizeMobileBetCombination(selectedResultTop2Text);
+
     if (ticket.betType === "3連単") {
-      return ticket.combination === selectedResultOrderText;
+      return normalizedTicketCombination === normalized3TanResult;
     }
 
     if (ticket.betType === "2車単") {
-      return ticket.combination === selectedResultTop2Text;
+      return normalizedTicketCombination === normalized2ShaTanResult;
     }
 
     return false;
@@ -930,28 +952,28 @@ function MobileVenueCard({
           ? "的中"
           : "不的中";
 
-  const selectedResolvedHitStatus: PredictionResultHitStatus = selectedSavedResult?.hitStatus
-    ? selectedSavedResult.hitStatus
-    : selectedStructuredPredictionResultLabel === "的中"
+const selectedResolvedHitStatus: PredictionResultHitStatus = !selectedResultOrderText
+    ? selectedSavedResult?.hitStatus ?? "pending"
+    : selectedStructuredHitTicket
       ? "hit"
-      : selectedStructuredPredictionResultLabel === "不的中"
-        ? "miss"
-        : "pending";
+      : selectedSavedResult?.hitStatus === "hit"
+        ? "hit"
+        : "miss";
 
-  const selectedResolvedHitBetType =
-    selectedSavedResult?.hitBetType ?? selectedStructuredHitTicket?.betType;
+const selectedResolvedHitBetType =
+    selectedStructuredHitTicket?.betType ?? selectedSavedResult?.hitBetType;
 
   const selectedResolvedHitCombination =
-    selectedSavedResult?.hitCombination ?? selectedStructuredHitTicket?.combination;
+    selectedStructuredHitTicket?.combination ?? selectedSavedResult?.hitCombination;
 
   const selectedSavedTone = getMobileSavedResultTone(selectedResolvedHitStatus, selectedHasSavedPrediction);
 
   const selectedStructuredPredictionResultTone =
     selectedStructuredPredictionResultLabel === "的中"
-      ? {
-          background: "linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%)",
-          border: "#99f6e4",
-          color: "#0f766e",
+? {
+          background: "linear-gradient(135deg, #dcfce7 0%, #ecfeff 52%, #ffffff 100%)",
+          border: "#34d399",
+          color: "#065f46",
         }
       : selectedStructuredPredictionResultLabel === "不的中"
         ? {
@@ -1707,10 +1729,11 @@ function MobileVenueCard({
                               }}
                             >
                               {selectedStructuredPrediction.tickets.map((ticket) => {
-                                const isHit =
+const isHit =
                                   selectedResolvedHitStatus === "hit" &&
                                   selectedResolvedHitBetType === ticket.betType &&
-                                  selectedResolvedHitCombination === ticket.combination;
+                                  normalizeMobileBetCombination(selectedResolvedHitCombination) ===
+                                    normalizeMobileBetCombination(ticket.combination);
 
                                 return (
                                   <div
@@ -1722,13 +1745,13 @@ function MobileVenueCard({
                                       gap: "8px",
                                       borderRadius: "16px",
                                       padding: "10px",
-                                      background: isHit
-                                        ? "linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%)"
-                                        : "#ffffff",
-                                      border: isHit ? "1px solid #99f6e4" : "1px solid #e7dbf7",
-                                      boxShadow: isHit
-                                        ? "0 10px 24px rgba(20, 184, 166, 0.10)"
-                                        : "0 8px 18px rgba(15, 23, 42, 0.035)",
+background: isHit
+  ? "linear-gradient(135deg, #dcfce7 0%, #ecfeff 55%, #ffffff 100%)"
+  : "#ffffff",
+border: isHit ? "1px solid #34d399" : "1px solid #e7dbf7",
+boxShadow: isHit
+  ? "0 14px 28px rgba(16, 185, 129, 0.16)"
+  : "0 8px 18px rgba(15, 23, 42, 0.035)",
                                     }}
                                   >
                                     <span
@@ -1845,16 +1868,20 @@ function MobileVenueCard({
                                       </div>
                                     </div>
 
-                                    <span
-                                      style={{
-                                        fontSize: "11px",
-                                        fontWeight: 950,
-                                        color: isHit ? "#0f766e" : "#94a3b8",
-                                        whiteSpace: "nowrap",
-                                      }}
-                                    >
-                                      {isHit ? "HIT" : "—"}
-                                    </span>
+<span
+  style={{
+    borderRadius: "999px",
+    padding: isHit ? "5px 8px" : "0",
+    background: isHit ? "#10b981" : "transparent",
+    color: isHit ? "#ffffff" : "#94a3b8",
+    fontSize: "11px",
+    fontWeight: 950,
+    whiteSpace: "nowrap",
+    boxShadow: isHit ? "0 8px 16px rgba(16,185,129,0.22)" : "none",
+  }}
+>
+  {isHit ? "🎯 HIT" : "—"}
+</span>
                                   </div>
                                 );
                               })}
@@ -2007,20 +2034,33 @@ function MobileVenueCard({
                                   JSON RESULT CHECK
                                 </div>
 
-                                <span
-                                  style={{
-                                    borderRadius: "999px",
-                                    padding: "5px 9px",
-                                    background: "#ffffff",
-                                    border: `1px solid ${selectedStructuredPredictionResultTone.border}`,
-                                    color: selectedStructuredPredictionResultTone.color,
-                                    fontSize: "11px",
-                                    fontWeight: 950,
-                                    whiteSpace: "nowrap",
-                                  }}
-                                >
-                                  {selectedStructuredPredictionResultLabel}
-                                </span>
+<span
+  style={{
+    borderRadius: "999px",
+    padding: selectedStructuredPredictionResultLabel === "的中" ? "8px 13px" : "5px 9px",
+    background:
+      selectedStructuredPredictionResultLabel === "的中"
+        ? "linear-gradient(135deg, #10b981 0%, #14b8a6 100%)"
+        : "#ffffff",
+    border:
+      selectedStructuredPredictionResultLabel === "的中"
+        ? "1px solid rgba(16, 185, 129, 0.55)"
+        : `1px solid ${selectedStructuredPredictionResultTone.border}`,
+    color:
+      selectedStructuredPredictionResultLabel === "的中"
+        ? "#ffffff"
+        : selectedStructuredPredictionResultTone.color,
+    fontSize: selectedStructuredPredictionResultLabel === "的中" ? "13px" : "11px",
+    fontWeight: 950,
+    whiteSpace: "nowrap",
+    boxShadow:
+      selectedStructuredPredictionResultLabel === "的中"
+        ? "0 10px 22px rgba(16, 185, 129, 0.24)"
+        : "none",
+  }}
+>
+  {selectedStructuredPredictionResultLabel === "的中" ? "🎯 的中" : selectedStructuredPredictionResultLabel}
+</span>
                               </div>
 
                               <div
@@ -2055,39 +2095,51 @@ function MobileVenueCard({
                                       )}
                                     </div>
 
-                                    {selectedStructuredHitTicket ? (
-                                      <div
-                                        style={{
-                                          borderRadius: "14px",
-                                          padding: "9px 10px",
-                                          background: "#ffffff",
-                                          border: "1px solid #99f6e4",
-                                          color: "#0f766e",
-                                          fontWeight: 950,
-                                        }}
-                                      >
-                                        <div
-                                          style={{
-                                            borderRadius: "16px",
-                                            padding: "12px",
-                                            background: "linear-gradient(135deg, #ccfbf1 0%, #ffffff 100%)",
-                                            border: "1px solid #5eead4",
-                                            color: "#0f766e",
-                                            fontWeight: 950,
-                                            boxShadow: "0 12px 24px rgba(20, 184, 166, 0.14)",
-                                          }}
-                                        >
-                                          🎯 的中買い目：{selectedStructuredHitTicket.betType}{" "}
-                                          {selectedStructuredHitTicket.combination}
-                                          <span style={{ marginLeft: "6px", color: "#64748b" }}>
-                                            / {selectedStructuredHitTicket.group}
-                                          </span>
-                                        </div>
-                                        <span style={{ marginLeft: "6px", color: "#64748b" }}>
-                                          / {selectedStructuredHitTicket.group}
-                                        </span>
-                                      </div>
-                                    ) : selectedResultOrderText ? (
+{selectedStructuredHitTicket ? (
+  <div
+    style={{
+      borderRadius: "20px",
+      padding: "14px",
+      background: "linear-gradient(135deg, #dcfce7 0%, #ecfeff 55%, #ffffff 100%)",
+      border: "1px solid #34d399",
+      color: "#065f46",
+      fontWeight: 950,
+      boxShadow: "0 14px 28px rgba(16, 185, 129, 0.16)",
+      display: "grid",
+      gap: "7px",
+    }}
+  >
+    <div
+      style={{
+        fontSize: "15px",
+        lineHeight: 1.5,
+        fontWeight: 950,
+      }}
+    >
+      🎯 JSON買い目内に一致あり！
+    </div>
+
+    <div
+      style={{
+        borderRadius: "14px",
+        padding: "10px 11px",
+        background: "rgba(255,255,255,0.86)",
+        border: "1px solid rgba(52, 211, 153, 0.55)",
+        fontSize: "13px",
+        lineHeight: 1.7,
+        color: "#064e3b",
+      }}
+    >
+      的中買い目：
+      <strong>
+        {selectedStructuredHitTicket.betType} {selectedStructuredHitTicket.combination}
+      </strong>
+      <span style={{ color: "#64748b", marginLeft: "6px" }}>
+        / {selectedStructuredHitTicket.group}
+      </span>
+    </div>
+  </div>
+) : selectedResultOrderText ? (
                                       <div
                                         style={{
                                           borderRadius: "14px",
