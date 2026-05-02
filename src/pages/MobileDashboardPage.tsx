@@ -150,6 +150,24 @@ const normalizeMobileBetCombination = (value?: string | null) => {
     .trim();
 };
 
+const getMobileBetTypeKind = (betType?: string | null) => {
+  const value = String(betType ?? "");
+
+  if (value.includes("3連単")) return "3tan";
+  if (value.includes("2車単") || value.includes("2連単")) return "2tan";
+
+  return "other";
+};
+
+const getMobileResultTopCombination = (resultOrder: string, count: number) => {
+  return normalizeMobileBetCombination(resultOrder)
+    .split("-")
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .slice(0, count)
+    .join("-");
+};
+
 const getMobileRaceResultOrderText = (race?: PredictionRaceItem | null) => {
   const finishOrder = race?.result?.finishOrder?.filter(Boolean) ?? [];
   if (finishOrder.length >= 3) return finishOrder.slice(0, 3).join("-");
@@ -171,29 +189,29 @@ const resolveMobileStructuredPredictionHit = (
   const tickets = slot?.predictionJson?.tickets ?? [];
   if (!resultOrder || tickets.length === 0) return { status: "pending" };
 
-  const resultTop2 = resultOrder.split("-").slice(0, 2).join("-");
+    const resultTop3 = getMobileResultTopCombination(resultOrder, 3);
+    const resultTop2 = getMobileResultTopCombination(resultOrder, 2);
 
     const hitTicket = tickets.find((ticket) => {
-    const normalizedTicketCombination = normalizeMobileBetCombination(ticket.combination);
-    const normalized3TanResult = normalizeMobileBetCombination(resultOrder);
-    const normalized2ShaTanResult = normalizeMobileBetCombination(resultTop2);
+  const normalizedTicketCombination = normalizeMobileBetCombination(ticket.combination);
+  const betTypeKind = getMobileBetTypeKind(ticket.betType);
 
-    if (ticket.betType === "3連単") {
-      return normalizedTicketCombination === normalized3TanResult;
-    }
+  if (betTypeKind === "3tan") {
+    return normalizedTicketCombination === resultTop3;
+  }
 
-    if (ticket.betType === "2車単") {
-      return normalizedTicketCombination === normalized2ShaTanResult;
-    }
+  if (betTypeKind === "2tan") {
+    return normalizedTicketCombination === resultTop2;
+  }
 
-    return false;
-  });
+  return false;
+});
 
   if (!hitTicket) return { status: "miss" };
 
   return {
     status: "hit",
-    hitBetType: hitTicket.betType as "3連単" | "2車単",
+    hitBetType: getMobileBetTypeKind(hitTicket.betType) === "2tan" ? "2車単" : "3連単",
     hitCombination: hitTicket.combination,
   };
 };
@@ -921,23 +939,26 @@ function MobileVenueCard({
       ? selectedVenueRace.result.finishOrder.join("-")
       : selectedSavedResult?.resultOrder || "";
 
+  const selectedResultTop3Text = selectedResultOrderText
+    ? getMobileResultTopCombination(selectedResultOrderText, 3)
+    : "";
+
   const selectedResultTop2Text = selectedResultOrderText
-    ? selectedResultOrderText.split("-").slice(0, 2).join("-")
+    ? getMobileResultTopCombination(selectedResultOrderText, 2)
     : "";
 
   const selectedStructuredHitTicket = selectedStructuredPrediction?.tickets.find((ticket) => {
     if (!selectedResultOrderText) return false;
 
     const normalizedTicketCombination = normalizeMobileBetCombination(ticket.combination);
-    const normalized3TanResult = normalizeMobileBetCombination(selectedResultOrderText);
-    const normalized2ShaTanResult = normalizeMobileBetCombination(selectedResultTop2Text);
+    const betTypeKind = getMobileBetTypeKind(ticket.betType);
 
-    if (ticket.betType === "3連単") {
-      return normalizedTicketCombination === normalized3TanResult;
+    if (betTypeKind === "3tan") {
+      return normalizedTicketCombination === selectedResultTop3Text;
     }
 
-    if (ticket.betType === "2車単") {
-      return normalizedTicketCombination === normalized2ShaTanResult;
+    if (betTypeKind === "2tan") {
+      return normalizedTicketCombination === selectedResultTop2Text;
     }
 
     return false;
@@ -1730,10 +1751,10 @@ const selectedResolvedHitBetType =
                             >
                               {selectedStructuredPrediction.tickets.map((ticket) => {
 const isHit =
-                                  selectedResolvedHitStatus === "hit" &&
-                                  selectedResolvedHitBetType === ticket.betType &&
-                                  normalizeMobileBetCombination(selectedResolvedHitCombination) ===
-                                    normalizeMobileBetCombination(ticket.combination);
+  selectedResolvedHitStatus === "hit" &&
+  getMobileBetTypeKind(selectedResolvedHitBetType) === getMobileBetTypeKind(ticket.betType) &&
+  normalizeMobileBetCombination(selectedResolvedHitCombination) ===
+    normalizeMobileBetCombination(ticket.combination);
 
                                 return (
                                   <div
@@ -2090,7 +2111,8 @@ boxShadow: isHit
                                       {selectedResultTop2Text && (
                                         <span style={{ color: "#64748b" }}>
                                           {" "}
-                                          / 2車単判定 {selectedResultTop2Text}
+                                          / 3連単判定 {selectedResultTop3Text}
+                                          {selectedResultTop2Text ? ` / 2車単判定 ${selectedResultTop2Text}` : ""}
                                         </span>
                                       )}
                                     </div>
@@ -2100,31 +2122,31 @@ boxShadow: isHit
     style={{
       borderRadius: "20px",
       padding: "14px",
-      background: "linear-gradient(135deg, #dcfce7 0%, #ecfeff 55%, #ffffff 100%)",
-      border: "1px solid #34d399",
-      color: "#065f46",
+      background: "linear-gradient(135deg, #10b981 0%, #14b8a6 46%, #ecfeff 100%)",
+      border: "2px solid #059669",
+      color: "#ffffff",
       fontWeight: 950,
-      boxShadow: "0 14px 28px rgba(16, 185, 129, 0.16)",
+      boxShadow: "0 18px 34px rgba(16, 185, 129, 0.28)",
       display: "grid",
       gap: "7px",
     }}
   >
     <div
       style={{
-        fontSize: "15px",
+        fontSize: "17px",
         lineHeight: 1.5,
         fontWeight: 950,
       }}
     >
-      🎯 JSON買い目内に一致あり！
+      🎯 JSON買い目内に一致あり‼
     </div>
 
     <div
       style={{
         borderRadius: "14px",
         padding: "10px 11px",
-        background: "rgba(255,255,255,0.86)",
-        border: "1px solid rgba(52, 211, 153, 0.55)",
+        background: "rgba(255,255,255,0.94)",
+        border: "1px solid rgba(255,255,255,0.82)",
         fontSize: "13px",
         lineHeight: 1.7,
         color: "#064e3b",
@@ -2150,7 +2172,7 @@ boxShadow: isHit
                                           fontWeight: 900,
                                         }}
                                       >
-                                        JSON買い目内に一致はありません。
+                                        JSON買い目内に一致はありません。3連単は上位3車、2車単は上位2車で判定しています。
                                       </div>
                                     ) : (
                                       <div
@@ -2307,12 +2329,12 @@ export default function MobileDashboardPage() {
     [todayPredictionFeed, predictionSlotMap]
   );
 
-  const resolvedPredictionResultMap = useMemo<PredictionResultMap>(
+const resolvedPredictionResultMap = useMemo<PredictionResultMap>(
     () => ({
-      ...publicAutoPredictionResultMap,
       ...predictionResultMap,
+      ...publicAutoPredictionResultMap,
     }),
-    [publicAutoPredictionResultMap, predictionResultMap]
+    [predictionResultMap, publicAutoPredictionResultMap]
   );
 
   useEffect(() => {
