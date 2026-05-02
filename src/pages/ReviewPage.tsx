@@ -85,13 +85,19 @@ type PredictionRaceResult = {
   bLeaderCarNo?: string;
 };
 
+type PredictionOddsPreviewItem = {
+  combo: string;
+  odds: string;
+  tag?: string;
+};
+
 type PredictionRaceItem = {
   raceNo: number;
   time?: string;
   title?: string;
   lineup?: string;
   isGirls?: boolean;
-  oddsPreview?: { combo: string; odds: string; tag?: string }[];
+  oddsPreview?: PredictionOddsPreviewItem[];
   resultStatus?: "pending" | "confirmed";
   resultTop3?: PredictionRaceResultEntry[];
   payouts?: PredictionRaceResultPayoutItem[];
@@ -381,7 +387,7 @@ function compactReviewRaceResultSnapshot(race: PredictionRaceItem): PredictionRa
     title: race.title,
     lineup: race.lineup,
     isGirls: race.isGirls,
-    oddsPreview: race.oddsPreview?.slice(0, 20),
+    oddsPreview: normalizeReviewOddsPreviewList(race.oddsPreview),
     resultStatus: race.resultStatus,
     resultTop3: race.resultTop3,
     payouts: race.payouts,
@@ -392,10 +398,20 @@ function compactReviewRaceResultSnapshot(race: PredictionRaceItem): PredictionRa
 function loadReviewRaceResultSnapshots() {
   if (typeof window === "undefined") return {} as ReviewRaceResultSnapshotMap;
 
-  return safeJsonParse<ReviewRaceResultSnapshotMap>(
+  const raw = safeJsonParse<ReviewRaceResultSnapshotMap>(
     window.localStorage.getItem(REVIEW_RACE_RESULT_SNAPSHOT_STORAGE_KEY),
     {},
   );
+
+  return Object.fromEntries(
+    Object.entries(raw).map(([key, race]) => [
+      key,
+      {
+        ...race,
+        oddsPreview: normalizeReviewOddsPreviewList(race.oddsPreview),
+      },
+    ])
+  ) as ReviewRaceResultSnapshotMap;
 }
 
 function saveReviewRaceResultSnapshots(records: ReviewRaceResultSnapshotMap) {
@@ -452,7 +468,7 @@ function mergeReviewRaceWithSnapshot(
     title: feedRace.title || snapshotRace.title,
     lineup: feedRace.lineup || snapshotRace.lineup,
     isGirls: feedRace.isGirls ?? snapshotRace.isGirls,
-    oddsPreview: feedRace.oddsPreview?.length ? feedRace.oddsPreview : snapshotRace.oddsPreview,
+    oddsPreview: pickReviewOddsPreview(feedRace, snapshotRace),
     resultStatus: feedRace.resultStatus || snapshotRace.resultStatus,
     resultTop3: feedRace.resultTop3?.length ? feedRace.resultTop3 : snapshotRace.resultTop3,
     payouts: feedRace.payouts?.length ? feedRace.payouts : snapshotRace.payouts,
@@ -572,6 +588,103 @@ function formatReviewPayoutItem(item?: PredictionRaceResultPayoutItem | null) {
   const payout = item.payout ?? "--";
   const popularity = item.popularity ? ` / ${item.popularity}` : "";
   return `${combination} ${payout}${popularity}`;
+}
+
+function decodeReviewHtmlEntities(value?: string) {
+  const text = String(value ?? "");
+
+  return text
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&#xFF5E;/gi, "〜")
+    .replace(/&#xFFE5;/gi, "￥")
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => {
+      const codePoint = Number.parseInt(hex, 16);
+      return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : "";
+    })
+    .replace(/&#(\d+);/g, (_, decimal) => {
+      const codePoint = Number.parseInt(decimal, 10);
+      return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : "";
+    });
+}
+
+function cleanReviewOddsText(value?: string) {
+  return decodeReviewHtmlEntities(value)
+    .replace(/\s+/g, " ")
+    .replace(/[▲△▼▽]/g, "")
+    .replace(/^\s*[\d０-９]+[.)．、]\s*/, "")
+    .trim();
+}
+
+function normalizeReviewOddsPreviewItem(
+  item?: Partial<PredictionOddsPreviewItem> | null
+): PredictionOddsPreviewItem | null {
+  if (!item) return null;
+
+  const combo = cleanReviewOddsText(item.combo);
+  const odds = cleanReviewOddsText(item.odds);
+  const tag = cleanReviewOddsText(item.tag);
+
+  if (!combo || !odds) return null;
+
+  const looksBroken =
+    /&[#a-zA-Z0-9]+;/.test(`${combo} ${odds} ${tag}`) ||
+    combo.length > 32 ||
+    odds.length > 24;
+
+  if (looksBroken) return null;
+
+  const normalized: PredictionOddsPreviewItem = {
+    combo,
+    odds,
+  };
+
+  if (tag) {
+    normalized.tag = tag;
+  }
+
+  return normalized;
+}
+
+function normalizeReviewOddsPreviewList(
+  oddsPreview?: Array<Partial<PredictionOddsPreviewItem> | null>
+): PredictionOddsPreviewItem[] {
+  const seen = new Set<string>();
+  const normalizedItems: PredictionOddsPreviewItem[] = [];
+
+  (oddsPreview ?? []).forEach((rawItem) => {
+    const item = normalizeReviewOddsPreviewItem(rawItem);
+    if (!item) return;
+
+    const key = `${item.combo}:${item.odds}:${item.tag ?? ""}`;
+    if (seen.has(key)) return;
+
+    seen.add(key);
+    normalizedItems.push(item);
+  });
+
+  return normalizedItems.slice(0, 20);
+}
+
+function pickReviewOddsPreview(
+  feedRace?: PredictionRaceItem,
+  snapshotRace?: PredictionRaceItem
+): PredictionOddsPreviewItem[] {
+  const feedOdds = normalizeReviewOddsPreviewList(feedRace?.oddsPreview);
+  const snapshotOdds = normalizeReviewOddsPreviewList(snapshotRace?.oddsPreview);
+
+  if (snapshotOdds.length > 0 && feedRace?.resultStatus !== "confirmed" && feedRace?.result?.status !== "confirmed") {
+    return snapshotOdds;
+  }
+
+  if (feedOdds.length > 0) return feedOdds;
+  if (snapshotOdds.length > 0) return snapshotOdds;
+
+  return [];
 }
 
 function buildReviewPayoutLines(feedRace?: PredictionRaceItem) {
@@ -701,15 +814,18 @@ function buildReviewWeatherLines(
 }
 
 function buildReviewFinalOddsLines(feedRace?: PredictionRaceItem) {
-  const odds = feedRace?.oddsPreview ?? [];
-  if (odds.length === 0) return ["最終オッズ参考: 接続待ち"];
+  const odds = normalizeReviewOddsPreviewList(feedRace?.oddsPreview);
+
+  if (odds.length === 0) {
+    return ["最終オッズ参考: 保存オッズなし"];
+  }
 
   return [
     "最終オッズ参考:",
-    ...odds.slice(0, 10).map((item, index) => {
-      const tag = item.tag ? ` / ${item.tag}` : "";
-      return `${String(index + 1).padStart(2, "0")}. ${item.combo} ${item.odds}${tag}`;
-    }),
+...odds.slice(0, 10).map((item: PredictionOddsPreviewItem, index) => {
+  const tag = item.tag ? ` / ${item.tag}` : "";
+  return `${String(index + 1).padStart(2, "0")}. ${item.combo} ${item.odds}${tag}`;
+}),
   ];
 }
 
@@ -723,6 +839,36 @@ function getResultWeatherText(record?: PredictionResultRecord) {
 
 function sortRaces(a: VenueReviewRace, b: VenueReviewRace) {
   return a.raceNumber - b.raceNumber;
+}
+
+function getReviewSessionSortOrder(session?: string) {
+  const value = String(session ?? "");
+
+  if (value === "morning" || value.includes("モーニング")) return 0;
+  if (value === "day" || value.includes("デイ")) return 1;
+  if (value === "night" || value.includes("ナイター")) return 2;
+  if (value === "midnight" || value.includes("ミッドナイト")) return 3;
+
+  return 9;
+}
+
+function getReviewGroupFirstRaceTimeMinutes(group: VenueReviewGroup) {
+  const minutes = group.races
+    .map((race) => parseReviewRaceTimeMinutes(race.feedRace?.time))
+    .filter((value): value is number => value !== null)
+    .sort((a, b) => a - b);
+
+  return minutes[0] ?? 9999;
+}
+
+function sortReviewVenueGroupsForCards(a: VenueReviewGroup, b: VenueReviewGroup) {
+  const sessionDiff = getReviewSessionSortOrder(a.session) - getReviewSessionSortOrder(b.session);
+  if (sessionDiff !== 0) return sessionDiff;
+
+  const timeDiff = getReviewGroupFirstRaceTimeMinutes(a) - getReviewGroupFirstRaceTimeMinutes(b);
+  if (timeDiff !== 0) return timeDiff;
+
+  return a.venue.localeCompare(b.venue, "ja");
 }
 
 function buildVenueGroups(
@@ -885,6 +1031,7 @@ function buildResultCopy(group: VenueReviewGroup, reviewWeatherActualMap: Review
     lines.push("");
 
     lines.push("【最終オッズ参考】");
+    lines.push("※レビュー保存時点で保持している最終オッズスナップショットです。");
     buildReviewFinalOddsLines(race.feedRace).forEach((line) => lines.push(line));
     lines.push("");
 
@@ -1006,7 +1153,6 @@ export default function ReviewPage() {
   const [playerQuery, setPlayerQuery] = useState("");
   const [keywordQuery, setKeywordQuery] = useState("");
   const [selectedVenueName, setSelectedVenueName] = useState("");
-  const [reviewVenueTickerDuration, setReviewVenueTickerDuration] = useState(95);
   const [reportDraft, setReportDraft] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
   const [reportStatus, setReportStatus] = useState("");
@@ -1032,20 +1178,6 @@ export default function ReviewPage() {
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
-
-const handleReviewVenueTickerMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
-  const rect = event.currentTarget.getBoundingClientRect();
-  const x = event.clientX - rect.left;
-  const ratio = Math.max(0, Math.min(1, x / rect.width));
-
-  const nextDuration = 58 + ratio * 42;
-
-  setReviewVenueTickerDuration(Math.round(nextDuration));
-};
-
-const handleReviewVenueTickerMouseLeave = () => {
-  setReviewVenueTickerDuration(95);
-};
 
   useEffect(() => {
     let cancelled = false;
@@ -1216,6 +1348,11 @@ const handleReviewVenueTickerMouseLeave = () => {
       return true;
     });
   }, [keywordQuery, playerQuery, venueGroups, venueQuery]);
+
+  const sortedVenueGroupsForCards = useMemo(
+  () => [...filteredVenueGroups].sort(sortReviewVenueGroupsForCards),
+  [filteredVenueGroups],
+);
 
   useEffect(() => {
     if (filteredVenueGroups.length === 0) {
@@ -1529,108 +1666,99 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
             </div>
           </div>
 
-<>
-  <style>{`
-    @keyframes reviewVenueTickerScroll {
-      0% {
-        transform: translateX(0);
-      }
-      100% {
-        transform: translateX(-50%);
-      }
-    }
+{sortedVenueGroupsForCards.length === 0 ? (
+  <div
+    style={{
+      borderRadius: "24px",
+      border: "1px dashed rgba(220,211,237,0.96)",
+      padding: "22px",
+      background: "rgba(255,255,255,0.7)",
+      color: "#6c7687",
+      fontSize: "14px",
+    }}
+  >
+    この日付にはまだ読み込める予想データがありません。
+  </div>
+) : (
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+      gap: "14px",
+      alignItems: "stretch",
+    }}
+  >
+    {sortedVenueGroupsForCards.map((group) => {
+      const tone = venueColorMap[group.venue] ?? heroTone;
+      const selected = selectedVenueGroup?.venue === group.venue;
+      const profitLoss = group.totalPayout - group.totalInvestment;
+      const hitRate = group.settledCount > 0 ? `${((group.hitCount / group.settledCount) * 100).toFixed(1)}%` : "--";
+      const hitSub = group.settledCount > 0 ? `${group.hitCount}-${group.settledCount}` : "接続待ち";
 
-    @media (prefers-reduced-motion: reduce) {
-      .review-venue-ticker-track {
-        animation: none;
-      }
-    }
-  `}</style>
-
-  {filteredVenueGroups.length === 0 ? (
-    <div
-      style={{
-        borderRadius: "24px",
-        border: "1px dashed rgba(220,211,237,0.96)",
-        padding: "22px",
-        background: "rgba(255,255,255,0.7)",
-        color: "#6c7687",
-        fontSize: "14px",
-      }}
-    >
-      この日付にはまだ読み込める予想データがありません。
-    </div>
-  ) : (
-    <div
-  className="review-venue-ticker"
-  onMouseMove={handleReviewVenueTickerMouseMove}
-  onMouseLeave={handleReviewVenueTickerMouseLeave}
-  style={{
-    overflow: "hidden",
-    borderRadius: "30px",
-    padding: "2px 0 8px",
-  }}
->
-      <div
-  className="review-venue-ticker-track"
-  style={{
-    display: "flex",
-    gap: "14px",
-    width: "max-content",
-    willChange: "transform",
-    animation: `reviewVenueTickerScroll ${reviewVenueTickerDuration}s linear infinite`,
-  }}
->
-        {[...filteredVenueGroups, ...filteredVenueGroups].map((group, index) => {
-          const tone = venueColorMap[group.venue] ?? heroTone;
-          const selected = selectedVenueGroup?.venue === group.venue;
-          const profitLoss = group.totalPayout - group.totalInvestment;
-          const hitRate = group.settledCount > 0 ? `${((group.hitCount / group.settledCount) * 100).toFixed(1)}%` : "--";
-          const hitSub = group.settledCount > 0 ? `${group.hitCount}-${group.settledCount}` : "接続待ち";
-
-          return (
-            <button
-              key={`${group.date}:${group.venue}:${index}`}
-              onClick={() => setSelectedVenueName(group.venue)}
-              style={{
-                textAlign: "left",
-                width: "360px",
-                flex: "0 0 360px",
-                borderRadius: "24px",
-                border: `1px solid ${selected ? tone.border : "rgba(229,221,241,0.9)"}`,
-                background: selected
-                  ? `linear-gradient(180deg, ${tone.chip} 0%, rgba(255,255,255,0.99) 100%)`
-                  : "linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(248,245,252,0.96) 100%)",
-                boxShadow: selected ? "0 18px 34px rgba(17,24,39,0.08)" : "0 12px 28px rgba(17,24,39,0.05)",
-                padding: "18px 18px 16px",
-                cursor: "pointer",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", marginBottom: "14px" }}>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.16em", color: tone.text, marginBottom: "8px" }}>{formatDateShort(group.date)}</div>
-                  <div style={{ fontSize: "22px", fontWeight: 900, color: "#111827", lineHeight: 1.08 }}>{group.venue}</div>
-                  <div style={{ fontSize: "12px", color: "#6d7687", marginTop: "7px", lineHeight: 1.6 }}>{group.title ?? "Prediction保存データ読み込み"}</div>
-                </div>
-
-                <div style={{ display: "grid", gap: "8px", justifyItems: "end", flexShrink: 0 }}>
-                  <span style={{ fontSize: "10px", fontWeight: 900, color: tone.text, background: tone.chip, border: `1px solid ${tone.border}`, padding: "6px 9px", borderRadius: "999px" }}>{group.grade ?? "--"}</span>
-                  <span style={{ fontSize: "10px", fontWeight: 900, color: "#748092" }}>{sessionLabelMap[group.session ?? ""] ?? group.session ?? "接続待ち"}</span>
-                </div>
+      return (
+        <button
+          key={`${group.date}:${group.venue}`}
+          onClick={() => setSelectedVenueName(group.venue)}
+          style={{
+            textAlign: "left",
+            width: "100%",
+            minHeight: "220px",
+            borderRadius: "24px",
+            border: `1px solid ${selected ? tone.border : "rgba(229,221,241,0.9)"}`,
+            background: selected
+              ? `linear-gradient(180deg, ${tone.chip} 0%, rgba(255,255,255,0.99) 100%)`
+              : "linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(248,245,252,0.96) 100%)",
+            boxShadow: selected
+              ? "0 18px 34px rgba(17,24,39,0.08)"
+              : "0 12px 28px rgba(17,24,39,0.05)",
+            padding: "18px 18px 16px",
+            cursor: "pointer",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", marginBottom: "14px" }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.16em", color: tone.text, marginBottom: "8px" }}>
+                {formatDateShort(group.date)}
               </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "10px" }}>
-                <ReviewVenueMetric label="払戻" value={formatYen(group.totalPayout)} sub={group.settledCount > 0 ? "払い戻し合計" : "結果待ち"} />
-                <ReviewVenueMetric label="収支" value={formatProfit(profitLoss)} sub={profitLoss >= 0 ? "プラス収支" : "マイナス収支"} />
-                <ReviewVenueMetric label="的中率" value={hitRate} sub={hitSub} />
+              <div style={{ fontSize: "22px", fontWeight: 900, color: "#111827", lineHeight: 1.08 }}>
+                {group.venue}
               </div>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  )}
-</>
+              <div style={{ fontSize: "12px", color: "#6d7687", marginTop: "7px", lineHeight: 1.6 }}>
+                {group.title ?? "Prediction保存データ読み込み"}
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gap: "8px", justifyItems: "end", flexShrink: 0 }}>
+              <span
+                style={{
+                  fontSize: "10px",
+                  fontWeight: 900,
+                  color: tone.text,
+                  background: tone.chip,
+                  border: `1px solid ${tone.border}`,
+                  padding: "6px 9px",
+                  borderRadius: "999px",
+                }}
+              >
+                {group.grade ?? "--"}
+              </span>
+              <span style={{ fontSize: "10px", fontWeight: 900, color: "#748092" }}>
+                {sessionLabelMap[group.session ?? ""] ?? group.session ?? "接続待ち"}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "10px" }}>
+            <ReviewVenueMetric label="払戻" value={formatYen(group.totalPayout)} sub={group.settledCount > 0 ? "払い戻し合計" : "結果待ち"} />
+            <ReviewVenueMetric label="収支" value={formatProfit(profitLoss)} sub={profitLoss >= 0 ? "プラス収支" : "マイナス収支"} />
+            <ReviewVenueMetric label="的中率" value={hitRate} sub={hitSub} />
+          </div>
+        </button>
+      );
+    })}
+  </div>
+)}
+
         </section>
 
         <section style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.16fr) minmax(380px, 0.84fr)", gap: "22px", alignItems: "start", marginBottom: "24px" }}>
