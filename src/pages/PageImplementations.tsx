@@ -2179,6 +2179,48 @@ export const getPredictionGradeDisplayLabel = (venue: PredictionVenueItem | null
   return formatPredictionGradeBadgeLabel(normalizedGrade) || "開催データ参照待ち";
 };
 
+export type PredictionVenueStageSource = {
+  startDate?: string | null;
+  endDate?: string | null;
+};
+
+export const getPredictionVenueStageLabel = (
+  venue?: PredictionVenueStageSource | null,
+  targetIsoDate = TODAY,
+) => {
+  if (!venue?.startDate || !venue?.endDate || !targetIsoDate) {
+    return "日程確認中";
+  }
+
+  const start = new Date(`${venue.startDate}T00:00:00+09:00`);
+  const end = new Date(`${venue.endDate}T00:00:00+09:00`);
+  const target = new Date(`${targetIsoDate}T00:00:00+09:00`);
+
+  if (
+    Number.isNaN(start.getTime()) ||
+    Number.isNaN(end.getTime()) ||
+    Number.isNaN(target.getTime())
+  ) {
+    return "日程確認中";
+  }
+
+  const totalDays = Math.max(
+    1,
+    Math.floor((end.getTime() - start.getTime()) / 86400000) + 1,
+  );
+
+  const currentIndex = Math.floor((target.getTime() - start.getTime()) / 86400000) + 1;
+
+  if (currentIndex < 1) return "開始前";
+  if (currentIndex > totalDays) return "終了済み";
+
+  if (totalDays === 1) return "単日開催";
+  if (currentIndex === 1) return "初日";
+  if (currentIndex === totalDays) return `${currentIndex}日目・最終日`;
+
+  return `${currentIndex}日目`;
+};
+
 export const comparePredictionVenues = (a: PredictionVenueItem, b: PredictionVenueItem) => {
   const sessionPriority: Record<PredictionSessionGroupKey, number> = {
     morning: 0,
@@ -8824,6 +8866,9 @@ if (
   const gptExportLineCount = useMemo(() => gptExportText.split(/\r?\n/).length, [gptExportText]);
   const gptExportCharCount = useMemo(() => gptExportText.length, [gptExportText]);
   const selectedPredictionTargetLabel = selectedVenue && selectedRace ? `${selectedVenue.venue} ${selectedRace.raceNo}R` : "レース選択待ち";
+  const selectedPredictionVenueStageLabel = selectedVenue
+  ? getPredictionVenueStageLabel(selectedVenue, predictionFeed?.date ?? TODAY)
+  : "日程確認中";
   const predictionMaterialStateLabel = !selectedVenue || !selectedRace
     ? "対象未選択"
     : getPredictionMaterialReady(selectedRace)
@@ -9434,11 +9479,30 @@ const record = normalizePredictionResultRecord({
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: "12px" }}>
                   {sortedPredictionVenues.map((venue) => {
+                    const venueStageLabel = getPredictionVenueStageLabel(venue, predictionFeed?.date ?? TODAY);
                     const isActive = venue.id === selectedVenue?.id;
                     const gradeForBadge = resolvePredictionVenueGradeBadge(venue, predictionFeed?.date ?? TODAY);
                     const tone = getGradeBadgeTone(gradeForBadge);
                     const gradeLabel = getPredictionGradeDisplayLabel(venue, predictionFeed?.date ?? TODAY);
                     const sessionBadge = getPredictionSessionBadge(venue);
+                    <span
+  style={{
+    display: "inline-flex",
+    alignItems: "center",
+    width: "fit-content",
+    borderRadius: "999px",
+    border: "1px solid rgba(196, 181, 253, 0.75)",
+    background: "linear-gradient(180deg, rgba(250,247,255,0.98) 0%, rgba(243,238,255,0.96) 100%)",
+    color: "#6d4fc2",
+    padding: "5px 9px",
+    fontSize: "10px",
+    fontWeight: 900,
+    letterSpacing: "0.04em",
+    boxShadow: "0 6px 14px rgba(124, 96, 196, 0.08)",
+  }}
+>
+  {venueStageLabel}
+</span>
                     const sessionTone = getPredictionSessionBadgeTone(venue);
                     const representativeRace = isActive ? selectedRace?.raceNo ?? venue.races[0]?.raceNo : venue.races[0]?.raceNo;
                     const representativeTime = isActive ? selectedRace?.time ?? venue.races[0]?.time : venue.races[0]?.time;
@@ -9589,6 +9653,25 @@ const record = normalizePredictionResultRecord({
                     <div style={{ borderRadius: "18px", border: "1px solid #ece4f6", background: "rgba(255,255,255,0.90)", padding: "11px 12px" }}>
                       <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b8a9d", marginBottom: "5px" }}>対象レース</div>
                       <div style={{ fontSize: "13px", fontWeight: 800, color: "#081224", lineHeight: 1.8 }}>{selectedPredictionTargetLabel}</div>
+
+                    <span
+  style={{
+    display: "inline-flex",
+    alignItems: "center",
+    width: "fit-content",
+    borderRadius: "999px",
+    border: "1px solid rgba(196, 181, 253, 0.75)",
+    background: "rgba(250,247,255,0.96)",
+    color: "#6d4fc2",
+    padding: "5px 9px",
+    fontSize: "10px",
+    fontWeight: 900,
+    letterSpacing: "0.04em",
+  }}
+>
+  {selectedPredictionVenueStageLabel}
+</span>
+
                     </div>
                     <div style={{ borderRadius: "18px", border: "1px solid #ece4f6", background: "rgba(255,255,255,0.90)", padding: "11px 12px" }}>
                       <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b8a9d", marginBottom: "5px" }}>保存状態</div>

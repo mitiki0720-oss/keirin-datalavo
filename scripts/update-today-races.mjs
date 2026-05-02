@@ -54,6 +54,14 @@ function cleanCellText(value) {
   return stripTags(value).replace(/\s+/g, " ").trim();
 }
 
+function cleanNetkeirinRiderName(value) {
+  return cleanCellText(value)
+    .replace(/お気に入り選手\s*-->/g, "")
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function normalizeNetkeirinBetType(value) {
   return decodeHtml(value ?? "")
     .normalize("NFKC")
@@ -616,9 +624,7 @@ function extractNetkeirinResultTop3(html) {
       stripTags(match[1]).replace(/\s+/g, " ").trim()
     );
 
-    const name = stripTags(rowHtml.match(/<dt class="PlayerName">([\s\S]*?)<\/dt>/i)?.[1] ?? "")
-      .replace(/\s+/g, " ")
-      .trim();
+    const name = cleanNetkeirinRiderName(rowHtml.match(/<dt class="PlayerName">([\s\S]*?)<\/dt>/i)?.[1] ?? "");
 
     const sbText = cells[6] ?? "";
     const shbMarks = parseNetkeirinResultShbMarks(sbText);
@@ -768,10 +774,10 @@ function extractNetkeirinRiders(html) {
       /<td class="RaceCardCell01 Waku[1-9]">([1-9])<\/td>/i,
     ]);
 
-    const name = stripTags(matchOne(rowHtml, [
-      /<dt class="PlayerName">([\s\S]*?)<span id="Fvn_/i,
-      /<dt class="PlayerName">([\s\S]*?)<\/dt>/i,
-    ])).replace(/\s+/g, " ").trim();
+    const name = cleanNetkeirinRiderName(matchOne(rowHtml, [
+  /<dt class="PlayerName">([\s\S]*?)<span id="Fvn_/i,
+  /<dt class="PlayerName">([\s\S]*?)<\/dt>/i,
+]));
 
     const score = detailCells[0] || matchOne(rowHtml, [
       /<td class="RaceCardCell01 GroupLeft"><span[^>]*>([0-9]{2}\.[0-9]{2})<\/span><\/td>/i,
