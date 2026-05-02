@@ -703,6 +703,58 @@ function normalizeReviewOddsPreviewList(
   return normalizedItems.slice(0, 20);
 }
 
+function parseReviewOddsNumber(value?: string) {
+  const text = cleanReviewOddsText(value)
+    .replace(/倍/g, "")
+    .replace(/,/g, "")
+    .trim();
+
+  const match = text.match(/\d+(?:\.\d+)?/);
+  if (!match) return Number.POSITIVE_INFINITY;
+
+  const parsed = Number(match[0]);
+  return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY;
+}
+
+function getReviewOddsKind(item: PredictionOddsPreviewItem) {
+  const tag = cleanReviewOddsText(item.tag);
+  const combo = cleanReviewOddsText(item.combo);
+
+  if (tag.includes("3連単")) return "3連単";
+  if (tag.includes("2車単") || tag.includes("2連単")) return "2車単";
+  if (tag.includes("ワイド")) return "ワイド";
+
+  if (combo.includes(">") && combo.split(">").filter(Boolean).length >= 3) return "3連単";
+  if (combo.includes(">") && combo.split(">").filter(Boolean).length === 2) return "2車単";
+  if (combo.includes("-") && combo.split("-").filter(Boolean).length === 2) return "ワイド";
+
+  return "";
+}
+
+function formatReviewOddsNumberLabel(value?: string) {
+  const odds = parseReviewOddsNumber(value);
+
+  if (!Number.isFinite(odds)) {
+    return cleanReviewOddsText(value) || "--";
+  }
+
+  return `${odds.toFixed(1)}倍`;
+}
+
+function findReviewFavoriteOddsByKind(
+  odds: PredictionOddsPreviewItem[],
+  kind: "3連単" | "2車単" | "ワイド",
+) {
+  return odds
+    .filter((item) => getReviewOddsKind(item) === kind)
+    .filter((item) => Number.isFinite(parseReviewOddsNumber(item.odds)))
+    .sort((a, b) => {
+      const oddsDiff = parseReviewOddsNumber(a.odds) - parseReviewOddsNumber(b.odds);
+      if (oddsDiff !== 0) return oddsDiff;
+      return cleanReviewOddsText(a.combo).localeCompare(cleanReviewOddsText(b.combo), "ja");
+    })[0];
+}
+
 function pickReviewOddsPreview(
   feedRace?: PredictionRaceItem,
   snapshotRace?: PredictionRaceItem
@@ -846,15 +898,32 @@ function buildReviewFinalOddsLines(feedRace?: PredictionRaceItem) {
   const odds = normalizeReviewOddsPreviewList(feedRace?.oddsPreview);
 
   if (odds.length === 0) {
-    return ["最終オッズ参考: 保存オッズなし"];
+    return [
+      "最終オッズ参考:",
+      "3連単 1番人気: 保存なし",
+      "2車単 1番人気: 保存なし",
+      "ワイド 1番人気: 保存なし",
+    ];
   }
+
+  const trifectaFavorite = findReviewFavoriteOddsByKind(odds, "3連単");
+  const twoCarFavorite = findReviewFavoriteOddsByKind(odds, "2車単");
+  const wideFavorite = findReviewFavoriteOddsByKind(odds, "ワイド");
+
+  const formatFavoriteLine = (
+    kind: "3連単" | "2車単" | "ワイド",
+    item?: PredictionOddsPreviewItem,
+  ) => {
+    if (!item) return `${kind} 1番人気: 保存なし`;
+
+    return `${kind} 1番人気: ${cleanReviewOddsText(item.combo)}　${formatReviewOddsNumberLabel(item.odds)}`;
+  };
 
   return [
     "最終オッズ参考:",
-...odds.slice(0, 10).map((item: PredictionOddsPreviewItem, index) => {
-  const tag = item.tag ? ` / ${item.tag}` : "";
-  return `${String(index + 1).padStart(2, "0")}. ${item.combo} ${item.odds}${tag}`;
-}),
+    formatFavoriteLine("3連単", trifectaFavorite),
+    formatFavoriteLine("2車単", twoCarFavorite),
+    formatFavoriteLine("ワイド", wideFavorite),
   ];
 }
 
