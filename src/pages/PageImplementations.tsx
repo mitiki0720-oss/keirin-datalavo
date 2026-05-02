@@ -2180,43 +2180,88 @@ export const getPredictionGradeDisplayLabel = (venue: PredictionVenueItem | null
 };
 
 export type PredictionVenueStageSource = {
+  venue?: string | null;
+  grade?: string | null;
+  title?: string | null;
   startDate?: string | null;
   endDate?: string | null;
+};
+
+const getPredictionStageDateTime = (iso?: string | null) => {
+  if (!iso) return null;
+
+  const date = new Date(`${iso}T00:00:00+09:00`);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return date;
+};
+
+const getPredictionStageDayDiff = (from: Date, to: Date) => {
+  return Math.floor((to.getTime() - from.getTime()) / 86400000);
+};
+
+const resolvePredictionVenueStageSchedule = (
+  venue?: PredictionVenueStageSource | null,
+  targetIsoDate = TODAY,
+) => {
+  const normalizedVenue = normalizePredictionVenueName(venue?.venue ?? "");
+  if (!normalizedVenue || !targetIsoDate) return null;
+
+  const sameVenueSchedules = raceScheduleData
+    .filter((item) => normalizePredictionVenueName(item.venue) === normalizedVenue)
+    .filter((item) => item.startDate <= targetIsoDate && item.endDate >= targetIsoDate)
+    .sort((a, b) => {
+      const aDuration =
+        getPredictionStageDayDiff(
+          getPredictionStageDateTime(a.startDate) ?? new Date(0),
+          getPredictionStageDateTime(a.endDate) ?? new Date(0),
+        );
+      const bDuration =
+        getPredictionStageDayDiff(
+          getPredictionStageDateTime(b.startDate) ?? new Date(0),
+          getPredictionStageDateTime(b.endDate) ?? new Date(0),
+        );
+
+      return bDuration - aDuration || a.startDate.localeCompare(b.startDate);
+    });
+
+  return sameVenueSchedules[0] ?? null;
 };
 
 export const getPredictionVenueStageLabel = (
   venue?: PredictionVenueStageSource | null,
   targetIsoDate = TODAY,
 ) => {
-  if (!venue?.startDate || !venue?.endDate || !targetIsoDate) {
+  const schedule = resolvePredictionVenueStageSchedule(venue, targetIsoDate);
+
+  const startDate = schedule?.startDate ?? venue?.startDate;
+  const endDate = schedule?.endDate ?? venue?.endDate;
+
+  if (!startDate || !endDate || !targetIsoDate) {
     return "日程確認中";
   }
 
-  const start = new Date(`${venue.startDate}T00:00:00+09:00`);
-  const end = new Date(`${venue.endDate}T00:00:00+09:00`);
-  const target = new Date(`${targetIsoDate}T00:00:00+09:00`);
+  const start = getPredictionStageDateTime(startDate);
+  const end = getPredictionStageDateTime(endDate);
+  const target = getPredictionStageDateTime(targetIsoDate);
 
-  if (
-    Number.isNaN(start.getTime()) ||
-    Number.isNaN(end.getTime()) ||
-    Number.isNaN(target.getTime())
-  ) {
+  if (!start || !end || !target) {
     return "日程確認中";
   }
 
-  const totalDays = Math.max(
-    1,
-    Math.floor((end.getTime() - start.getTime()) / 86400000) + 1,
-  );
-
-  const currentIndex = Math.floor((target.getTime() - start.getTime()) / 86400000) + 1;
+  const totalDays = Math.max(1, getPredictionStageDayDiff(start, end) + 1);
+  const currentIndex = getPredictionStageDayDiff(start, target) + 1;
 
   if (currentIndex < 1) return "開始前";
   if (currentIndex > totalDays) return "終了済み";
 
-  if (totalDays === 1) return "単日開催";
-  if (currentIndex === 1) return "初日";
-  if (currentIndex === totalDays) return `${currentIndex}日目・最終日`;
+  if (currentIndex === 1) {
+    return totalDays === 1 ? "初日" : "初日";
+  }
+
+  if (currentIndex === totalDays) {
+    return `${currentIndex}日目・最終日`;
+  }
 
   return `${currentIndex}日目`;
 };
@@ -9528,6 +9573,24 @@ const record = normalizePredictionResultRecord({
                             <div style={{ fontSize: "11px", color: "#7b889b", fontWeight: 700, lineHeight: 1.6 }}>{venue.races.length}R 開催</div>
                           </div>
                           <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "5px 9px", fontSize: "10px", fontWeight: 900, background: tone.background, color: tone.text, border: `1px solid ${tone.border}`, boxShadow: tone.shadow, whiteSpace: "nowrap" }}>{gradeLabel}</span>
+                          <span
+  style={{
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "999px",
+    border: "1px solid rgba(196, 181, 253, 0.75)",
+    background: "rgba(250,247,255,0.96)",
+    color: "#6d4fc2",
+    padding: "5px 9px",
+    fontSize: "10px",
+    fontWeight: 900,
+    letterSpacing: "0.04em",
+    whiteSpace: "nowrap",
+  }}
+>
+  {venueStageLabel}
+</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", flexWrap: "wrap" }}>
                           <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 10px", fontSize: "10px", fontWeight: 900, background: sessionTone.background, color: sessionTone.text, border: `1px solid ${sessionTone.border}` }}>{sessionBadge}</span>
@@ -9654,7 +9717,7 @@ const record = normalizePredictionResultRecord({
                       <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b8a9d", marginBottom: "5px" }}>対象レース</div>
                       <div style={{ fontSize: "13px", fontWeight: 800, color: "#081224", lineHeight: 1.8 }}>{selectedPredictionTargetLabel}</div>
 
-                    <span
+<span
   style={{
     display: "inline-flex",
     alignItems: "center",
