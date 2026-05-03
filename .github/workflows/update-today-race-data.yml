@@ -68,6 +68,7 @@ jobs:
           git add public/data/predictions/saved-predictions.generated.json
 
           git commit -m "Update today race data and Slack notification state"
+          git pull --rebase origin main
           git push
 
       - name: Build for GitHub Pages
