@@ -102,6 +102,13 @@ function Publish-PredictionJson {
       return
     }
 
+        $pullExit = Invoke-GitCommand "pull --rebase origin main"
+
+    if ($pullExit -ne 0) {
+      Write-Log "git pull --rebase failed. Skip push."
+      return
+    }
+
     $pushExit = Invoke-GitCommand "push"
 
     if ($pushExit -eq 0) {
