@@ -4,16 +4,26 @@ on:
   schedule:
     # GitHub ActionsのcronはUTC。
     # 0-14時 UTC = 日本時間 9-23時。
-    # 日本時間 9:00〜23:00に1時間ごと実行。
-    - cron: "0 0-14 * * *"
+    # 日本時間 9:00〜23:30に30分ごと実行。
+    - cron: "*/30 0-14 * * *"
   workflow_dispatch:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: update-today-race-data
+  cancel-in-progress: false
 
 jobs:
-  update-today-race-data:
+  update-build-deploy:
     runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout
@@ -46,3 +56,15 @@ jobs:
           git commit -m "Update today race data"
           git pull --rebase origin main
           git push
+
+      - name: Build for GitHub Pages
+        run: npm run build:github
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
