@@ -257,6 +257,12 @@ async function main() {
 
   const slots = findSlotRecords(predictionsPayload);
   const raceIndex = buildRaceIndex(todayFeed);
+  console.log("[notify-slack-hits] loaded", {
+  predictionRecordCount: slots.length,
+  todayVenueCount: todayFeed?.venues?.length ?? 0,
+  raceIndexCount: raceIndex.size,
+  hasNotifiedKeys: Array.isArray(predictionsPayload?.notifiedSlackHitKeys),
+});
 
   const notifiedKeys = new Set(
     Array.isArray(predictionsPayload?.notifiedSlackHitKeys)
@@ -267,17 +273,54 @@ async function main() {
   const hits = [];
 
   for (const slot of slots) {
-    const raceInfo = raceIndex.get(slot.raceKey);
-    if (!raceInfo) continue;
+  const raceInfo = raceIndex.get(slot.raceKey);
 
-    const hit = resolveHit(slot, raceInfo);
-    if (!hit) continue;
-
-    const dedupeKey = buildDedupeKey(hit);
-    if (notifiedKeys.has(dedupeKey)) continue;
-
-    hits.push({ ...hit, dedupeKey });
+  if (!raceInfo) {
+    console.log("[notify-slack-hits] race key not matched", {
+      raceKey: slot.raceKey,
+      venue: slot.venue,
+      date: slot.date,
+      raceNumber: slot.raceNumber,
+    });
+    continue;
   }
+
+  const hit = resolveHit(slot, raceInfo);
+
+  if (!hit) {
+    console.log("[notify-slack-hits] no hit", {
+      raceKey: slot.raceKey,
+      venue: slot.venue,
+      raceNumber: slot.raceNumber,
+      resultOrder: getResultOrder(raceInfo.race),
+      ticketCount: Array.isArray(slot?.predictionJson?.tickets)
+        ? slot.predictionJson.tickets.length
+        : 0,
+    });
+    continue;
+  }
+
+  const dedupeKey = buildDedupeKey(hit);
+
+  if (notifiedKeys.has(dedupeKey)) {
+    console.log("[notify-slack-hits] already notified", {
+      dedupeKey,
+      venue: hit.venue,
+      raceNo: hit.raceNo,
+    });
+    continue;
+  }
+
+  console.log("[notify-slack-hits] hit detected", {
+    venue: hit.venue,
+    raceNo: hit.raceNo,
+    betType: hit.betType,
+    combination: hit.combination,
+    payout: hit.payout,
+  });
+
+  hits.push({ ...hit, dedupeKey });
+}
 
   if (hits.length === 0) {
     console.log("[notify-slack-hits] No new hits.");

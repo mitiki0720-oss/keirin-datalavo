@@ -92,6 +92,13 @@ type PredictionOddsPreviewItem = {
   tag?: string;
 };
 
+type PredictionTrifectaItem = {
+  combination: string;
+  odds: number;
+  popularity?: number;
+  source?: string;
+};
+
 type PredictionRaceItem = {
   raceNo: number;
   time?: string;
@@ -99,6 +106,7 @@ type PredictionRaceItem = {
   lineup?: string;
   isGirls?: boolean;
   oddsPreview?: PredictionOddsPreviewItem[];
+  oddsTrifecta?: PredictionTrifectaItem[];
   resultStatus?: "pending" | "confirmed";
   resultTop3?: PredictionRaceResultEntry[];
   payouts?: PredictionRaceResultPayoutItem[];
@@ -393,6 +401,7 @@ function compactReviewRaceResultSnapshot(race: PredictionRaceItem): PredictionRa
     lineup: race.lineup,
     isGirls: race.isGirls,
     oddsPreview: normalizeReviewOddsPreviewList(race.oddsPreview),
+    oddsTrifecta: normalizeReviewTrifectaOddsList(race.oddsTrifecta),
     resultStatus: race.resultStatus,
     resultTop3: race.resultTop3,
     payouts: race.payouts,
@@ -412,9 +421,10 @@ function loadReviewRaceResultSnapshots() {
     Object.entries(raw).map(([key, race]) => [
       key,
       {
-        ...race,
-        oddsPreview: normalizeReviewOddsPreviewList(race.oddsPreview),
-      },
+  ...race,
+  oddsPreview: normalizeReviewOddsPreviewList(race.oddsPreview),
+  oddsTrifecta: normalizeReviewTrifectaOddsList(race.oddsTrifecta),
+},
     ])
   ) as ReviewRaceResultSnapshotMap;
 }
@@ -474,6 +484,7 @@ function mergeReviewRaceWithSnapshot(
     lineup: feedRace.lineup || snapshotRace.lineup,
     isGirls: feedRace.isGirls ?? snapshotRace.isGirls,
     oddsPreview: pickReviewOddsPreview(feedRace, snapshotRace),
+    oddsTrifecta: pickReviewTrifectaOdds(feedRace, snapshotRace),
     resultStatus: feedRace.resultStatus || snapshotRace.resultStatus,
     resultTop3: feedRace.resultTop3?.length ? feedRace.resultTop3 : snapshotRace.resultTop3,
     payouts: feedRace.payouts?.length ? feedRace.payouts : snapshotRace.payouts,
@@ -703,6 +714,65 @@ function normalizeReviewOddsPreviewList(
   return normalizedItems.slice(0, 20);
 }
 
+function normalizeReviewTrifectaOddsList(
+  oddsTrifecta?: Array<Partial<PredictionTrifectaItem> | null>
+): PredictionTrifectaItem[] {
+  const seen = new Set<string>();
+
+  return (oddsTrifecta ?? [])
+    .map((item): PredictionTrifectaItem | null => {
+      if (!item) return null;
+
+      const combination = cleanReviewOddsText(item.combination).replace(/[>＞→]/g, "-");
+
+      const odds =
+        typeof item.odds === "number"
+          ? item.odds
+          : Number(String(item.odds ?? "").replace(/[^\d.]/g, ""));
+
+      const popularity =
+        typeof item.popularity === "number"
+          ? item.popularity
+          : Number(String(item.popularity ?? "").replace(/[^\d]/g, ""));
+
+      if (!combination || !Number.isFinite(odds) || odds <= 0) {
+        return null;
+      }
+
+      const key = `${combination}:${odds}`;
+      if (seen.has(key)) return null;
+      seen.add(key);
+
+      const normalizedItem: PredictionTrifectaItem = {
+        combination,
+        odds,
+      };
+
+      if (Number.isFinite(popularity)) {
+        normalizedItem.popularity = popularity;
+      }
+
+      const source = cleanReviewOddsText(item.source);
+      if (source) {
+        normalizedItem.source = source;
+      }
+
+      return normalizedItem;
+    })
+    .filter((item): item is PredictionTrifectaItem => item !== null)
+    .sort((a, b) => {
+      const popularityA = a.popularity ?? 9999;
+      const popularityB = b.popularity ?? 9999;
+
+      if (popularityA !== popularityB) {
+        return popularityA - popularityB;
+      }
+
+      return a.odds - b.odds;
+    })
+    .slice(0, 120);
+}
+
 function parseReviewOddsNumber(value?: string) {
   const text = cleanReviewOddsText(value)
     .replace(/倍/g, "")
@@ -761,6 +831,19 @@ function pickReviewOddsPreview(
 ): PredictionOddsPreviewItem[] {
   const feedOdds = normalizeReviewOddsPreviewList(feedRace?.oddsPreview);
   const snapshotOdds = normalizeReviewOddsPreviewList(snapshotRace?.oddsPreview);
+
+  if (snapshotOdds.length > 0) return snapshotOdds;
+  if (feedOdds.length > 0) return feedOdds;
+
+  return [];
+}
+
+function pickReviewTrifectaOdds(
+  feedRace?: PredictionRaceItem,
+  snapshotRace?: PredictionRaceItem
+): PredictionTrifectaItem[] {
+  const feedOdds = normalizeReviewTrifectaOddsList(feedRace?.oddsTrifecta);
+  const snapshotOdds = normalizeReviewTrifectaOddsList(snapshotRace?.oddsTrifecta);
 
   if (snapshotOdds.length > 0) return snapshotOdds;
   if (feedOdds.length > 0) return feedOdds;
@@ -895,35 +978,32 @@ function buildReviewWeatherLines(
 }
 
 function buildReviewFinalOddsLines(feedRace?: PredictionRaceItem) {
-  const odds = normalizeReviewOddsPreviewList(feedRace?.oddsPreview);
+  const trifectaOdds = normalizeReviewTrifectaOddsList(feedRace?.oddsTrifecta);
 
-  if (odds.length === 0) {
+  const trifectaFavorite =
+    trifectaOdds.find((item) => item.popularity === 1) ??
+    trifectaOdds[0];
+
+  if (trifectaFavorite) {
     return [
       "最終オッズ参考:",
-      "3連単 1番人気: 保存なし",
-      "2車単 1番人気: 保存なし",
-      "ワイド 1番人気: 保存なし",
+      `3連単 1番人気: ${trifectaFavorite.combination}　${trifectaFavorite.odds.toFixed(1)}倍`,
     ];
   }
 
-  const trifectaFavorite = findReviewFavoriteOddsByKind(odds, "3連単");
-  const twoCarFavorite = findReviewFavoriteOddsByKind(odds, "2車単");
-  const wideFavorite = findReviewFavoriteOddsByKind(odds, "ワイド");
+  const oddsPreview = normalizeReviewOddsPreviewList(feedRace?.oddsPreview);
+  const fallbackFavorite = findReviewFavoriteOddsByKind(oddsPreview, "3連単");
 
-  const formatFavoriteLine = (
-    kind: "3連単" | "2車単" | "ワイド",
-    item?: PredictionOddsPreviewItem,
-  ) => {
-    if (!item) return `${kind} 1番人気: 保存なし`;
-
-    return `${kind} 1番人気: ${cleanReviewOddsText(item.combo)}　${formatReviewOddsNumberLabel(item.odds)}`;
-  };
+  if (fallbackFavorite) {
+    return [
+      "最終オッズ参考:",
+      `3連単 1番人気: ${cleanReviewOddsText(fallbackFavorite.combo).replace(/[>＞→]/g, "-")}　${formatReviewOddsNumberLabel(fallbackFavorite.odds)}`,
+    ];
+  }
 
   return [
     "最終オッズ参考:",
-    formatFavoriteLine("3連単", trifectaFavorite),
-    formatFavoriteLine("2車単", twoCarFavorite),
-    formatFavoriteLine("ワイド", wideFavorite),
+    "3連単 1番人気: 保存なし",
   ];
 }
 
@@ -1132,7 +1212,7 @@ function buildResultCopy(group: VenueReviewGroup, reviewWeatherActualMap: Review
     lines.push("");
 
     lines.push("【最終オッズ参考】");
-    lines.push("※レビュー保存時点で保持している最終オッズスナップショットです。");
+    lines.push("※レビュー保存時点で保持している3連単オッズスナップショットです。");
     buildReviewFinalOddsLines(race.feedRace).forEach((line) => lines.push(line));
     lines.push("");
 
@@ -1312,7 +1392,8 @@ export default function ReviewPage() {
           Boolean(race.result) ||
           Boolean(race.resultTop3?.length) ||
           Boolean(race.payouts?.length) ||
-          Boolean(race.oddsPreview?.length);
+          Boolean(race.oddsPreview?.length) ||
+          Boolean(race.oddsTrifecta?.length);
 
         if (!hasUsefulResultData) return;
 
