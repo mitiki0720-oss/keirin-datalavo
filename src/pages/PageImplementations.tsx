@@ -477,9 +477,15 @@ export const loadStoredPredictionSlots = (): PredictionSlotMap => {
   }
 };
 
-export const saveStoredPredictionSlots = (map: PredictionSlotMap) => {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(PREDICTION_SLOT_STORAGE_KEY, JSON.stringify(map));
+export const saveStoredPredictionSlots = (map: PredictionSlotMap): boolean => {
+  if (typeof window === "undefined") return false;
+  try {
+    window.localStorage.setItem(PREDICTION_SLOT_STORAGE_KEY, JSON.stringify(map));
+    return true;
+  } catch (error) {
+    console.error("[PredictionSlotStorage] save failed", error);
+    return false;
+  }
 };
 
 export const createDefaultPredictionResultDraft = (): PredictionResultDraft => ({
@@ -577,9 +583,15 @@ if (missingInvestmentCount > 0 || missingPayoutCount > 0) {
   }
 };
 
-export const saveStoredPredictionResults = (map: PredictionResultMap) => {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(PREDICTION_RESULT_STORAGE_KEY, JSON.stringify(map));
+export const saveStoredPredictionResults = (map: PredictionResultMap): boolean => {
+  if (typeof window === "undefined") return false;
+  try {
+    window.localStorage.setItem(PREDICTION_RESULT_STORAGE_KEY, JSON.stringify(map));
+    return true;
+  } catch (error) {
+    console.error("[PredictionResultStorage] save failed", error);
+    return false;
+  }
 };
 
 export const loadHitNotifications = (): HitNotificationRecord[] => {
@@ -8475,33 +8487,38 @@ if (ENABLE_PREDICTION_DEBUG_LOGS) {
 }
 if (!nextWeatherActual) return;
 
-    setSavedPredictionResults((prev) => {
-      const current = prev[selectedPredictionSlotRaceKey];
-      if (ENABLE_PREDICTION_DEBUG_LOGS) {
+    const current = savedPredictionResults[selectedPredictionSlotRaceKey];
+    if (ENABLE_PREDICTION_DEBUG_LOGS) {
   console.log("[weatherActual save callback]", {
     selectedPredictionSlotRaceKey,
     current,
     hasWeatherActual: Boolean(current?.weatherActual),
   });
 }
-if (!current) return prev;
-if (current.weatherActual) return prev;
+if (!current) return;
+if (current.weatherActual) return;
 
-      const updated = normalizePredictionResultRecord({
-        ...current,
-        weatherActual: nextWeatherActual,
-        savedAt: new Date().toISOString(),
-      });
-
-      const next = {
-        ...prev,
-        [selectedPredictionSlotRaceKey]: updated,
-      };
-
-      saveStoredPredictionResults(next);
-      return next;
+    const updated = normalizePredictionResultRecord({
+      ...current,
+      weatherActual: nextWeatherActual,
+      savedAt: new Date().toISOString(),
     });
+
+    const next = {
+      ...savedPredictionResults,
+      [selectedPredictionSlotRaceKey]: updated,
+    };
+
+    const resultSaved = saveStoredPredictionResults(next);
+    if (!resultSaved) {
+      setPredictionResultStatus("保存できませんでした。ブラウザ保存容量の可能性があります");
+      return;
+    }
+
+    setSavedPredictionResults(next);
   }, [
+    savedPredictionResults,
+    setPredictionResultStatus,
     selectedPredictionSlotRaceKey,
     selectedSavedPredictionResult,
     selectedWeather,
@@ -8985,65 +9002,87 @@ if (
       return;
     }
 
-    const predictionJson = parsePredictionTextToStructuredPrediction(predictionSlotDraft);
+    try {
+      const predictionJson = parsePredictionTextToStructuredPrediction(predictionSlotDraft);
 
-    const record: PredictionSlotRecord = {
-      raceKey: selectedPredictionSlotRaceKey,
-      raceId: selectedVenue.raceIds?.[selectedRace.raceNo - 1] ?? "",
-      venue: selectedVenue.venue,
-      date: predictionFeed.date,
-      raceNumber: selectedRace.raceNo,
-      predictionText: predictionSlotDraft,
-      predictionJson,
-      savedAt: new Date().toISOString(),
-    };
+      const record: PredictionSlotRecord = {
+        raceKey: selectedPredictionSlotRaceKey,
+        raceId: selectedVenue.raceIds?.[selectedRace.raceNo - 1] ?? "",
+        venue: selectedVenue.venue,
+        date: predictionFeed.date,
+        raceNumber: selectedRace.raceNo,
+        predictionText: predictionSlotDraft,
+        predictionJson,
+        savedAt: new Date().toISOString(),
+      };
 
-    const nextSlots = {
-      ...savedPredictionSlots,
-      [selectedPredictionSlotRaceKey]: record,
-    };
+      const nextSlots = {
+        ...savedPredictionSlots,
+        [selectedPredictionSlotRaceKey]: record,
+      };
 
-    saveStoredPredictionSlots(nextSlots);
-    setSavedPredictionSlots(nextSlots);
-    downloadPredictionPublicJsonFile(nextSlots);
+      const slotSaved = saveStoredPredictionSlots(nextSlots);
+      if (!slotSaved) {
+        setPredictionSlotStatus("公開JSONを書き出せませんでした。ブラウザ保存容量の可能性があります");
+        return;
+      }
 
-    setPredictionSlotStatus(
-      `公開JSONを書き出しました：${Object.keys(nextSlots).length}件 / 次に自動push用スクリプトでiPhone側へ反映します`
-    );
+      setSavedPredictionSlots(nextSlots);
+      downloadPredictionPublicJsonFile(nextSlots);
+
+      setPredictionSlotStatus(
+        `公開JSONを書き出しました：${Object.keys(nextSlots).length}件 / 次に自動push用スクリプトでiPhone側へ反映します`
+      );
+    } catch (error) {
+      console.error("[PredictionPage] public json export failed", error);
+      setPredictionSlotStatus("公開JSONを書き出せませんでした。ブラウザ保存容量の可能性があります");
+    }
   };
 
   const handlePredictionSlotSave = () => {
     if (!predictionFeed || !selectedVenue || !selectedRace || !selectedPredictionSlotRaceKey) return;
-    const savedPredictionTickets = extractPredictionBetEntriesWithFallback(predictionSlotDraft);
-    const autoInvestmentForSavedPrediction = savedPredictionTickets.length > 0
-      ? String(savedPredictionTickets.length * 100)
-      : "";
-    const record: PredictionSlotRecord = {
-      raceKey: selectedPredictionSlotRaceKey,
-      raceId: selectedVenue.raceIds?.[selectedRace.raceNo - 1] ?? "",
-      venue: selectedVenue.venue,
-      date: predictionFeed.date,
-      raceNumber: selectedRace.raceNo,
-      predictionText: predictionSlotDraft,
-      predictionJson: parsePredictionTextToStructuredPrediction(predictionSlotDraft),
-      savedAt: new Date().toISOString(),
-    };
-    setSavedPredictionSlots((current) => {
-      const next = { ...current, [selectedPredictionSlotRaceKey]: record };
-      saveStoredPredictionSlots(next);
-      return next;
-    });
+    if (!predictionSlotDraft.trim()) {
+      setPredictionSlotStatus("予想本文を貼り付けてから保存してください");
+      return;
+    }
 
-    // 投資金額を KPI に即時反映するため、result record に investment を upsert する
-    // 分岐: 1) 既存なし→新規作成, 2) pending→auto で上書き, 3) 確定済み→investmentSource="auto" のときのみ更新
-    if (savedPredictionTickets.length > 0) {
-      const calculatedInvestment = savedPredictionTickets.length * 100;
-      const raceIdForResult = selectedVenue.raceIds?.[selectedRace.raceNo - 1] ?? "";
-      setSavedPredictionResults((currentResults) => {
-        const existing = currentResults[selectedPredictionSlotRaceKey];
-        let nextRecord: PredictionResultRecord;
+    try {
+      const savedPredictionTickets = extractPredictionBetEntriesWithFallback(predictionSlotDraft);
+      const autoInvestmentForSavedPrediction = savedPredictionTickets.length > 0
+        ? String(savedPredictionTickets.length * 100)
+        : "";
+      const record: PredictionSlotRecord = {
+        raceKey: selectedPredictionSlotRaceKey,
+        raceId: selectedVenue.raceIds?.[selectedRace.raceNo - 1] ?? "",
+        venue: selectedVenue.venue,
+        date: predictionFeed.date,
+        raceNumber: selectedRace.raceNo,
+        predictionText: predictionSlotDraft,
+        predictionJson: parsePredictionTextToStructuredPrediction(predictionSlotDraft),
+        savedAt: new Date().toISOString(),
+      };
+      const nextSlots = {
+        ...savedPredictionSlots,
+        [selectedPredictionSlotRaceKey]: record,
+      };
+
+      const slotSaved = saveStoredPredictionSlots(nextSlots);
+      if (!slotSaved) {
+        setPredictionSlotStatus("保存できませんでした。ブラウザ保存容量の可能性があります");
+        return;
+      }
+
+      setSavedPredictionSlots(nextSlots);
+
+      // 投資金額を KPI に即時反映するため、result record に investment を upsert する
+      // 分岐: 1) 既存なし→新規作成, 2) pending→auto で上書き, 3) 確定済み→investmentSource="auto" のときのみ更新
+      if (savedPredictionTickets.length > 0) {
+        const calculatedInvestment = savedPredictionTickets.length * 100;
+        const raceIdForResult = selectedVenue.raceIds?.[selectedRace.raceNo - 1] ?? "";
+        const existing = savedPredictionResults[selectedPredictionSlotRaceKey];
+        let nextRecord: PredictionResultRecord | undefined;
+
         if (!existing) {
-          // 1. 既存なし → 新規 pending レコードを投資金額付きで作成
           nextRecord = normalizePredictionResultRecord({
             raceKey: selectedPredictionSlotRaceKey,
             raceId: raceIdForResult,
@@ -9059,39 +9098,51 @@ if (
             savedAt: new Date().toISOString(),
           });
         } else if (existing.hitStatus === "pending") {
-          // 2. pending → 買い目数変更に追従して auto で上書き
           nextRecord = normalizePredictionResultRecord({
             ...existing,
             investment: calculatedInvestment,
             investmentSource: "auto",
           });
-        } else {
-          // 3. 確定済み (hit/miss) → investmentSource が "auto" のときのみ更新
-          if (existing.investmentSource === "manual") return currentResults;
+        } else if (existing.investmentSource !== "manual") {
           nextRecord = normalizePredictionResultRecord({
             ...existing,
             investment: calculatedInvestment,
             investmentSource: "auto",
           });
         }
-        const nextMap = { ...currentResults, [selectedPredictionSlotRaceKey]: nextRecord };
-        saveStoredPredictionResults(nextMap);
-        return nextMap;
-      });
-    }
 
-    applyAutoInvestmentInput(autoInvestmentForSavedPrediction);
-    setPredictionSlotStatus("保存済み");
+        if (nextRecord) {
+          const nextMap = {
+            ...savedPredictionResults,
+            [selectedPredictionSlotRaceKey]: nextRecord,
+          };
+          const resultSaved = saveStoredPredictionResults(nextMap);
+          if (!resultSaved) {
+            setPredictionSlotStatus("保存できませんでした。ブラウザ保存容量の可能性があります");
+            return;
+          }
+          setSavedPredictionResults(nextMap);
+        }
+      }
+
+      applyAutoInvestmentInput(autoInvestmentForSavedPrediction);
+      setPredictionSlotStatus("保存済み");
+    } catch (error) {
+      console.error("[PredictionPage] slot save failed", error);
+      setPredictionSlotStatus("保存できませんでした。ブラウザ保存容量の可能性があります");
+    }
   };
 
   const handlePredictionSlotClear = () => {
     if (!selectedPredictionSlotRaceKey) return;
-    setSavedPredictionSlots((current) => {
-      const next = { ...current };
-      delete next[selectedPredictionSlotRaceKey];
-      saveStoredPredictionSlots(next);
-      return next;
-    });
+    const next = { ...savedPredictionSlots };
+    delete next[selectedPredictionSlotRaceKey];
+    const slotSaved = saveStoredPredictionSlots(next);
+    if (!slotSaved) {
+      setPredictionSlotStatus("保存できませんでした。ブラウザ保存容量の可能性があります");
+      return;
+    }
+    setSavedPredictionSlots(next);
     setPredictionSlotDraft("");
     setPredictionSlotStatus("削除しました");
   };
@@ -9142,7 +9193,11 @@ const record = normalizePredictionResultRecord({
       ...savedPredictionResults,
       [selectedPredictionSlotRaceKey]: record,
     };
-    saveStoredPredictionResults(nextMap);
+    const resultSaved = saveStoredPredictionResults(nextMap);
+    if (!resultSaved) {
+      setPredictionResultStatus("保存できませんでした。ブラウザ保存容量の可能性があります");
+      return;
+    }
     setSavedPredictionResults(nextMap);
     setPredictionResultStatus("保存済み");
   };
@@ -9151,7 +9206,11 @@ const record = normalizePredictionResultRecord({
     if (!selectedPredictionSlotRaceKey) return;
     const nextMap = { ...savedPredictionResults };
     delete nextMap[selectedPredictionSlotRaceKey];
-    saveStoredPredictionResults(nextMap);
+    const resultSaved = saveStoredPredictionResults(nextMap);
+    if (!resultSaved) {
+      setPredictionResultStatus("保存できませんでした。ブラウザ保存容量の可能性があります");
+      return;
+    }
     setSavedPredictionResults(nextMap);
     setPredictionResultDraft(createDefaultPredictionResultDraft());
     setPredictionResultStatus("削除しました");
