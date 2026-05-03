@@ -714,6 +714,18 @@ function normalizeReviewOddsPreviewList(
   return normalizedItems.slice(0, 20);
 }
 
+function normalizeReviewPopularity(value: unknown) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value > 0 ? value : undefined;
+  }
+
+  const text = String(value ?? "").replace(/[^\d]/g, "");
+  if (!text) return undefined;
+
+  const parsed = Number(text);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
 function normalizeReviewTrifectaOddsList(
   oddsTrifecta?: Array<Partial<PredictionTrifectaItem> | null>
 ): PredictionTrifectaItem[] {
@@ -730,10 +742,7 @@ function normalizeReviewTrifectaOddsList(
           ? item.odds
           : Number(String(item.odds ?? "").replace(/[^\d.]/g, ""));
 
-      const popularity =
-        typeof item.popularity === "number"
-          ? item.popularity
-          : Number(String(item.popularity ?? "").replace(/[^\d]/g, ""));
+      const popularity = normalizeReviewPopularity(item.popularity);
 
       if (!combination || !Number.isFinite(odds) || odds <= 0) {
         return null;
@@ -748,7 +757,7 @@ function normalizeReviewTrifectaOddsList(
         odds,
       };
 
-      if (Number.isFinite(popularity)) {
+      if (popularity !== undefined) {
         normalizedItem.popularity = popularity;
       }
 
@@ -773,58 +782,6 @@ function normalizeReviewTrifectaOddsList(
     .slice(0, 120);
 }
 
-function parseReviewOddsNumber(value?: string) {
-  const text = cleanReviewOddsText(value)
-    .replace(/倍/g, "")
-    .replace(/,/g, "")
-    .trim();
-
-  const match = text.match(/\d+(?:\.\d+)?/);
-  if (!match) return Number.POSITIVE_INFINITY;
-
-  const parsed = Number(match[0]);
-  return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY;
-}
-
-function getReviewOddsKind(item: PredictionOddsPreviewItem) {
-  const tag = cleanReviewOddsText(item.tag);
-  const combo = cleanReviewOddsText(item.combo);
-
-  if (tag.includes("3連単")) return "3連単";
-  if (tag.includes("2車単") || tag.includes("2連単")) return "2車単";
-  if (tag.includes("ワイド")) return "ワイド";
-
-  if (combo.includes(">") && combo.split(">").filter(Boolean).length >= 3) return "3連単";
-  if (combo.includes(">") && combo.split(">").filter(Boolean).length === 2) return "2車単";
-  if (combo.includes("-") && combo.split("-").filter(Boolean).length === 2) return "ワイド";
-
-  return "";
-}
-
-function formatReviewOddsNumberLabel(value?: string) {
-  const odds = parseReviewOddsNumber(value);
-
-  if (!Number.isFinite(odds)) {
-    return cleanReviewOddsText(value) || "--";
-  }
-
-  return `${odds.toFixed(1)}倍`;
-}
-
-function findReviewFavoriteOddsByKind(
-  odds: PredictionOddsPreviewItem[],
-  kind: "3連単" | "2車単" | "ワイド",
-) {
-  return odds
-    .filter((item) => getReviewOddsKind(item) === kind)
-    .filter((item) => Number.isFinite(parseReviewOddsNumber(item.odds)))
-    .sort((a, b) => {
-      const oddsDiff = parseReviewOddsNumber(a.odds) - parseReviewOddsNumber(b.odds);
-      if (oddsDiff !== 0) return oddsDiff;
-      return cleanReviewOddsText(a.combo).localeCompare(cleanReviewOddsText(b.combo), "ja");
-    })[0];
-}
-
 function pickReviewOddsPreview(
   feedRace?: PredictionRaceItem,
   snapshotRace?: PredictionRaceItem
@@ -832,8 +789,8 @@ function pickReviewOddsPreview(
   const feedOdds = normalizeReviewOddsPreviewList(feedRace?.oddsPreview);
   const snapshotOdds = normalizeReviewOddsPreviewList(snapshotRace?.oddsPreview);
 
-  if (snapshotOdds.length > 0) return snapshotOdds;
   if (feedOdds.length > 0) return feedOdds;
+  if (snapshotOdds.length > 0) return snapshotOdds;
 
   return [];
 }
@@ -845,8 +802,8 @@ function pickReviewTrifectaOdds(
   const feedOdds = normalizeReviewTrifectaOddsList(feedRace?.oddsTrifecta);
   const snapshotOdds = normalizeReviewTrifectaOddsList(snapshotRace?.oddsTrifecta);
 
-  if (snapshotOdds.length > 0) return snapshotOdds;
   if (feedOdds.length > 0) return feedOdds;
+  if (snapshotOdds.length > 0) return snapshotOdds;
 
   return [];
 }
@@ -980,9 +937,7 @@ function buildReviewWeatherLines(
 function buildReviewFinalOddsLines(feedRace?: PredictionRaceItem) {
   const trifectaOdds = normalizeReviewTrifectaOddsList(feedRace?.oddsTrifecta);
 
-  const trifectaFavorite =
-    trifectaOdds.find((item) => item.popularity === 1) ??
-    trifectaOdds[0];
+  const trifectaFavorite = trifectaOdds.find((item) => item.popularity === 1);
 
   if (trifectaFavorite) {
     return [
@@ -991,13 +946,13 @@ function buildReviewFinalOddsLines(feedRace?: PredictionRaceItem) {
     ];
   }
 
-  const oddsPreview = normalizeReviewOddsPreviewList(feedRace?.oddsPreview);
-  const fallbackFavorite = findReviewFavoriteOddsByKind(oddsPreview, "3連単");
+  const lowestOdds = [...trifectaOdds].sort((a, b) => a.odds - b.odds)[0];
 
-  if (fallbackFavorite) {
+  if (lowestOdds) {
     return [
       "最終オッズ参考:",
-      `3連単 1番人気: ${cleanReviewOddsText(fallbackFavorite.combo).replace(/[>＞→]/g, "-")}　${formatReviewOddsNumberLabel(fallbackFavorite.odds)}`,
+      "3連単 1番人気: 人気順位未取得",
+      `参考（最低オッズ）: ${lowestOdds.combination}　${lowestOdds.odds.toFixed(1)}倍`,
     ];
   }
 
