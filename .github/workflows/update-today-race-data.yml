@@ -4,9 +4,9 @@ on:
   schedule:
     # GitHub ActionsのcronはUTC。
     # 0-14時 UTC = 日本時間 9-23時。
-    # 日本時間 9:00〜23:30に30分ごと実行。
-    - cron: "*/30 0-14 * * *"
-  workflow_dispatch:
+    # 日本時間 9:17〜23:47に30分ごと実行。
+    # 毎時00分/30分は混みやすいため、17分/47分にずらす。
+    - cron: "17,47 0-14 * * *"
 
 permissions:
   contents: write
