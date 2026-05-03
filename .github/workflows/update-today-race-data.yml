@@ -1,0 +1,48 @@
+name: Update today race data
+
+on:
+  schedule:
+    # GitHub ActionsのcronはUTC。
+    # 0-14時 UTC = 日本時間 9-23時。
+    # 日本時間 9:00〜23:00に1時間ごと実行。
+    - cron: "0 0-14 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-today-race-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Update today race data
+        run: node scripts/update-today-races.mjs
+
+      - name: Commit today race data
+        run: |
+          if git diff --quiet public/data/races/today.generated.json; then
+            echo "No today race data changes."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/data/races/today.generated.json
+          git commit -m "Update today race data"
+          git pull --rebase origin main
+          git push
