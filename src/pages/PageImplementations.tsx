@@ -77,6 +77,67 @@ export const FAVORITE_RIDER_FEED_POLL_INTERVAL_MS = 60 * 1000;
 export const FAVORITE_RIDER_FALLBACK_VERSION = "ローカル補完データ";
 export const DASHBOARD_CLOCK_TICK_MS = 1000;
 
+const JST_EXPIRY_DATE_TIME_FORMATTER = new Intl.DateTimeFormat("sv-SE", {
+  timeZone: "Asia/Tokyo",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: false,
+});
+
+const getJstDateTimeParts = (base: Date = new Date()) => {
+  const parts = JST_EXPIRY_DATE_TIME_FORMATTER.formatToParts(base);
+  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "00";
+
+  return {
+    year: get("year"),
+    month: get("month"),
+    day: get("day"),
+    hour: get("hour"),
+    minute: get("minute"),
+    second: get("second"),
+    isoDate: `${get("year")}-${get("month")}-${get("day")}`,
+  };
+};
+
+const shiftIsoDateByDays = (isoDate: string, days: number) => {
+  const base = new Date(`${isoDate}T00:00:00Z`);
+  if (Number.isNaN(base.getTime())) return isoDate;
+  base.setUTCDate(base.getUTCDate() + days);
+  return base.toISOString().slice(0, 10);
+};
+
+export const getJstNowDate = () => {
+  const parts = getJstDateTimeParts();
+  return new Date(`${parts.isoDate}T${parts.hour}:${parts.minute}:${parts.second}+09:00`);
+};
+
+export const getNextJstSixAMFromSavedAt = (savedAt?: string) => {
+  if (!savedAt) return undefined;
+
+  const base = new Date(savedAt);
+  if (Number.isNaN(base.getTime())) return undefined;
+
+  const parts = getJstDateTimeParts(base);
+  const expireIsoDate = Number(parts.hour) < 6 ? parts.isoDate : shiftIsoDateByDays(parts.isoDate, 1);
+
+  return new Date(`${expireIsoDate}T06:00:00+09:00`);
+};
+
+export const isExpiredByJstSixAM = (savedAt?: string) => {
+  const expireAt = getNextJstSixAMFromSavedAt(savedAt);
+  if (!expireAt) return false;
+  return getJstNowDate().getTime() >= expireAt.getTime();
+};
+
+export const getJstOperationalDate = (base: Date = new Date()) => {
+  const parts = getJstDateTimeParts(base);
+  return Number(parts.hour) >= 6 ? parts.isoDate : shiftIsoDateByDays(parts.isoDate, -1);
+};
+
 export const DASHBOARD_JST_DATE_FORMATTER = new Intl.DateTimeFormat("ja-JP", {
   timeZone: "Asia/Tokyo",
   year: "numeric",
@@ -463,6 +524,48 @@ export const MISSING_PREDICTION_VENUE_SUMMARY: PredictionVenueSummary = {
   source: "missing",
 };
 
+export const prunePredictionSlotsMap = (map: PredictionSlotMap) => {
+  let changed = false;
+
+  const records = Object.entries(map).reduce<PredictionSlotMap>((accumulator, [key, value]) => {
+    if (!value || typeof value !== "object") {
+      changed = true;
+      return accumulator;
+    }
+
+    if (isExpiredByJstSixAM(value.savedAt)) {
+      changed = true;
+      return accumulator;
+    }
+
+    accumulator[key] = value;
+    return accumulator;
+  }, {});
+
+  return { records, changed };
+};
+
+export const prunePredictionResultsMap = (map: PredictionResultMap) => {
+  let changed = false;
+
+  const records = Object.entries(map).reduce<PredictionResultMap>((accumulator, [key, value]) => {
+    if (!value || typeof value !== "object") {
+      changed = true;
+      return accumulator;
+    }
+
+    if (isExpiredByJstSixAM(value.savedAt)) {
+      changed = true;
+      return accumulator;
+    }
+
+    accumulator[key] = value;
+    return accumulator;
+  }, {});
+
+  return { records, changed };
+};
+
 export const loadStoredPredictionSlots = (): PredictionSlotMap => {
   if (typeof window === "undefined") return {};
 
@@ -471,7 +574,15 @@ export const loadStoredPredictionSlots = (): PredictionSlotMap => {
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return {};
-    return parsed as PredictionSlotMap;
+    const { records, changed } = prunePredictionSlotsMap(parsed as PredictionSlotMap);
+    if (changed) {
+      try {
+        window.localStorage.setItem(PREDICTION_SLOT_STORAGE_KEY, JSON.stringify(records));
+      } catch {
+        // localStorage write failure is non-fatal
+      }
+    }
+    return records;
   } catch {
     return {};
   }
@@ -480,7 +591,8 @@ export const loadStoredPredictionSlots = (): PredictionSlotMap => {
 export const saveStoredPredictionSlots = (map: PredictionSlotMap): boolean => {
   if (typeof window === "undefined") return false;
   try {
-    window.localStorage.setItem(PREDICTION_SLOT_STORAGE_KEY, JSON.stringify(map));
+    const { records } = prunePredictionSlotsMap(map);
+    window.localStorage.setItem(PREDICTION_SLOT_STORAGE_KEY, JSON.stringify(records));
     return true;
   } catch (error) {
     console.error("[PredictionSlotStorage] save failed", error);
@@ -529,12 +641,13 @@ export const loadStoredPredictionResults = (): PredictionResultMap => {
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return {};
+    const pruned = prunePredictionResultsMap(parsed as PredictionResultMap);
 
     let missingInvestmentCount = 0;
     let missingPayoutCount = 0;
-    let needsResave = false;
+    let needsResave = pruned.changed;
 
-    const normalized = Object.entries(parsed).reduce<PredictionResultMap>((accumulator, [key, value]) => {
+    const normalized = Object.entries(pruned.records).reduce<PredictionResultMap>((accumulator, [key, value]) => {
       if (!value || typeof value !== "object") return accumulator;
       const raw = value as PredictionResultRecord;
 
@@ -586,7 +699,8 @@ if (missingInvestmentCount > 0 || missingPayoutCount > 0) {
 export const saveStoredPredictionResults = (map: PredictionResultMap): boolean => {
   if (typeof window === "undefined") return false;
   try {
-    window.localStorage.setItem(PREDICTION_RESULT_STORAGE_KEY, JSON.stringify(map));
+    const { records } = prunePredictionResultsMap(map);
+    window.localStorage.setItem(PREDICTION_RESULT_STORAGE_KEY, JSON.stringify(records));
     return true;
   } catch (error) {
     console.error("[PredictionResultStorage] save failed", error);
@@ -8128,8 +8242,8 @@ setSavedPredictionResults(nextMap);
 
     let slotMigrationCount = 0;
     let resultMigrationCount = 0;
-    let nextSlots = savedPredictionSlots;
-    let nextResults = savedPredictionResults;
+    let nextSlots = prunePredictionSlotsMap(savedPredictionSlots).records;
+    let nextResults = prunePredictionResultsMap(savedPredictionResults).records;
 
     for (const venue of predictionFeed.venues) {
       for (const race of venue.races) {
@@ -8487,7 +8601,8 @@ if (ENABLE_PREDICTION_DEBUG_LOGS) {
 }
 if (!nextWeatherActual) return;
 
-    const current = savedPredictionResults[selectedPredictionSlotRaceKey];
+  const activeSavedPredictionResults = prunePredictionResultsMap(savedPredictionResults).records;
+  const current = activeSavedPredictionResults[selectedPredictionSlotRaceKey];
     if (ENABLE_PREDICTION_DEBUG_LOGS) {
   console.log("[weatherActual save callback]", {
     selectedPredictionSlotRaceKey,
@@ -8505,7 +8620,7 @@ if (current.weatherActual) return;
     });
 
     const next = {
-      ...savedPredictionResults,
+      ...activeSavedPredictionResults,
       [selectedPredictionSlotRaceKey]: updated,
     };
 
@@ -9016,8 +9131,9 @@ if (
         savedAt: new Date().toISOString(),
       };
 
+      const activeSavedPredictionSlots = prunePredictionSlotsMap(savedPredictionSlots).records;
       const nextSlots = {
-        ...savedPredictionSlots,
+        ...activeSavedPredictionSlots,
         [selectedPredictionSlotRaceKey]: record,
       };
 
@@ -9047,6 +9163,8 @@ if (
     }
 
     try {
+      const activeSavedPredictionSlots = prunePredictionSlotsMap(savedPredictionSlots).records;
+      const activeSavedPredictionResults = prunePredictionResultsMap(savedPredictionResults).records;
       const savedPredictionTickets = extractPredictionBetEntriesWithFallback(predictionSlotDraft);
       const autoInvestmentForSavedPrediction = savedPredictionTickets.length > 0
         ? String(savedPredictionTickets.length * 100)
@@ -9062,7 +9180,7 @@ if (
         savedAt: new Date().toISOString(),
       };
       const nextSlots = {
-        ...savedPredictionSlots,
+        ...activeSavedPredictionSlots,
         [selectedPredictionSlotRaceKey]: record,
       };
 
@@ -9079,7 +9197,7 @@ if (
       if (savedPredictionTickets.length > 0) {
         const calculatedInvestment = savedPredictionTickets.length * 100;
         const raceIdForResult = selectedVenue.raceIds?.[selectedRace.raceNo - 1] ?? "";
-        const existing = savedPredictionResults[selectedPredictionSlotRaceKey];
+        const existing = activeSavedPredictionResults[selectedPredictionSlotRaceKey];
         let nextRecord: PredictionResultRecord | undefined;
 
         if (!existing) {
@@ -9113,7 +9231,7 @@ if (
 
         if (nextRecord) {
           const nextMap = {
-            ...savedPredictionResults,
+            ...activeSavedPredictionResults,
             [selectedPredictionSlotRaceKey]: nextRecord,
           };
           const resultSaved = saveStoredPredictionResults(nextMap);
@@ -9135,7 +9253,7 @@ if (
 
   const handlePredictionSlotClear = () => {
     if (!selectedPredictionSlotRaceKey) return;
-    const next = { ...savedPredictionSlots };
+    const next = { ...prunePredictionSlotsMap(savedPredictionSlots).records };
     delete next[selectedPredictionSlotRaceKey];
     const slotSaved = saveStoredPredictionSlots(next);
     if (!slotSaved) {
@@ -9189,8 +9307,9 @@ const record = normalizePredictionResultRecord({
       memo: predictionResultDraft.memo,
       savedAt: new Date().toISOString(),
     });
+    const activeSavedPredictionResults = prunePredictionResultsMap(savedPredictionResults).records;
     const nextMap = {
-      ...savedPredictionResults,
+      ...activeSavedPredictionResults,
       [selectedPredictionSlotRaceKey]: record,
     };
     const resultSaved = saveStoredPredictionResults(nextMap);
@@ -9204,7 +9323,7 @@ const record = normalizePredictionResultRecord({
 
   const handlePredictionResultClear = () => {
     if (!selectedPredictionSlotRaceKey) return;
-    const nextMap = { ...savedPredictionResults };
+    const nextMap = { ...prunePredictionResultsMap(savedPredictionResults).records };
     delete nextMap[selectedPredictionSlotRaceKey];
     const resultSaved = saveStoredPredictionResults(nextMap);
     if (!resultSaved) {
