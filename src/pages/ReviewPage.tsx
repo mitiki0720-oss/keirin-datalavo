@@ -1567,12 +1567,12 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub: st
         border: "1px solid rgba(223, 210, 245, 0.96)",
         background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(247,242,252,0.98) 100%)",
         boxShadow: "0 16px 34px rgba(40, 32, 76, 0.06)",
-        padding: "18px 18px 17px",
-        minHeight: "128px",
+        padding: "15px 16px",
+        minHeight: "104px",
       }}
     >
-      <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9475d3", marginBottom: "10px" }}>{label}</div>
-      <div style={{ fontSize: "28px", fontWeight: 900, color: "#0f172a", marginBottom: "8px", lineHeight: 1.12, letterSpacing: "-0.04em" }}>{value}</div>
+      <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9475d3", marginBottom: "8px" }}>{label}</div>
+      <div style={{ fontSize: "26px", fontWeight: 900, color: "#0f172a", marginBottom: "6px", lineHeight: 1.08, letterSpacing: "-0.04em" }}>{value}</div>
       <div style={{ fontSize: "12px", lineHeight: 1.7, color: "#687385" }}>{sub}</div>
     </article>
   );
@@ -2113,8 +2113,8 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
               border: `1px solid ${heroTone.border}`,
               background: "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(252,246,252,0.98) 42%, rgba(243,247,255,0.98) 100%)",
               boxShadow: "0 28px 54px rgba(17,24,39,0.07)",
-              minHeight: "650px",
-              padding: "34px 34px 32px",
+              minHeight: "460px",
+              padding: "28px 30px",
               position: "relative",
               overflow: "hidden",
             }}
@@ -2137,16 +2137,16 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "minmax(0, 0.9fr) minmax(520px, 1.1fr)",
+                gridTemplateColumns: "minmax(360px, 0.95fr) minmax(420px, 1.05fr)",
                 alignItems: "stretch",
-                gap: "28px",
+                gap: "24px",
                 marginBottom: "6px",
                 position: "relative",
               }}
             >
               <div style={{ minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: "18px", paddingTop: "6px" }}>
                 <div>
-                  <h1 style={{ margin: 0, fontSize: "44px", lineHeight: 1.08, fontWeight: 900, color: "#111827", marginBottom: "16px", letterSpacing: "-0.05em" }}>
+                  <h1 style={{ margin: 0, fontSize: "40px", lineHeight: 1.08, fontWeight: 900, color: "#111827", marginBottom: "16px", letterSpacing: "-0.05em" }}>
                     {isTodaySelected ? "当日レビュー作業台" : "保存ファイルレビュー"}
                   </h1>
                   <p style={{ margin: 0, maxWidth: "560px", fontSize: "15px", lineHeight: 1.95, color: "#5f6676" }}>
@@ -2166,36 +2166,35 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                     </span>
                   </div>
                 </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px", marginTop: "22px" }}>
+                  <StatCard label="OPERATION DAY" value={formatDateShort(selectedDate)} sub={isTodaySelected ? "本日のレビュー対象日" : "表示中の保存レビュー日付"} />
+                  <StatCard label="TARGETS" value={isTodaySelected ? `${todaySummary.venueCount}会場 / ${todaySummary.raceCount}R` : `${reviewFileSummary.venueCount}会場`} sub={isTodaySelected ? "当日保存済み予想から作業台を構成" : "index.json に登録された会場ファイルを表示"} />
+                  <StatCard label="FILE STATUS" value={isTodaySelected ? `${todaySummary.hitCount}的中 / ${todaySummary.settledCount}照合` : `${reviewFileSummary.loadedTextCount}件読込`} sub={isTodaySelected ? `レポート一時保存 ${reportRecords.length}件` : `登録ファイル ${reviewFileSummary.fileCount}件`} />
+                  <StatCard label="MODE" value={isTodaySelected ? "LOCAL / FEED" : "TXT / FETCH"} sub={isTodaySelected ? "当日レビューは localStorage と today.generated.json を利用" : "過去レビューは localStorage に保存しません"} />
+                </div>
               </div>
 
               <div
                 style={{
                   borderRadius: "30px",
                   border: `1px solid ${heroTone.border}`,
-                  background: "linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(247,241,252,0.88) 100%)",
-                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.65)",
-                  padding: "20px",
-                  display: "grid",
-                  gridTemplateRows: "auto minmax(240px, 1fr) auto",
-                  gap: "18px",
+                  background: "radial-gradient(circle at 20% 20%, rgba(243,232,255,0.95) 0%, rgba(248,244,252,0.75) 42%, rgba(255,255,255,0.95) 100%)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minHeight: "360px",
+                  padding: "18px",
                   minWidth: 0,
+                  overflow: "hidden",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px" }}>
-                  <div>
-                    <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: heroTone.text, marginBottom: "8px" }}>OPERATION DAY</div>
-                    <div style={{ fontSize: "28px", fontWeight: 900, color: "#101828", lineHeight: 1.14 }}>{formatDateLabel(selectedDate)}</div>
-                  </div>
-                  <div style={{ borderRadius: "18px", border: `1px solid ${heroTone.border}`, background: heroTone.chip, color: heroTone.text, padding: "10px 12px", fontSize: "11px", fontWeight: 900, letterSpacing: "0.12em", whiteSpace: "nowrap" }}>
-                    {isTodaySelected ? "LIVE WORKBENCH" : "ARCHIVE VIEW"}
-                  </div>
-                </div>
-
                 <div
                   aria-hidden="true"
                   style={{
                     position: "relative",
-                    minHeight: "250px",
+                    width: "100%",
+                    height: "100%",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -2210,20 +2209,13 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                     alt=""
                     style={{
                       width: "min(520px, 100%)",
-                      maxHeight: "370px",
+                      maxHeight: "390px",
                       objectFit: "contain",
-                      objectPosition: "center center",
+                      objectPosition: "center bottom",
                       filter: "drop-shadow(0 24px 28px rgba(122, 103, 184, 0.16))",
-                      transform: "translate(-2px, 8px)",
+                      transform: "translateY(12px)",
                     }}
                   />
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px" }}>
-                  <StatCard label="OPERATION DAY" value={formatDateShort(selectedDate)} sub={isTodaySelected ? "本日のレビュー対象日" : "表示中の保存レビュー日付"} />
-                  <StatCard label="TARGETS" value={isTodaySelected ? `${todaySummary.venueCount}会場 / ${todaySummary.raceCount}R` : `${reviewFileSummary.venueCount}会場`} sub={isTodaySelected ? "当日保存済み予想から作業台を構成" : "index.json に登録された会場ファイルを表示"} />
-                  <StatCard label="FILE STATUS" value={isTodaySelected ? `${todaySummary.hitCount}的中 / ${todaySummary.settledCount}照合` : `${reviewFileSummary.loadedTextCount}件読込`} sub={isTodaySelected ? `レポート一時保存 ${reportRecords.length}件` : `登録ファイル ${reviewFileSummary.fileCount}件`} />
-                  <StatCard label="MODE" value={isTodaySelected ? "LOCAL / FEED" : "TXT / FETCH"} sub={isTodaySelected ? "当日レビューは localStorage と today.generated.json を利用" : "過去レビューは localStorage に保存しません"} />
                 </div>
               </div>
             </div>
