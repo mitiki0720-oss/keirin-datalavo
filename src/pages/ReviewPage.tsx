@@ -465,7 +465,6 @@ function buildReviewFileCardMetrics(group: ReviewFileVenueGroup): ReviewFileCard
   const hitRateValue = extractReviewSummaryPercentage(source, "的中率");
   const roiValue = extractReviewSummaryPercentage(source, "回収率");
   const checkedCount = extractReviewSummaryNumber(source, "照合数");
-  const hitCount = extractReviewSummaryNumber(source, "的中数");
   const investment = extractReviewSummaryNumber(source, "投資");
   const payout = extractReviewSummaryNumber(source, "払戻");
   const profit = extractReviewSummaryNumber(source, "収支") ?? (
