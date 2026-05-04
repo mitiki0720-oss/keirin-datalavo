@@ -148,6 +148,7 @@ type ReviewFileIndexItem = {
   venue: string;
   predictionFile?: string;
   resultFile?: string;
+  summaryFile?: string;
 };
 
 type ReviewFileIndex = {
@@ -160,8 +161,10 @@ type ReviewFileVenueGroup = {
   venue: string;
   predictionFile?: string;
   resultFile?: string;
+  summaryFile?: string;
   predictionText: string;
   resultText: string;
+  summaryText: string;
 };
 
 type ReviewFileCardMetrics = {
@@ -169,10 +172,13 @@ type ReviewFileCardMetrics = {
   hitSub: string;
   roi: string;
   roiSub: string;
-  predictionState: string;
-  predictionSub: string;
-  resultState: string;
-  resultSub: string;
+  profit: string;
+  profitSub: string;
+  checkedCount: string;
+  checkedSub: string;
+  predictionReady: boolean;
+  resultReady: boolean;
+  summaryReady: boolean;
 };
 
 type MonthCell = {
@@ -429,73 +435,67 @@ function formatRate(value?: number) {
   return `${value.toFixed(1)}%`;
 }
 
-function extractReviewFilePercentage(source: string, label: string) {
+function extractReviewSummaryValue(source: string, label: string) {
   const normalized = source.replace(/\*\*/g, "");
-  const pattern = new RegExp(`${label}[:：]\\s*([0-9]+(?:\\.[0-9]+)?)\\s*%`);
+  const pattern = new RegExp(`${label}[:：]\\s*([^\n\r]+)`);
   const match = normalized.match(pattern);
+  return match?.[1]?.trim() || undefined;
+}
+
+function extractReviewSummaryNumber(source: string, label: string) {
+  const raw = extractReviewSummaryValue(source, label);
+  if (!raw) return undefined;
+  const match = raw.match(/-?[0-9,]+(?:\.[0-9]+)?/);
+  if (!match) return undefined;
+  const value = Number(match[0].replace(/,/g, ""));
+  return Number.isFinite(value) ? value : undefined;
+}
+
+function extractReviewSummaryPercentage(source: string, label: string) {
+  const raw = extractReviewSummaryValue(source, label);
+  if (!raw) return undefined;
+  const match = raw.match(/([0-9]+(?:\.[0-9]+)?)\s*%?/);
   if (!match) return undefined;
   const value = Number(match[1]);
   return Number.isFinite(value) ? value : undefined;
 }
 
-function extractReviewFileCount(source: string, labels: string[]) {
-  const normalized = source.replace(/\*\*/g, "");
-
-  for (const label of labels) {
-    const pattern = new RegExp(`${label}[:：]\\s*([0-9]+)\\s*R?`);
-    const match = normalized.match(pattern);
-    if (!match) continue;
-    const value = Number(match[1]);
-    if (Number.isFinite(value)) return value;
-  }
-
-  return undefined;
-}
-
-function extractReviewFileAmount(source: string, labels: string[]) {
-  const normalized = source.replace(/\*\*/g, "");
-
-  for (const label of labels) {
-    const pattern = new RegExp(`${label}[:：]\\s*([0-9,]+)\\s*円`);
-    const match = normalized.match(pattern);
-    if (!match) continue;
-    const value = Number(match[1].replace(/,/g, ""));
-    if (Number.isFinite(value)) return value;
-  }
-
-  return undefined;
-}
-
 function buildReviewFileCardMetrics(group: ReviewFileVenueGroup): ReviewFileCardMetrics {
-  const source = `${group.predictionText}\n${group.resultText}`;
-  const hitRateValue = extractReviewFilePercentage(source, "的中率");
-  const roiValue = extractReviewFilePercentage(source, "回収率");
-  const checkedCount = extractReviewFileCount(source, ["対象レース数", "照合数"]);
-  const hitCount = extractReviewFileCount(source, ["3連単的中", "的中数"]);
-  const investment = extractReviewFileAmount(source, ["投資"]);
-  const payout = extractReviewFileAmount(source, ["回収", "払戻"]);
-  const profit =
+  const source = group.summaryText;
+  const hitRateValue = extractReviewSummaryPercentage(source, "的中率");
+  const roiValue = extractReviewSummaryPercentage(source, "回収率");
+  const checkedCount = extractReviewSummaryNumber(source, "照合数");
+  const hitCount = extractReviewSummaryNumber(source, "的中数");
+  const investment = extractReviewSummaryNumber(source, "投資");
+  const payout = extractReviewSummaryNumber(source, "払戻");
+  const profit = extractReviewSummaryNumber(source, "収支") ?? (
     investment !== undefined && payout !== undefined
       ? payout - investment
-      : undefined;
+      : undefined
+  );
 
   return {
     hitRate: hitRateValue !== undefined ? `${hitRateValue.toFixed(1)}%` : "--",
     hitSub:
       hitCount !== undefined && checkedCount !== undefined
         ? `${hitCount}的中 / ${checkedCount}照合`
-        : "TXT内集計があれば表示",
+        : group.summaryFile
+          ? "summary TXT 読込ベース"
+          : "まとめTXT未登録",
     roi: roiValue !== undefined ? `${roiValue.toFixed(1)}%` : "--",
     roiSub:
-      profit !== undefined
-        ? `収支 ${formatProfit(profit)}`
-        : investment !== undefined && payout !== undefined
-          ? `投資 ${formatYen(investment)} / 払戻 ${formatYen(payout)}`
-          : "投資・払戻の明記があれば表示",
-    predictionState: group.predictionText.trim() ? "READY" : "--",
-    predictionSub: group.predictionFile ? "予想TXTあり" : "未登録",
-    resultState: group.resultText.trim() ? "READY" : "--",
-    resultSub: group.resultFile ? "結果TXTあり" : "未登録",
+      investment !== undefined && payout !== undefined
+        ? `投資 ${formatYen(investment)} / 払戻 ${formatYen(payout)}`
+        : group.summaryFile
+          ? "summary TXT 読込ベース"
+          : "まとめTXT未登録",
+    profit: profit !== undefined ? formatProfit(profit) : "--",
+    profitSub: profit !== undefined ? "summary TXT から表示" : "まとめTXT未登録",
+    checkedCount: checkedCount !== undefined ? `${checkedCount}R` : "--",
+    checkedSub: checkedCount !== undefined ? "照合レース数" : "まとめTXT未登録",
+    predictionReady: Boolean(group.predictionFile),
+    resultReady: Boolean(group.resultFile),
+    summaryReady: Boolean(group.summaryFile && group.summaryText.trim()),
   };
 }
 
@@ -648,6 +648,7 @@ function normalizeReviewFileIndexItem(record: Partial<ReviewFileIndexItem>): Rev
     venue,
     predictionFile: typeof record.predictionFile === "string" ? record.predictionFile : undefined,
     resultFile: typeof record.resultFile === "string" ? record.resultFile : undefined,
+    summaryFile: typeof record.summaryFile === "string" ? record.summaryFile : undefined,
   };
 }
 
@@ -1790,6 +1791,7 @@ export default function ReviewPage() {
         ...item,
         predictionText: await fetchReviewTextFile(item.predictionFile),
         resultText: await fetchReviewTextFile(item.resultFile),
+        summaryText: await fetchReviewTextFile(item.summaryFile),
       }))
     )
       .then((groups) => {
@@ -1999,6 +2001,7 @@ export default function ReviewPage() {
       let count = sum;
       if (group.predictionFile) count += 1;
       if (group.resultFile) count += 1;
+      if (group.summaryFile) count += 1;
       return count;
     }, 0);
 
@@ -2006,6 +2009,7 @@ export default function ReviewPage() {
       let count = sum;
       if (group.predictionText.trim()) count += 1;
       if (group.resultText.trim()) count += 1;
+      if (group.summaryText.trim()) count += 1;
       return count;
     }, 0);
 
@@ -2140,7 +2144,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                 position: "relative",
               }}
             >
-              <div style={{ minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: "18px", paddingTop: "10px" }}>
+              <div style={{ minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: "18px", paddingTop: "6px" }}>
                 <div>
                   <h1 style={{ margin: 0, fontSize: "44px", lineHeight: 1.08, fontWeight: 900, color: "#111827", marginBottom: "16px", letterSpacing: "-0.05em" }}>
                     {isTodaySelected ? "当日レビュー作業台" : "保存ファイルレビュー"}
@@ -2154,16 +2158,12 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
 
                 <div style={{ display: "grid", gap: "12px" }}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-                    <span style={{ borderRadius: "999px", border: `1px solid ${heroTone.border}`, background: heroTone.chip, color: heroTone.text, padding: "8px 12px", fontSize: "11px", fontWeight: 900, letterSpacing: "0.12em" }}>
-                      {isTodaySelected ? "LOCAL STORAGE + TODAY FEED" : "INDEX JSON + TXT FETCH"}
-                    </span>
                     <span style={{ borderRadius: "999px", border: "1px solid rgba(231, 220, 242, 0.95)", background: "rgba(255,255,255,0.82)", color: "#6f5bb0", padding: "8px 12px", fontSize: "11px", fontWeight: 900, letterSpacing: "0.12em" }}>
                       {isTodaySelected ? "TODAY MODE" : "FILE MODE"}
                     </span>
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px" }}>
-                    <SummaryChip label="ACTIVE VENUE" value={isTodaySelected ? selectedVenueGroup?.venue ?? "会場を選択してください" : selectedReviewFileGroup?.venue ?? "会場を選択してください"} />
-                    <SummaryChip label="SOURCE STATUS" value={isTodaySelected ? `${todaySummary.venueCount}会場の当日保存` : `${reviewFileSummary.loadedTextCount}件のTXTを読込`} />
+                    <span style={{ borderRadius: "999px", border: `1px solid ${heroTone.border}`, background: heroTone.chip, color: heroTone.text, padding: "8px 12px", fontSize: "11px", fontWeight: 900, letterSpacing: "0.12em" }}>
+                      {isTodaySelected ? "LOCAL STORAGE + TODAY FEED" : "INDEX JSON + TXT + SUMMARY"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -2209,12 +2209,12 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                     src={toPublicPath("/review-page/review-page-hero-kurari-charigon-thinking.png")}
                     alt=""
                     style={{
-                      width: "min(460px, 100%)",
-                      maxHeight: "340px",
+                      width: "min(520px, 100%)",
+                      maxHeight: "370px",
                       objectFit: "contain",
                       objectPosition: "center center",
                       filter: "drop-shadow(0 24px 28px rgba(122, 103, 184, 0.16))",
-                      transform: "translate(-6px, 4px)",
+                      transform: "translate(-2px, 8px)",
                     }}
                   />
                 </div>
@@ -2222,8 +2222,8 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px" }}>
                   <StatCard label="OPERATION DAY" value={formatDateShort(selectedDate)} sub={isTodaySelected ? "本日のレビュー対象日" : "表示中の保存レビュー日付"} />
                   <StatCard label="TARGETS" value={isTodaySelected ? `${todaySummary.venueCount}会場 / ${todaySummary.raceCount}R` : `${reviewFileSummary.venueCount}会場`} sub={isTodaySelected ? "当日保存済み予想から作業台を構成" : "index.json に登録された会場ファイルを表示"} />
-                  <StatCard label={isTodaySelected ? "FILE STATUS" : "FILE STATUS"} value={isTodaySelected ? `${todaySummary.hitCount}的中 / ${todaySummary.settledCount}照合` : `${reviewFileSummary.loadedTextCount}件読込`} sub={isTodaySelected ? `レポート一時保存 ${reportRecords.length}件` : `登録ファイル ${reviewFileSummary.fileCount}件`} />
-                  <StatCard label="MODE" value={isTodaySelected ? formatProfit(todaySummary.profitLoss) : "TXT / FETCH"} sub={isTodaySelected ? `投資 ${formatYen(todaySummary.totalInvestment)} / 払戻 ${formatYen(todaySummary.totalPayout)} / ROI ${formatRate(todaySummary.roi)}` : "過去レビューは localStorage に保存しません"} />
+                  <StatCard label="FILE STATUS" value={isTodaySelected ? `${todaySummary.hitCount}的中 / ${todaySummary.settledCount}照合` : `${reviewFileSummary.loadedTextCount}件読込`} sub={isTodaySelected ? `レポート一時保存 ${reportRecords.length}件` : `登録ファイル ${reviewFileSummary.fileCount}件`} />
+                  <StatCard label="MODE" value={isTodaySelected ? "LOCAL / FEED" : "TXT / FETCH"} sub={isTodaySelected ? "当日レビューは localStorage と today.generated.json を利用" : "過去レビューは localStorage に保存しません"} />
                 </div>
               </div>
             </div>
@@ -2320,23 +2320,18 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                             alignItems: "stretch",
                             padding: "10px 9px 8px",
                             boxShadow: cell.isSelected ? "0 12px 26px rgba(84, 64, 154, 0.14)" : "0 8px 18px rgba(31, 34, 57, 0.04)",
+                            overflow: "hidden",
                           }}
                         >
                           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "6px" }}>
                             <span style={{ fontSize: "16px", lineHeight: 1, fontWeight: cell.isSelected ? 900 : 800 }}>{cell.dayNumber}</span>
-                            {cell.isToday ? (
-                              <span style={{ borderRadius: "999px", background: "rgba(123,91,227,0.14)", color: "#7b5be3", padding: "3px 6px", fontSize: "9px", fontWeight: 900, letterSpacing: "0.08em" }}>TODAY</span>
-                            ) : null}
+                              {cell.isSelected ? <span style={{ width: "8px", height: "8px", borderRadius: "999px", background: "#8b5cf6", boxShadow: "0 0 0 3px rgba(139, 92, 246, 0.12)", flexShrink: 0, marginTop: "2px" }} /> : null}
                           </div>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: "14px" }}>
-                            <span style={{ fontSize: "9px", fontWeight: 900, letterSpacing: "0.08em", color: cell.isSelected ? "#6e4ac8" : "#a08dbd" }}>
-                              {cell.isSelected ? "SELECT" : cell.inCurrentMonth ? "" : ""}
-                            </span>
-                            {hasReviewFiles ? (
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                                <span style={{ width: "7px", height: "7px", borderRadius: "999px", background: cell.isSelected ? "#6f50cc" : "#d06e9b", boxShadow: "0 0 0 3px rgba(240, 221, 231, 0.45)" }} />
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                                {cell.isToday ? <span style={{ width: "6px", height: "6px", borderRadius: "999px", background: "#8b5cf6", opacity: 0.9 }} /> : null}
                               </span>
-                            ) : null}
+                              {hasReviewFiles ? <span style={{ width: "7px", height: "7px", borderRadius: "999px", background: "#d06e9b", boxShadow: "0 0 0 3px rgba(240, 221, 231, 0.45)", flexShrink: 0 }} /> : null}
                           </div>
                         </button>
                       );
@@ -2520,7 +2515,6 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
       : filteredReviewFileGroups.map((group) => {
           const tone = venueColorMap[group.venue] ?? heroTone;
           const selected = selectedReviewFileGroup?.venue === group.venue;
-          const fileReady = group.predictionText.trim() || group.resultText.trim();
           const metrics = buildReviewFileCardMetrics(group);
 
           return (
@@ -2551,8 +2545,12 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                   <div style={{ fontSize: "22px", fontWeight: 900, color: "#111827", lineHeight: 1.08 }}>
                     {group.venue}
                   </div>
-                  <div style={{ fontSize: "12px", color: "#6d7687", marginTop: "7px", lineHeight: 1.6 }}>
-                    保存レビューを読み込み表示
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "9px" }}>
+                    {metrics.predictionReady ? <span style={{ fontSize: "10px", fontWeight: 900, color: "#7b5be3", background: "rgba(123,91,227,0.1)", border: "1px solid rgba(196, 181, 253, 0.8)", borderRadius: "999px", padding: "4px 8px" }}>予想あり</span> : null}
+                    {metrics.resultReady ? <span style={{ fontSize: "10px", fontWeight: 900, color: "#7b5be3", background: "rgba(123,91,227,0.1)", border: "1px solid rgba(196, 181, 253, 0.8)", borderRadius: "999px", padding: "4px 8px" }}>結果あり</span> : null}
+                    <span style={{ fontSize: "10px", fontWeight: 900, color: metrics.summaryReady ? "#bf4f7f" : "#8a8fa1", background: metrics.summaryReady ? "rgba(244, 122, 164, 0.1)" : "rgba(238, 240, 245, 0.9)", border: `1px solid ${metrics.summaryReady ? "rgba(244, 122, 164, 0.26)" : "rgba(219, 223, 232, 0.92)"}`, borderRadius: "999px", padding: "4px 8px" }}>
+                      {metrics.summaryReady ? "まとめあり" : "まとめTXT未登録"}
+                    </span>
                   </div>
                 </div>
 
@@ -2592,10 +2590,10 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px" }}>
-                <ReviewVenueMetric label="予想TXT" value={metrics.predictionState} sub={metrics.predictionSub} />
-                <ReviewVenueMetric label="結果TXT" value={metrics.resultState} sub={metrics.resultSub} />
                 <ReviewVenueMetric label="的中率" value={metrics.hitRate} sub={metrics.hitSub} />
-                <ReviewVenueMetric label="回収率" value={metrics.roi} sub={metrics.roi !== "--" ? metrics.roiSub : fileReady ? metrics.roiSub : "集計前"} />
+                <ReviewVenueMetric label="回収率" value={metrics.roi} sub={metrics.roiSub} />
+                <ReviewVenueMetric label="収支" value={metrics.profit} sub={metrics.profitSub} />
+                <ReviewVenueMetric label="照合数" value={metrics.checkedCount} sub={metrics.checkedSub} />
               </div>
             </button>
           );
