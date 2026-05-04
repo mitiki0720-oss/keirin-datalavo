@@ -466,7 +466,9 @@ function buildReviewFileCardMetrics(group: ReviewFileVenueGroup): ReviewFileCard
   const roiValue = extractReviewSummaryPercentage(source, "回収率");
   const checkedCount = extractReviewSummaryNumber(source, "照合数");
   const investment = extractReviewSummaryNumber(source, "投資");
-  const payout = extractReviewSummaryNumber(source, "払戻");
+    const payout =
+      extractReviewSummaryNumber(source, "払戻") ??
+      extractReviewSummaryNumber(source, "回収");
   const profit = extractReviewSummaryNumber(source, "収支") ?? (
     investment !== undefined && payout !== undefined
       ? payout - investment
@@ -645,7 +647,7 @@ async function fetchReviewTextFile(path?: string) {
   if (!path) return "";
 
   try {
-    const response = await fetch(toPublicPath(path), { cache: "force-cache" });
+    const response = await fetch(toPublicPath(path), { cache: "no-cache" });
     if (!response.ok) return "";
 
     const contentType = response.headers.get("content-type") ?? "";
