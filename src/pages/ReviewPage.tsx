@@ -164,6 +164,17 @@ type ReviewFileVenueGroup = {
   resultText: string;
 };
 
+type ReviewFileCardMetrics = {
+  hitRate: string;
+  hitSub: string;
+  roi: string;
+  roiSub: string;
+  predictionState: string;
+  predictionSub: string;
+  resultState: string;
+  resultSub: string;
+};
+
 type MonthCell = {
   isoDate: string;
   dayNumber: number;
@@ -416,6 +427,76 @@ function formatProfit(value?: number) {
 function formatRate(value?: number) {
   if (value === undefined || Number.isNaN(value)) return "--";
   return `${value.toFixed(1)}%`;
+}
+
+function extractReviewFilePercentage(source: string, label: string) {
+  const normalized = source.replace(/\*\*/g, "");
+  const pattern = new RegExp(`${label}[:：]\\s*([0-9]+(?:\\.[0-9]+)?)\\s*%`);
+  const match = normalized.match(pattern);
+  if (!match) return undefined;
+  const value = Number(match[1]);
+  return Number.isFinite(value) ? value : undefined;
+}
+
+function extractReviewFileCount(source: string, labels: string[]) {
+  const normalized = source.replace(/\*\*/g, "");
+
+  for (const label of labels) {
+    const pattern = new RegExp(`${label}[:：]\\s*([0-9]+)\\s*R?`);
+    const match = normalized.match(pattern);
+    if (!match) continue;
+    const value = Number(match[1]);
+    if (Number.isFinite(value)) return value;
+  }
+
+  return undefined;
+}
+
+function extractReviewFileAmount(source: string, labels: string[]) {
+  const normalized = source.replace(/\*\*/g, "");
+
+  for (const label of labels) {
+    const pattern = new RegExp(`${label}[:：]\\s*([0-9,]+)\\s*円`);
+    const match = normalized.match(pattern);
+    if (!match) continue;
+    const value = Number(match[1].replace(/,/g, ""));
+    if (Number.isFinite(value)) return value;
+  }
+
+  return undefined;
+}
+
+function buildReviewFileCardMetrics(group: ReviewFileVenueGroup): ReviewFileCardMetrics {
+  const source = `${group.predictionText}\n${group.resultText}`;
+  const hitRateValue = extractReviewFilePercentage(source, "的中率");
+  const roiValue = extractReviewFilePercentage(source, "回収率");
+  const checkedCount = extractReviewFileCount(source, ["対象レース数", "照合数"]);
+  const hitCount = extractReviewFileCount(source, ["3連単的中", "的中数"]);
+  const investment = extractReviewFileAmount(source, ["投資"]);
+  const payout = extractReviewFileAmount(source, ["回収", "払戻"]);
+  const profit =
+    investment !== undefined && payout !== undefined
+      ? payout - investment
+      : undefined;
+
+  return {
+    hitRate: hitRateValue !== undefined ? `${hitRateValue.toFixed(1)}%` : "--",
+    hitSub:
+      hitCount !== undefined && checkedCount !== undefined
+        ? `${hitCount}的中 / ${checkedCount}照合`
+        : "TXT内集計があれば表示",
+    roi: roiValue !== undefined ? `${roiValue.toFixed(1)}%` : "--",
+    roiSub:
+      profit !== undefined
+        ? `収支 ${formatProfit(profit)}`
+        : investment !== undefined && payout !== undefined
+          ? `投資 ${formatYen(investment)} / 払戻 ${formatYen(payout)}`
+          : "投資・払戻の明記があれば表示",
+    predictionState: group.predictionText.trim() ? "READY" : "--",
+    predictionSub: group.predictionFile ? "予想TXTあり" : "未登録",
+    resultState: group.resultText.trim() ? "READY" : "--",
+    resultSub: group.resultFile ? "結果TXTあり" : "未登録",
+  };
 }
 
 function safeJsonParse<T>(raw: string | null, fallback: T): T {
@@ -1481,16 +1562,17 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub: st
   return (
     <article
       style={{
-        borderRadius: "24px",
-        border: "1px solid rgba(229, 221, 241, 0.95)",
-        background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(249,245,253,0.96) 100%)",
-        boxShadow: "0 16px 36px rgba(18, 24, 38, 0.05)",
-        padding: "22px 22px 20px",
+        borderRadius: "22px",
+        border: "1px solid rgba(223, 210, 245, 0.96)",
+        background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(247,242,252,0.98) 100%)",
+        boxShadow: "0 16px 34px rgba(40, 32, 76, 0.06)",
+        padding: "18px 18px 17px",
+        minHeight: "128px",
       }}
     >
-      <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9b7cd8", marginBottom: "10px" }}>{label}</div>
-      <div style={{ fontSize: "34px", fontWeight: 900, color: "#0f172a", marginBottom: "8px", lineHeight: 1.1 }}>{value}</div>
-      <div style={{ fontSize: "12px", lineHeight: 1.7, color: "#6a7282" }}>{sub}</div>
+      <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9475d3", marginBottom: "10px" }}>{label}</div>
+      <div style={{ fontSize: "28px", fontWeight: 900, color: "#0f172a", marginBottom: "8px", lineHeight: 1.12, letterSpacing: "-0.04em" }}>{value}</div>
+      <div style={{ fontSize: "12px", lineHeight: 1.7, color: "#687385" }}>{sub}</div>
     </article>
   );
 }
@@ -1500,8 +1582,9 @@ function SummaryChip({ label, value }: { label: string; value: string }) {
     <div
       style={{
         borderRadius: "18px",
-        border: "1px solid rgba(229, 221, 241, 0.92)",
-        background: "rgba(255,255,255,0.82)",
+        border: "1px solid rgba(226, 216, 242, 0.95)",
+        background: "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,244,252,0.92) 100%)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.65)",
         padding: "12px 14px",
       }}
     >
@@ -1516,27 +1599,27 @@ function ReviewVenueMetric({ label, value, sub }: { label: string; value: string
     <div
       style={{
         borderRadius: "18px",
-        border: "1px solid rgba(229, 221, 241, 0.9)",
-        background: "rgba(255,255,255,0.88)",
-        padding: "11px 10px",
-        minHeight: "78px",
+        border: "1px solid rgba(225, 214, 242, 0.96)",
+        background: "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,242,252,0.94) 100%)",
+        boxShadow: "0 10px 24px rgba(27, 33, 52, 0.04)",
+        padding: "12px 12px 11px",
+        minHeight: "88px",
         overflow: "hidden",
       }}
     >
       <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#9a7ad9", marginBottom: "7px" }}>{label}</div>
       <div
         style={{
-          fontSize: "15px",
+          fontSize: "18px",
           fontWeight: 900,
           color: "#111827",
-          lineHeight: 1.05,
-          whiteSpace: "nowrap",
+          lineHeight: 1.08,
           letterSpacing: "-0.04em",
         }}
       >
         {value}
       </div>
-      {sub ? <div style={{ marginTop: "6px", fontSize: "10px", lineHeight: 1.5, color: "#6d7687" }}>{sub}</div> : null}
+      {sub ? <div style={{ marginTop: "7px", fontSize: "10px", lineHeight: 1.55, color: "#6d7687" }}>{sub}</div> : null}
     </div>
   );
 }
@@ -1933,10 +2016,17 @@ export default function ReviewPage() {
     };
   }, [reviewFileGroups]);
 
+  const reviewFileDateSet = useMemo(
+    () => new Set(reviewFileIndexItems.map((item) => item.date)),
+    [reviewFileIndexItems],
+  );
+
   const calendarWeeks = useMemo(
     () => buildReviewMonthMatrix(calendarMonth, selectedDate, operationalToday),
     [calendarMonth, operationalToday, selectedDate],
   );
+
+  const nextCalendarMonth = shiftReviewIsoMonth(calendarMonth, 1);
 
 const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
   const file = event.currentTarget.files?.[0];
@@ -2012,99 +2102,157 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
 
 
       <main style={{ width: "100%", maxWidth: PAGE_MAX_WIDTH, margin: "0 auto", padding: "18px 24px 96px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.12fr) minmax(320px, 440px)", gap: "22px", alignItems: "stretch", marginBottom: "22px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.18fr) minmax(360px, 460px)", gap: "22px", alignItems: "stretch", marginBottom: "22px" }}>
           <article
             style={{
               borderRadius: "36px",
               border: `1px solid ${heroTone.border}`,
-              background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(250,247,253,0.98) 100%)",
-              boxShadow: "0 24px 50px rgba(17,24,39,0.06)",
+              background: "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(252,246,252,0.98) 42%, rgba(243,247,255,0.98) 100%)",
+              boxShadow: "0 28px 54px rgba(17,24,39,0.07)",
               minHeight: "650px",
-              padding: "34px 34px 30px",
+              padding: "34px 34px 32px",
+              position: "relative",
+              overflow: "hidden",
             }}
           >
+            <div
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                inset: "auto -80px -120px auto",
+                width: "300px",
+                height: "300px",
+                borderRadius: "999px",
+                background: "radial-gradient(circle, rgba(198,177,250,0.22) 0%, rgba(198,177,250,0) 72%)",
+                pointerEvents: "none",
+              }}
+            />
             <div style={{ fontSize: "11px", letterSpacing: "0.24em", fontWeight: 900, color: "#9a7ad9", marginBottom: "14px" }}>
               {isTodaySelected ? "TODAY REVIEW" : "FILE REVIEW"}
             </div>
             <div
-  style={{
-    display: "grid",
-    gridTemplateColumns: "minmax(0, 1fr) minmax(260px, 360px) minmax(170px, 190px)",
-    alignItems: "center",
-    gap: "22px",
-    marginBottom: "20px",
-  }}
->
-  <div style={{ minWidth: 0 }}>
-    <h1 style={{ margin: 0, fontSize: "40px", lineHeight: 1.12, fontWeight: 900, color: "#111827", marginBottom: "14px" }}>
-      {isTodaySelected ? "当日レビュー作業台" : "保存ファイルレビュー"}
-    </h1>
-    <p style={{ margin: 0, maxWidth: "920px", fontSize: "15px", lineHeight: 1.95, color: "#5f6676" }}>
-      {isTodaySelected
-        ? "本日の保存済み予想と結果だけを使って、会場ごとのレビュー素材をまとめるページです。"
-        : "この日付はTXT/Markdown保存データを表示しています。localStorageには保存しません。"}
-    </p>
-  </div>
+              style={{
+                display: "grid",
+                gridTemplateColumns: "minmax(0, 0.9fr) minmax(520px, 1.1fr)",
+                alignItems: "stretch",
+                gap: "28px",
+                marginBottom: "6px",
+                position: "relative",
+              }}
+            >
+              <div style={{ minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: "18px", paddingTop: "10px" }}>
+                <div>
+                  <h1 style={{ margin: 0, fontSize: "44px", lineHeight: 1.08, fontWeight: 900, color: "#111827", marginBottom: "16px", letterSpacing: "-0.05em" }}>
+                    {isTodaySelected ? "当日レビュー作業台" : "保存ファイルレビュー"}
+                  </h1>
+                  <p style={{ margin: 0, maxWidth: "560px", fontSize: "15px", lineHeight: 1.95, color: "#5f6676" }}>
+                    {isTodaySelected
+                      ? "本日の保存済み予想と結果だけを使って、会場ごとのレビュー素材を落ち着いて整理できるワークベンチです。"
+                      : "この日付はTXT / Markdown保存データを読み込み、過去レビューを見やすい形で振り返る表示モードです。"}
+                  </p>
+                </div>
 
-  <div
-    aria-hidden="true"
-    style={{
-      position: "relative",
-      minHeight: "190px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      alignSelf: "stretch",
-      pointerEvents: "none",
-      overflow: "visible",
-    }}
-  >
-    <img
-      src={toPublicPath("/review-page/review-page-hero-kurari-charigon-thinking.png")}
-      alt=""
-      style={{
-        width: "min(380px, 100%)",
-        maxHeight: "280px",
-        objectFit: "contain",
-        objectPosition: "center bottom",
-        filter: "drop-shadow(0 18px 26px rgba(122, 103, 184, 0.12))",
-        transform: "translate(-20px) translateY(-10px)",
-      }}
-    />
-  </div>
+                <div style={{ display: "grid", gap: "12px" }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                    <span style={{ borderRadius: "999px", border: `1px solid ${heroTone.border}`, background: heroTone.chip, color: heroTone.text, padding: "8px 12px", fontSize: "11px", fontWeight: 900, letterSpacing: "0.12em" }}>
+                      {isTodaySelected ? "LOCAL STORAGE + TODAY FEED" : "INDEX JSON + TXT FETCH"}
+                    </span>
+                    <span style={{ borderRadius: "999px", border: "1px solid rgba(231, 220, 242, 0.95)", background: "rgba(255,255,255,0.82)", color: "#6f5bb0", padding: "8px 12px", fontSize: "11px", fontWeight: 900, letterSpacing: "0.12em" }}>
+                      {isTodaySelected ? "TODAY MODE" : "FILE MODE"}
+                    </span>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px" }}>
+                    <SummaryChip label="ACTIVE VENUE" value={isTodaySelected ? selectedVenueGroup?.venue ?? "会場を選択してください" : selectedReviewFileGroup?.venue ?? "会場を選択してください"} />
+                    <SummaryChip label="SOURCE STATUS" value={isTodaySelected ? `${todaySummary.venueCount}会場の当日保存` : `${reviewFileSummary.loadedTextCount}件のTXTを読込`} />
+                  </div>
+                </div>
+              </div>
 
-  <div style={{ minWidth: "170px", borderRadius: "24px", border: `1px solid ${heroTone.border}`, background: heroTone.chip, padding: "16px 18px" }}>
-    <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: heroTone.text, marginBottom: "8px" }}>OPERATION DAY</div>
-    <div style={{ fontSize: "24px", fontWeight: 900, color: "#101828", lineHeight: 1.2 }}>{formatDateLabel(selectedDate)}</div>
-    <div style={{ fontSize: "12px", color: "#6c7687", marginTop: "8px", lineHeight: 1.7 }}>
-      {isTodaySelected
-        ? selectedVenueGroup
-          ? `${selectedVenueGroup.venue} / ${selectedVenueGroup.races.length}R を選択中`
-          : "当日保存データだけを表示します"
-        : selectedReviewFileGroup
-          ? `${selectedReviewFileGroup.venue} / 保存TXTを表示中`
-          : "保存レビューTXTを切り替えて表示します"}
-    </div>
-  </div>
-</div>
+              <div
+                style={{
+                  borderRadius: "30px",
+                  border: `1px solid ${heroTone.border}`,
+                  background: "linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(247,241,252,0.88) 100%)",
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.65)",
+                  padding: "20px",
+                  display: "grid",
+                  gridTemplateRows: "auto minmax(240px, 1fr) auto",
+                  gap: "18px",
+                  minWidth: 0,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px" }}>
+                  <div>
+                    <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: heroTone.text, marginBottom: "8px" }}>OPERATION DAY</div>
+                    <div style={{ fontSize: "28px", fontWeight: 900, color: "#101828", lineHeight: 1.14 }}>{formatDateLabel(selectedDate)}</div>
+                  </div>
+                  <div style={{ borderRadius: "18px", border: `1px solid ${heroTone.border}`, background: heroTone.chip, color: heroTone.text, padding: "10px 12px", fontSize: "11px", fontWeight: 900, letterSpacing: "0.12em", whiteSpace: "nowrap" }}>
+                    {isTodaySelected ? "LIVE WORKBENCH" : "ARCHIVE VIEW"}
+                  </div>
+                </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "14px" }}>
-              <StatCard label="OPERATION DAY" value={formatDateShort(selectedDate)} sub={isTodaySelected ? "本日のレビュー対象日" : "表示中の保存レビュー日付"} />
-              <StatCard label="TARGETS" value={isTodaySelected ? `${todaySummary.venueCount}会場 / ${todaySummary.raceCount}R` : `${reviewFileSummary.venueCount}会場`} sub={isTodaySelected ? "当日保存済み予想から作業台を構成" : "index.json に登録された会場ファイルを表示"} />
-              <StatCard label={isTodaySelected ? "RESULT CHECK" : "FILE STATUS"} value={isTodaySelected ? `${todaySummary.hitCount}的中 / ${todaySummary.settledCount}照合` : `${reviewFileSummary.loadedTextCount}件読込`} sub={isTodaySelected ? `レポート一時保存 ${reportRecords.length}件` : `登録ファイル ${reviewFileSummary.fileCount}件`} />
-              <StatCard label={isTodaySelected ? "PROFIT" : "MODE"} value={isTodaySelected ? formatProfit(todaySummary.profitLoss) : "TXT / FETCH"} sub={isTodaySelected ? `投資 ${formatYen(todaySummary.totalInvestment)} / 払戻 ${formatYen(todaySummary.totalPayout)} / ROI ${formatRate(todaySummary.roi)}` : "過去レビューは localStorage に保存しません"} />
+                <div
+                  aria-hidden="true"
+                  style={{
+                    position: "relative",
+                    minHeight: "250px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
+                    borderRadius: "26px",
+                    background: "radial-gradient(circle at 18% 18%, rgba(243, 232, 255, 0.95) 0%, rgba(248, 244, 252, 0.72) 38%, rgba(255,255,255,0) 72%), radial-gradient(circle at 82% 24%, rgba(255, 233, 241, 0.86) 0%, rgba(255,255,255,0) 54%), linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 100%)",
+                    pointerEvents: "none",
+                  }}
+                >
+                  <img
+                    src={toPublicPath("/review-page/review-page-hero-kurari-charigon-thinking.png")}
+                    alt=""
+                    style={{
+                      width: "min(460px, 100%)",
+                      maxHeight: "340px",
+                      objectFit: "contain",
+                      objectPosition: "center center",
+                      filter: "drop-shadow(0 24px 28px rgba(122, 103, 184, 0.16))",
+                      transform: "translate(-6px, 4px)",
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px" }}>
+                  <StatCard label="OPERATION DAY" value={formatDateShort(selectedDate)} sub={isTodaySelected ? "本日のレビュー対象日" : "表示中の保存レビュー日付"} />
+                  <StatCard label="TARGETS" value={isTodaySelected ? `${todaySummary.venueCount}会場 / ${todaySummary.raceCount}R` : `${reviewFileSummary.venueCount}会場`} sub={isTodaySelected ? "当日保存済み予想から作業台を構成" : "index.json に登録された会場ファイルを表示"} />
+                  <StatCard label={isTodaySelected ? "FILE STATUS" : "FILE STATUS"} value={isTodaySelected ? `${todaySummary.hitCount}的中 / ${todaySummary.settledCount}照合` : `${reviewFileSummary.loadedTextCount}件読込`} sub={isTodaySelected ? `レポート一時保存 ${reportRecords.length}件` : `登録ファイル ${reviewFileSummary.fileCount}件`} />
+                  <StatCard label="MODE" value={isTodaySelected ? formatProfit(todaySummary.profitLoss) : "TXT / FETCH"} sub={isTodaySelected ? `投資 ${formatYen(todaySummary.totalInvestment)} / 払戻 ${formatYen(todaySummary.totalPayout)} / ROI ${formatRate(todaySummary.roi)}` : "過去レビューは localStorage に保存しません"} />
+                </div>
+              </div>
             </div>
           </article>
 
           <article
             style={{
               borderRadius: "32px",
-              border: "1px solid rgba(233, 223, 244, 0.95)",
-              background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,245,252,0.98) 100%)",
-              boxShadow: "0 18px 40px rgba(17,24,39,0.05)",
+              border: "1px solid rgba(223, 209, 244, 0.98)",
+              background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(247,242,252,0.98) 56%, rgba(255,248,250,0.98) 100%)",
+              boxShadow: "0 24px 48px rgba(32, 30, 67, 0.06)",
               padding: "24px",
+              position: "relative",
+              overflow: "hidden",
             }}
           >
+            <div
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                top: "-48px",
+                right: "-52px",
+                width: "170px",
+                height: "170px",
+                borderRadius: "999px",
+                background: "radial-gradient(circle, rgba(209,189,250,0.24) 0%, rgba(209,189,250,0) 74%)",
+                pointerEvents: "none",
+              }}
+            />
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
               <div>
                 <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "8px" }}>REVIEW CALENDAR</div>
@@ -2118,22 +2266,22 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "14px" }}>
               <button
                 onClick={() => setCalendarMonth((current) => shiftReviewIsoMonth(current, -1))}
-                style={{ border: "1px solid rgba(196, 181, 253, 0.75)", background: "white", color: "#6542be", borderRadius: "999px", padding: "10px 14px", cursor: "pointer", fontWeight: 900 }}
+                style={{ border: "1px solid rgba(200, 184, 246, 0.82)", background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,240,252,0.98) 100%)", color: "#6542be", borderRadius: "999px", padding: "11px 16px", cursor: "pointer", fontWeight: 900, boxShadow: "0 10px 20px rgba(34, 33, 68, 0.05)" }}
               >
                 前月
               </button>
-              <div style={{ fontSize: "18px", fontWeight: 900, color: "#101828" }}>{formatMonthLabel(calendarMonth)}</div>
+              <div style={{ fontSize: "20px", fontWeight: 900, color: "#101828", letterSpacing: "-0.03em", padding: "0 12px", textAlign: "center" }}>{formatMonthLabel(calendarMonth)}</div>
               <button
                 onClick={() => setCalendarMonth((current) => shiftReviewIsoMonth(current, 1))}
-                disabled={shiftReviewIsoMonth(calendarMonth, 1) > operationalToday.slice(0, 7)}
-                style={{ border: "1px solid rgba(196, 181, 253, 0.75)", background: "white", color: shiftReviewIsoMonth(calendarMonth, 1) > operationalToday.slice(0, 7) ? "#b7b8c4" : "#6542be", borderRadius: "999px", padding: "10px 14px", cursor: shiftReviewIsoMonth(calendarMonth, 1) > operationalToday.slice(0, 7) ? "not-allowed" : "pointer", fontWeight: 900 }}
+                disabled={nextCalendarMonth > operationalToday.slice(0, 7)}
+                style={{ border: "1px solid rgba(200, 184, 246, 0.82)", background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,240,252,0.98) 100%)", color: nextCalendarMonth > operationalToday.slice(0, 7) ? "#b7b8c4" : "#6542be", borderRadius: "999px", padding: "11px 16px", cursor: nextCalendarMonth > operationalToday.slice(0, 7) ? "not-allowed" : "pointer", fontWeight: 900, boxShadow: "0 10px 20px rgba(34, 33, 68, 0.05)", opacity: nextCalendarMonth > operationalToday.slice(0, 7) ? 0.72 : 1 }}
               >
                 次月
               </button>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "8px", marginBottom: "10px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "8px", marginBottom: "10px", padding: "0 4px" }}>
               {REVIEW_CALENDAR_WEEKDAY_LABELS.map((label) => (
-                <div key={label} style={{ textAlign: "center", fontSize: "11px", fontWeight: 900, color: "#8f72ca", letterSpacing: "0.12em" }}>
+                <div key={label} style={{ textAlign: "center", fontSize: "11px", fontWeight: 900, color: "#8f84ab", letterSpacing: "0.12em" }}>
                   {label}
                 </div>
               ))}
@@ -2142,29 +2290,57 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
               {calendarWeeks.map((week, weekIndex) => (
                 <div key={`${calendarMonth}:${weekIndex}`} style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "8px" }}>
                   {week.map((cell) => (
-                    <button
-                      key={cell.isoDate}
-                      onClick={() => {
-                        setSelectedDate(cell.isoDate);
-                        setCalendarMonth(cell.isoDate.slice(0, 7));
-                      }}
-                      disabled={cell.isDisabled}
-                      style={{
-                        minHeight: "46px",
-                        borderRadius: "16px",
-                        border: cell.isSelected ? "1px solid rgba(123,91,227,0.92)" : "1px solid rgba(229,221,241,0.92)",
-                        background: cell.isSelected
-                          ? "linear-gradient(135deg, rgba(123,91,227,0.16) 0%, rgba(93,121,232,0.16) 100%)"
-                          : cell.isToday
-                            ? "rgba(250,247,255,0.96)"
-                            : "rgba(255,255,255,0.95)",
-                        color: cell.isDisabled ? "#c0c3cf" : cell.inCurrentMonth ? "#111827" : "#9aa1b1",
-                        cursor: cell.isDisabled ? "not-allowed" : "pointer",
-                        fontWeight: cell.isSelected || cell.isToday ? 900 : 700,
-                      }}
-                    >
-                      {cell.dayNumber}
-                    </button>
+                    (() => {
+                      const hasReviewFiles = reviewFileDateSet.has(cell.isoDate);
+
+                      return (
+                        <button
+                          key={cell.isoDate}
+                          onClick={() => {
+                            setSelectedDate(cell.isoDate);
+                            setCalendarMonth(cell.isoDate.slice(0, 7));
+                          }}
+                          disabled={cell.isDisabled}
+                          style={{
+                            minHeight: "68px",
+                            borderRadius: "18px",
+                            border: cell.isSelected ? "1px solid rgba(123,91,227,0.96)" : cell.isToday ? "1px solid rgba(199, 182, 246, 0.96)" : "1px solid rgba(229,221,241,0.92)",
+                            background: cell.isSelected
+                              ? "linear-gradient(135deg, rgba(123,91,227,0.18) 0%, rgba(233,222,255,0.92) 100%)"
+                              : cell.isToday
+                                ? "linear-gradient(180deg, rgba(250,247,255,0.98) 0%, rgba(255,250,252,0.98) 100%)"
+                                : "linear-gradient(180deg, rgba(255,255,255,0.97) 0%, rgba(248,244,252,0.92) 100%)",
+                            color: cell.isDisabled ? "#c6c8d5" : cell.inCurrentMonth ? "#111827" : "#a7adbb",
+                            cursor: cell.isDisabled ? "not-allowed" : "pointer",
+                            fontWeight: cell.isSelected || cell.isToday ? 900 : 700,
+                            opacity: cell.isDisabled ? 0.55 : cell.inCurrentMonth ? 1 : 0.78,
+                            display: "flex",
+                            flexDirection: "column",
+                            justifyContent: "space-between",
+                            alignItems: "stretch",
+                            padding: "10px 9px 8px",
+                            boxShadow: cell.isSelected ? "0 12px 26px rgba(84, 64, 154, 0.14)" : "0 8px 18px rgba(31, 34, 57, 0.04)",
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "6px" }}>
+                            <span style={{ fontSize: "16px", lineHeight: 1, fontWeight: cell.isSelected ? 900 : 800 }}>{cell.dayNumber}</span>
+                            {cell.isToday ? (
+                              <span style={{ borderRadius: "999px", background: "rgba(123,91,227,0.14)", color: "#7b5be3", padding: "3px 6px", fontSize: "9px", fontWeight: 900, letterSpacing: "0.08em" }}>TODAY</span>
+                            ) : null}
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: "14px" }}>
+                            <span style={{ fontSize: "9px", fontWeight: 900, letterSpacing: "0.08em", color: cell.isSelected ? "#6e4ac8" : "#a08dbd" }}>
+                              {cell.isSelected ? "SELECT" : cell.inCurrentMonth ? "" : ""}
+                            </span>
+                            {hasReviewFiles ? (
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                                <span style={{ width: "7px", height: "7px", borderRadius: "999px", background: cell.isSelected ? "#6f50cc" : "#d06e9b", boxShadow: "0 0 0 3px rgba(240, 221, 231, 0.45)" }} />
+                              </span>
+                            ) : null}
+                          </div>
+                        </button>
+                      );
+                    })()
                   ))}
                 </div>
               ))}
@@ -2345,6 +2521,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
           const tone = venueColorMap[group.venue] ?? heroTone;
           const selected = selectedReviewFileGroup?.venue === group.venue;
           const fileReady = group.predictionText.trim() || group.resultText.trim();
+          const metrics = buildReviewFileCardMetrics(group);
 
           return (
             <button
@@ -2375,7 +2552,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                     {group.venue}
                   </div>
                   <div style={{ fontSize: "12px", color: "#6d7687", marginTop: "7px", lineHeight: 1.6 }}>
-                    public/data/reviews から読込
+                    保存レビューを読み込み表示
                   </div>
                 </div>
 
@@ -2414,10 +2591,11 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "10px" }}>
-                <ReviewVenueMetric label="予想TXT" value={group.predictionText.trim() ? "あり" : "--"} sub={group.predictionFile ?? "未登録"} />
-                <ReviewVenueMetric label="結果TXT" value={group.resultText.trim() ? "あり" : "--"} sub={group.resultFile ?? "未登録"} />
-                <ReviewVenueMetric label="読込状態" value={fileReady ? "READY" : "--"} sub={`${group.predictionFile ? "予想" : "-"} / ${group.resultFile ? "結果" : "-"}`} />
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px" }}>
+                <ReviewVenueMetric label="予想TXT" value={metrics.predictionState} sub={metrics.predictionSub} />
+                <ReviewVenueMetric label="結果TXT" value={metrics.resultState} sub={metrics.resultSub} />
+                <ReviewVenueMetric label="的中率" value={metrics.hitRate} sub={metrics.hitSub} />
+                <ReviewVenueMetric label="回収率" value={metrics.roi} sub={metrics.roi !== "--" ? metrics.roiSub : fileReady ? metrics.roiSub : "集計前"} />
               </div>
             </button>
           );
