@@ -2012,13 +2012,14 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
 
 
       <main style={{ width: "100%", maxWidth: PAGE_MAX_WIDTH, margin: "0 auto", padding: "18px 24px 96px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.12fr) minmax(320px, 440px)", gap: "22px", alignItems: "start", marginBottom: "22px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.12fr) minmax(320px, 440px)", gap: "22px", alignItems: "stretch", marginBottom: "22px" }}>
           <article
             style={{
               borderRadius: "36px",
               border: `1px solid ${heroTone.border}`,
               background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(250,247,253,0.98) 100%)",
               boxShadow: "0 24px 50px rgba(17,24,39,0.06)",
+              minHeight: "650px",
               padding: "34px 34px 30px",
             }}
           >
