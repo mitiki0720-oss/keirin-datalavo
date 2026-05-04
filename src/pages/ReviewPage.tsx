@@ -2,10 +2,7 @@ import { type ChangeEvent, useEffect, useMemo, useState } from "react";
 import {
   SiteHeader,
   fetchPredictionVenueWeather,
-  getJstOperationalDate,
   getPredictionVenueStageLabel,
-  prunePredictionResultsMap,
-  prunePredictionSlotsMap,
   type PredictionWeatherData,
 } from "./PageImplementations";
 
@@ -205,6 +202,109 @@ const venueColorMap: Record<string, { border: string; chip: string; text: string
   奈良: { border: "#e8ddfb", chip: "rgba(140, 104, 214, 0.12)", text: "#7857bc", accent: "#8b5cf6" },
   函館: { border: "#d4e6ff", chip: "rgba(110, 165, 255, 0.12)", text: "#376cc3", accent: "#3b82f6" },
 };
+
+const REVIEW_JST_DATE_TIME_FORMATTER = new Intl.DateTimeFormat("sv-SE", {
+  timeZone: "Asia/Tokyo",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: false,
+});
+
+function getReviewJstDateTimeParts(base: Date = new Date()) {
+  const parts = REVIEW_JST_DATE_TIME_FORMATTER.formatToParts(base);
+  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "00";
+
+  return {
+    year: get("year"),
+    month: get("month"),
+    day: get("day"),
+    hour: get("hour"),
+    minute: get("minute"),
+    second: get("second"),
+    isoDate: `${get("year")}-${get("month")}-${get("day")}`,
+  };
+}
+
+function shiftReviewIsoDateByDays(isoDate: string, days: number) {
+  const base = new Date(`${isoDate}T00:00:00Z`);
+  if (Number.isNaN(base.getTime())) return isoDate;
+  base.setUTCDate(base.getUTCDate() + days);
+  return base.toISOString().slice(0, 10);
+}
+
+function getReviewJstNowDate() {
+  const parts = getReviewJstDateTimeParts();
+  return new Date(`${parts.isoDate}T${parts.hour}:${parts.minute}:${parts.second}+09:00`);
+}
+
+function getReviewNextJstSixAMFromSavedAt(savedAt?: string) {
+  if (!savedAt) return undefined;
+
+  const base = new Date(savedAt);
+  if (Number.isNaN(base.getTime())) return undefined;
+
+  const parts = getReviewJstDateTimeParts(base);
+  const expireIsoDate = Number(parts.hour) < 6 ? parts.isoDate : shiftReviewIsoDateByDays(parts.isoDate, 1);
+
+  return new Date(`${expireIsoDate}T06:00:00+09:00`);
+}
+
+function isExpiredByReviewJstSixAM(savedAt?: string) {
+  const expireAt = getReviewNextJstSixAMFromSavedAt(savedAt);
+  if (!expireAt) return false;
+  return getReviewJstNowDate().getTime() >= expireAt.getTime();
+}
+
+function getJstOperationalDate(base: Date = new Date()) {
+  const parts = getReviewJstDateTimeParts(base);
+  return Number(parts.hour) >= 6 ? parts.isoDate : shiftReviewIsoDateByDays(parts.isoDate, -1);
+}
+
+function prunePredictionSlotsMap(map: Record<string, PredictionSlotRecord>) {
+  let changed = false;
+
+  const records = Object.entries(map).reduce<Record<string, PredictionSlotRecord>>((accumulator, [key, value]) => {
+    if (!value || typeof value !== "object") {
+      changed = true;
+      return accumulator;
+    }
+
+    if (isExpiredByReviewJstSixAM(value.savedAt)) {
+      changed = true;
+      return accumulator;
+    }
+
+    accumulator[key] = value;
+    return accumulator;
+  }, {});
+
+  return { records, changed };
+}
+
+function prunePredictionResultsMap(map: Record<string, PredictionResultRecord>) {
+  let changed = false;
+
+  const records = Object.entries(map).reduce<Record<string, PredictionResultRecord>>((accumulator, [key, value]) => {
+    if (!value || typeof value !== "object") {
+      changed = true;
+      return accumulator;
+    }
+
+    if (isExpiredByReviewJstSixAM(value.savedAt)) {
+      changed = true;
+      return accumulator;
+    }
+
+    accumulator[key] = value;
+    return accumulator;
+  }, {});
+
+  return { records, changed };
+}
 
 function formatDateLabel(iso: string) {
   if (!iso) return "--";
