@@ -1590,7 +1590,7 @@ function SummaryChip({ label, value }: { label: string; value: string }) {
       }}
     >
       <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "6px" }}>{label}</div>
-      <div style={{ fontSize: "14px", fontWeight: 800, color: "#111827", lineHeight: 1.6 }}>{value}</div>
+      <div style={{ fontSize: "13px", fontWeight: 800, color: "#111827", lineHeight: 1.6 }}>{value}</div>
     </div>
   );
 }
@@ -2146,12 +2146,10 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
               <div style={{ minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "flex-start", gap: "16px", paddingTop: "4px" }}>
                 <div>
                   <h1 style={{ margin: 0, fontSize: "40px", lineHeight: 1.08, fontWeight: 900, color: "#111827", marginBottom: "16px", letterSpacing: "-0.05em" }}>
-                    {isTodaySelected ? "当日レビュー作業台" : "保存ファイルレビュー"}
+                    {isTodaySelected ? "LIVE WORKBENCH" : "FILE ARCHIVE"}
                   </h1>
                   <p style={{ margin: 0, maxWidth: "560px", fontSize: "15px", lineHeight: 1.95, color: "#5f6676" }}>
-                    {isTodaySelected
-                      ? "本日の保存済み予想と結果だけを使って、会場ごとのレビュー素材を落ち着いて整理できるワークベンチです。"
-                      : "この日付はTXT / Markdown保存データを読み込み、過去レビューを見やすい形で振り返る表示モードです。"}
+                    
                   </p>
                 </div>
 
@@ -2166,7 +2164,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                   </div>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px", marginTop: "22px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px", marginTop: "260px" }}>
                   <StatCard label="OPERATION DAY" value={formatDateShort(selectedDate)} sub={isTodaySelected ? "本日のレビュー対象日" : "表示中の保存レビュー日付"} />
                   <StatCard label="TARGETS" value={isTodaySelected ? `${todaySummary.venueCount}会場 / ${todaySummary.raceCount}R` : `${reviewFileSummary.venueCount}会場`} sub={isTodaySelected ? "当日保存済み予想から作業台を構成" : "index.json に登録された会場ファイルを表示"} />
                   <StatCard label="FILE STATUS" value={isTodaySelected ? `${todaySummary.hitCount}的中 / ${todaySummary.settledCount}照合` : `${reviewFileSummary.loadedTextCount}件読込`} sub={isTodaySelected ? `レポート一時保存 ${reportRecords.length}件` : `登録ファイル ${reviewFileSummary.fileCount}件`} />
@@ -2176,17 +2174,17 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
 
               <div
                 style={{
-                  borderRadius: "30px",
-                  border: `1px solid ${heroTone.border}`,
-                  background: "radial-gradient(circle at 20% 20%, rgba(243,232,255,0.95) 0%, rgba(248,244,252,0.75) 42%, rgba(255,255,255,0.95) 100%)",
+                  borderRadius: "0px",
+                  border: "none",
+                  background: "transparent",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  minHeight: "300px",
-                  maxHeight: "340px",
-                  padding: "18px",
+                  minHeight: "600px",
+                  maxHeight: "600px",
+                  padding: "0px",
                   minWidth: 0,
-                  overflow: "hidden",
+                  overflow: "visible",
                 }}
               >
                 <div
@@ -2204,18 +2202,18 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                     pointerEvents: "none",
                   }}
                 >
-                  <img
-                    src={toPublicPath("/review-page/review-page-hero-kurari-charigon-thinking.png")}
-                    alt=""
-                    style={{
-                      width: "min(500px, 100%)",
-                      maxHeight: "330px",
-                      objectFit: "contain",
-                      objectPosition: "center bottom",
-                      filter: "drop-shadow(0 24px 28px rgba(122, 103, 184, 0.16))",
-                      transform: "translateY(8px)",
-                    }}
-                  />
+<img
+  src={toPublicPath("/review-page/review-page-hero-kurari-charigon-thinking.png")}
+  alt=""
+  style={{
+    width: "min(900px, 108%)",
+    maxHeight: "500px",
+    objectFit: "contain",
+    objectPosition: "center bottom",
+    filter: "drop-shadow(0 24px 28px rgba(122, 103, 184, 0.16))",
+    transform: "translateY(10px)",
+  }}
+/>
                 </div>
               </div>
             </div>
@@ -2251,8 +2249,6 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                 <div style={{ fontSize: "26px", fontWeight: 900, color: "#101828" }}>レビュー日付を選ぶ</div>
               </div>
               <div style={{ fontSize: "12px", lineHeight: 1.7, color: "#6b7280", textAlign: "right" }}>
-                <div>{isTodaySelected ? "今日を選ぶと当日レビュー作業台です。" : "過去日付は保存ファイルレビューです。"}</div>
-                <div>未来日付は選択できません。</div>
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "14px" }}>
@@ -2334,7 +2330,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "10px", marginTop: "16px" }}>
               <SummaryChip label="対象日" value={formatDateLabel(selectedDate)} />
-              <SummaryChip label="表示モード" value={isTodaySelected ? "当日レビュー作業台" : "保存ファイルレビュー"} />
+              <SummaryChip label="表示モード" value={isTodaySelected ? "LIVE WORKBENCH" : "FILE ARCHIVE"} />
               <SummaryChip label="対象会場" value={isTodaySelected ? `${filteredVenueGroups.length}会場` : `${filteredReviewFileGroups.length}会場`} />
             </div>
             <div style={{ marginTop: "16px", fontSize: "12px", lineHeight: 1.8, color: "#6b7280" }}>
@@ -2612,7 +2608,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
               <>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "12px", marginBottom: "18px" }}>
                   <SummaryChip label="対象会場" value={`${(isTodaySelected ? selectedVenueGroup?.venue : selectedReviewFileGroup?.venue) ?? "--"} / ${formatDateShort(selectedDate)}`} />
-                  <SummaryChip label={isTodaySelected ? "対象R数" : "表示モード"} value={isTodaySelected ? `${selectedVenueGroup?.races.length ?? 0}R` : "保存ファイルレビュー"} />
+                  <SummaryChip label={isTodaySelected ? "対象R数" : "表示モード"} value={isTodaySelected ? `${selectedVenueGroup?.races.length ?? 0}R` : "FILE ARCHIVE"} />
                   <SummaryChip label={isTodaySelected ? "レポート状態" : "保存方式"} value={isTodaySelected ? selectedReportRecord ? "保存済み" : "未保存" : "fetch only"} />
                 </div>
 
