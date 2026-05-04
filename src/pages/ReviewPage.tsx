@@ -460,9 +460,19 @@ function extractReviewSummaryPercentage(source: string, label: string) {
   return Number.isFinite(value) ? value : undefined;
 }
 
+function extractReviewHitRatePercentage(source: string) {
+  const directValue = extractReviewSummaryPercentage(source, "的中率");
+  if (directValue !== undefined) return directValue;
+  const normalized = source.replace(/\*\*/g, "");
+  const match = normalized.match(/3連単的中[:：][^\n\r]*?([0-9]+(?:\.[0-9]+)?)\s*%/);
+  if (!match) return undefined;
+  const value = Number(match[1]);
+  return Number.isFinite(value) ? value : undefined;
+}
+
 function buildReviewFileCardMetrics(group: ReviewFileVenueGroup): ReviewFileCardMetrics {
   const source = group.summaryText;
-  const hitRateValue = extractReviewSummaryPercentage(source, "的中率");
+  const hitRateValue = extractReviewHitRatePercentage(source);
   const roiValue = extractReviewSummaryPercentage(source, "回収率");
   const checkedCount = extractReviewSummaryNumber(source, "照合数");
   const investment = extractReviewSummaryNumber(source, "投資");
