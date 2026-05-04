@@ -647,7 +647,15 @@ async function fetchReviewTextFile(path?: string) {
   try {
     const response = await fetch(toPublicPath(path), { cache: "force-cache" });
     if (!response.ok) return "";
-    return await response.text();
+
+    const contentType = response.headers.get("content-type") ?? "";
+    const text = await response.text();
+    const normalized = text.trim().toLowerCase();
+
+    if (contentType.includes("text/html")) return "";
+    if (normalized.startsWith("<!doctype html") || normalized.startsWith("<html")) return "";
+
+    return text;
   } catch {
     return "";
   }
@@ -1785,7 +1793,18 @@ export default function ReviewPage() {
     )
       .then((groups) => {
         if (cancelled) return;
-        setReviewFileGroups(groups.sort((a, b) => a.venue.localeCompare(b.venue, "ja")));
+
+        const visibleGroups = groups
+          .filter((group) =>
+            Boolean(
+              group.predictionText.trim() ||
+              group.resultText.trim() ||
+              group.summaryText.trim()
+            )
+          )
+          .sort((a, b) => a.venue.localeCompare(b.venue, "ja"));
+
+        setReviewFileGroups(visibleGroups);
         setReviewFileLoadStatus("ready");
       })
       .catch(() => {
