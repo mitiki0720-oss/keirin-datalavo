@@ -143,6 +143,36 @@ type ReviewReportRecord = {
   resultCopy: string;
 };
 
+type ReviewFileIndexItem = {
+  date: string;
+  venue: string;
+  predictionFile?: string;
+  resultFile?: string;
+};
+
+type ReviewFileIndex = {
+  version: number;
+  items: ReviewFileIndexItem[];
+};
+
+type ReviewFileVenueGroup = {
+  date: string;
+  venue: string;
+  predictionFile?: string;
+  resultFile?: string;
+  predictionText: string;
+  resultText: string;
+};
+
+type MonthCell = {
+  isoDate: string;
+  dayNumber: number;
+  inCurrentMonth: boolean;
+  isSelected: boolean;
+  isToday: boolean;
+  isDisabled: boolean;
+};
+
 type VenueReviewRace = {
   venue: string;
   date: string;
@@ -184,6 +214,8 @@ const toPublicPath = (path: string) => {
 };
 
 const PREDICTION_TODAY_DATA_URL = toPublicPath("/data/races/today.generated.json");
+const REVIEW_FILE_INDEX_URL = toPublicPath("/data/reviews/index.json");
+const REVIEW_CALENDAR_WEEKDAY_LABELS = ["月", "火", "水", "木", "金", "土", "日"];
 
 
 const sessionLabelMap: Record<string, string> = {
@@ -328,6 +360,46 @@ function formatDateShort(iso: string) {
     month: "numeric",
     day: "numeric",
   }).format(date);
+}
+
+function formatMonthLabel(isoMonth: string) {
+  if (!/^\d{4}-\d{2}$/.test(isoMonth)) return isoMonth;
+  const date = new Date(`${isoMonth}-01T00:00:00+09:00`);
+  if (Number.isNaN(date.getTime())) return isoMonth;
+  return new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "long",
+  }).format(date);
+}
+
+function shiftReviewIsoMonth(isoMonth: string, months: number) {
+  const base = new Date(`${isoMonth}-01T00:00:00Z`);
+  if (Number.isNaN(base.getTime())) return isoMonth;
+  base.setUTCMonth(base.getUTCMonth() + months);
+  return base.toISOString().slice(0, 7);
+}
+
+function buildReviewMonthMatrix(isoMonth: string, selectedDate: string, todayDate: string) {
+  const firstDayIso = `${isoMonth}-01`;
+  const firstDay = new Date(`${firstDayIso}T00:00:00Z`);
+  if (Number.isNaN(firstDay.getTime())) return [] as MonthCell[][];
+
+  const startOffset = (firstDay.getUTCDay() + 6) % 7;
+  const startIso = shiftReviewIsoDateByDays(firstDayIso, -startOffset);
+  const cells = Array.from({ length: 42 }, (_, index) => {
+    const isoDate = shiftReviewIsoDateByDays(startIso, index);
+    return {
+      isoDate,
+      dayNumber: Number(isoDate.slice(8, 10)),
+      inCurrentMonth: isoDate.startsWith(isoMonth),
+      isSelected: isoDate === selectedDate,
+      isToday: isoDate === todayDate,
+      isDisabled: isoDate > todayDate,
+    } satisfies MonthCell;
+  });
+
+  return Array.from({ length: 6 }, (_, rowIndex) => cells.slice(rowIndex * 7, rowIndex * 7 + 7));
 }
 
 function formatYen(value?: number) {
@@ -482,6 +554,32 @@ function loadReviewReports() {
     }
   }
   return activeRecords;
+}
+
+function normalizeReviewFileIndexItem(record: Partial<ReviewFileIndexItem>): ReviewFileIndexItem | null {
+  const date = typeof record.date === "string" ? record.date : "";
+  const venue = typeof record.venue === "string" ? record.venue : "";
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !venue) return null;
+
+  return {
+    date,
+    venue,
+    predictionFile: typeof record.predictionFile === "string" ? record.predictionFile : undefined,
+    resultFile: typeof record.resultFile === "string" ? record.resultFile : undefined,
+  };
+}
+
+async function fetchReviewTextFile(path?: string) {
+  if (!path) return "";
+
+  try {
+    const response = await fetch(toPublicPath(path), { cache: "force-cache" });
+    if (!response.ok) return "";
+    return await response.text();
+  } catch {
+    return "";
+  }
 }
 
 function saveReviewReports(records: ReviewReportRecord[]) {
@@ -1373,10 +1471,10 @@ function downloadTextFile(filename: string, text: string) {
   window.URL.revokeObjectURL(url);
 }
 
-function buildReviewDownloadFileName(group: VenueReviewGroup, kind: "prediction" | "result") {
+function buildReviewDownloadFileName(date: string, venue: string, kind: "prediction" | "result") {
   const kindLabel = kind === "prediction" ? "prediction" : "result";
-  const safeVenue = group.venue.replace(/[\\/:*?"<>|]/g, "");
-  return `kurari-review-${group.date}-${safeVenue}-${kindLabel}.txt`;
+  const safeVenue = venue.replace(/[\\/:*?"<>|]/g, "");
+  return `kurari-review-${date}-${safeVenue}-${kindLabel}.txt`;
 }
 
 function StatCard({ label, value, sub }: { label: string; value: string; sub: string }) {
@@ -1444,12 +1542,16 @@ function ReviewVenueMetric({ label, value, sub }: { label: string; value: string
 }
 
 export default function ReviewPage() {
+  const operationalToday = getJstOperationalDate();
   const [slotMap, setSlotMap] = useState<Record<string, PredictionSlotRecord>>({});
   const [resultMap, setResultMap] = useState<Record<string, PredictionResultRecord>>({});
   const [reportRecords, setReportRecords] = useState<ReviewReportRecord[]>([]);
   const [todayFeed, setTodayFeed] = useState<PredictionTodayFeed | null>(null);
   const [raceResultSnapshotMap, setRaceResultSnapshotMap] = useState<ReviewRaceResultSnapshotMap>({});
   const [reviewWeatherActualMap, setReviewWeatherActualMap] = useState<ReviewWeatherActualMap>({});
+  const [reviewFileIndexItems, setReviewFileIndexItems] = useState<ReviewFileIndexItem[]>([]);
+  const [reviewFileGroups, setReviewFileGroups] = useState<ReviewFileVenueGroup[]>([]);
+  const [reviewFileLoadStatus, setReviewFileLoadStatus] = useState<"idle" | "loading" | "ready">("idle");
   const [venueQuery, setVenueQuery] = useState("");
   const [playerQuery, setPlayerQuery] = useState("");
   const [keywordQuery, setKeywordQuery] = useState("");
@@ -1457,7 +1559,9 @@ export default function ReviewPage() {
   const [reportDraft, setReportDraft] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
   const [reportStatus, setReportStatus] = useState("");
-  const selectedDate = getJstOperationalDate();
+  const [selectedDate, setSelectedDate] = useState(operationalToday);
+  const [calendarMonth, setCalendarMonth] = useState(operationalToday.slice(0, 7));
+  const isTodaySelected = selectedDate === operationalToday;
 
   useEffect(() => {
     setSlotMap(loadPredictionSlots());
@@ -1495,6 +1599,34 @@ export default function ReviewPage() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
+    fetch(REVIEW_FILE_INDEX_URL, { cache: "no-cache" })
+      .then((response) => {
+        if (!response.ok) throw new Error(`review-file-index-${response.status}`);
+        return response.json() as Promise<ReviewFileIndex>;
+      })
+      .then((payload) => {
+        if (cancelled) return;
+        const items = Array.isArray(payload?.items)
+          ? payload.items
+              .map((item) => normalizeReviewFileIndexItem(item))
+              .filter((item): item is ReviewFileIndexItem => item !== null)
+              .sort((a, b) => `${a.date}:${a.venue}`.localeCompare(`${b.date}:${b.venue}`, "ja"))
+          : [];
+        setReviewFileIndexItems(items);
+      })
+      .catch(() => {
+        if (!cancelled) setReviewFileIndexItems([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isTodaySelected) return;
   if (!todayFeed?.date || !todayFeed.venues?.length) return;
 
   setRaceResultSnapshotMap((current) => {
@@ -1526,7 +1658,7 @@ export default function ReviewPage() {
 
     return saveReviewRaceResultSnapshots(next);
   });
-}, [todayFeed]);
+}, [isTodaySelected, todayFeed]);
 
   useEffect(() => {
     if (!copyStatus) return;
@@ -1551,7 +1683,50 @@ export default function ReviewPage() {
     ),
   [selectedDate, slotMap, resultMap, todayFeed, raceResultSnapshotMap],
 );
+
   useEffect(() => {
+    if (isTodaySelected) {
+      setReviewFileGroups([]);
+      setReviewFileLoadStatus("idle");
+      return;
+    }
+
+    const targets = reviewFileIndexItems.filter((item) => item.date === selectedDate);
+
+    if (targets.length === 0) {
+      setReviewFileGroups([]);
+      setReviewFileLoadStatus("ready");
+      return;
+    }
+
+    let cancelled = false;
+    setReviewFileLoadStatus("loading");
+
+    Promise.all(
+      targets.map(async (item) => ({
+        ...item,
+        predictionText: await fetchReviewTextFile(item.predictionFile),
+        resultText: await fetchReviewTextFile(item.resultFile),
+      }))
+    )
+      .then((groups) => {
+        if (cancelled) return;
+        setReviewFileGroups(groups.sort((a, b) => a.venue.localeCompare(b.venue, "ja")));
+        setReviewFileLoadStatus("ready");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setReviewFileGroups([]);
+        setReviewFileLoadStatus("ready");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isTodaySelected, reviewFileIndexItems, selectedDate]);
+
+  useEffect(() => {
+    if (!isTodaySelected) return;
     if (venueGroups.length === 0) return;
 
     let cancelled = false;
@@ -1628,7 +1803,7 @@ export default function ReviewPage() {
     return () => {
       cancelled = true;
     };
-  }, [reviewWeatherActualMap, venueGroups]);
+  }, [isTodaySelected, reviewWeatherActualMap, venueGroups]);
 
   const filteredVenueGroups = useMemo(() => {
     const venueNeedle = venueQuery.trim();
@@ -1646,43 +1821,75 @@ export default function ReviewPage() {
     });
   }, [keywordQuery, playerQuery, venueGroups, venueQuery]);
 
+  const filteredReviewFileGroups = useMemo(() => {
+    const venueNeedle = venueQuery.trim();
+    const playerNeedle = playerQuery.trim();
+    const keywordNeedle = keywordQuery.trim();
+
+    return reviewFileGroups.filter((group) => {
+      if (venueNeedle && !group.venue.includes(venueNeedle)) return false;
+      const haystack = `${group.venue}\n${group.predictionText}\n${group.resultText}`;
+      if (playerNeedle && !haystack.includes(playerNeedle)) return false;
+      if (keywordNeedle && !haystack.includes(keywordNeedle)) return false;
+      return true;
+    });
+  }, [keywordQuery, playerQuery, reviewFileGroups, venueQuery]);
+
   const sortedVenueGroupsForCards = useMemo(
   () => [...filteredVenueGroups].sort(sortReviewVenueGroupsForCards),
   [filteredVenueGroups],
 );
 
   useEffect(() => {
-    if (filteredVenueGroups.length === 0) {
+    const targetGroups = isTodaySelected ? filteredVenueGroups.map((group) => group.venue) : filteredReviewFileGroups.map((group) => group.venue);
+
+    if (targetGroups.length === 0) {
       setSelectedVenueName("");
       return;
     }
-    if (!selectedVenueName || !filteredVenueGroups.some((group) => group.venue === selectedVenueName)) {
-      setSelectedVenueName(filteredVenueGroups[0].venue);
+    if (!selectedVenueName || !targetGroups.includes(selectedVenueName)) {
+      setSelectedVenueName(targetGroups[0]);
     }
-  }, [filteredVenueGroups, selectedVenueName]);
+  }, [filteredReviewFileGroups, filteredVenueGroups, isTodaySelected, selectedVenueName]);
 
   const selectedVenueGroup = useMemo(
     () => filteredVenueGroups.find((group) => group.venue === selectedVenueName) ?? filteredVenueGroups[0] ?? null,
     [filteredVenueGroups, selectedVenueName],
   );
 
+  const selectedReviewFileGroup = useMemo(
+    () => filteredReviewFileGroups.find((group) => group.venue === selectedVenueName) ?? filteredReviewFileGroups[0] ?? null,
+    [filteredReviewFileGroups, selectedVenueName],
+  );
+
   const selectedPredictionCopy = useMemo(
-    () => (selectedVenueGroup ? buildPredictionCopy(selectedVenueGroup) : ""),
-    [selectedVenueGroup],
+    () => {
+      if (isTodaySelected) return selectedVenueGroup ? buildPredictionCopy(selectedVenueGroup) : "";
+      return selectedReviewFileGroup?.predictionText ?? "";
+    },
+    [isTodaySelected, selectedReviewFileGroup, selectedVenueGroup],
   );
   const selectedResultCopy = useMemo(
-    () => (selectedVenueGroup ? buildResultCopy(selectedVenueGroup, reviewWeatherActualMap) : ""),
-    [reviewWeatherActualMap, selectedVenueGroup],
+    () => {
+      if (isTodaySelected) return selectedVenueGroup ? buildResultCopy(selectedVenueGroup, reviewWeatherActualMap) : "";
+      return selectedReviewFileGroup?.resultText ?? "";
+    },
+    [isTodaySelected, reviewWeatherActualMap, selectedReviewFileGroup, selectedVenueGroup],
   );
 
   const selectedReportRecord = useMemo(() => {
+    if (!isTodaySelected) return null;
     if (!selectedVenueGroup) return null;
     return reportRecords.find((item) => item.date === selectedVenueGroup.date && item.venue === selectedVenueGroup.venue) ?? null;
-  }, [reportRecords, selectedVenueGroup]);
+  }, [isTodaySelected, reportRecords, selectedVenueGroup]);
 
   useEffect(() => {
+    if (!isTodaySelected) {
+      setReportDraft("");
+      return;
+    }
     setReportDraft(selectedReportRecord?.reportText ?? "");
-  }, [selectedReportRecord?.reportText, selectedVenueGroup?.venue, selectedVenueGroup?.date]);
+  }, [isTodaySelected, selectedReportRecord?.reportText, selectedVenueGroup?.venue, selectedVenueGroup?.date]);
 
   const todaySummary = useMemo(() => {
     const groups = venueGroups;
@@ -1703,6 +1910,33 @@ export default function ReviewPage() {
       settledCount,
     };
   }, [venueGroups]);
+
+  const reviewFileSummary = useMemo(() => {
+    const fileCount = reviewFileGroups.reduce((sum, group) => {
+      let count = sum;
+      if (group.predictionFile) count += 1;
+      if (group.resultFile) count += 1;
+      return count;
+    }, 0);
+
+    const loadedTextCount = reviewFileGroups.reduce((sum, group) => {
+      let count = sum;
+      if (group.predictionText.trim()) count += 1;
+      if (group.resultText.trim()) count += 1;
+      return count;
+    }, 0);
+
+    return {
+      venueCount: reviewFileGroups.length,
+      fileCount,
+      loadedTextCount,
+    };
+  }, [reviewFileGroups]);
+
+  const calendarWeeks = useMemo(
+    () => buildReviewMonthMatrix(calendarMonth, selectedDate, operationalToday),
+    [calendarMonth, operationalToday, selectedDate],
+  );
 
 const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
   const file = event.currentTarget.files?.[0];
@@ -1729,6 +1963,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
 };
 
   const saveCurrentReport = () => {
+    if (!isTodaySelected) return;
     if (!selectedVenueGroup) return;
     const activeDate = getJstOperationalDate();
     const activeReportRecords = reportRecords.filter((item) => item.date === activeDate);
@@ -1751,6 +1986,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
   };
 
   const deleteCurrentReport = () => {
+    if (!isTodaySelected) return;
     if (!selectedVenueGroup) return;
     const activeDate = getJstOperationalDate();
     const next = reportRecords
@@ -1763,7 +1999,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
   };
 
   const heroTone =
-    venueColorMap[selectedVenueGroup?.venue ?? ""] ?? {
+    venueColorMap[(isTodaySelected ? selectedVenueGroup?.venue : selectedReviewFileGroup?.venue) ?? ""] ?? {
       border: "#d8c9f5",
       chip: "rgba(126, 91, 227, 0.12)",
       text: "#6a43c3",
@@ -1787,7 +2023,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
             }}
           >
             <div style={{ fontSize: "11px", letterSpacing: "0.24em", fontWeight: 900, color: "#9a7ad9", marginBottom: "14px" }}>
-              TODAY REVIEW
+              {isTodaySelected ? "TODAY REVIEW" : "FILE REVIEW"}
             </div>
             <div
   style={{
@@ -1800,10 +2036,12 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
 >
   <div style={{ minWidth: 0 }}>
     <h1 style={{ margin: 0, fontSize: "40px", lineHeight: 1.12, fontWeight: 900, color: "#111827", marginBottom: "14px" }}>
-      当日レビュー作業台
+      {isTodaySelected ? "当日レビュー作業台" : "保存ファイルレビュー"}
     </h1>
     <p style={{ margin: 0, maxWidth: "920px", fontSize: "15px", lineHeight: 1.95, color: "#5f6676" }}>
-      本日の保存済み予想と結果だけを使って、会場ごとのレビュー素材をまとめるページです。
+      {isTodaySelected
+        ? "本日の保存済み予想と結果だけを使って、会場ごとのレビュー素材をまとめるページです。"
+        : "この日付はTXT/Markdown保存データを表示しています。localStorageには保存しません。"}
     </p>
   </div>
 
@@ -1838,16 +2076,22 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
     <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: heroTone.text, marginBottom: "8px" }}>OPERATION DAY</div>
     <div style={{ fontSize: "24px", fontWeight: 900, color: "#101828", lineHeight: 1.2 }}>{formatDateLabel(selectedDate)}</div>
     <div style={{ fontSize: "12px", color: "#6c7687", marginTop: "8px", lineHeight: 1.7 }}>
-      {selectedVenueGroup ? `${selectedVenueGroup.venue} / ${selectedVenueGroup.races.length}R を選択中` : "当日保存データだけを表示します"}
+      {isTodaySelected
+        ? selectedVenueGroup
+          ? `${selectedVenueGroup.venue} / ${selectedVenueGroup.races.length}R を選択中`
+          : "当日保存データだけを表示します"
+        : selectedReviewFileGroup
+          ? `${selectedReviewFileGroup.venue} / 保存TXTを表示中`
+          : "保存レビューTXTを切り替えて表示します"}
     </div>
   </div>
 </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "14px" }}>
-              <StatCard label="OPERATION DAY" value={formatDateShort(selectedDate)} sub="本日のレビュー対象日" />
-              <StatCard label="TARGETS" value={`${todaySummary.venueCount}会場 / ${todaySummary.raceCount}R`} sub="当日保存済み予想から作業台を構成" />
-              <StatCard label="RESULT CHECK" value={`${todaySummary.hitCount}的中 / ${todaySummary.settledCount}照合`} sub={`レポート一時保存 ${reportRecords.length}件`} />
-              <StatCard label="PROFIT" value={formatProfit(todaySummary.profitLoss)} sub={`投資 ${formatYen(todaySummary.totalInvestment)} / 払戻 ${formatYen(todaySummary.totalPayout)} / ROI ${formatRate(todaySummary.roi)}`} />
+              <StatCard label="OPERATION DAY" value={formatDateShort(selectedDate)} sub={isTodaySelected ? "本日のレビュー対象日" : "表示中の保存レビュー日付"} />
+              <StatCard label="TARGETS" value={isTodaySelected ? `${todaySummary.venueCount}会場 / ${todaySummary.raceCount}R` : `${reviewFileSummary.venueCount}会場`} sub={isTodaySelected ? "当日保存済み予想から作業台を構成" : "index.json に登録された会場ファイルを表示"} />
+              <StatCard label={isTodaySelected ? "RESULT CHECK" : "FILE STATUS"} value={isTodaySelected ? `${todaySummary.hitCount}的中 / ${todaySummary.settledCount}照合` : `${reviewFileSummary.loadedTextCount}件読込`} sub={isTodaySelected ? `レポート一時保存 ${reportRecords.length}件` : `登録ファイル ${reviewFileSummary.fileCount}件`} />
+              <StatCard label={isTodaySelected ? "PROFIT" : "MODE"} value={isTodaySelected ? formatProfit(todaySummary.profitLoss) : "TXT / FETCH"} sub={isTodaySelected ? `投資 ${formatYen(todaySummary.totalInvestment)} / 払戻 ${formatYen(todaySummary.totalPayout)} / ROI ${formatRate(todaySummary.roi)}` : "過去レビューは localStorage に保存しません"} />
             </div>
           </article>
 
@@ -1862,21 +2106,77 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
               <div>
-                <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "8px" }}>TODAY WORKBENCH</div>
-                <div style={{ fontSize: "26px", fontWeight: 900, color: "#101828" }}>本日のレビュー</div>
+                <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "8px" }}>REVIEW CALENDAR</div>
+                <div style={{ fontSize: "26px", fontWeight: 900, color: "#101828" }}>レビュー日付を選ぶ</div>
               </div>
               <div style={{ fontSize: "12px", lineHeight: 1.7, color: "#6b7280", textAlign: "right" }}>
-                <div>過去日付の切り替えはありません。</div>
-                <div>当日運用分だけを朝6時基準で整理します。</div>
+                <div>{isTodaySelected ? "今日を選ぶと当日レビュー作業台です。" : "過去日付は保存ファイルレビューです。"}</div>
+                <div>未来日付は選択できません。</div>
               </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "10px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "14px" }}>
+              <button
+                onClick={() => setCalendarMonth((current) => shiftReviewIsoMonth(current, -1))}
+                style={{ border: "1px solid rgba(196, 181, 253, 0.75)", background: "white", color: "#6542be", borderRadius: "999px", padding: "10px 14px", cursor: "pointer", fontWeight: 900 }}
+              >
+                前月
+              </button>
+              <div style={{ fontSize: "18px", fontWeight: 900, color: "#101828" }}>{formatMonthLabel(calendarMonth)}</div>
+              <button
+                onClick={() => setCalendarMonth((current) => shiftReviewIsoMonth(current, 1))}
+                disabled={shiftReviewIsoMonth(calendarMonth, 1) > operationalToday.slice(0, 7)}
+                style={{ border: "1px solid rgba(196, 181, 253, 0.75)", background: "white", color: shiftReviewIsoMonth(calendarMonth, 1) > operationalToday.slice(0, 7) ? "#b7b8c4" : "#6542be", borderRadius: "999px", padding: "10px 14px", cursor: shiftReviewIsoMonth(calendarMonth, 1) > operationalToday.slice(0, 7) ? "not-allowed" : "pointer", fontWeight: 900 }}
+              >
+                次月
+              </button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "8px", marginBottom: "10px" }}>
+              {REVIEW_CALENDAR_WEEKDAY_LABELS.map((label) => (
+                <div key={label} style={{ textAlign: "center", fontSize: "11px", fontWeight: 900, color: "#8f72ca", letterSpacing: "0.12em" }}>
+                  {label}
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "grid", gap: "8px" }}>
+              {calendarWeeks.map((week, weekIndex) => (
+                <div key={`${calendarMonth}:${weekIndex}`} style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "8px" }}>
+                  {week.map((cell) => (
+                    <button
+                      key={cell.isoDate}
+                      onClick={() => {
+                        setSelectedDate(cell.isoDate);
+                        setCalendarMonth(cell.isoDate.slice(0, 7));
+                      }}
+                      disabled={cell.isDisabled}
+                      style={{
+                        minHeight: "46px",
+                        borderRadius: "16px",
+                        border: cell.isSelected ? "1px solid rgba(123,91,227,0.92)" : "1px solid rgba(229,221,241,0.92)",
+                        background: cell.isSelected
+                          ? "linear-gradient(135deg, rgba(123,91,227,0.16) 0%, rgba(93,121,232,0.16) 100%)"
+                          : cell.isToday
+                            ? "rgba(250,247,255,0.96)"
+                            : "rgba(255,255,255,0.95)",
+                        color: cell.isDisabled ? "#c0c3cf" : cell.inCurrentMonth ? "#111827" : "#9aa1b1",
+                        cursor: cell.isDisabled ? "not-allowed" : "pointer",
+                        fontWeight: cell.isSelected || cell.isToday ? 900 : 700,
+                      }}
+                    >
+                      {cell.dayNumber}
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "10px", marginTop: "16px" }}>
               <SummaryChip label="対象日" value={formatDateLabel(selectedDate)} />
-              <SummaryChip label="対象会場" value={`${filteredVenueGroups.length}会場`} />
-              <SummaryChip label="一時保存レポート" value={`${reportRecords.length}件`} />
+              <SummaryChip label="表示モード" value={isTodaySelected ? "当日レビュー作業台" : "保存ファイルレビュー"} />
+              <SummaryChip label="対象会場" value={isTodaySelected ? `${filteredVenueGroups.length}会場` : `${filteredReviewFileGroups.length}会場`} />
             </div>
             <div style={{ marginTop: "16px", fontSize: "12px", lineHeight: 1.8, color: "#6b7280" }}>
-              本ページは当日レビュー専用です。過去レビューはTXT/Markdownで別保存してください。
+              {isTodaySelected
+                ? "当日分は localStorage と today.generated.json を使います。"
+                : "過去日付は public/data/reviews/index.json と TXT ファイルを fetch して表示します。"}
             </div>
           </article>
         </div>
@@ -1894,11 +2194,11 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
           <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "20px", marginBottom: "18px" }}>
             <div>
               <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "8px" }}>SEARCH & FILTER</div>
-              <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>当日の会場とメモを絞り込む</h2>
+              <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>{isTodaySelected ? "当日の会場とメモを絞り込む" : "保存ファイルの会場と文面を絞り込む"}</h2>
             </div>
             <div style={{ fontSize: "12px", color: "#6d7687", lineHeight: 1.7, textAlign: "right" }}>
-              <div>当日保存された予想と結果だけを対象に、</div>
-              <div>会場カードとレポート貼り付け欄を切り替えます。</div>
+              <div>{isTodaySelected ? "当日保存された予想と結果だけを対象に、" : "選択日付の保存レビューTXTだけを対象に、"}</div>
+              <div>{isTodaySelected ? "会場カードとレポート貼り付け欄を切り替えます。" : "会場カードと表示テキストを切り替えます。"}</div>
             </div>
           </div>
 
@@ -1922,15 +2222,17 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "20px", marginBottom: "16px" }}>
             <div>
               <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "8px" }}>VENUE REVIEW CARDS</div>
-              <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>今日予想した会場を、見やすいカードで振り返る</h2>
+              <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>{isTodaySelected ? "今日予想した会場を、見やすいカードで振り返る" : "保存ファイルがある会場を、見やすいカードで振り返る"}</h2>
             </div>
             <div style={{ fontSize: "12px", color: "#6d7687", lineHeight: 1.7, textAlign: "right" }}>
               <div>会場を押すと、左のコピー素材と</div>
-              <div>右のレポート保存欄が切り替わります。</div>
+              <div>{isTodaySelected ? "右のレポート保存欄が切り替わります。" : "右の保存ファイル情報が切り替わります。"}</div>
             </div>
           </div>
 
-{sortedVenueGroupsForCards.length === 0 ? (
+{(isTodaySelected
+  ? sortedVenueGroupsForCards.length === 0
+  : reviewFileLoadStatus !== "loading" && filteredReviewFileGroups.length === 0) ? (
   <div
     style={{
       borderRadius: "24px",
@@ -1941,8 +2243,8 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
       fontSize: "14px",
     }}
   >
-    <div style={{ fontWeight: 900, color: "#4b5563", marginBottom: "8px" }}>本日の保存済み予想はまだありません</div>
-    <div>PredictionPageで予想を保存すると、ここに当日のレビュー素材が表示されます。</div>
+    <div style={{ fontWeight: 900, color: "#4b5563", marginBottom: "8px" }}>{isTodaySelected ? "本日の保存済み予想はまだありません" : "この日付の保存レビューTXTはまだ登録されていません"}</div>
+    <div>{isTodaySelected ? "PredictionPageで予想を保存すると、ここに当日のレビュー素材が表示されます。" : "public/data/reviews/index.json に対象日付と TXT ファイルを登録すると表示されます。"}</div>
   </div>
 ) : (
   <div
@@ -1953,90 +2255,172 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
       alignItems: "stretch",
     }}
   >
-    {sortedVenueGroupsForCards.map((group) => {
-        const tone = venueColorMap[group.venue] ?? heroTone;
-        const selected = selectedVenueGroup?.venue === group.venue;
-        const profitLoss = group.totalPayout - group.totalInvestment;
-        const hitRate = group.settledCount > 0 ? `${((group.hitCount / group.settledCount) * 100).toFixed(1)}%` : "--";
-        const hitSub = group.settledCount > 0 ? `${group.hitCount}-${group.settledCount}` : "接続待ち";
-        const stageLabel = getPredictionVenueStageLabel(group, group.date);
+    {isTodaySelected
+      ? sortedVenueGroupsForCards.map((group) => {
+          const tone = venueColorMap[group.venue] ?? heroTone;
+          const selected = selectedVenueGroup?.venue === group.venue;
+          const profitLoss = group.totalPayout - group.totalInvestment;
+          const hitRate = group.settledCount > 0 ? `${((group.hitCount / group.settledCount) * 100).toFixed(1)}%` : "--";
+          const hitSub = group.settledCount > 0 ? `${group.hitCount}-${group.settledCount}` : "接続待ち";
+          const stageLabel = getPredictionVenueStageLabel(group, group.date);
 
-      return (
-        <button
-          key={`${group.date}:${group.venue}`}
-          onClick={() => setSelectedVenueName(group.venue)}
-          style={{
-            textAlign: "left",
-            width: "100%",
-            minHeight: "220px",
-            borderRadius: "24px",
-            border: `1px solid ${selected ? tone.border : "rgba(229,221,241,0.9)"}`,
-            background: selected
-              ? `linear-gradient(180deg, ${tone.chip} 0%, rgba(255,255,255,0.99) 100%)`
-              : "linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(248,245,252,0.96) 100%)",
-            boxShadow: selected
-              ? "0 18px 34px rgba(17,24,39,0.08)"
-              : "0 12px 28px rgba(17,24,39,0.05)",
-            padding: "18px 18px 16px",
-            cursor: "pointer",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", marginBottom: "14px" }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.16em", color: tone.text, marginBottom: "8px" }}>
-                {formatDateShort(group.date)}
+          return (
+            <button
+              key={`${group.date}:${group.venue}`}
+              onClick={() => setSelectedVenueName(group.venue)}
+              style={{
+                textAlign: "left",
+                width: "100%",
+                minHeight: "220px",
+                borderRadius: "24px",
+                border: `1px solid ${selected ? tone.border : "rgba(229,221,241,0.9)"}`,
+                background: selected
+                  ? `linear-gradient(180deg, ${tone.chip} 0%, rgba(255,255,255,0.99) 100%)`
+                  : "linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(248,245,252,0.96) 100%)",
+                boxShadow: selected
+                  ? "0 18px 34px rgba(17,24,39,0.08)"
+                  : "0 12px 28px rgba(17,24,39,0.05)",
+                padding: "18px 18px 16px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", marginBottom: "14px" }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.16em", color: tone.text, marginBottom: "8px" }}>
+                    {formatDateShort(group.date)}
+                  </div>
+                  <div style={{ fontSize: "22px", fontWeight: 900, color: "#111827", lineHeight: 1.08 }}>
+                    {group.venue}
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#6d7687", marginTop: "7px", lineHeight: 1.6 }}>
+                    {group.title ?? "Prediction保存データ読み込み"}
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gap: "8px", justifyItems: "end", flexShrink: 0 }}>
+                  <span
+                    style={{
+                      fontSize: "10px",
+                      fontWeight: 900,
+                      color: tone.text,
+                      background: tone.chip,
+                      border: `1px solid ${tone.border}`,
+                      padding: "6px 9px",
+                      borderRadius: "999px",
+                    }}
+                  >
+                    {group.grade ?? "--"}
+                  </span>
+
+                  <span
+                    style={{
+                      fontSize: "10px",
+                      fontWeight: 900,
+                      color: "#6d4fc2",
+                      background: "rgba(250,247,255,0.96)",
+                      border: "1px solid rgba(196, 181, 253, 0.75)",
+                      padding: "6px 9px",
+                      borderRadius: "999px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {stageLabel}
+                  </span>
+                  <span style={{ fontSize: "10px", fontWeight: 900, color: "#748092" }}>
+                    {sessionLabelMap[group.session ?? ""] ?? group.session ?? "接続待ち"}
+                  </span>
+                </div>
               </div>
-              <div style={{ fontSize: "22px", fontWeight: 900, color: "#111827", lineHeight: 1.08 }}>
-                {group.venue}
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "10px" }}>
+                <ReviewVenueMetric label="払戻" value={formatYen(group.totalPayout)} sub={group.settledCount > 0 ? "払い戻し合計" : "結果待ち"} />
+                <ReviewVenueMetric label="収支" value={formatProfit(profitLoss)} sub={profitLoss >= 0 ? "プラス収支" : "マイナス収支"} />
+                <ReviewVenueMetric label="的中率" value={hitRate} sub={hitSub} />
               </div>
-              <div style={{ fontSize: "12px", color: "#6d7687", marginTop: "7px", lineHeight: 1.6 }}>
-                {group.title ?? "Prediction保存データ読み込み"}
+            </button>
+          );
+        })
+      : filteredReviewFileGroups.map((group) => {
+          const tone = venueColorMap[group.venue] ?? heroTone;
+          const selected = selectedReviewFileGroup?.venue === group.venue;
+          const fileReady = group.predictionText.trim() || group.resultText.trim();
+
+          return (
+            <button
+              key={`${group.date}:${group.venue}`}
+              onClick={() => setSelectedVenueName(group.venue)}
+              style={{
+                textAlign: "left",
+                width: "100%",
+                minHeight: "220px",
+                borderRadius: "24px",
+                border: `1px solid ${selected ? tone.border : "rgba(229,221,241,0.9)"}`,
+                background: selected
+                  ? `linear-gradient(180deg, ${tone.chip} 0%, rgba(255,255,255,0.99) 100%)`
+                  : "linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(248,245,252,0.96) 100%)",
+                boxShadow: selected
+                  ? "0 18px 34px rgba(17,24,39,0.08)"
+                  : "0 12px 28px rgba(17,24,39,0.05)",
+                padding: "18px 18px 16px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", marginBottom: "14px" }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.16em", color: tone.text, marginBottom: "8px" }}>
+                    {formatDateShort(group.date)}
+                  </div>
+                  <div style={{ fontSize: "22px", fontWeight: 900, color: "#111827", lineHeight: 1.08 }}>
+                    {group.venue}
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#6d7687", marginTop: "7px", lineHeight: 1.6 }}>
+                    public/data/reviews から読込
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gap: "8px", justifyItems: "end", flexShrink: 0 }}>
+                  <span
+                    style={{
+                      fontSize: "10px",
+                      fontWeight: 900,
+                      color: tone.text,
+                      background: tone.chip,
+                      border: `1px solid ${tone.border}`,
+                      padding: "6px 9px",
+                      borderRadius: "999px",
+                    }}
+                  >
+                    --
+                  </span>
+
+                  <span
+                    style={{
+                      fontSize: "10px",
+                      fontWeight: 900,
+                      color: "#6d4fc2",
+                      background: "rgba(250,247,255,0.96)",
+                      border: "1px solid rgba(196, 181, 253, 0.75)",
+                      padding: "6px 9px",
+                      borderRadius: "999px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    保存ファイル
+                  </span>
+                  <span style={{ fontSize: "10px", fontWeight: 900, color: "#748092" }}>
+                    file mode
+                  </span>
+                </div>
               </div>
-            </div>
 
-            <div style={{ display: "grid", gap: "8px", justifyItems: "end", flexShrink: 0 }}>
-              <span
-  style={{
-    fontSize: "10px",
-    fontWeight: 900,
-    color: tone.text,
-    background: tone.chip,
-    border: `1px solid ${tone.border}`,
-    padding: "6px 9px",
-    borderRadius: "999px",
-  }}
->
-  {group.grade ?? "--"}
-</span>
-
-<span
-  style={{
-    fontSize: "10px",
-    fontWeight: 900,
-    color: "#6d4fc2",
-    background: "rgba(250,247,255,0.96)",
-    border: "1px solid rgba(196, 181, 253, 0.75)",
-    padding: "6px 9px",
-    borderRadius: "999px",
-    whiteSpace: "nowrap",
-  }}
->
-  {stageLabel}
-</span>
-              <span style={{ fontSize: "10px", fontWeight: 900, color: "#748092" }}>
-                {sessionLabelMap[group.session ?? ""] ?? group.session ?? "接続待ち"}
-              </span>
-            </div>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "10px" }}>
-            <ReviewVenueMetric label="払戻" value={formatYen(group.totalPayout)} sub={group.settledCount > 0 ? "払い戻し合計" : "結果待ち"} />
-            <ReviewVenueMetric label="収支" value={formatProfit(profitLoss)} sub={profitLoss >= 0 ? "プラス収支" : "マイナス収支"} />
-            <ReviewVenueMetric label="的中率" value={hitRate} sub={hitSub} />
-          </div>
-        </button>
-      );
-    })}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "10px" }}>
+                <ReviewVenueMetric label="予想TXT" value={group.predictionText.trim() ? "あり" : "--"} sub={group.predictionFile ?? "未登録"} />
+                <ReviewVenueMetric label="結果TXT" value={group.resultText.trim() ? "あり" : "--"} sub={group.resultFile ?? "未登録"} />
+                <ReviewVenueMetric label="読込状態" value={fileReady ? "READY" : "--"} sub={`${group.predictionFile ? "予想" : "-"} / ${group.resultFile ? "結果" : "-"}`} />
+              </div>
+            </button>
+          );
+        })}
   </div>
 )}
 
@@ -2047,20 +2431,20 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", marginBottom: "18px" }}>
               <div>
                 <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "8px" }}>COPY MATERIAL</div>
-                <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>会場ごとの GPT 連携素材</h2>
+                <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>{isTodaySelected ? "会場ごとの GPT 連携素材" : "保存ファイルのテキスト表示"}</h2>
               </div>
               <div style={{ fontSize: "12px", color: "#6d7687", lineHeight: 1.7, textAlign: "right" }}>
-                <div>左に予想まとめ、下に結果まとめ。</div>
+                <div>{isTodaySelected ? "左に予想まとめ、下に結果まとめ。" : "保存された予想TXTと結果TXTを表示します。"}</div>
                 <div>コピーボタンですぐ GPT に渡せます。</div>
               </div>
             </div>
 
-            {selectedVenueGroup ? (
+            {(isTodaySelected ? selectedVenueGroup : selectedReviewFileGroup) ? (
               <>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "12px", marginBottom: "18px" }}>
-                  <SummaryChip label="対象会場" value={`${selectedVenueGroup.venue} / ${formatDateShort(selectedVenueGroup.date)}`} />
-                  <SummaryChip label="対象R数" value={`${selectedVenueGroup.races.length}R`} />
-                  <SummaryChip label="レポート状態" value={selectedReportRecord ? "保存済み" : "未保存"} />
+                  <SummaryChip label="対象会場" value={`${(isTodaySelected ? selectedVenueGroup?.venue : selectedReviewFileGroup?.venue) ?? "--"} / ${formatDateShort(selectedDate)}`} />
+                  <SummaryChip label={isTodaySelected ? "対象R数" : "表示モード"} value={isTodaySelected ? `${selectedVenueGroup?.races.length ?? 0}R` : "保存ファイルレビュー"} />
+                  <SummaryChip label={isTodaySelected ? "レポート状態" : "保存方式"} value={isTodaySelected ? selectedReportRecord ? "保存済み" : "未保存" : "fetch only"} />
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px" }}>
@@ -2094,7 +2478,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
     onClick={() => {
       if (!selectedVenueGroup) return;
       downloadTextFile(
-        buildReviewDownloadFileName(selectedVenueGroup, "prediction"),
+        buildReviewDownloadFileName(selectedDate, (isTodaySelected ? selectedVenueGroup?.venue : selectedReviewFileGroup?.venue) ?? "review", "prediction"),
         selectedPredictionCopy
       );
       setCopyStatus("予想まとめTXTをダウンロードしました");
@@ -2146,7 +2530,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
     onClick={() => {
       if (!selectedVenueGroup) return;
       downloadTextFile(
-        buildReviewDownloadFileName(selectedVenueGroup, "result"),
+        buildReviewDownloadFileName(selectedDate, (isTodaySelected ? selectedVenueGroup?.venue : selectedReviewFileGroup?.venue) ?? "review", "result"),
         selectedResultCopy
       );
       setCopyStatus("結果まとめTXTをダウンロードしました");
@@ -2182,15 +2566,15 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", marginBottom: "18px" }}>
               <div>
                 <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "8px" }}>GPT REVIEW</div>
-                <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>当日レポート貼り付け欄</h2>
+                <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>{isTodaySelected ? "当日レポート貼り付け欄" : "ファイル保存レビュー"}</h2>
               </div>
               <div style={{ fontSize: "12px", color: "#6d7687", lineHeight: 1.7, textAlign: "right" }}>
-                <div>当日の振り返りを一時保存します。</div>
-                <div>保存版はTXT/Markdownで別管理してください。</div>
+                <div>{isTodaySelected ? "当日の振り返りを一時保存します。" : "この日付はTXT/Markdown保存データを表示しています。"}</div>
+                <div>{isTodaySelected ? "保存版はTXT/Markdownで別管理してください。" : "localStorageには保存しません。"}</div>
               </div>
             </div>
 
-            {selectedVenueGroup ? (
+            {isTodaySelected ? selectedVenueGroup ? (
               <>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "12px", marginBottom: "18px" }}>
                   <SummaryChip label="会場" value={selectedVenueGroup.venue} />
@@ -2268,6 +2652,33 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
               <div style={{ borderRadius: "24px", border: "1px dashed rgba(219,211,236,0.95)", padding: "22px", color: "#6d7687", background: "rgba(255,255,255,0.7)" }}>
                 会場を選ぶとレポート保存欄が使えます。
               </div>
+            ) : selectedReviewFileGroup ? (
+              <>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "12px", marginBottom: "18px" }}>
+                  <SummaryChip label="会場" value={selectedReviewFileGroup.venue} />
+                  <SummaryChip label="日付" value={formatDateLabel(selectedReviewFileGroup.date)} />
+                  <SummaryChip label="保存方式" value="fetch only" />
+                </div>
+                <div style={{ borderRadius: "24px", border: "1px solid rgba(229,221,241,0.95)", background: "rgba(255,255,255,0.92)", padding: "18px", marginBottom: "14px" }}>
+                  <div style={{ fontSize: "13px", lineHeight: 1.9, color: "#5f6676" }}>
+                    この日付はTXT/Markdown保存データを表示しています。localStorageには保存しません。
+                  </div>
+                </div>
+                <div style={{ display: "grid", gap: "12px" }}>
+                  <div style={{ borderRadius: "22px", border: "1px solid rgba(229,221,241,0.92)", background: "rgba(255,255,255,0.95)", padding: "16px" }}>
+                    <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#9a7ad9", marginBottom: "8px" }}>PREDICTION FILE</div>
+                    <div style={{ fontSize: "13px", lineHeight: 1.8, color: "#374151" }}>{selectedReviewFileGroup.predictionFile ?? "未登録"}</div>
+                  </div>
+                  <div style={{ borderRadius: "22px", border: "1px solid rgba(229,221,241,0.92)", background: "rgba(255,255,255,0.95)", padding: "16px" }}>
+                    <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#9a7ad9", marginBottom: "8px" }}>RESULT FILE</div>
+                    <div style={{ fontSize: "13px", lineHeight: 1.8, color: "#374151" }}>{selectedReviewFileGroup.resultFile ?? "未登録"}</div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div style={{ borderRadius: "24px", border: "1px dashed rgba(219,211,236,0.95)", padding: "22px", color: "#6d7687", background: "rgba(255,255,255,0.7)" }}>
+                会場を選ぶと保存ファイル情報が表示されます。
+              </div>
             )}
 
             {reportStatus ? <div style={{ marginTop: "14px", fontSize: "13px", fontWeight: 800, color: heroTone.text }}>{reportStatus}</div> : null}
@@ -2275,7 +2686,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
         </section>
 
         <div style={{ fontSize: "12px", lineHeight: 1.8, color: "#6d7687", textAlign: "center" }}>
-          過去レビューはTXT/Markdownで別保存してください。このページは当日作業用です。
+          {isTodaySelected ? "過去レビューはTXT/Markdownで別保存してください。このページは当日作業用です。" : "この日付はファイル保存レビューです。過去レビューは public/data/reviews 配下のTXTを参照します。"}
         </div>
 
       </main>
