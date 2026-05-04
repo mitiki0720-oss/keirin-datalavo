@@ -2,30 +2,33 @@ import { type ChangeEvent, useEffect, useMemo, useState } from "react";
 import {
   SiteHeader,
   fetchPredictionVenueWeather,
+  getJstOperationalDate,
   getPredictionVenueStageLabel,
+  prunePredictionResultsMap,
+  prunePredictionSlotsMap,
   type PredictionWeatherData,
 } from "./PageImplementations";
 
 type PredictionSlotRecord = {
   raceKey: string;
-  raceId?: string;
+  raceId: string;
   venue: string;
   date: string;
   raceNumber: number;
   predictionText: string;
-  savedAt?: string;
+  savedAt: string;
 };
 
 type PredictionResultHitStatus = "hit" | "miss" | "pending";
 
 type PredictionResultRecord = {
   raceKey: string;
-  raceId?: string;
+  raceId: string;
   venue: string;
   date: string;
   raceNumber: number;
-  resultOrder?: string;
-  autoHitStatus?: PredictionResultHitStatus;
+  resultOrder: string;
+  autoHitStatus: PredictionResultHitStatus;
   manualHitStatus?: PredictionResultHitStatus;
   hitStatus: PredictionResultHitStatus;
   hitBetType?: "3連単" | "2車単";
@@ -35,8 +38,8 @@ type PredictionResultRecord = {
   profitLoss?: number;
   roi?: number;
   weatherActual?: PredictionRaceResultWeatherActual;
-  memo?: string;
-  savedAt?: string;
+  memo: string;
+  savedAt: string;
 };
 
 type PredictionRaceResultPayoutItem = {
@@ -170,12 +173,6 @@ type VenueReviewGroup = {
   hitCount: number;
 };
 
-type MonthCell = {
-  iso: string;
-  day: number;
-  inMonth: boolean;
-};
-
 const PAGE_MAX_WIDTH = "2040px";
 const PREDICTION_SLOT_STORAGE_KEY = "kurari-data-labo-prediction-slots";
 const PREDICTION_RESULT_STORAGE_KEY = "kurari-data-labo-prediction-results";
@@ -208,26 +205,6 @@ const venueColorMap: Record<string, { border: string; chip: string; text: string
   奈良: { border: "#e8ddfb", chip: "rgba(140, 104, 214, 0.12)", text: "#7857bc", accent: "#8b5cf6" },
   函館: { border: "#d4e6ff", chip: "rgba(110, 165, 255, 0.12)", text: "#376cc3", accent: "#3b82f6" },
 };
-
-function getJstNow() {
-  const formatter = new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Asia/Tokyo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
-  const parts = formatter.formatToParts(new Date());
-  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "00";
-  return {
-    isoDate: `${get("year")}-${get("month")}-${get("day")}`,
-    hhmmss: `${get("hour")}:${get("minute")}:${get("second")}`,
-    dateLabel: `${get("year")}年${get("month")}月${get("day")}日`,
-  };
-}
 
 function formatDateLabel(iso: string) {
   if (!iso) return "--";
@@ -278,8 +255,39 @@ function safeJsonParse<T>(raw: string | null, fallback: T): T {
   }
 }
 
-function normalizeReviewPredictionResultRecord(record: PredictionResultRecord): PredictionResultRecord {
+function getReviewFallbackSavedAt(date?: string, savedAt?: string) {
+  if (savedAt) return savedAt;
+  if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return `${date}T08:00:00+09:00`;
+  }
+  return new Date().toISOString();
+}
+
+function normalizeReviewPredictionSlotRecord(record: Partial<PredictionSlotRecord>): PredictionSlotRecord {
+  const date = record.date ?? "";
+  const venue = record.venue ?? "";
+  const raceNumber =
+    typeof record.raceNumber === "number" && Number.isFinite(record.raceNumber)
+      ? record.raceNumber
+      : Number(record.raceNumber ?? 0);
+
+  return {
+    raceKey: record.raceKey ?? `prediction-slot:${date}:${normalizeVenueName(venue)}:${raceNumber || 0}`,
+    raceId: record.raceId ?? "",
+    venue,
+    date,
+    raceNumber: Number.isFinite(raceNumber) ? raceNumber : 0,
+    predictionText: record.predictionText ?? "",
+    savedAt: getReviewFallbackSavedAt(date, record.savedAt),
+  };
+}
+
+function normalizeReviewPredictionResultRecord(record: Partial<PredictionResultRecord>): PredictionResultRecord {
   const hitStatus = record.hitStatus ?? "pending";
+  const raceNumber =
+    typeof record.raceNumber === "number" && Number.isFinite(record.raceNumber)
+      ? record.raceNumber
+      : Number(record.raceNumber ?? 0);
   const normalizedInvestment =
     typeof record.investment === "number" && Number.isFinite(record.investment)
       ? record.investment
@@ -306,7 +314,16 @@ function normalizeReviewPredictionResultRecord(record: PredictionResultRecord): 
 
   return {
     ...record,
+    raceKey: record.raceKey ?? "",
+    raceId: record.raceId ?? "",
+    venue: record.venue ?? "",
+    date: record.date ?? "",
+    raceNumber: Number.isFinite(raceNumber) ? raceNumber : 0,
+    resultOrder: record.resultOrder ?? "",
+    autoHitStatus: record.autoHitStatus ?? "pending",
     hitStatus,
+    memo: record.memo ?? "",
+    savedAt: getReviewFallbackSavedAt(record.date, record.savedAt),
     investment: normalizedInvestment,
     payout: normalizedPayout,
     profitLoss,
@@ -316,26 +333,66 @@ function normalizeReviewPredictionResultRecord(record: PredictionResultRecord): 
 
 function loadPredictionSlots() {
   if (typeof window === "undefined") return {} as Record<string, PredictionSlotRecord>;
-  return safeJsonParse<Record<string, PredictionSlotRecord>>(window.localStorage.getItem(PREDICTION_SLOT_STORAGE_KEY), {});
+  const parsed = safeJsonParse<Record<string, Partial<PredictionSlotRecord>>>(window.localStorage.getItem(PREDICTION_SLOT_STORAGE_KEY), {});
+  const normalized = Object.fromEntries(
+    Object.entries(parsed).map(([key, value]) => [
+      key,
+      normalizeReviewPredictionSlotRecord(value),
+    ]),
+  ) as Record<string, PredictionSlotRecord>;
+  const { records, changed } = prunePredictionSlotsMap(normalized);
+  if (changed) {
+    try {
+      window.localStorage.setItem(PREDICTION_SLOT_STORAGE_KEY, JSON.stringify(records));
+    } catch {
+      // localStorage write failure is non-fatal
+    }
+  }
+  return records;
 }
 
 function loadPredictionResults() {
   if (typeof window === "undefined") return {} as Record<string, PredictionResultRecord>;
-  const raw = safeJsonParse<Record<string, PredictionResultRecord>>(window.localStorage.getItem(PREDICTION_RESULT_STORAGE_KEY), {});
-  return Object.fromEntries(
-    Object.entries(raw).map(([key, value]) => [key, normalizeReviewPredictionResultRecord(value)]),
-  );
+  const parsed = safeJsonParse<Record<string, Partial<PredictionResultRecord>>>(window.localStorage.getItem(PREDICTION_RESULT_STORAGE_KEY), {});
+  const normalized = Object.fromEntries(
+    Object.entries(parsed).map(([key, value]) => [key, normalizeReviewPredictionResultRecord(value)]),
+  ) as Record<string, PredictionResultRecord>;
+  const { records, changed } = prunePredictionResultsMap(normalized);
+  if (changed) {
+    try {
+      window.localStorage.setItem(PREDICTION_RESULT_STORAGE_KEY, JSON.stringify(records));
+    } catch {
+      // localStorage write failure is non-fatal
+    }
+  }
+  return records;
 }
 
 function loadReviewReports() {
   if (typeof window === "undefined") return [] as ReviewReportRecord[];
+  const activeDate = getJstOperationalDate();
   const parsed = safeJsonParse<ReviewReportRecord[] | Record<string, ReviewReportRecord>>(window.localStorage.getItem(REVIEW_REPORT_STORAGE_KEY), []);
-  return Array.isArray(parsed) ? parsed : Object.values(parsed ?? {});
+  const records = Array.isArray(parsed) ? parsed : Object.values(parsed ?? {});
+  const activeRecords = records.filter((record) => record.date === activeDate);
+  if (activeRecords.length !== records.length) {
+    try {
+      window.localStorage.setItem(REVIEW_REPORT_STORAGE_KEY, JSON.stringify(activeRecords));
+    } catch {
+      // localStorage write failure is non-fatal
+    }
+  }
+  return activeRecords;
 }
 
 function saveReviewReports(records: ReviewReportRecord[]) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(REVIEW_REPORT_STORAGE_KEY, JSON.stringify(records));
+  const activeDate = getJstOperationalDate();
+  const activeRecords = records.filter((record) => record.date === activeDate);
+  try {
+    window.localStorage.setItem(REVIEW_REPORT_STORAGE_KEY, JSON.stringify(activeRecords));
+  } catch {
+    // localStorage write failure is non-fatal
+  }
 }
 
 function normalizeVenueName(value: string) {
@@ -417,29 +474,61 @@ function loadReviewRaceResultSnapshots() {
     {},
   );
 
-  return Object.fromEntries(
-    Object.entries(raw).map(([key, race]) => [
-      key,
-      {
-  ...race,
-  oddsPreview: normalizeReviewOddsPreviewList(race.oddsPreview),
-  oddsTrifecta: normalizeReviewTrifectaOddsList(race.oddsTrifecta),
-},
-    ])
+  const activeDate = getJstOperationalDate();
+  let changed = false;
+
+  const records = Object.fromEntries(
+    Object.entries(raw)
+      .filter(([key]) => {
+        const [snapshotDate] = key.split(":");
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(snapshotDate)) return true;
+        const keep = snapshotDate >= activeDate;
+        if (!keep) changed = true;
+        return keep;
+      })
+      .map(([key, race]) => [
+        key,
+        {
+          ...race,
+          oddsPreview: normalizeReviewOddsPreviewList(race.oddsPreview),
+          oddsTrifecta: normalizeReviewTrifectaOddsList(race.oddsTrifecta),
+        },
+      ])
   ) as ReviewRaceResultSnapshotMap;
+
+  if (changed) {
+    try {
+      window.localStorage.setItem(REVIEW_RACE_RESULT_SNAPSHOT_STORAGE_KEY, JSON.stringify(records));
+    } catch {
+      // localStorage write failure is non-fatal
+    }
+  }
+
+  return records;
 }
 
 function saveReviewRaceResultSnapshots(records: ReviewRaceResultSnapshotMap) {
   if (typeof window === "undefined") return records;
 
+  const activeDate = getJstOperationalDate();
+
   const compactRecords = Object.fromEntries(
     Object.entries(records)
+      .filter(([key]) => {
+        const [snapshotDate] = key.split(":");
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(snapshotDate)) return true;
+        return snapshotDate >= activeDate;
+      })
       .filter(([key, race]) => Boolean(key) && Boolean(race?.raceNo))
       .sort(([a], [b]) => b.localeCompare(a))
       .slice(0, REVIEW_RACE_RESULT_SNAPSHOT_MAX_ITEMS),
   ) as ReviewRaceResultSnapshotMap;
 
-  window.localStorage.setItem(REVIEW_RACE_RESULT_SNAPSHOT_STORAGE_KEY, JSON.stringify(compactRecords));
+  try {
+    window.localStorage.setItem(REVIEW_RACE_RESULT_SNAPSHOT_STORAGE_KEY, JSON.stringify(compactRecords));
+  } catch {
+    // localStorage write failure is non-fatal
+  }
 
   return compactRecords;
 }
@@ -533,28 +622,6 @@ function extractTextSection(source: string, labels: string[]) {
 
 function extractLineup(text: string) {
   return extractTextSection(text, ["ライン", "想定並び", "並び（仮）"]);
-}
-
-function buildMonthMatrix(baseIso: string): MonthCell[] {
-  const current = new Date(`${baseIso}T00:00:00+09:00`);
-  const year = current.getFullYear();
-  const month = current.getMonth();
-  const first = new Date(year, month, 1);
-  const start = new Date(first);
-  start.setDate(first.getDate() - first.getDay());
-
-  return Array.from({ length: 35 }, (_, index) => {
-    const date = new Date(start);
-    date.setDate(start.getDate() + index);
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return {
-      iso: `${y}-${m}-${d}`,
-      day: date.getDate(),
-      inMonth: date.getMonth() === month,
-    };
-  });
 }
 
 function cleanReviewRiderName(value?: string) {
@@ -1277,8 +1344,6 @@ function ReviewVenueMetric({ label, value, sub }: { label: string; value: string
 }
 
 export default function ReviewPage() {
-  const [now, setNow] = useState(getJstNow());
-  const [selectedDate, setSelectedDate] = useState(now.isoDate);
   const [slotMap, setSlotMap] = useState<Record<string, PredictionSlotRecord>>({});
   const [resultMap, setResultMap] = useState<Record<string, PredictionResultRecord>>({});
   const [reportRecords, setReportRecords] = useState<ReviewReportRecord[]>([]);
@@ -1292,11 +1357,7 @@ export default function ReviewPage() {
   const [reportDraft, setReportDraft] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
   const [reportStatus, setReportStatus] = useState("");
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(getJstNow()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
+  const selectedDate = getJstOperationalDate();
 
   useEffect(() => {
     setSlotMap(loadPredictionSlots());
@@ -1379,7 +1440,6 @@ export default function ReviewPage() {
     return () => window.clearTimeout(timer);
   }, [reportStatus]);
 
-  const monthCells = useMemo(() => buildMonthMatrix(selectedDate), [selectedDate]);
   const venueGroups = useMemo(
   () =>
     buildVenueGroups(
@@ -1539,23 +1599,10 @@ export default function ReviewPage() {
       profitLoss: totalPayout - totalInvestment,
       roi: totalInvestment > 0 ? (totalPayout / totalInvestment) * 100 : undefined,
       hitRate: settledCount > 0 ? (hitCount / settledCount) * 100 : undefined,
+      hitCount,
+      settledCount,
     };
   }, [venueGroups]);
-
-  const archiveItems = useMemo(() => {
-    const venueNeedle = venueQuery.trim();
-    const playerNeedle = playerQuery.trim();
-    const keywordNeedle = keywordQuery.trim();
-    return [...reportRecords]
-      .sort((a, b) => `${b.date} ${b.savedAt}`.localeCompare(`${a.date} ${a.savedAt}`))
-      .filter((item) => {
-        if (venueNeedle && !item.venue.includes(venueNeedle)) return false;
-        const haystack = `${item.venue}\n${item.date}\n${item.reportText}\n${item.predictionCopy}\n${item.resultCopy}`;
-        if (playerNeedle && !haystack.includes(playerNeedle)) return false;
-        if (keywordNeedle && !haystack.includes(keywordNeedle)) return false;
-        return true;
-      });
-  }, [keywordQuery, playerQuery, reportRecords, venueQuery]);
 
 const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
   const file = event.currentTarget.files?.[0];
@@ -1583,6 +1630,8 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
 
   const saveCurrentReport = () => {
     if (!selectedVenueGroup) return;
+    const activeDate = getJstOperationalDate();
+    const activeReportRecords = reportRecords.filter((item) => item.date === activeDate);
     const nextRecord: ReviewReportRecord = {
       id: `${selectedVenueGroup.date}:${selectedVenueGroup.venue}`,
       date: selectedVenueGroup.date,
@@ -1594,7 +1643,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
     };
     const next = [
       nextRecord,
-      ...reportRecords.filter((item) => !(item.date === nextRecord.date && item.venue === nextRecord.venue)),
+      ...activeReportRecords.filter((item) => !(item.date === nextRecord.date && item.venue === nextRecord.venue)),
     ];
     setReportRecords(next);
     saveReviewReports(next);
@@ -1603,7 +1652,10 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
 
   const deleteCurrentReport = () => {
     if (!selectedVenueGroup) return;
-    const next = reportRecords.filter((item) => !(item.date === selectedVenueGroup.date && item.venue === selectedVenueGroup.venue));
+    const activeDate = getJstOperationalDate();
+    const next = reportRecords
+      .filter((item) => item.date === activeDate)
+      .filter((item) => !(item.date === selectedVenueGroup.date && item.venue === selectedVenueGroup.venue));
     setReportRecords(next);
     saveReviewReports(next);
     setReportDraft("");
@@ -1635,7 +1687,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
             }}
           >
             <div style={{ fontSize: "11px", letterSpacing: "0.24em", fontWeight: 900, color: "#9a7ad9", marginBottom: "14px" }}>
-              REVIEW ARCHIVE
+              TODAY REVIEW
             </div>
             <div
   style={{
@@ -1648,10 +1700,10 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
 >
   <div style={{ minWidth: 0 }}>
     <h1 style={{ margin: 0, fontSize: "40px", lineHeight: 1.12, fontWeight: 900, color: "#111827", marginBottom: "14px" }}>
-      予想と結果を、会場ごとに振り返る。
+      当日レビュー作業台
     </h1>
     <p style={{ margin: 0, maxWidth: "920px", fontSize: "15px", lineHeight: 1.95, color: "#5f6676" }}>
-      次の予想に使える検索ベースに育てていくページ。
+      本日の保存済み予想と結果だけを使って、会場ごとのレビュー素材をまとめるページです。
     </p>
   </div>
 
@@ -1683,19 +1735,19 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
   </div>
 
   <div style={{ minWidth: "170px", borderRadius: "24px", border: `1px solid ${heroTone.border}`, background: heroTone.chip, padding: "16px 18px" }}>
-    <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: heroTone.text, marginBottom: "8px" }}>CURRENT</div>
-    <div style={{ fontSize: "28px", fontWeight: 900, color: "#101828", lineHeight: 1.1 }}>{selectedVenueGroup?.venue ?? "未選択"}</div>
+    <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: heroTone.text, marginBottom: "8px" }}>OPERATION DAY</div>
+    <div style={{ fontSize: "24px", fontWeight: 900, color: "#101828", lineHeight: 1.2 }}>{formatDateLabel(selectedDate)}</div>
     <div style={{ fontSize: "12px", color: "#6c7687", marginTop: "8px", lineHeight: 1.7 }}>
-      {selectedVenueGroup ? `${selectedVenueGroup.races.length}R / ${formatDateLabel(selectedVenueGroup.date)}` : "会場を選ぶと詳細が開きます"}
+      {selectedVenueGroup ? `${selectedVenueGroup.venue} / ${selectedVenueGroup.races.length}R を選択中` : "当日保存データだけを表示します"}
     </div>
   </div>
 </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "14px" }}>
-              <StatCard label="TODAY VENUES" value={`${todaySummary.venueCount}会場`} sub="今日予想した会場数" />
-              <StatCard label="TARGET RACES" value={`${todaySummary.raceCount}R`} sub="Reviewに取り込んだ予想レース数" />
-              <StatCard label="PROFIT" value={formatProfit(todaySummary.profitLoss)} sub={`投資 ${formatYen(todaySummary.totalInvestment)} / 払戻 ${formatYen(todaySummary.totalPayout)}`} />
-              <StatCard label="HIT RATE" value={formatRate(todaySummary.hitRate)} sub={`ROI ${formatRate(todaySummary.roi)} / レポート保存の起点`} />
+              <StatCard label="OPERATION DAY" value={formatDateShort(selectedDate)} sub="本日のレビュー対象日" />
+              <StatCard label="TARGETS" value={`${todaySummary.venueCount}会場 / ${todaySummary.raceCount}R`} sub="当日保存済み予想から作業台を構成" />
+              <StatCard label="RESULT CHECK" value={`${todaySummary.hitCount}的中 / ${todaySummary.settledCount}照合`} sub={`レポート一時保存 ${reportRecords.length}件`} />
+              <StatCard label="PROFIT" value={formatProfit(todaySummary.profitLoss)} sub={`投資 ${formatYen(todaySummary.totalInvestment)} / 払戻 ${formatYen(todaySummary.totalPayout)} / ROI ${formatRate(todaySummary.roi)}`} />
             </div>
           </article>
 
@@ -1710,46 +1762,21 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
               <div>
-                <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "8px" }}>MINI CALENDAR</div>
-                <div style={{ fontSize: "26px", fontWeight: 900, color: "#101828" }}>{formatDateLabel(selectedDate)}</div>
+                <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "8px" }}>TODAY WORKBENCH</div>
+                <div style={{ fontSize: "26px", fontWeight: 900, color: "#101828" }}>本日のレビュー</div>
               </div>
               <div style={{ fontSize: "12px", lineHeight: 1.7, color: "#6b7280", textAlign: "right" }}>
-                <div>日付を切り替えて、</div>
-                <div>その日の会場レビューを表示します。</div>
+                <div>過去日付の切り替えはありません。</div>
+                <div>当日運用分だけを朝6時基準で整理します。</div>
               </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "8px", marginBottom: "18px" }}>
-              {monthCells.map((cell) => {
-                const active = cell.iso === selectedDate;
-                const hasData = venueGroups.some((group) => group.date === cell.iso);
-                return (
-                  <button
-                    key={cell.iso}
-                    onClick={() => setSelectedDate(cell.iso)}
-                    style={{
-                      border: active ? "1px solid rgba(123,91,227,0.66)" : "1px solid rgba(228,220,241,0.9)",
-                      background: active
-                        ? "linear-gradient(180deg, rgba(123,91,227,0.14) 0%, rgba(123,91,227,0.08) 100%)"
-                        : cell.inMonth
-                        ? "rgba(255,255,255,0.92)"
-                        : "rgba(247,244,250,0.8)",
-                      borderRadius: "16px",
-                      padding: "10px 0 8px",
-                      cursor: "pointer",
-                      boxShadow: active ? "0 12px 24px rgba(123,91,227,0.10)" : "none",
-                    }}
-                  >
-                    <div style={{ fontSize: "10px", fontWeight: 900, color: active ? "#5f3bc1" : cell.inMonth ? "#111827" : "#a0a7b5" }}>{cell.day}</div>
-                    <div style={{ marginTop: "5px", fontSize: "8px", fontWeight: 800, color: hasData ? "#7b5be3" : "#c6cbd6" }}>{hasData ? "REVIEW" : "—"}</div>
-                  </button>
-                );
-              })}
-            </div>
-
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "10px" }}>
-              <SummaryChip label="開催日" value={formatDateLabel(selectedDate)} />
+              <SummaryChip label="対象日" value={formatDateLabel(selectedDate)} />
               <SummaryChip label="対象会場" value={`${filteredVenueGroups.length}会場`} />
-              <SummaryChip label="保存済みレポート" value={`${archiveItems.filter((item) => item.date === selectedDate).length}件`} />
+              <SummaryChip label="一時保存レポート" value={`${reportRecords.length}件`} />
+            </div>
+            <div style={{ marginTop: "16px", fontSize: "12px", lineHeight: 1.8, color: "#6b7280" }}>
+              本ページは当日レビュー専用です。過去レビューはTXT/Markdownで別保存してください。
             </div>
           </article>
         </div>
@@ -1767,11 +1794,11 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
           <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "20px", marginBottom: "18px" }}>
             <div>
               <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "8px" }}>SEARCH & FILTER</div>
-              <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>日付・会場・選手でレビューを絞り込む</h2>
+              <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>当日の会場とメモを絞り込む</h2>
             </div>
             <div style={{ fontSize: "12px", color: "#6d7687", lineHeight: 1.7, textAlign: "right" }}>
-              <div>Predictionの保存内容と結果の照合、</div>
-              <div>GPTレポート保存までここで扱う想定です。</div>
+              <div>当日保存された予想と結果だけを対象に、</div>
+              <div>会場カードとレポート貼り付け欄を切り替えます。</div>
             </div>
           </div>
 
@@ -1814,7 +1841,8 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
       fontSize: "14px",
     }}
   >
-    この日付にはまだ読み込める予想データがありません。
+    <div style={{ fontWeight: 900, color: "#4b5563", marginBottom: "8px" }}>本日の保存済み予想はまだありません</div>
+    <div>PredictionPageで予想を保存すると、ここに当日のレビュー素材が表示されます。</div>
   </div>
 ) : (
   <div
@@ -2054,11 +2082,11 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", marginBottom: "18px" }}>
               <div>
                 <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "8px" }}>GPT REVIEW</div>
-                <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>レポートを貼り付けて保存</h2>
+                <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>当日レポート貼り付け欄</h2>
               </div>
               <div style={{ fontSize: "12px", color: "#6d7687", lineHeight: 1.7, textAlign: "right" }}>
-                <div>GPTに質問して返ってきた反省や</div>
-                <div>次回活用メモを保存します。</div>
+                <div>当日の振り返りを一時保存します。</div>
+                <div>保存版はTXT/Markdownで別管理してください。</div>
               </div>
             </div>
 
@@ -2146,62 +2174,10 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
           </article>
         </section>
 
-        <section style={{ borderRadius: "34px", border: "1px solid rgba(229,221,241,0.92)", background: "linear-gradient(180deg, rgba(252,249,255,0.96) 0%, rgba(246,249,255,0.96) 100%)", boxShadow: "0 24px 46px rgba(20, 28, 44, 0.05)", padding: "28px" }}>
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "20px", marginBottom: "18px" }}>
-            <div>
-              <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "8px" }}>ARCHIVE</div>
-              <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>保存済みレビューを見返す</h2>
-            </div>
-            <div style={{ fontSize: "12px", color: "#6d7687", lineHeight: 1.7, textAlign: "right" }}>
-              <div>日付・会場・選手・キーワードで検索し、</div>
-              <div>以前の振り返りを次の予想に使えるようにします。</div>
-            </div>
-          </div>
+        <div style={{ fontSize: "12px", lineHeight: 1.8, color: "#6d7687", textAlign: "center" }}>
+          過去レビューはTXT/Markdownで別保存してください。このページは当日作業用です。
+        </div>
 
-          <div style={{ display: "grid", gap: "14px" }}>
-            {archiveItems.length === 0 ? (
-              <div style={{ borderRadius: "24px", border: "1px dashed rgba(219,211,236,0.95)", padding: "22px", color: "#6d7687", background: "rgba(255,255,255,0.7)" }}>
-                まだ保存済みレビューはありません。
-              </div>
-            ) : (
-              archiveItems.map((item) => {
-                const tone = venueColorMap[item.venue] ?? heroTone;
-                return (
-                  <article key={item.id} style={{ borderRadius: "26px", border: `1px solid ${tone.border}`, background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,245,252,0.98) 100%)", padding: "22px", boxShadow: "0 14px 28px rgba(17,24,39,0.05)" }}>
-                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px", marginBottom: "12px" }}>
-                      <div>
-                        <div style={{ fontSize: "30px", fontWeight: 900, color: "#111827", lineHeight: 1.05 }}>{item.venue}</div>
-                        <div style={{ marginTop: "8px", fontSize: "13px", color: "#6d7687" }}>{formatDateLabel(item.date)} / 保存 {new Date(item.savedAt).toLocaleString("ja-JP")}</div>
-                      </div>
-                      <span style={{ fontSize: "11px", fontWeight: 900, color: tone.text, background: tone.chip, border: `1px solid ${tone.border}`, padding: "6px 10px", borderRadius: "999px" }}>
-                        REVIEW SAVED
-                      </span>
-                    </div>
-                    <div
-  style={{
-    marginTop: "14px",
-    borderRadius: "22px",
-    border: "1px solid rgba(229,221,241,0.95)",
-    background: "linear-gradient(180deg, #ffffff 0%, #fbf9fe 100%)",
-    padding: "18px",
-    maxHeight: "360px",
-    overflowY: "auto",
-    whiteSpace: "pre-wrap",
-    fontSize: "13px",
-    lineHeight: 1.85,
-    color: "#374151",
-    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.8)",
-  }}
->
-  {item.reportText?.trim() || "レポート本文なし"}
-</div>
-                  </article>
-                );
-              })
-            )}
-          </div>
-        </section>
       </main>
     </div>
   );
