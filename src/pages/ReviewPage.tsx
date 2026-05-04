@@ -476,21 +476,11 @@ function buildReviewFileCardMetrics(group: ReviewFileVenueGroup): ReviewFileCard
 
   return {
     hitRate: hitRateValue !== undefined ? `${hitRateValue.toFixed(1)}%` : "--",
-    hitSub:
-      hitCount !== undefined && checkedCount !== undefined
-        ? `${hitCount}的中 / ${checkedCount}照合`
-        : group.summaryFile
-          ? "summary TXT 読込ベース"
-          : "まとめTXT未登録",
+    hitSub: hitRateValue !== undefined ? "summary" : "未登録",
     roi: roiValue !== undefined ? `${roiValue.toFixed(1)}%` : "--",
-    roiSub:
-      investment !== undefined && payout !== undefined
-        ? `投資 ${formatYen(investment)} / 払戻 ${formatYen(payout)}`
-        : group.summaryFile
-          ? "summary TXT 読込ベース"
-          : "まとめTXT未登録",
+    roiSub: roiValue !== undefined ? "summary" : "未登録",
     profit: profit !== undefined ? formatProfit(profit) : "--",
-    profitSub: profit !== undefined ? "summary TXT から表示" : "まとめTXT未登録",
+    profitSub: profit !== undefined ? "summary" : "未登録",
     checkedCount: checkedCount !== undefined ? `${checkedCount}R` : "--",
     checkedSub: checkedCount !== undefined ? "照合レース数" : "まとめTXT未登録",
     predictionReady: Boolean(group.predictionFile),
@@ -1605,7 +1595,7 @@ function ReviewVenueMetric({ label, value, sub }: { label: string; value: string
         boxShadow: "0 10px 24px rgba(27, 33, 52, 0.04)",
         padding: "12px 12px 11px",
         minHeight: "88px",
-        overflow: "hidden",
+        overflow: "visible",
       }}
     >
       <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#9a7ad9", marginBottom: "7px" }}>{label}</div>
@@ -1620,7 +1610,7 @@ function ReviewVenueMetric({ label, value, sub }: { label: string; value: string
       >
         {value}
       </div>
-      {sub ? <div style={{ marginTop: "7px", fontSize: "10px", lineHeight: 1.55, color: "#6d7687" }}>{sub}</div> : null}
+      {sub ? <div style={{ marginTop: "7px", fontSize: "10px", lineHeight: 1.45, color: "#6d7687", whiteSpace: "nowrap" }}>{sub}</div> : null}
     </div>
   );
 }
@@ -2410,7 +2400,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
   <div
     style={{
       display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+      gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
       gap: "14px",
       alignItems: "stretch",
     }}
@@ -2577,11 +2567,10 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "10px" }}>
                 <ReviewVenueMetric label="的中率" value={metrics.hitRate} sub={metrics.hitSub} />
                 <ReviewVenueMetric label="回収率" value={metrics.roi} sub={metrics.roiSub} />
                 <ReviewVenueMetric label="収支" value={metrics.profit} sub={metrics.profitSub} />
-                <ReviewVenueMetric label="照合数" value={metrics.checkedCount} sub={metrics.checkedSub} />
               </div>
             </button>
           );
