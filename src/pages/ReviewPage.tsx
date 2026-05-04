@@ -1567,12 +1567,12 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub: st
         border: "1px solid rgba(223, 210, 245, 0.96)",
         background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(247,242,252,0.98) 100%)",
         boxShadow: "0 16px 34px rgba(40, 32, 76, 0.06)",
-        padding: "15px 16px",
-        minHeight: "104px",
+        padding: "13px 14px",
+        minHeight: "96px",
       }}
     >
-      <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9475d3", marginBottom: "8px" }}>{label}</div>
-      <div style={{ fontSize: "26px", fontWeight: 900, color: "#0f172a", marginBottom: "6px", lineHeight: 1.08, letterSpacing: "-0.04em" }}>{value}</div>
+      <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9475d3", marginBottom: "6px" }}>{label}</div>
+      <div style={{ fontSize: "24px", fontWeight: 900, color: "#0f172a", marginBottom: "4px", lineHeight: 1.06, letterSpacing: "-0.04em" }}>{value}</div>
       <div style={{ fontSize: "12px", lineHeight: 1.7, color: "#687385" }}>{sub}</div>
     </article>
   );
@@ -1586,7 +1586,7 @@ function SummaryChip({ label, value }: { label: string; value: string }) {
         border: "1px solid rgba(226, 216, 242, 0.95)",
         background: "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,244,252,0.92) 100%)",
         boxShadow: "inset 0 1px 0 rgba(255,255,255,0.65)",
-        padding: "12px 14px",
+        padding: "10px 12px",
       }}
     >
       <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "6px" }}>{label}</div>
@@ -2113,7 +2113,6 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
               border: `1px solid ${heroTone.border}`,
               background: "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(252,246,252,0.98) 42%, rgba(243,247,255,0.98) 100%)",
               boxShadow: "0 28px 54px rgba(17,24,39,0.07)",
-              minHeight: "460px",
               padding: "28px 30px",
               position: "relative",
               overflow: "hidden",
@@ -2144,7 +2143,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                 position: "relative",
               }}
             >
-              <div style={{ minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: "18px", paddingTop: "6px" }}>
+              <div style={{ minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "flex-start", gap: "16px", paddingTop: "4px" }}>
                 <div>
                   <h1 style={{ margin: 0, fontSize: "40px", lineHeight: 1.08, fontWeight: 900, color: "#111827", marginBottom: "16px", letterSpacing: "-0.05em" }}>
                     {isTodaySelected ? "当日レビュー作業台" : "保存ファイルレビュー"}
@@ -2183,7 +2182,8 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  minHeight: "360px",
+                  minHeight: "300px",
+                  maxHeight: "340px",
                   padding: "18px",
                   minWidth: 0,
                   overflow: "hidden",
@@ -2208,12 +2208,12 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                     src={toPublicPath("/review-page/review-page-hero-kurari-charigon-thinking.png")}
                     alt=""
                     style={{
-                      width: "min(520px, 100%)",
-                      maxHeight: "390px",
+                      width: "min(500px, 100%)",
+                      maxHeight: "330px",
                       objectFit: "contain",
                       objectPosition: "center bottom",
                       filter: "drop-shadow(0 24px 28px rgba(122, 103, 184, 0.16))",
-                      transform: "translateY(12px)",
+                      transform: "translateY(8px)",
                     }}
                   />
                 </div>
@@ -2227,7 +2227,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
               border: "1px solid rgba(223, 209, 244, 0.98)",
               background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(247,242,252,0.98) 56%, rgba(255,248,250,0.98) 100%)",
               boxShadow: "0 24px 48px rgba(32, 30, 67, 0.06)",
-              padding: "24px",
+              padding: "20px",
               position: "relative",
               overflow: "hidden",
             }}
@@ -2271,16 +2271,16 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                 次月
               </button>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "8px", marginBottom: "10px", padding: "0 4px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "6px", marginBottom: "10px", padding: "0 4px" }}>
               {REVIEW_CALENDAR_WEEKDAY_LABELS.map((label) => (
                 <div key={label} style={{ textAlign: "center", fontSize: "11px", fontWeight: 900, color: "#8f84ab", letterSpacing: "0.12em" }}>
                   {label}
                 </div>
               ))}
             </div>
-            <div style={{ display: "grid", gap: "8px" }}>
+            <div style={{ display: "grid", gap: "6px" }}>
               {calendarWeeks.map((week, weekIndex) => (
-                <div key={`${calendarMonth}:${weekIndex}`} style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "8px" }}>
+                <div key={`${calendarMonth}:${weekIndex}`} style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "6px" }}>
                   {week.map((cell) => (
                     (() => {
                       const hasReviewFiles = reviewFileDateSet.has(cell.isoDate);
@@ -2294,7 +2294,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                           }}
                           disabled={cell.isDisabled}
                           style={{
-                            minHeight: "68px",
+                            minHeight: "56px",
                             borderRadius: "18px",
                             border: cell.isSelected ? "1px solid rgba(123,91,227,0.96)" : cell.isToday ? "1px solid rgba(199, 182, 246, 0.96)" : "1px solid rgba(229,221,241,0.92)",
                             background: cell.isSelected
@@ -2310,13 +2310,13 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                             flexDirection: "column",
                             justifyContent: "space-between",
                             alignItems: "stretch",
-                            padding: "10px 9px 8px",
+                            padding: "8px 8px 7px",
                             boxShadow: cell.isSelected ? "0 12px 26px rgba(84, 64, 154, 0.14)" : "0 8px 18px rgba(31, 34, 57, 0.04)",
                             overflow: "hidden",
                           }}
                         >
                           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "6px" }}>
-                            <span style={{ fontSize: "16px", lineHeight: 1, fontWeight: cell.isSelected ? 900 : 800 }}>{cell.dayNumber}</span>
+                            <span style={{ fontSize: "15px", lineHeight: 1, fontWeight: cell.isSelected ? 900 : 800 }}>{cell.dayNumber}</span>
                               {cell.isSelected ? <span style={{ width: "8px", height: "8px", borderRadius: "999px", background: "#8b5cf6", boxShadow: "0 0 0 3px rgba(139, 92, 246, 0.12)", flexShrink: 0, marginTop: "2px" }} /> : null}
                           </div>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: "14px" }}>
