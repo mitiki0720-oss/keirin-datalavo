@@ -9,6 +9,7 @@
   "build:github": "tsc -b && vite build --mode github",
   "lint": "eslint .",
   "preview": "vite preview",
+  "generate:review-index": "node scripts/generate-review-index.mjs",
   "update:schedule": "node scripts/updateRaceSchedule.mjs"
 },
   "dependencies": {
