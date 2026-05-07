@@ -1,4 +1,4 @@
-import { readdir, writeFile } from "node:fs/promises";
+import { access, readdir, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -9,6 +9,11 @@ const reviewsRoot = path.join(projectRoot, "public", "data", "reviews");
 const outputPath = path.join(reviewsRoot, "index.json");
 const dateDirectoryPattern = /^\d{4}-\d{2}-\d{2}$/;
 const reviewFilePattern = /^(?<slug>[a-z0-9-]+)-(?<kind>prediction|result|summary)\.txt$/;
+const reviewSlugAliases = {
+  gihu: "gifu",
+  hirosima: "hiroshima",
+  kouchi: "kochi",
+};
 
 const venueMap = {
   aomori: "青森",
@@ -59,6 +64,52 @@ function toReviewPath(date, fileName) {
   return `data/reviews/${date}/${fileName}`;
 }
 
+async function pathExists(targetPath) {
+  try {
+    await access(targetPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function normalizeReviewEntry(date, datePath, entryName) {
+  const match = entryName.match(reviewFilePattern);
+  if (!match?.groups) {
+    return null;
+  }
+
+  const { slug, kind } = match.groups;
+  const canonicalSlug = reviewSlugAliases[slug] ?? slug;
+
+  if (canonicalSlug === slug) {
+    return {
+      slug,
+      kind,
+      fileName: entryName,
+    };
+  }
+
+  const canonicalFileName = `${canonicalSlug}-${kind}.txt`;
+  const fromPath = path.join(datePath, entryName);
+  const toPath = path.join(datePath, canonicalFileName);
+
+  if (await pathExists(toPath)) {
+    console.warn(
+      `[review-index] Known slug alias detected: ${date}/${entryName} -> ${canonicalFileName}. Canonical file already exists, so rename was skipped.`,
+    );
+  } else {
+    await rename(fromPath, toPath);
+    console.log(`[review-index] Renamed review file: ${date}/${entryName} -> ${canonicalFileName}`);
+  }
+
+  return {
+    slug: canonicalSlug,
+    kind,
+    fileName: canonicalFileName,
+  };
+}
+
 function buildItem(date, slug, files) {
   const venue = venueMap[slug] ?? slug;
   const item = {
@@ -100,14 +151,14 @@ async function collectReviewItems() {
         continue;
       }
 
-      const match = entry.name.match(reviewFilePattern);
-      if (!match?.groups) {
+      const normalized = await normalizeReviewEntry(date, datePath, entry.name);
+      if (!normalized) {
         continue;
       }
 
-      const { slug, kind } = match.groups;
+      const { slug, kind, fileName } = normalized;
       const files = filesBySlug.get(slug) ?? {};
-      files[kind] = entry.name;
+      files[kind] = fileName;
       filesBySlug.set(slug, files);
     }
 
@@ -133,6 +184,15 @@ async function collectReviewItems() {
 
 async function main() {
   const { items, countsByDate, unknownSlugs } = await collectReviewItems();
+
+  if (unknownSlugs.length > 0) {
+    for (const slug of unknownSlugs) {
+      console.error(`Unknown review slug: ${slug}`);
+    }
+
+    throw new Error(`Unknown review slugs found: ${unknownSlugs.join(", ")}`);
+  }
+
   const output = {
     version: 1,
     items,
@@ -140,21 +200,10 @@ async function main() {
 
   await writeFile(outputPath, `${JSON.stringify(output, null, 2)}\n`, "utf8");
 
-  for (const slug of unknownSlugs) {
-    console.warn(`Unknown review slug: ${slug}`);
-  }
-
   console.log(`Generated ${path.relative(projectRoot, outputPath)} with ${items.length} items.`);
   console.log("Items by date:");
   for (const [date, count] of countsByDate) {
     console.log(`- ${date}: ${count}`);
-  }
-
-  if (unknownSlugs.length > 0) {
-    console.log("Unknown slugs:");
-    for (const slug of unknownSlugs) {
-      console.log(`- ${slug}`);
-    }
   }
 }
 
