@@ -2360,8 +2360,8 @@ export const getPredictionVenueStageLabel = (
 ) => {
   const schedule = resolvePredictionVenueStageSchedule(venue, targetIsoDate);
 
-  const startDate = schedule?.startDate ?? venue?.startDate;
-  const endDate = schedule?.endDate ?? venue?.endDate;
+  const startDate = venue?.startDate ?? schedule?.startDate;
+  const endDate = venue?.endDate ?? schedule?.endDate;
 
   if (!startDate || !endDate || !targetIsoDate) {
     return "日程確認中";

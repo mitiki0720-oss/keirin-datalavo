@@ -751,8 +751,8 @@ function useGeneratedTodayRaces() {
   session,
   title: item.title || fallbackRace?.title || item.venue,
   grade: normalizeRaceGrade(item.grade || fallbackRace?.grade, item.title || fallbackRace?.title),
-  startDate: fallbackRace?.startDate ?? item.startDate,
-  endDate: fallbackRace?.endDate ?? item.endDate,
+  startDate: item.startDate ?? fallbackRace?.startDate,
+  endDate: item.endDate ?? fallbackRace?.endDate,
   races: Array.isArray(item.races)
                   ? item.races.map((race) => ({
                       ...race,
