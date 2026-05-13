@@ -6,7 +6,15 @@ const KDREAMS_RACECARD_URL = "https://keirin.kdreams.jp/racecard/";
 const NETKEIRIN_ENTRY_URL = "https://keirin.netkeiba.com/race/entry/";
 const NETKEIRIN_RACE_API_URL = "https://keirin.netkeiba.com/api/race/";
 const NETKEIRIN_RESULT_URL = "https://keirin.netkeiba.com/race/result/";
-const OUTPUT_PATH = path.resolve("public/data/races/today.generated.json");
+const PUBLIC_OUTPUT_PATH = path.resolve("public/data/races/today.generated.json");
+const LOCAL_DEBUG_OUTPUT_PATH = path.resolve("scripts/debug/today.generated.local.json");
+
+const args = process.argv.slice(2);
+const shouldWritePublic =
+  process.env.GITHUB_ACTIONS === "true" ||
+  args.includes("--write-public");
+
+const OUTPUT_PATH = shouldWritePublic ? PUBLIC_OUTPUT_PATH : LOCAL_DEBUG_OUTPUT_PATH;
 const OVERRIDE_PATH = path.resolve("scripts/today-races-overrides.json");
 const RACE_SCHEDULE_DATA_PATH = path.resolve("src/data/raceScheduleData.ts");
 
@@ -1059,6 +1067,10 @@ if (resultData.debug.markRows?.length) {
 
 async function main() {
   const todayIso = getJstTodayIso();
+  if (!shouldWritePublic) {
+    console.log("[mode] local debug output");
+    console.log(`[mode] writing generated data to ${OUTPUT_PATH}`);
+  }
   const overrides = await readOverrides();
   const scheduleData = await readRaceScheduleData();
 

@@ -48,7 +48,7 @@ jobs:
           git pull --ff-only origin main
 
       - name: Update today race data
-        run: node scripts/update-today-races.mjs
+        run: npm run update:today-races:write
 
       - name: Notify Slack hits
         env:

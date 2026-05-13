@@ -4,14 +4,16 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-  "dev": "vite",
-  "build": "tsc -b && vite build",
-  "build:github": "tsc -b && vite build --mode github",
-  "lint": "eslint .",
-  "preview": "vite preview",
-  "generate:review-index": "node scripts/generate-review-index.mjs",
-  "update:schedule": "node scripts/updateRaceSchedule.mjs"
-},
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "build:github": "tsc -b && vite build --mode github",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "generate:review-index": "node scripts/generate-review-index.mjs",
+    "update:schedule": "node scripts/updateRaceSchedule.mjs",
+    "update:today-races:local": "node scripts/update-today-races.mjs",
+    "update:today-races:write": "node scripts/update-today-races.mjs --write-public"
+  },
   "dependencies": {
     "cheerio": "^1.0.0",
     "react": "^19.2.4",

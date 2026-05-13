@@ -580,7 +580,29 @@ type GeneratedTodayRacesPayload = {
   venues?: LiveTodayVenueItem[];
 };
 
+const LOCAL_GENERATED_TODAY_RACES_URL = toPublicPath("/scripts/debug/today.generated.local.json");
 const GENERATED_TODAY_RACES_URL = toPublicPath("/data/races/today.generated.json");
+const GENERATED_TODAY_RACES_URL_CANDIDATES = import.meta.env.DEV
+  ? [LOCAL_GENERATED_TODAY_RACES_URL, GENERATED_TODAY_RACES_URL]
+  : [GENERATED_TODAY_RACES_URL];
+
+async function fetchGeneratedTodayRacesPayload(dateKey: string) {
+  let lastError: unknown = null;
+
+  for (const url of GENERATED_TODAY_RACES_URL_CANDIDATES) {
+    try {
+      const response = await fetch(`${url}?date=${dateKey}`, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`failed to load generated races: ${response.status}`);
+      }
+      return await response.json() as GeneratedTodayRacesPayload;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError ?? new Error("failed to load generated races");
+}
 
 function normalizeGeneratedSession(value: unknown): RaceScheduleItem["session"] {
   if (value === "night" || value === "midnight") return value;
@@ -733,13 +755,7 @@ function useGeneratedTodayRaces() {
     const today = new Date();
     const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
-    fetch(`${GENERATED_TODAY_RACES_URL}?date=${dateKey}`, { cache: "no-store" })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`failed to load generated races: ${response.status}`);
-        }
-        return response.json() as Promise<GeneratedTodayRacesPayload>;
-      })
+    fetchGeneratedTodayRacesPayload(dateKey)
       .then((payload) => {
         if (!isMounted) return;
         const venues = Array.isArray(payload.venues)
