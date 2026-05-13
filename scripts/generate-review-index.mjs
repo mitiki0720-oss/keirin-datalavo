@@ -13,6 +13,8 @@ const reviewSlugAliases = {
   gihu: "gifu",
   hirosima: "hiroshima",
   kouchi: "kochi",
+  itou: "ito",
+  keioukaku: "keiokaku",
 };
 
 const venueMap = {
