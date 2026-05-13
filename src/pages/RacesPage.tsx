@@ -918,21 +918,26 @@ const getRacesPageCarTone = (carNo: string) => {
 const getRacesPageStageLabel = (venue: LiveTodayVenueItem | null | undefined) => {
   if (!venue?.startDate || !venue?.endDate) return "開催中";
 
-  const start = new Date(`${venue.startDate}T00:00:00`);
-  const end = new Date(`${venue.endDate}T00:00:00`);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+const start = new Date(`${venue.startDate}T00:00:00+09:00`);
+const end = new Date(`${venue.endDate}T00:00:00+09:00`);
+const now = new Date();
+const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  const totalDays = Math.max(1, Math.floor((end.getTime() - start.getTime()) / 86400000) + 1);
-  const currentIndex = Math.floor((today.getTime() - start.getTime()) / 86400000) + 1;
+if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || Number.isNaN(today.getTime())) {
+  return "日程確認中";
+}
 
-  if (currentIndex <= 1) return "初日";
-  if (currentIndex >= totalDays) return "最終日";
-  return `${currentIndex}日目`;
+const totalDays = Math.max(1, Math.floor((end.getTime() - start.getTime()) / 86400000) + 1);
+const currentIndex = Math.floor((today.getTime() - start.getTime()) / 86400000) + 1;
+
+if (currentIndex < 1) return "開始前";
+if (currentIndex > totalDays) return "終了済み";
+
+if (currentIndex === 1) return "初日";
+if (currentIndex === totalDays) return totalDays === 1 ? "初日" : `${currentIndex}日目・最終日`;
+
+return `${currentIndex}日目`;
 };
-
-
-
 
 const parseRaceTimeToMinutes = (time?: string) => {
   if (!time) return null;
