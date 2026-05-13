@@ -8,6 +8,7 @@ const NETKEIRIN_RACE_API_URL = "https://keirin.netkeiba.com/api/race/";
 const NETKEIRIN_RESULT_URL = "https://keirin.netkeiba.com/race/result/";
 const OUTPUT_PATH = path.resolve("public/data/races/today.generated.json");
 const OVERRIDE_PATH = path.resolve("scripts/today-races-overrides.json");
+const RACE_SCHEDULE_DATA_PATH = path.resolve("src/data/raceScheduleData.ts");
 
 const DEBUG_DIR = path.resolve("scripts");
 const DEBUG_ODDS_DIR = path.join(DEBUG_DIR, "debug");
@@ -158,7 +159,47 @@ async function readOverrides() {
   }
 }
 
-function parseKdreamsTodayVenues(html, todayIso) {
+async function readRaceScheduleData() {
+  try {
+    const raw = await fs.readFile(RACE_SCHEDULE_DATA_PATH, "utf-8");
+    const match = raw.match(/export const raceScheduleData:\s*RaceScheduleItem\[\]\s*=\s*(\[[\s\S]*\]);\s*$/);
+    if (!match?.[1]) return [];
+    return JSON.parse(match[1]);
+  } catch (error) {
+    console.warn("[schedule] failed to read raceScheduleData.ts", error);
+    return [];
+  }
+}
+
+function normalizeScheduleVenueName(value) {
+  return String(value ?? "")
+    .normalize("NFKC")
+    .replace(/\s+/g, "")
+    .replace(/競輪$/g, "")
+    .trim();
+}
+
+function resolveVenueScheduleRange(scheduleData, venueName, todayIso) {
+  const normalizedVenue = normalizeScheduleVenueName(venueName);
+
+  const candidates = scheduleData
+    .filter((item) => normalizeScheduleVenueName(item.venue) === normalizedVenue)
+    .filter((item) => item.startDate <= todayIso && item.endDate >= todayIso)
+    .sort((a, b) => {
+      const aLength = (new Date(`${a.endDate}T00:00:00+09:00`).getTime() - new Date(`${a.startDate}T00:00:00+09:00`).getTime());
+      const bLength = (new Date(`${b.endDate}T00:00:00+09:00`).getTime() - new Date(`${b.startDate}T00:00:00+09:00`).getTime());
+      return bLength - aLength || b.startDate.localeCompare(a.startDate);
+    });
+
+  const matched = candidates[0] ?? null;
+
+  return {
+    startDate: matched?.startDate ?? todayIso,
+    endDate: matched?.endDate ?? todayIso,
+  };
+}
+
+function parseKdreamsTodayVenues(html, todayIso, scheduleData) {
   const tableMatch = html.match(/<div class="raceinfo_table">[\s\S]*?<table>([\s\S]*?)<\/table>/i);
   if (!tableMatch) {
     return { venues: [], debug: { tableFound: false } };
@@ -204,6 +245,8 @@ function parseKdreamsTodayVenues(html, todayIso) {
     const slug = listLink?.[1] ?? detailLinks[0]?.slug ?? "";
     const cardId = listLink?.[2] ?? "";
     const venueCode = detailLinks[0]?.raceId?.slice(0, 2) ?? cardId.slice(0, 2) ?? venueCodeFromLinks;
+    const { startDate: resolvedStartDate, endDate: resolvedEndDate } =
+      resolveVenueScheduleRange(scheduleData, venueText, todayIso);
 
     parseRows.push({
       venue: venueText,
@@ -223,8 +266,8 @@ function parseKdreamsTodayVenues(html, todayIso) {
       slug,
       title: `${venueText} 出走表一覧`,
       grade,
-      startDate: todayIso,
-      endDate: todayIso,
+      startDate: resolvedStartDate,
+      endDate: resolvedEndDate,
       session,
       hasGirls,
       note: "Kドリームス出走表一覧から自動生成",
@@ -1017,6 +1060,7 @@ if (resultData.debug.markRows?.length) {
 async function main() {
   const todayIso = getJstTodayIso();
   const overrides = await readOverrides();
+  const scheduleData = await readRaceScheduleData();
 
   await fs.mkdir(DEBUG_DIR, { recursive: true });
   await fs.mkdir(DEBUG_ODDS_DIR, { recursive: true });
@@ -1035,7 +1079,7 @@ async function main() {
   const html = await response.text();
   await fs.writeFile(KDREAMS_DEBUG_HTML_PATH, html, "utf-8");
 
-  const { venues: todayVenues, debug } = parseKdreamsTodayVenues(html, todayIso);
+  const { venues: todayVenues, debug } = parseKdreamsTodayVenues(html, todayIso, scheduleData);
   await fs.writeFile(
     DEBUG_JSON_PATH,
     JSON.stringify({ todayIso, matchedCount: todayVenues.length, debug }, null, 2),
