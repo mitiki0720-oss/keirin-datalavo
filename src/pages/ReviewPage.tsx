@@ -2111,6 +2111,18 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
       accent: "#7b5be3",
     };
 
+  const openTodayReview = () => {
+    setSelectedDate(operationalToday);
+    setCalendarMonth(operationalToday.slice(0, 7));
+    setSelectedVenueName("");
+  };
+
+  const openYesterdayReview = () => {
+    setSelectedDate(yesterdayReviewDate);
+    setCalendarMonth(yesterdayReviewDate.slice(0, 7));
+    setSelectedVenueName("");
+  };
+
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #fffefe 0%, #fff6fb 46%, #f6fbff 100%)", color: "#111827" }}>
 <SiteHeader activeKey="review" />
@@ -2400,6 +2412,40 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
             <div>
               <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "8px" }}>VENUE REVIEW CARDS</div>
               <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>{isTodaySelected ? "今日予想した会場を、見やすいカードで振り返る" : isYesterdaySelected ? "昨日予想した会場を、朝に振り返る" : "保存ファイルがある会場を、見やすいカードで振り返る"}</h2>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginTop: "14px" }}>
+                {!isYesterdaySelected ? (
+                  <button
+                    onClick={openYesterdayReview}
+                    style={{
+                      border: "1px solid rgba(122,96,194,0.24)",
+                      cursor: "pointer",
+                      borderRadius: "999px",
+                      padding: "11px 18px",
+                      background: "white",
+                      color: "#6542be",
+                      fontWeight: 900,
+                    }}
+                  >
+                    昨日のレビューを見る
+                  </button>
+                ) : null}
+                {!isTodaySelected ? (
+                  <button
+                    onClick={openTodayReview}
+                    style={{
+                      border: "none",
+                      cursor: "pointer",
+                      borderRadius: "999px",
+                      padding: "11px 18px",
+                      background: "linear-gradient(135deg, #7b5be3 0%, #5d79e8 100%)",
+                      color: "white",
+                      fontWeight: 900,
+                    }}
+                  >
+                    今日のレビューに戻る
+                  </button>
+                ) : null}
+              </div>
             </div>
             <div style={{ fontSize: "12px", color: "#6d7687", lineHeight: 1.7, textAlign: "right" }}>
               <div>会場を押すと、左のコピー素材と</div>
@@ -2612,10 +2658,10 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", marginBottom: "18px" }}>
               <div>
                 <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "8px" }}>COPY MATERIAL</div>
-                <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>{isLocalReviewSelected ? "会場ごとの GPT 連携素材" : "保存ファイルのテキスト表示"}</h2>
+                <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>{isTodaySelected ? "会場ごとの GPT 連携素材" : isYesterdaySelected ? "昨日の GPT 連携素材" : "保存ファイルのテキスト表示"}</h2>
               </div>
               <div style={{ fontSize: "12px", color: "#6d7687", lineHeight: 1.7, textAlign: "right" }}>
-                <div>{isLocalReviewSelected ? "左に予想まとめ、下に結果まとめ。" : "保存された予想TXTと結果TXTを表示します。"}</div>
+                <div>{isTodaySelected ? "左に予想まとめ、下に結果まとめ。" : isYesterdaySelected ? "昨日分の予想まとめと結果まとめを表示します。" : "保存された予想TXTと結果TXTを表示します。"}</div>
                 <div>コピーボタンですぐ GPT に渡せます。</div>
               </div>
             </div>
