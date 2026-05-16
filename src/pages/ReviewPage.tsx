@@ -285,32 +285,18 @@ function shiftReviewIsoDateByDays(isoDate: string, days: number) {
   return base.toISOString().slice(0, 10);
 }
 
-function getReviewJstNowDate() {
-  const parts = getReviewJstDateTimeParts();
-  return new Date(`${parts.isoDate}T${parts.hour}:${parts.minute}:${parts.second}+09:00`);
-}
-
-function getReviewNextJstSixAMFromSavedAt(savedAt?: string) {
-  if (!savedAt) return undefined;
-
-  const base = new Date(savedAt);
-  if (Number.isNaN(base.getTime())) return undefined;
-
-  const parts = getReviewJstDateTimeParts(base);
-  const expireIsoDate = Number(parts.hour) < 6 ? parts.isoDate : shiftReviewIsoDateByDays(parts.isoDate, 1);
-
-  return new Date(`${expireIsoDate}T06:00:00+09:00`);
-}
-
-function isExpiredByReviewJstSixAM(savedAt?: string) {
-  const expireAt = getReviewNextJstSixAMFromSavedAt(savedAt);
-  if (!expireAt) return false;
-  return getReviewJstNowDate().getTime() >= expireAt.getTime();
-}
-
 function getJstOperationalDate(base: Date = new Date()) {
   const parts = getReviewJstDateTimeParts(base);
   return Number(parts.hour) >= 6 ? parts.isoDate : shiftReviewIsoDateByDays(parts.isoDate, -1);
+}
+
+function getReviewLocalKeepFromDate() {
+  return shiftReviewIsoDateByDays(getJstOperationalDate(), -1);
+}
+
+function shouldKeepRecentReviewDate(date?: string) {
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return true;
+  return date >= getReviewLocalKeepFromDate();
 }
 
 function prunePredictionSlotsMap(map: Record<string, PredictionSlotRecord>) {
@@ -322,7 +308,7 @@ function prunePredictionSlotsMap(map: Record<string, PredictionSlotRecord>) {
       return accumulator;
     }
 
-    if (isExpiredByReviewJstSixAM(value.savedAt)) {
+    if (!shouldKeepRecentReviewDate(value.date)) {
       changed = true;
       return accumulator;
     }
@@ -343,7 +329,7 @@ function prunePredictionResultsMap(map: Record<string, PredictionResultRecord>) 
       return accumulator;
     }
 
-    if (isExpiredByReviewJstSixAM(value.savedAt)) {
+    if (!shouldKeepRecentReviewDate(value.date)) {
       changed = true;
       return accumulator;
     }
@@ -624,10 +610,9 @@ function loadPredictionResults() {
 
 function loadReviewReports() {
   if (typeof window === "undefined") return [] as ReviewReportRecord[];
-  const activeDate = getJstOperationalDate();
   const parsed = safeJsonParse<ReviewReportRecord[] | Record<string, ReviewReportRecord>>(window.localStorage.getItem(REVIEW_REPORT_STORAGE_KEY), []);
   const records = Array.isArray(parsed) ? parsed : Object.values(parsed ?? {});
-  const activeRecords = records.filter((record) => record.date === activeDate);
+  const activeRecords = records.filter((record) => shouldKeepRecentReviewDate(record.date));
   if (activeRecords.length !== records.length) {
     try {
       window.localStorage.setItem(REVIEW_REPORT_STORAGE_KEY, JSON.stringify(activeRecords));
@@ -675,8 +660,7 @@ async function fetchReviewTextFile(path?: string) {
 
 function saveReviewReports(records: ReviewReportRecord[]) {
   if (typeof window === "undefined") return;
-  const activeDate = getJstOperationalDate();
-  const activeRecords = records.filter((record) => record.date === activeDate);
+  const activeRecords = records.filter((record) => shouldKeepRecentReviewDate(record.date));
   try {
     window.localStorage.setItem(REVIEW_REPORT_STORAGE_KEY, JSON.stringify(activeRecords));
   } catch {
@@ -764,6 +748,7 @@ function loadReviewRaceResultSnapshots() {
   );
 
   const activeDate = getJstOperationalDate();
+  const keepFromDate = shiftReviewIsoDateByDays(activeDate, -1);
   let changed = false;
 
   const records = Object.fromEntries(
@@ -771,7 +756,7 @@ function loadReviewRaceResultSnapshots() {
       .filter(([key]) => {
         const [snapshotDate] = key.split(":");
         if (!/^\d{4}-\d{2}-\d{2}$/.test(snapshotDate)) return true;
-        const keep = snapshotDate >= activeDate;
+        const keep = snapshotDate >= keepFromDate;
         if (!keep) changed = true;
         return keep;
       })
@@ -800,13 +785,14 @@ function saveReviewRaceResultSnapshots(records: ReviewRaceResultSnapshotMap) {
   if (typeof window === "undefined") return records;
 
   const activeDate = getJstOperationalDate();
+  const keepFromDate = shiftReviewIsoDateByDays(activeDate, -1);
 
   const compactRecords = Object.fromEntries(
     Object.entries(records)
       .filter(([key]) => {
         const [snapshotDate] = key.split(":");
         if (!/^\d{4}-\d{2}-\d{2}$/.test(snapshotDate)) return true;
-        return snapshotDate >= activeDate;
+        return snapshotDate >= keepFromDate;
       })
       .filter(([key, race]) => Boolean(key) && Boolean(race?.raceNo))
       .sort(([a], [b]) => b.localeCompare(a))
@@ -1636,6 +1622,7 @@ function ReviewVenueMetric({ label, value, sub }: { label: string; value: string
 
 export default function ReviewPage() {
   const operationalToday = getJstOperationalDate();
+  const yesterdayReviewDate = shiftReviewIsoDateByDays(operationalToday, -1);
   const [slotMap, setSlotMap] = useState<Record<string, PredictionSlotRecord>>({});
   const [resultMap, setResultMap] = useState<Record<string, PredictionResultRecord>>({});
   const [reportRecords, setReportRecords] = useState<ReviewReportRecord[]>([]);
@@ -1655,6 +1642,10 @@ export default function ReviewPage() {
   const [selectedDate, setSelectedDate] = useState(operationalToday);
   const [calendarMonth, setCalendarMonth] = useState(operationalToday.slice(0, 7));
   const isTodaySelected = selectedDate === operationalToday;
+  const isYesterdaySelected = selectedDate === yesterdayReviewDate;
+  const isLocalReviewSelected = isTodaySelected || isYesterdaySelected;
+  const reviewModeLabel = isTodaySelected ? "TODAY REVIEW" : isYesterdaySelected ? "YESTERDAY REVIEW" : "FILE REVIEW";
+  const workbenchLabel = isTodaySelected ? "LIVE WORKBENCH" : isYesterdaySelected ? "YESTERDAY WORKBENCH" : "FILE ARCHIVE";
 
   useEffect(() => {
     setSlotMap(loadPredictionSlots());
@@ -1778,7 +1769,7 @@ export default function ReviewPage() {
 );
 
   useEffect(() => {
-    if (isTodaySelected) {
+    if (isLocalReviewSelected) {
       setReviewFileGroups([]);
       setReviewFileLoadStatus("idle");
       return;
@@ -1828,7 +1819,7 @@ export default function ReviewPage() {
     return () => {
       cancelled = true;
     };
-  }, [isTodaySelected, reviewFileIndexItems, selectedDate]);
+  }, [isLocalReviewSelected, reviewFileIndexItems, selectedDate]);
 
   useEffect(() => {
     if (!isTodaySelected) return;
@@ -1946,7 +1937,7 @@ export default function ReviewPage() {
 );
 
   useEffect(() => {
-    const targetGroups = isTodaySelected ? filteredVenueGroups.map((group) => group.venue) : filteredReviewFileGroups.map((group) => group.venue);
+    const targetGroups = isLocalReviewSelected ? filteredVenueGroups.map((group) => group.venue) : filteredReviewFileGroups.map((group) => group.venue);
 
     if (targetGroups.length === 0) {
       setSelectedVenueName("");
@@ -1955,7 +1946,7 @@ export default function ReviewPage() {
     if (!selectedVenueName || !targetGroups.includes(selectedVenueName)) {
       setSelectedVenueName(targetGroups[0]);
     }
-  }, [filteredReviewFileGroups, filteredVenueGroups, isTodaySelected, selectedVenueName]);
+  }, [filteredReviewFileGroups, filteredVenueGroups, isLocalReviewSelected, selectedVenueName]);
 
   const selectedVenueGroup = useMemo(
     () => filteredVenueGroups.find((group) => group.venue === selectedVenueName) ?? filteredVenueGroups[0] ?? null,
@@ -1967,34 +1958,38 @@ export default function ReviewPage() {
     [filteredReviewFileGroups, selectedVenueName],
   );
 
+  const selectedDisplayVenueName = isLocalReviewSelected
+    ? selectedVenueGroup?.venue
+    : selectedReviewFileGroup?.venue;
+
   const selectedPredictionCopy = useMemo(
     () => {
-      if (isTodaySelected) return selectedVenueGroup ? buildPredictionCopy(selectedVenueGroup) : "";
+      if (isLocalReviewSelected) return selectedVenueGroup ? buildPredictionCopy(selectedVenueGroup) : "";
       return selectedReviewFileGroup?.predictionText ?? "";
     },
-    [isTodaySelected, selectedReviewFileGroup, selectedVenueGroup],
+    [isLocalReviewSelected, selectedReviewFileGroup, selectedVenueGroup],
   );
   const selectedResultCopy = useMemo(
     () => {
-      if (isTodaySelected) return selectedVenueGroup ? buildResultCopy(selectedVenueGroup, reviewWeatherActualMap) : "";
+      if (isLocalReviewSelected) return selectedVenueGroup ? buildResultCopy(selectedVenueGroup, reviewWeatherActualMap) : "";
       return selectedReviewFileGroup?.resultText ?? "";
     },
-    [isTodaySelected, reviewWeatherActualMap, selectedReviewFileGroup, selectedVenueGroup],
+    [isLocalReviewSelected, reviewWeatherActualMap, selectedReviewFileGroup, selectedVenueGroup],
   );
 
   const selectedReportRecord = useMemo(() => {
-    if (!isTodaySelected) return null;
+    if (!isLocalReviewSelected) return null;
     if (!selectedVenueGroup) return null;
     return reportRecords.find((item) => item.date === selectedVenueGroup.date && item.venue === selectedVenueGroup.venue) ?? null;
-  }, [isTodaySelected, reportRecords, selectedVenueGroup]);
+  }, [isLocalReviewSelected, reportRecords, selectedVenueGroup]);
 
   useEffect(() => {
-    if (!isTodaySelected) {
+    if (!isLocalReviewSelected) {
       setReportDraft("");
       return;
     }
     setReportDraft(selectedReportRecord?.reportText ?? "");
-  }, [isTodaySelected, selectedReportRecord?.reportText, selectedVenueGroup?.venue, selectedVenueGroup?.date]);
+  }, [isLocalReviewSelected, selectedReportRecord?.reportText, selectedVenueGroup?.venue, selectedVenueGroup?.date]);
 
   const todaySummary = useMemo(() => {
     const groups = venueGroups;
@@ -2077,10 +2072,8 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
 };
 
   const saveCurrentReport = () => {
-    if (!isTodaySelected) return;
+    if (!isLocalReviewSelected) return;
     if (!selectedVenueGroup) return;
-    const activeDate = getJstOperationalDate();
-    const activeReportRecords = reportRecords.filter((item) => item.date === activeDate);
     const nextRecord: ReviewReportRecord = {
       id: `${selectedVenueGroup.date}:${selectedVenueGroup.venue}`,
       date: selectedVenueGroup.date,
@@ -2092,7 +2085,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
     };
     const next = [
       nextRecord,
-      ...activeReportRecords.filter((item) => !(item.date === nextRecord.date && item.venue === nextRecord.venue)),
+      ...reportRecords.filter((item) => !(item.date === nextRecord.date && item.venue === nextRecord.venue)),
     ];
     setReportRecords(next);
     saveReviewReports(next);
@@ -2100,11 +2093,9 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
   };
 
   const deleteCurrentReport = () => {
-    if (!isTodaySelected) return;
+    if (!isLocalReviewSelected) return;
     if (!selectedVenueGroup) return;
-    const activeDate = getJstOperationalDate();
     const next = reportRecords
-      .filter((item) => item.date === activeDate)
       .filter((item) => !(item.date === selectedVenueGroup.date && item.venue === selectedVenueGroup.venue));
     setReportRecords(next);
     saveReviewReports(next);
@@ -2113,7 +2104,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
   };
 
   const heroTone =
-    venueColorMap[(isTodaySelected ? selectedVenueGroup?.venue : selectedReviewFileGroup?.venue) ?? ""] ?? {
+    venueColorMap[selectedDisplayVenueName ?? ""] ?? {
       border: "#d8c9f5",
       chip: "rgba(126, 91, 227, 0.12)",
       text: "#6a43c3",
@@ -2151,7 +2142,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
               }}
             />
             <div style={{ fontSize: "11px", letterSpacing: "0.24em", fontWeight: 900, color: "#9a7ad9", marginBottom: "14px" }}>
-              {isTodaySelected ? "TODAY REVIEW" : "FILE REVIEW"}
+              {reviewModeLabel}
             </div>
             <div
               style={{
@@ -2166,29 +2157,33 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
               <div style={{ minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "flex-start", gap: "16px", paddingTop: "4px" }}>
                 <div>
                   <h1 style={{ margin: 0, fontSize: "40px", lineHeight: 1.08, fontWeight: 900, color: "#111827", marginBottom: "16px", letterSpacing: "-0.05em" }}>
-                    {isTodaySelected ? "LIVE WORKBENCH" : "FILE ARCHIVE"}
+                    {workbenchLabel}
                   </h1>
                   <p style={{ margin: 0, maxWidth: "560px", fontSize: "15px", lineHeight: 1.95, color: "#5f6676" }}>
-                    
+                    {isTodaySelected
+                      ? "今日予想した会場を、見やすいカードで振り返る"
+                      : isYesterdaySelected
+                        ? "昨日予想した会場を、朝に振り返る"
+                        : "保存ファイルがある会場を、見やすいカードで振り返る"}
                   </p>
                 </div>
 
                 <div style={{ display: "grid", gap: "12px" }}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
                     <span style={{ borderRadius: "999px", border: "1px solid rgba(231, 220, 242, 0.95)", background: "rgba(255,255,255,0.82)", color: "#6f5bb0", padding: "8px 12px", fontSize: "11px", fontWeight: 900, letterSpacing: "0.12em" }}>
-                      {isTodaySelected ? "TODAY MODE" : "FILE MODE"}
+                      {isTodaySelected ? "TODAY MODE" : isYesterdaySelected ? "YESTERDAY MODE" : "FILE MODE"}
                     </span>
                     <span style={{ borderRadius: "999px", border: `1px solid ${heroTone.border}`, background: heroTone.chip, color: heroTone.text, padding: "8px 12px", fontSize: "11px", fontWeight: 900, letterSpacing: "0.12em" }}>
-                      {isTodaySelected ? "LOCAL STORAGE + TODAY FEED" : "INDEX JSON + TXT + SUMMARY"}
+                      {isTodaySelected ? "LOCAL STORAGE + TODAY FEED" : isYesterdaySelected ? "LOCAL STORAGE + SNAPSHOT" : "INDEX JSON + TXT + SUMMARY"}
                     </span>
                   </div>
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px", marginTop: "260px" }}>
-                  <StatCard label="OPERATION DAY" value={formatDateShort(selectedDate)} sub={isTodaySelected ? "本日のレビュー対象日" : "表示中の保存レビュー日付"} />
-                  <StatCard label="TARGETS" value={isTodaySelected ? `${todaySummary.venueCount}会場 / ${todaySummary.raceCount}R` : `${reviewFileSummary.venueCount}会場`} sub={isTodaySelected ? "当日保存済み予想から作業台を構成" : "index.json に登録された会場ファイルを表示"} />
-                  <StatCard label="FILE STATUS" value={isTodaySelected ? `${todaySummary.hitCount}的中 / ${todaySummary.settledCount}照合` : `${reviewFileSummary.loadedTextCount}件読込`} sub={isTodaySelected ? `レポート一時保存 ${reportRecords.length}件` : `登録ファイル ${reviewFileSummary.fileCount}件`} />
-                  <StatCard label="MODE" value={isTodaySelected ? "LOCAL / FEED" : "TXT / FETCH"} sub={isTodaySelected ? "当日レビューは localStorage と today.generated.json を利用" : "過去レビューは localStorage に保存しません"} />
+                  <StatCard label="OPERATION DAY" value={formatDateShort(selectedDate)} sub={isTodaySelected ? "本日のレビュー対象日" : isYesterdaySelected ? "昨日のレビュー対象日" : "表示中の保存レビュー日付"} />
+                  <StatCard label="TARGETS" value={isLocalReviewSelected ? `${todaySummary.venueCount}会場 / ${todaySummary.raceCount}R` : `${reviewFileSummary.venueCount}会場`} sub={isTodaySelected ? "当日保存済み予想から作業台を構成" : isYesterdaySelected ? "昨日保存済み予想から作業台を構成" : "index.json に登録された会場ファイルを表示"} />
+                  <StatCard label="FILE STATUS" value={isLocalReviewSelected ? `${todaySummary.hitCount}的中 / ${todaySummary.settledCount}照合` : `${reviewFileSummary.loadedTextCount}件読込`} sub={isLocalReviewSelected ? `レポート一時保存 ${reportRecords.length}件` : `登録ファイル ${reviewFileSummary.fileCount}件`} />
+                  <StatCard label="MODE" value={isLocalReviewSelected ? "LOCAL / SNAPSHOT" : "TXT / FETCH"} sub={isTodaySelected ? "当日レビューは localStorage と today.generated.json を利用" : isYesterdaySelected ? "昨日レビューは localStorage と snapshot を利用" : "過去レビューは localStorage に保存しません"} />
                 </div>
               </div>
 
@@ -2350,13 +2345,15 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "10px", marginTop: "16px" }}>
               <SummaryChip label="対象日" value={formatDateLabel(selectedDate)} />
-              <SummaryChip label="表示モード" value={isTodaySelected ? "LIVE WORKBENCH" : "FILE ARCHIVE"} />
-              <SummaryChip label="対象会場" value={isTodaySelected ? `${filteredVenueGroups.length}会場` : `${filteredReviewFileGroups.length}会場`} />
+              <SummaryChip label="表示モード" value={workbenchLabel} />
+              <SummaryChip label="対象会場" value={isLocalReviewSelected ? `${filteredVenueGroups.length}会場` : `${filteredReviewFileGroups.length}会場`} />
             </div>
             <div style={{ marginTop: "16px", fontSize: "12px", lineHeight: 1.8, color: "#6b7280" }}>
               {isTodaySelected
                 ? "当日分は localStorage と today.generated.json を使います。"
-                : "過去日付は public/data/reviews/index.json と TXT ファイルを fetch して表示します。"}
+                : isYesterdaySelected
+                  ? "昨日分は localStorage と保存済み snapshot を使います。"
+                  : "過去日付は public/data/reviews/index.json と TXT ファイルを fetch して表示します。"}
             </div>
           </article>
         </div>
@@ -2374,11 +2371,11 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
           <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "20px", marginBottom: "18px" }}>
             <div>
               <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "8px" }}>SEARCH & FILTER</div>
-              <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>{isTodaySelected ? "当日の会場とメモを絞り込む" : "保存ファイルの会場と文面を絞り込む"}</h2>
+              <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>{isLocalReviewSelected ? "レビュー対象の会場とメモを絞り込む" : "保存ファイルの会場と文面を絞り込む"}</h2>
             </div>
             <div style={{ fontSize: "12px", color: "#6d7687", lineHeight: 1.7, textAlign: "right" }}>
-              <div>{isTodaySelected ? "当日保存された予想と結果だけを対象に、" : "選択日付の保存レビューTXTだけを対象に、"}</div>
-              <div>{isTodaySelected ? "会場カードとレポート貼り付け欄を切り替えます。" : "会場カードと表示テキストを切り替えます。"}</div>
+              <div>{isLocalReviewSelected ? "localStorage に残っている予想と結果だけを対象に、" : "選択日付の保存レビューTXTだけを対象に、"}</div>
+              <div>{isLocalReviewSelected ? "会場カードとレポート貼り付け欄を切り替えます。" : "会場カードと表示テキストを切り替えます。"}</div>
             </div>
           </div>
 
@@ -2402,15 +2399,15 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "20px", marginBottom: "16px" }}>
             <div>
               <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "8px" }}>VENUE REVIEW CARDS</div>
-              <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>{isTodaySelected ? "今日予想した会場を、見やすいカードで振り返る" : "保存ファイルがある会場を、見やすいカードで振り返る"}</h2>
+              <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>{isTodaySelected ? "今日予想した会場を、見やすいカードで振り返る" : isYesterdaySelected ? "昨日予想した会場を、朝に振り返る" : "保存ファイルがある会場を、見やすいカードで振り返る"}</h2>
             </div>
             <div style={{ fontSize: "12px", color: "#6d7687", lineHeight: 1.7, textAlign: "right" }}>
               <div>会場を押すと、左のコピー素材と</div>
-              <div>{isTodaySelected ? "右のレポート保存欄が切り替わります。" : "右の保存ファイル情報が切り替わります。"}</div>
+              <div>{isLocalReviewSelected ? "右のレポート保存欄が切り替わります。" : "右の保存ファイル情報が切り替わります。"}</div>
             </div>
           </div>
 
-{(isTodaySelected
+{(isLocalReviewSelected
   ? sortedVenueGroupsForCards.length === 0
   : reviewFileLoadStatus !== "loading" && filteredReviewFileGroups.length === 0) ? (
   <div
@@ -2423,8 +2420,8 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
       fontSize: "14px",
     }}
   >
-    <div style={{ fontWeight: 900, color: "#4b5563", marginBottom: "8px" }}>{isTodaySelected ? "本日の保存済み予想はまだありません" : "この日付の保存レビューTXTはまだ登録されていません"}</div>
-    <div>{isTodaySelected ? "PredictionPageで予想を保存すると、ここに当日のレビュー素材が表示されます。" : "public/data/reviews/index.json に対象日付と TXT ファイルを登録すると表示されます。"}</div>
+    <div style={{ fontWeight: 900, color: "#4b5563", marginBottom: "8px" }}>{isLocalReviewSelected ? (isTodaySelected ? "本日の保存済み予想はまだありません" : "昨日の保存済み予想はまだありません") : "この日付の保存レビューTXTはまだ登録されていません"}</div>
+    <div>{isLocalReviewSelected ? "PredictionPageで予想を保存すると、ここにレビュー素材が表示されます。" : "public/data/reviews/index.json に対象日付と TXT ファイルを登録すると表示されます。"}</div>
   </div>
 ) : (
   <div
@@ -2435,7 +2432,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
       alignItems: "stretch",
     }}
   >
-    {isTodaySelected
+    {isLocalReviewSelected
       ? sortedVenueGroupsForCards.map((group) => {
           const tone = venueColorMap[group.venue] ?? heroTone;
           const selected = selectedVenueGroup?.venue === group.venue;
@@ -2615,20 +2612,20 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", marginBottom: "18px" }}>
               <div>
                 <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "8px" }}>COPY MATERIAL</div>
-                <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>{isTodaySelected ? "会場ごとの GPT 連携素材" : "保存ファイルのテキスト表示"}</h2>
+                <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>{isLocalReviewSelected ? "会場ごとの GPT 連携素材" : "保存ファイルのテキスト表示"}</h2>
               </div>
               <div style={{ fontSize: "12px", color: "#6d7687", lineHeight: 1.7, textAlign: "right" }}>
-                <div>{isTodaySelected ? "左に予想まとめ、下に結果まとめ。" : "保存された予想TXTと結果TXTを表示します。"}</div>
+                <div>{isLocalReviewSelected ? "左に予想まとめ、下に結果まとめ。" : "保存された予想TXTと結果TXTを表示します。"}</div>
                 <div>コピーボタンですぐ GPT に渡せます。</div>
               </div>
             </div>
 
-            {(isTodaySelected ? selectedVenueGroup : selectedReviewFileGroup) ? (
+            {(isLocalReviewSelected ? selectedVenueGroup : selectedReviewFileGroup) ? (
               <>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "12px", marginBottom: "18px" }}>
-                  <SummaryChip label="対象会場" value={`${(isTodaySelected ? selectedVenueGroup?.venue : selectedReviewFileGroup?.venue) ?? "--"} / ${formatDateShort(selectedDate)}`} />
-                  <SummaryChip label={isTodaySelected ? "対象R数" : "表示モード"} value={isTodaySelected ? `${selectedVenueGroup?.races.length ?? 0}R` : "FILE ARCHIVE"} />
-                  <SummaryChip label={isTodaySelected ? "レポート状態" : "保存方式"} value={isTodaySelected ? selectedReportRecord ? "保存済み" : "未保存" : "fetch only"} />
+                  <SummaryChip label="対象会場" value={`${selectedDisplayVenueName ?? "--"} / ${formatDateShort(selectedDate)}`} />
+                  <SummaryChip label={isLocalReviewSelected ? "対象R数" : "表示モード"} value={isLocalReviewSelected ? `${selectedVenueGroup?.races.length ?? 0}R` : "FILE ARCHIVE"} />
+                  <SummaryChip label={isLocalReviewSelected ? "レポート状態" : "保存方式"} value={isLocalReviewSelected ? selectedReportRecord ? "保存済み" : "未保存" : "fetch only"} />
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px" }}>
@@ -2660,9 +2657,9 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
 
   <button
     onClick={() => {
-      if (!selectedVenueGroup) return;
+      if (!selectedDisplayVenueName) return;
       downloadTextFile(
-        buildReviewDownloadFileName(selectedDate, (isTodaySelected ? selectedVenueGroup?.venue : selectedReviewFileGroup?.venue) ?? "review", "prediction"),
+        buildReviewDownloadFileName(selectedDate, selectedDisplayVenueName, "prediction"),
         selectedPredictionCopy
       );
       setCopyStatus("予想まとめTXTをダウンロードしました");
@@ -2712,9 +2709,9 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
 
   <button
     onClick={() => {
-      if (!selectedVenueGroup) return;
+      if (!selectedDisplayVenueName) return;
       downloadTextFile(
-        buildReviewDownloadFileName(selectedDate, (isTodaySelected ? selectedVenueGroup?.venue : selectedReviewFileGroup?.venue) ?? "review", "result"),
+        buildReviewDownloadFileName(selectedDate, selectedDisplayVenueName, "result"),
         selectedResultCopy
       );
       setCopyStatus("結果まとめTXTをダウンロードしました");
@@ -2750,15 +2747,15 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", marginBottom: "18px" }}>
               <div>
                 <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "8px" }}>GPT REVIEW</div>
-                <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>{isTodaySelected ? "当日レポート貼り付け欄" : "ファイル保存レビュー"}</h2>
+                <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>{isTodaySelected ? "当日レポート貼り付け欄" : isYesterdaySelected ? "昨日レポート貼り付け欄" : "ファイル保存レビュー"}</h2>
               </div>
               <div style={{ fontSize: "12px", color: "#6d7687", lineHeight: 1.7, textAlign: "right" }}>
-                <div>{isTodaySelected ? "当日の振り返りを一時保存します。" : "この日付はTXT/Markdown保存データを表示しています。"}</div>
-                <div>{isTodaySelected ? "保存版はTXT/Markdownで別管理してください。" : "localStorageには保存しません。"}</div>
+                <div>{isTodaySelected ? "当日の振り返りを一時保存します。" : isYesterdaySelected ? "昨日の振り返りを朝まで一時保存します。" : "この日付はTXT/Markdown保存データを表示しています。"}</div>
+                <div>{isLocalReviewSelected ? "保存版はTXT/Markdownで別管理してください。" : "localStorageには保存しません。"}</div>
               </div>
             </div>
 
-            {isTodaySelected ? selectedVenueGroup ? (
+            {isLocalReviewSelected ? selectedVenueGroup ? (
               <>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "12px", marginBottom: "18px" }}>
                   <SummaryChip label="会場" value={selectedVenueGroup.venue} />
@@ -2870,7 +2867,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
         </section>
 
         <div style={{ fontSize: "12px", lineHeight: 1.8, color: "#6d7687", textAlign: "center" }}>
-          {isTodaySelected ? "過去レビューはTXT/Markdownで別保存してください。このページは当日作業用です。" : "この日付はファイル保存レビューです。過去レビューは public/data/reviews 配下のTXTを参照します。"}
+          {isTodaySelected ? "過去レビューはTXT/Markdownで別保存してください。このページは当日作業用です。" : isYesterdaySelected ? "昨日レビューは localStorage と snapshot を使う朝用作業枠です。" : "この日付はファイル保存レビューです。過去レビューは public/data/reviews 配下のTXTを参照します。"}
         </div>
 
       </main>
