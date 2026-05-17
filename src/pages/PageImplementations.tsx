@@ -138,6 +138,15 @@ export const getJstOperationalDate = (base: Date = new Date()) => {
   return Number(parts.hour) >= 6 ? parts.isoDate : shiftIsoDateByDays(parts.isoDate, -1);
 };
 
+export const getPredictionReviewKeepFromDate = () => {
+  return shiftIsoDateByDays(getJstOperationalDate(), -1);
+};
+
+export const shouldKeepPredictionReviewDate = (date?: string) => {
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return true;
+  return date >= getPredictionReviewKeepFromDate();
+};
+
 export const DASHBOARD_JST_DATE_FORMATTER = new Intl.DateTimeFormat("ja-JP", {
   timeZone: "Asia/Tokyo",
   year: "numeric",
@@ -533,10 +542,10 @@ export const prunePredictionSlotsMap = (map: PredictionSlotMap) => {
       return accumulator;
     }
 
-    if (isExpiredByJstSixAM(value.savedAt)) {
+    if (!shouldKeepPredictionReviewDate(value.date)) {
       changed = true;
       return accumulator;
-    }
+     }
 
     accumulator[key] = value;
     return accumulator;
@@ -554,7 +563,7 @@ export const prunePredictionResultsMap = (map: PredictionResultMap) => {
       return accumulator;
     }
 
-    if (isExpiredByJstSixAM(value.savedAt)) {
+    if (!shouldKeepPredictionReviewDate(value.date)) {
       changed = true;
       return accumulator;
     }
