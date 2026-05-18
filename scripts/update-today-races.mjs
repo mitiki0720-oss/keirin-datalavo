@@ -31,6 +31,7 @@ const NETKEIRIN_RESULT_DEBUG_PREFIX = "result-page";
 const NETKEIRIN_TRIFECTA_CANDIDATE_KEYS = ["list_9", "trifecta", "trifecta_list", "odds_3t"];
 const GRADE_CHECK_TARGET_VENUES = ["別府", "名古屋", "熊本", "松戸", "奈良", "函館"];
 const seenUnknownGradeWarnings = new Set();
+let savedKdreamsResultDebugSample = false;
 
 function formatDate(date) {
   const y = date.getFullYear();
@@ -651,6 +652,13 @@ async function writeNetkeirinResultDebugFiles(raceId, suffix, html, payload) {
   await fs.writeFile(path.join(DEBUG_ODDS_DIR, `${NETKEIRIN_RESULT_DEBUG_PREFIX}-${raceId}-${suffix}.html`), html, "utf-8");
   await fs.writeFile(path.join(DEBUG_ODDS_DIR, `${NETKEIRIN_RESULT_DEBUG_PREFIX}-${raceId}-${suffix}.txt`), `${stripTags(html)}\n`, "utf-8");
   await fs.writeFile(path.join(DEBUG_ODDS_DIR, `${NETKEIRIN_RESULT_DEBUG_PREFIX}-${raceId}-${suffix}.json`), `${JSON.stringify(payload, null, 2)}\n`, "utf-8");
+}
+
+async function writeKdreamsResultSampleDebugFiles(kdreamsRaceId, html, payload) {
+  await fs.mkdir(DEBUG_ODDS_DIR, { recursive: true });
+  await fs.writeFile(path.join(DEBUG_ODDS_DIR, `kdreams-result-sample-${kdreamsRaceId}.html`), html, "utf-8");
+  await fs.writeFile(path.join(DEBUG_ODDS_DIR, `kdreams-result-sample-${kdreamsRaceId}.txt`), `${stripTags(html)}\n`, "utf-8");
+  await fs.writeFile(path.join(DEBUG_ODDS_DIR, `kdreams-result-sample-${kdreamsRaceId}.json`), `${JSON.stringify(payload, null, 2)}\n`, "utf-8");
 }
 
 function normalizeNetkeirinResultSbText(value) {
@@ -1483,57 +1491,63 @@ function extractKdreamsResultFinalizedAt(html) {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")} ${String(hour).padStart(2, "0")}:${minute}:00`;
 }
 
-function extractKdreamsResultScope(html, raceNo, kdreamsRaceId) {
-  const raceLinkPattern = new RegExp(`/racedetail/${String(kdreamsRaceId).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/\\?pageType=result`, "i");
-  const titlePattern = new RegExp(`>${String(raceNo).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}R<`, "i");
+function extractKdreamsResultScope(html, resultUrl, raceNo, kdreamsRaceId) {
+  const escapedRaceId = String(kdreamsRaceId).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escapedRaceNo = String(raceNo).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const strippedHtml = stripTags(html);
   return {
-    raceIdMatched: raceLinkPattern.test(html),
-    raceNoMatched: titlePattern.test(html) || new RegExp(`\b${raceNo}R\b`, "i").test(stripTags(html)),
+    exactUrl: typeof resultUrl === "string" && resultUrl.includes(`/racedetail/${kdreamsRaceId}/`) && resultUrl.includes("pageType=result"),
+    htmlHasRaceId: new RegExp(escapedRaceId, "i").test(html),
+    htmlHasRaceNo: new RegExp(`(?:^|[^0-9])${escapedRaceNo}R(?:[^0-9]|$)`, "i").test(strippedHtml),
   };
 }
 
-function isKdreamsResultCompatibleWithRace(resultData, riders, raceNo, kdreamsRaceId) {
-  const scope = resultData?.scope ?? { raceIdMatched: false, raceNoMatched: false };
-  if (!scope.raceIdMatched || !scope.raceNoMatched) {
-    return { ok: false, reason: `race scope mismatch raceNo=${raceNo} raceId=${kdreamsRaceId}` };
-  }
-
-  if (!Array.isArray(resultData?.resultTop3) || resultData.resultTop3.length < 3) {
-    return { ok: false, reason: `top3 missing raceNo=${raceNo}` };
-  }
-
-  if (!Array.isArray(resultData?.payouts) || !resultData.payouts.length) {
-    return { ok: false, reason: `payouts missing raceNo=${raceNo}` };
-  }
-
+function evaluateKdreamsResultCompatibility(resultData, riders) {
   const ridersByCarNo = new Map((Array.isArray(riders) ? riders : []).map((rider) => [String(rider?.carNo ?? ""), rider]));
+  let top3CarNosMatchRiders = true;
+  let top3NamesMatchRiders = true;
+  let reason = "";
+
   for (const item of resultData.resultTop3.slice(0, 3)) {
     const rider = ridersByCarNo.get(String(item.carNo ?? ""));
     if (!rider) {
-      return { ok: false, reason: `carNo mismatch ${item.carNo}` };
+      top3CarNosMatchRiders = false;
+      reason = `carNo mismatch ${item.carNo}`;
+      break;
     }
     if (!isKdreamsResultNameCompatible(item.name, rider.name)) {
-      return { ok: false, reason: `name mismatch ${item.carNo}:${item.name} vs ${rider.name}` };
+      top3NamesMatchRiders = false;
+      reason = `name mismatch ${item.carNo}:${item.name} vs ${rider.name}`;
+      break;
     }
   }
 
-  return { ok: true, reason: "" };
+  return {
+    top3CarNosMatchRiders,
+    top3NamesMatchRiders,
+    ok: top3CarNosMatchRiders && top3NamesMatchRiders,
+    reason,
+  };
 }
 
-function extractKdreamsResultData(html, raceNo, kdreamsRaceId) {
+function formatKdreamsResultDiagnostics(prefix, details) {
+  return `${prefix} top3=${details.top3Count} payouts=${details.payoutCount} exactUrl=${details.exactUrl} htmlRaceId=${details.htmlHasRaceId} htmlRaceNo=${details.htmlHasRaceNo} result=${details.resultUrl}`;
+}
+
+function extractKdreamsResultData(html, resultUrl, raceNo, kdreamsRaceId) {
   const resultRows = extractKdreamsResultRows(html);
   const resultTop3 = resultRows.slice(0, 3);
   const payoutExtraction = extractKdreamsPayouts(html);
   const payouts = payoutExtraction.payouts;
-  const scope = extractKdreamsResultScope(html, raceNo, kdreamsRaceId);
-  const isConfirmed = resultTop3.length >= 3 && payouts.length > 0 && scope.raceIdMatched && scope.raceNoMatched;
-  let pendingReason = "";
-  if (!scope.raceIdMatched || !scope.raceNoMatched) {
-    pendingReason = "race scope mismatch";
-  } else if (resultTop3.length < 3) {
+  const scope = extractKdreamsResultScope(html, resultUrl, raceNo, kdreamsRaceId);
+  const isConfirmed = resultTop3.length >= 3 && payouts.length > 0;
+  let pendingReason = "parse empty";
+  if (resultTop3.length < 3) {
     pendingReason = "no finish order";
   } else if (payouts.length === 0) {
     pendingReason = "payout missing";
+  } else if (!scope.exactUrl) {
+    pendingReason = "exact url mismatch";
   }
   const finishOrder = resultTop3.map((item) => item.carNo).filter(Boolean);
   const sLeaderCarNo = getNetkeirinLeaderCarNoFromRows(resultRows, "sMark");
@@ -1558,7 +1572,14 @@ function extractKdreamsResultData(html, raceNo, kdreamsRaceId) {
 
   return {
     resultStatus: result.status,
-    resultNote: isConfirmed ? "" : `kdreams result pending: ${pendingReason || "parse empty"}`,
+    resultNote: isConfirmed ? "" : formatKdreamsResultDiagnostics(`kdreams result pending: ${pendingReason}`, {
+      top3Count: resultTop3.length,
+      payoutCount: payouts.length,
+      exactUrl: scope.exactUrl,
+      htmlHasRaceId: scope.htmlHasRaceId,
+      htmlHasRaceNo: scope.htmlHasRaceNo,
+      resultUrl,
+    }),
     resultTop3,
     payouts,
     result,
@@ -1605,10 +1626,32 @@ async function fetchKdreamsRaceResult(slug, kdreamsRaceId, raceNo, riders) {
     }
 
     const html = await response.text();
-    const resultData = extractKdreamsResultData(html, raceNo, kdreamsRaceId);
-    if (!hasConfirmedRaceResult(resultData)) {
+    const resultData = extractKdreamsResultData(html, url, raceNo, kdreamsRaceId);
+    const diagnostics = {
+      top3Count: resultData.resultTop3.length,
+      payoutCount: resultData.payouts.length,
+      exactUrl: resultData.scope.exactUrl,
+      htmlHasRaceId: resultData.scope.htmlHasRaceId,
+      htmlHasRaceNo: resultData.scope.htmlHasRaceNo,
+      resultUrl: url,
+    };
+
+    if (!savedKdreamsResultDebugSample && (!resultData.scope.exactUrl || !hasConfirmedRaceResult(resultData))) {
+      savedKdreamsResultDebugSample = true;
+      await writeKdreamsResultSampleDebugFiles(kdreamsRaceId, html, {
+        raceNo,
+        resultUrl: url,
+        scope: resultData.scope,
+        top3Count: resultData.resultTop3.length,
+        payoutCount: resultData.payouts.length,
+        resultTop3: resultData.resultTop3,
+        payouts: resultData.payouts,
+      });
+    }
+
+    if (!resultData.scope.exactUrl) {
       return {
-        ...createPendingRaceResultData(`${resultData.resultNote || "kdreams result pending: parse empty"} result=${url}`),
+        ...createPendingRaceResultData(formatKdreamsResultDiagnostics("kdreams result pending: exact url mismatch", diagnostics)),
         source: "kdreams:result",
         sourceNote: `kdreams result pending result=${url}`,
         debug: {
@@ -1622,10 +1665,28 @@ async function fetchKdreamsRaceResult(slug, kdreamsRaceId, raceNo, riders) {
         },
       };
     }
-    const compatibility = isKdreamsResultCompatibleWithRace(resultData, riders, raceNo, kdreamsRaceId);
+
+    if (resultData.resultTop3.length < 3 || resultData.payouts.length === 0) {
+      return {
+        ...createPendingRaceResultData(formatKdreamsResultDiagnostics(`kdreams result pending: ${resultData.pendingReason || "parse empty"}`, diagnostics)),
+        source: "kdreams:result",
+        sourceNote: `kdreams result pending result=${url}`,
+        debug: {
+          finishOrderCount: resultData.debug.finishOrderCount,
+          payoutTableFound: resultData.debug.payoutTableFound,
+          payoutRowCount: resultData.debug.payoutRowCount,
+          payoutCount: resultData.debug.payoutCount,
+          sLeaderCarNo: resultData.debug.sLeaderCarNo,
+          hLeaderCarNo: resultData.debug.hLeaderCarNo,
+          bLeaderCarNo: resultData.debug.bLeaderCarNo,
+        },
+      };
+    }
+
+    const compatibility = evaluateKdreamsResultCompatibility(resultData, riders);
     if (!compatibility.ok) {
       return {
-        ...createPendingRaceResultData(`kdreams result rejected: ${compatibility.reason}`),
+        ...createPendingRaceResultData(formatKdreamsResultDiagnostics(`kdreams result rejected: ${compatibility.reason}`, diagnostics)),
         source: "kdreams:result",
         sourceNote: `kdreams result rejected: ${compatibility.reason} result=${url}`,
         debug: {
@@ -1644,7 +1705,7 @@ async function fetchKdreamsRaceResult(slug, kdreamsRaceId, raceNo, riders) {
       ...resultData,
       source: "kdreams:result",
       sourceNote: `kdreams result=${url}`,
-      resultNote: `kdreams result accepted: result=${url}`,
+      resultNote: formatKdreamsResultDiagnostics("kdreams result accepted:", diagnostics),
     };
   } catch (error) {
     return {
