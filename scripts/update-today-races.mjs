@@ -277,6 +277,11 @@ function buildExistingRaceCache(existingFeed) {
 }
 
 function isReusableFinalRace(race) {
+  const hasPayout3tan = Boolean(
+    race?.result?.payout3tan
+      || (Array.isArray(race?.payouts) && race.payouts.some((item) => normalizeNetkeirinBetType(item?.betType) === normalizeNetkeirinBetType("3連単"))),
+  );
+
   return Boolean(
     race
       && race.resultStatus === "confirmed"
@@ -288,8 +293,27 @@ function isReusableFinalRace(race) {
       && String(race.time ?? "").trim()
       && String(race.title ?? "").trim()
       && Array.isArray(race.riders)
-      && race.riders.length >= 1,
+      && race.riders.length >= 1
+      && hasPayout3tan,
   );
+}
+
+function getReusableFinalRaceSkipReason(race) {
+  if (!race || race.resultStatus !== "confirmed" || race.result?.status !== "confirmed") return "";
+
+  const hasPayout3tan = Boolean(
+    race?.result?.payout3tan
+      || (Array.isArray(race?.payouts) && race.payouts.some((item) => normalizeNetkeirinBetType(item?.betType) === normalizeNetkeirinBetType("3連単"))),
+  );
+  if (!hasPayout3tan) return "payout3tan missing";
+
+  const hasPayout2tan = Boolean(
+    race?.result?.payout2tan
+      || (Array.isArray(race?.payouts) && race.payouts.some((item) => normalizeNetkeirinBetType(item?.betType) === normalizeNetkeirinBetType("2車単"))),
+  );
+  if (!hasPayout2tan) return "payout2tan missing";
+
+  return "";
 }
 
 function prepareCachedRaceForReuse(cachedRace, raceNo) {
@@ -1001,6 +1025,65 @@ function extractKdreamsRaceTitle(html) {
   return headline || raceType;
 }
 
+function extractKdreamsLineupFromForecast(html, raceNo, isGirls = false) {
+  const forecastRaw = cleanCellText(matchOne(html, [
+    /並び予想[\s:：-]*([←→\s\S]*?)(?:レース評|天候|投票|<|$)/i,
+  ])).normalize("NFKC");
+
+  if (!forecastRaw) {
+    return { lineup: "", rawText: "", reason: "forecast missing" };
+  }
+
+  const compactForecast = forecastRaw
+    .replace(/並び予想/g, "")
+    .replace(/[←→]/g, " ")
+    .replace(/\s+/g, "")
+    .trim();
+  const tokens = Array.from(compactForecast.matchAll(/([1-9])([^1-9]*)/g)).map((match) => ({
+    carNo: match[1],
+    note: String(match[2] ?? ""),
+  }));
+
+  if (!tokens.length) {
+    return { lineup: "", rawText: forecastRaw, reason: "forecast parse empty" };
+  }
+
+  const groupStartPattern = /(先行|押え先|押先|追上|追い上げ|自在|捲|まくり|単騎)/;
+  const groups = [];
+  let currentGroup = "";
+
+  tokens.forEach((token, index) => {
+    if (index > 0 && groupStartPattern.test(token.note) && currentGroup) {
+      groups.push(currentGroup);
+      currentGroup = "";
+    }
+    currentGroup += token.carNo;
+  });
+
+  if (currentGroup) groups.push(currentGroup);
+  const candidate = groups.join(" ");
+  const validation = validateLineupRaw(candidate, {
+    source: "kdreams",
+    raceNo,
+    isGirls,
+    riderCount: tokens.length,
+  });
+
+  if (!validation.valid) {
+    return {
+      lineup: "",
+      rawText: forecastRaw,
+      reason: validation.reason || "forecast invalid",
+    };
+  }
+
+  return {
+    lineup: validation.normalizedRawText,
+    rawText: validation.normalizedRawText,
+    reason: "accepted",
+  };
+}
+
 function extractKdreamsRiders(html) {
   const riders = [];
   const riderBlocks = Array.from(
@@ -1109,11 +1192,29 @@ async function fetchKdreamsRaceDetail(slug, kdreamsRaceId, raceNo, saveSample = 
   const title = extractKdreamsRaceTitle(html);
   const riders = extractKdreamsRiders(html);
   const isGirls = /ガールズ|女子|L級|Ｌ級/i.test(title) || riders.some((rider) => /^L[12]$/i.test(rider.grade));
+  const lineupData = extractKdreamsLineupFromForecast(html, raceNo, isGirls);
+
+  if (lineupData.rawText && !lineupData.lineup) {
+    logInvalidLineupSource({
+      venue: slug,
+      raceNo,
+      source: "kdreams",
+      rawText: lineupData.rawText,
+      reason: lineupData.reason,
+    });
+  }
 
   return {
-    ...createEmptyRaceDetail(raceNo, `kdreams racedetail=${url}`),
+    ...createEmptyRaceDetail(
+      raceNo,
+      lineupData.lineup
+        ? `kdreams racedetail=${url} / lineFallback: kdreams lineup accepted`
+        : `kdreams racedetail=${url}`,
+    ),
     time: extractKdreamsRaceTime(html),
     title,
+    lineup: lineupData.lineup,
+    kdreamsLineupRaw: lineupData.rawText,
     isGirls,
     riders,
   };
@@ -1713,10 +1814,13 @@ function extractKdreamsPayouts(html) {
 
   const rows = Array.from(tableHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)).map((match) => match[1]);
   const payouts = [];
+  let carriedMainQueue = [];
 
   for (const rowHtml of rows) {
     let currentMain = "";
     let currentUnit = "";
+    const rowMainQueue = [...carriedMainQueue];
+    carriedMainQueue = [];
     const cells = Array.from(rowHtml.matchAll(/<(th|td)([^>]*)>([\s\S]*?)<\/\1>/gi)).map((match) => ({
       tag: match[1].toLowerCase(),
       attrs: match[2] ?? "",
@@ -1727,7 +1831,17 @@ function extractKdreamsPayouts(html) {
       if (cell.tag === "th") {
         currentMain = cleanCellText(cell.html);
         currentUnit = "";
+        const rowspan = Number.parseInt(matchOne(cell.attrs, [/rowspan="(\d+)"/i]) || "1", 10);
+        if (Number.isFinite(rowspan) && rowspan > 1) {
+          for (let index = 1; index < rowspan; index += 1) {
+            carriedMainQueue.push(currentMain);
+          }
+        }
         continue;
+      }
+
+      if (!currentMain && rowMainQueue.length) {
+        currentMain = rowMainQueue.shift() ?? "";
       }
 
       if (!/<dl/i.test(cell.html)) {
@@ -1756,6 +1870,9 @@ function extractKdreamsPayouts(html) {
           popularity,
         });
       }
+
+      currentMain = "";
+      currentUnit = "";
     }
   }
 
@@ -2080,6 +2197,7 @@ async function main() {
   const overrides = await readOverrides();
   const scheduleData = await readRaceScheduleData();
   let cacheReusedCount = 0;
+  let cacheSkippedIncompleteCount = 0;
   let cacheFetchedCount = 0;
 
   await fs.mkdir(DEBUG_DIR, { recursive: true });
@@ -2129,6 +2247,7 @@ async function main() {
         venue: venue.venue,
         raceNo,
       }));
+      const incompleteCacheReason = getReusableFinalRaceSkipReason(cachedRace);
 
       if (isReusableFinalRace(cachedRace)) {
         const reusableRace = prepareCachedRaceForReuse(cachedRace, raceNo);
@@ -2140,6 +2259,11 @@ async function main() {
         cacheReusedCount += 1;
         console.log(`[cache] ${venue.venue} ${raceNo}R finalized; skip detail/odds/result fetch`);
         continue;
+      }
+
+      if (incompleteCacheReason) {
+        cacheSkippedIncompleteCount += 1;
+        console.log(`[cache] skip finalized race because ${incompleteCacheReason} ${venue.venue} ${raceNo}R`);
       }
 
       cacheFetchedCount += 1;
@@ -2328,7 +2452,7 @@ async function main() {
   }
 
   console.log(`todayIso=${todayIso}`);
-  console.log(`[cache] finalized reused=${cacheReusedCount}, fetched=${cacheFetchedCount}`);
+  console.log(`[cache] finalized reused=${cacheReusedCount}, skippedIncomplete=${cacheSkippedIncompleteCount}, fetched=${cacheFetchedCount}`);
   console.log(`matched venues=${todayVenues.length}`);
   console.log(`Generated ${venues.length} venues with race details -> ${OUTPUT_PATH}`);
   console.log(`parse debug -> ${DEBUG_JSON_PATH}`);
