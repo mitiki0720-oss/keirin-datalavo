@@ -1029,9 +1029,9 @@ function buildNetkeirinRaceId(todayIso, venueCode, raceNo) {
   return `${compactDate(todayIso)}${venueCode}${String(raceNo).padStart(2, "0")}`;
 }
 
-function buildKdreamsResultId(kdreamsRaceId) {
-  const value = String(kdreamsRaceId ?? "").trim();
-  return value.length >= 14 ? value.slice(0, 14) : "";
+function buildKdreamsRaceResultDetailUrl(slug, kdreamsRaceId) {
+  if (!slug || !kdreamsRaceId) return "";
+  return `${KDREAMS_RACE_DETAIL_BASE_URL}/${slug}/racedetail/${kdreamsRaceId}/?pageType=result`;
 }
 
 function mergeRaceDetailWithFallback(primary, fallback) {
@@ -1349,32 +1349,47 @@ function normalizeKdreamsPayoutBetType(mainLabel, unitLabel) {
   return `${main}${unit}`;
 }
 
-function extractKdreamsResultTop3(html) {
-  const tableHtml = html.match(/<table[^>]*class="[^"]*order_table[^"]*"[^>]*>([\s\S]*?)<\/table>/i)?.[1] ?? "";
+function normalizeKdreamsNameForComparison(value) {
+  return cleanCellText(String(value ?? ""))
+    .normalize("NFKC")
+    .replace(/[\s　]+/g, "")
+    .replace(/[・･]/g, "")
+    .trim();
+}
+
+function isKdreamsResultNameCompatible(resultName, riderName) {
+  const normalizedResultName = normalizeKdreamsNameForComparison(resultName);
+  const normalizedRiderName = normalizeKdreamsNameForComparison(riderName);
+  if (!normalizedResultName || !normalizedRiderName) return false;
+  return normalizedResultName === normalizedRiderName
+    || normalizedResultName.includes(normalizedRiderName)
+    || normalizedRiderName.includes(normalizedResultName);
+}
+
+function extractKdreamsResultRows(html) {
+  const tableHtml = html.match(/<table[^>]*class="[^"]*result_table[^"]*"[^>]*>([\s\S]*?)<\/table>/i)?.[1] ?? "";
   if (!tableHtml) return [];
 
   const rows = Array.from(tableHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)).map((match) => match[1]);
-  const dataRow = rows[1] ?? "";
-  if (!dataRow) return [];
+  return rows.slice(1).map((rowHtml) => {
+    const cells = Array.from(rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)).map((match) => match[1]);
+    if (cells.length < 8) return null;
 
-  const cells = Array.from(dataRow.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)).map((match) => match[1]);
-
-  return cells.slice(0, 3).map((cellHtml, index) => ({
-    place: String(index + 1),
-    carNo: cleanCellText(matchOne(cellHtml, [
-      /<span[^>]*class="num[^\"]*"[^>]*>([0-9]{1,2})<\/span>/i,
-    ])),
-    name: cleanCellText(matchOne(cellHtml, [
-      /<span[^>]*class="num[^\"]*"[^>]*>[\s\S]*?<\/span>\s*<span>([\s\S]*?)<\/span>/i,
-      /<span>([\s\S]*?)<\/span>/i,
-    ])),
-    margin: "",
-    agari: "",
-    kimarite: "",
-    sMark: false,
-    hMark: false,
-    bMark: false,
-  })).filter((item) => item.carNo && item.name);
+    const shbText = cleanCellText(cells[7]).normalize("NFKC");
+    return {
+      place: cleanCellText(cells[1]),
+      carNo: cleanCellText(matchOne(cells[2], [
+        /<span[^>]*>([0-9]{1,2})<\/span>/i,
+      ])),
+      name: cleanCellText(cells[3]),
+      margin: cleanCellText(cells[4]),
+      agari: cleanCellText(cells[5]),
+      kimarite: cleanCellText(cells[6]),
+      sMark: shbText.includes("S"),
+      hMark: shbText.includes("H"),
+      bMark: shbText.includes("B"),
+    };
+  }).filter((item) => item?.place && item?.carNo && item?.name);
 }
 
 function extractKdreamsPayouts(html) {
@@ -1448,16 +1463,63 @@ function extractKdreamsResultFinalizedAt(html) {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")} ${String(hour).padStart(2, "0")}:${minute}:00`;
 }
 
-function extractKdreamsResultData(html) {
-  const resultTop3 = extractKdreamsResultTop3(html);
+function extractKdreamsResultScope(html, raceNo, kdreamsRaceId) {
+  const raceLinkPattern = new RegExp(`/racedetail/${String(kdreamsRaceId).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/\\?pageType=result`, "i");
+  const titlePattern = new RegExp(`>${String(raceNo).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}R<`, "i");
+  return {
+    raceIdMatched: raceLinkPattern.test(html),
+    raceNoMatched: titlePattern.test(html) || new RegExp(`\b${raceNo}R\b`, "i").test(stripTags(html)),
+  };
+}
+
+function isKdreamsResultCompatibleWithRace(resultData, riders, raceNo, kdreamsRaceId) {
+  const scope = resultData?.scope ?? { raceIdMatched: false, raceNoMatched: false };
+  if (!scope.raceIdMatched || !scope.raceNoMatched) {
+    return { ok: false, reason: `race scope mismatch raceNo=${raceNo} raceId=${kdreamsRaceId}` };
+  }
+
+  if (!Array.isArray(resultData?.resultTop3) || resultData.resultTop3.length < 3) {
+    return { ok: false, reason: `top3 missing raceNo=${raceNo}` };
+  }
+
+  if (!Array.isArray(resultData?.payouts) || !resultData.payouts.length) {
+    return { ok: false, reason: `payouts missing raceNo=${raceNo}` };
+  }
+
+  const ridersByCarNo = new Map((Array.isArray(riders) ? riders : []).map((rider) => [String(rider?.carNo ?? ""), rider]));
+  for (const item of resultData.resultTop3.slice(0, 3)) {
+    const rider = ridersByCarNo.get(String(item.carNo ?? ""));
+    if (!rider) {
+      return { ok: false, reason: `carNo mismatch ${item.carNo}` };
+    }
+    if (!isKdreamsResultNameCompatible(item.name, rider.name)) {
+      return { ok: false, reason: `name mismatch ${item.carNo}:${item.name} vs ${rider.name}` };
+    }
+  }
+
+  return { ok: true, reason: "" };
+}
+
+function extractKdreamsResultData(html, raceNo, kdreamsRaceId) {
+  const resultRows = extractKdreamsResultRows(html);
+  const resultTop3 = resultRows.slice(0, 3);
   const payoutExtraction = extractKdreamsPayouts(html);
   const payouts = payoutExtraction.payouts;
-  const isConfirmed = resultTop3.length > 0 || payouts.length > 0;
+  const scope = extractKdreamsResultScope(html, raceNo, kdreamsRaceId);
+  const isConfirmed = resultTop3.length >= 3 && payouts.length > 0 && scope.raceIdMatched && scope.raceNoMatched;
   const finishOrder = resultTop3.map((item) => item.carNo).filter(Boolean);
+  const sLeaderCarNo = getNetkeirinLeaderCarNoFromRows(resultRows, "sMark");
+  const hLeaderCarNo = getNetkeirinLeaderCarNoFromRows(resultRows, "hMark");
+  const bLeaderCarNo = getNetkeirinLeaderCarNoFromRows(resultRows, "bMark");
   const result = {
     ...createPendingRaceResultData().result,
     status: isConfirmed ? "confirmed" : "pending",
     finishOrder,
+    kimarite: resultTop3[0]?.kimarite ?? "",
+    secondKimarite: resultTop3[1]?.kimarite ?? "",
+    sLeaderCarNo,
+    hLeaderCarNo,
+    bLeaderCarNo,
     payout2tan: pickNetkeirinPayoutItem(payouts, ["2車単"]),
     payout2fuku: pickNetkeirinPayoutItem(payouts, ["2車複", "二車複"], true),
     payout3tan: pickNetkeirinPayoutItem(payouts, ["3連単"]),
@@ -1471,30 +1533,30 @@ function extractKdreamsResultData(html) {
     resultTop3,
     payouts,
     result,
+    scope,
     debug: {
       finishOrderCount: finishOrder.length,
       payoutTableFound: payoutExtraction.debug.tableFound,
       payoutRowCount: payoutExtraction.debug.rowCount,
       payoutCount: payouts.length,
-      sLeaderCarNo: "",
-      hLeaderCarNo: "",
-      bLeaderCarNo: "",
+      sLeaderCarNo,
+      hLeaderCarNo,
+      bLeaderCarNo,
     },
   };
 }
 
-async function fetchKdreamsRaceResult(slug, kdreamsRaceId) {
-  const resultId = buildKdreamsResultId(kdreamsRaceId);
-  if (!slug || !resultId) {
+async function fetchKdreamsRaceResult(slug, kdreamsRaceId, raceNo, riders) {
+  const url = buildKdreamsRaceResultDetailUrl(slug, kdreamsRaceId);
+  if (!url) {
     return {
       ...createPendingRaceResultData(),
-      source: "kdreams:raceresult",
-      sourceNote: "kdreams raceresult unavailable",
+      source: "kdreams:result",
+      sourceNote: "kdreams result unavailable",
       debug: { finishOrderCount: 0, payoutTableFound: false, payoutRowCount: 0, payoutCount: 0, sLeaderCarNo: "", hLeaderCarNo: "", bLeaderCarNo: "" },
     };
   }
 
-  const url = `${KDREAMS_RACE_DETAIL_BASE_URL}/${slug}/raceresult/${resultId}/`;
   try {
     const response = await fetch(url, {
       headers: {
@@ -1506,23 +1568,42 @@ async function fetchKdreamsRaceResult(slug, kdreamsRaceId) {
     if (!response.ok) {
       return {
         ...createPendingRaceResultData(),
-        source: "kdreams:raceresult",
-        sourceNote: `kdreams raceresult取得失敗: ${response.status} raceresult=${url}`,
+        source: "kdreams:result",
+        sourceNote: `kdreams result取得失敗: ${response.status} result=${url}`,
         debug: { finishOrderCount: 0, payoutTableFound: false, payoutRowCount: 0, payoutCount: 0, sLeaderCarNo: "", hLeaderCarNo: "", bLeaderCarNo: "" },
       };
     }
 
     const html = await response.text();
+    const resultData = extractKdreamsResultData(html, raceNo, kdreamsRaceId);
+    const compatibility = isKdreamsResultCompatibleWithRace(resultData, riders, raceNo, kdreamsRaceId);
+    if (!compatibility.ok) {
+      return {
+        ...createPendingRaceResultData(),
+        source: "kdreams:result",
+        sourceNote: `kdreams result rejected: ${compatibility.reason} result=${url}`,
+        debug: {
+          finishOrderCount: resultData.debug.finishOrderCount,
+          payoutTableFound: resultData.debug.payoutTableFound,
+          payoutRowCount: resultData.debug.payoutRowCount,
+          payoutCount: resultData.debug.payoutCount,
+          sLeaderCarNo: resultData.debug.sLeaderCarNo,
+          hLeaderCarNo: resultData.debug.hLeaderCarNo,
+          bLeaderCarNo: resultData.debug.bLeaderCarNo,
+        },
+      };
+    }
+
     return {
-      ...extractKdreamsResultData(html),
-      source: "kdreams:raceresult",
-      sourceNote: `kdreams raceresult=${url}`,
+      ...resultData,
+      source: "kdreams:result",
+      sourceNote: `kdreams result=${url}`,
     };
   } catch (error) {
     return {
       ...createPendingRaceResultData(),
-      source: "kdreams:raceresult",
-      sourceNote: `kdreams raceresult取得失敗: ${error instanceof Error ? error.message : String(error)} raceresult=${url}`,
+      source: "kdreams:result",
+      sourceNote: `kdreams result取得失敗: ${error instanceof Error ? error.message : String(error)} result=${url}`,
       debug: { finishOrderCount: 0, payoutTableFound: false, payoutRowCount: 0, payoutCount: 0, sLeaderCarNo: "", hLeaderCarNo: "", bLeaderCarNo: "" },
     };
   }
@@ -1549,7 +1630,7 @@ async function fetchRaceOddsWithFallback({ raceId, venue, raceNo }) {
   };
 }
 
-async function fetchRaceResultWithFallback({ raceId, venue, raceNo, detailLink }) {
+async function fetchRaceResultWithFallback({ raceId, venue, raceNo, detailLink, riders }) {
   const netkeirinResult = await fetchNetkeirinRaceResult(raceId);
   if (hasMeaningfulRaceResult(netkeirinResult)) {
     console.log(
@@ -1558,17 +1639,17 @@ async function fetchRaceResultWithFallback({ raceId, venue, raceNo, detailLink }
     return netkeirinResult;
   }
 
-  const kdreamsResult = await fetchKdreamsRaceResult(detailLink?.slug ?? venue.slug, detailLink?.raceId);
+  const kdreamsResult = await fetchKdreamsRaceResult(detailLink?.slug ?? venue.slug, detailLink?.raceId, raceNo, riders);
   if (hasMeaningfulRaceResult(kdreamsResult)) {
     console.log(
-      `[result] ${venue.venue} ${raceNo}R source=${kdreamsResult.source} ${kdreamsResult.resultStatus} payoutCount=${kdreamsResult.payouts.length}`,
+      `[result] ${venue.venue} ${raceNo}R source=${kdreamsResult.source} ${kdreamsResult.resultStatus} payoutCount=${kdreamsResult.payouts.length} SHB=${kdreamsResult.result.sLeaderCarNo || "-"}:${kdreamsResult.result.hLeaderCarNo || "-"}:${kdreamsResult.result.bLeaderCarNo || "-"}`,
     );
     return kdreamsResult;
   }
 
   // TODO: Probe OddsPark result/payout pages as an additional fallback when netkeirin and KDreams fail.
   console.log(
-    `[result] ${venue.venue} ${raceNo}R source=pending payoutCount=0 because ${netkeirinResult.sourceNote}`,
+    `[result] ${venue.venue} ${raceNo}R source=pending payoutCount=0 because ${kdreamsResult.sourceNote || netkeirinResult.sourceNote}`,
   );
 
   return {
@@ -1653,6 +1734,7 @@ async function main() {
         venue,
         raceNo,
         detailLink,
+        riders: detailRace.riders,
       });
       const race = {
         ...detailRace,
