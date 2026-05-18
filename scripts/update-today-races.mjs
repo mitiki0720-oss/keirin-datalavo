@@ -1057,6 +1057,168 @@ function buildKdreamsRaceResultDetailUrl(slug, kdreamsRaceId) {
   return `${KDREAMS_RACE_DETAIL_BASE_URL}/${slug}/racedetail/${kdreamsRaceId}/?pageType=result`;
 }
 
+function buildKdreamsRaceOddsDetailUrl(slug, kdreamsRaceId) {
+  if (!slug || !kdreamsRaceId) return "";
+  return `${KDREAMS_RACE_DETAIL_BASE_URL}/${slug}/racedetail/${kdreamsRaceId}/?pageType=odds&kakeshikiType=3rentan`;
+}
+
+function extractKdreamsTrifectaOddsSection(html) {
+  return html.match(/<div class="odds_contents none" id="JS_ODDSCONTENTS_3rentan">([\s\S]*?)<!-- 3連単 End -->/i)?.[1] ?? "";
+}
+
+function extractKdreamsTrifectaPopularityRows(sectionHtml) {
+  const tableHtml = sectionHtml.match(/<p class="header">人気順<\/p>[\s\S]*?<table>([\s\S]*?)<\/table>/i)?.[1] ?? "";
+  if (!tableHtml) return [];
+
+  return Array.from(tableHtml.matchAll(/<tr>[\s\S]*?<th>(\d+)<\/th>[\s\S]*?<span class="num">([0-9\-]+)<\/span>[\s\S]*?<span class="odds">([0-9.,]+)<\/span>[\s\S]*?<\/tr>/gi))
+    .map((match) => ({
+      popularity: Number(match[1]),
+      combination: normalizeNetkeirinOddsCombination(match[2]),
+      odds: getNetkeirinNumberValue(match[3]),
+    }))
+    .filter((item) => item.combination && Number.isFinite(item.odds) && item.odds > 0);
+}
+
+function extractKdreamsTrifectaOddsFromMatrix(sectionHtml) {
+  const tables = Array.from(sectionHtml.matchAll(/<table class="odds_table bt5(?: none)?">([\s\S]*?)<\/table>/gi)).map((match) => match[1]);
+  const items = [];
+
+  for (const tableHtml of tables) {
+    const rowHtmlList = Array.from(tableHtml.matchAll(/<tr>([\s\S]*?)<\/tr>/gi)).map((match) => match[1]);
+    if (rowHtmlList.length < 4) continue;
+
+    const firstCar = cleanCellText(matchOne(rowHtmlList[0], [
+      /<span class="number">(\d+)<\/span>/i,
+    ]));
+    if (!firstCar) continue;
+
+    const thirdCars = Array.from(rowHtmlList[1].matchAll(/<th[^>]*class="n(\d+)"[^>]*>\d+<\/th>/gi)).map((match) => match[1]);
+    if (!thirdCars.length) continue;
+
+    for (const rowHtml of rowHtmlList.slice(3)) {
+      const secondCar = cleanCellText(matchOne(rowHtml, [
+        /<th[^>]*class="n(\d+)"[^>]*>\d+<\/th>/i,
+      ]));
+      if (!secondCar) continue;
+
+      const cells = Array.from(rowHtml.matchAll(/<(td|th)[^>]*>([\s\S]*?)<\/\1>/gi)).map((match) => match[2]);
+      const valueCells = cells.slice(1, 1 + thirdCars.length);
+      valueCells.forEach((cellHtml, index) => {
+        const thirdCar = thirdCars[index] ?? "";
+        const odds = getNetkeirinNumberValue(cleanCellText(cellHtml));
+        if (!thirdCar || !Number.isFinite(odds) || odds <= 0) return;
+        items.push({
+          combination: `${firstCar}-${thirdCar}-${secondCar}`,
+          odds,
+          source: "kdreams",
+        });
+      });
+    }
+  }
+
+  return items;
+}
+
+function extractKdreamsTrifectaOddsData(html) {
+  const sectionHtml = extractKdreamsTrifectaOddsSection(html);
+  if (!sectionHtml) {
+    return {
+      oddsTrifecta: [],
+      oddsPreview: [],
+      reason: "no trifecta section",
+      matrixCount: 0,
+      popularityCount: 0,
+    };
+  }
+
+  const popularityRows = extractKdreamsTrifectaPopularityRows(sectionHtml);
+  const popularityMap = new Map(popularityRows.map((item) => [item.combination, item.popularity]));
+  const matrixItems = extractKdreamsTrifectaOddsFromMatrix(sectionHtml);
+  const mergedItems = (matrixItems.length ? matrixItems : popularityRows.map((item) => ({
+    combination: item.combination,
+    odds: item.odds,
+    source: "kdreams",
+  })))
+    .map((item) => ({
+      ...item,
+      popularity: popularityMap.get(item.combination),
+    }))
+    .filter((item, index, array) => array.findIndex((candidate) => candidate.combination === item.combination) === index)
+    .sort((a, b) => (a.popularity ?? Number.MAX_SAFE_INTEGER) - (b.popularity ?? Number.MAX_SAFE_INTEGER) || a.odds - b.odds);
+
+  const oddsPreview = popularityRows.slice(0, 3).map((item) => ({
+    combo: item.combination,
+    odds: `${item.odds.toFixed(1)}倍`,
+    tag: `3連単人気${item.popularity}`,
+  }));
+
+  return {
+    oddsTrifecta: mergedItems,
+    oddsPreview,
+    reason: mergedItems.length ? "accepted" : popularityRows.length ? "popular-table-only" : "no trifecta table",
+    matrixCount: matrixItems.length,
+    popularityCount: popularityRows.length,
+  };
+}
+
+async function fetchKdreamsTrifectaOdds(slug, kdreamsRaceId) {
+  const url = buildKdreamsRaceOddsDetailUrl(slug, kdreamsRaceId);
+  if (!url) {
+    return {
+      ...createEmptyRaceOddsData(),
+      source: "kdreams",
+      reason: "url unavailable",
+      oddsNote: "kdreams odds skipped: url unavailable",
+      matrixCount: 0,
+      popularityCount: 0,
+    };
+  }
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        "user-agent": "Mozilla/5.0",
+        "accept-language": "ja-JP,ja;q=0.9,en;q=0.8",
+      },
+    });
+
+    if (!response.ok) {
+      return {
+        ...createEmptyRaceOddsData(),
+        source: "kdreams",
+        reason: `fetch failed: ${response.status}`,
+        oddsNote: `kdreams odds fetch failed: ${response.status}`,
+        matrixCount: 0,
+        popularityCount: 0,
+      };
+    }
+
+    const html = await response.text();
+    const oddsData = extractKdreamsTrifectaOddsData(html);
+    return {
+      oddsPreview: oddsData.oddsPreview,
+      oddsTrifecta: oddsData.oddsTrifecta,
+      oddsNote: oddsData.oddsTrifecta.length
+        ? `kdreams odds accepted: count=${oddsData.oddsTrifecta.length} matrix=${oddsData.matrixCount} popular=${oddsData.popularityCount}`
+        : `kdreams odds pending: ${oddsData.reason} matrix=${oddsData.matrixCount} popular=${oddsData.popularityCount}`,
+      source: "kdreams",
+      reason: oddsData.reason,
+      matrixCount: oddsData.matrixCount,
+      popularityCount: oddsData.popularityCount,
+      url,
+    };
+  } catch (error) {
+    return {
+      ...createEmptyRaceOddsData(),
+      source: "kdreams",
+      reason: error instanceof Error ? error.message : String(error),
+      oddsNote: `kdreams odds fetch failed: ${error instanceof Error ? error.message : String(error)}`,
+      matrixCount: 0,
+      popularityCount: 0,
+    };
+  }
+}
+
 function mergeRaceDetailWithFallback(primary, fallback) {
   const safePrimary = primary ?? createEmptyRaceDetail(fallback?.raceNo ?? 0, "primary unavailable");
   const safeFallback = fallback ?? createEmptyRaceDetail(primary?.raceNo ?? 0, "fallback unavailable");
@@ -1306,7 +1468,7 @@ async function fetchNetkeirinTrifectaOddsForRaceId(raceId) {
   return {
     ...createEmptyRaceOddsData(),
     oddsTrifecta,
-    oddsNote: oddsTrifecta.length ? "netkeirin:AplRaceOdds" : "",
+    oddsNote: oddsTrifecta.length ? `netkeirin odds accepted: count=${oddsTrifecta.length} source=AplRaceOdds` : "",
     source: "netkeirin:AplRaceOdds",
     reason: oddsTrifectaReason,
     usedKey: oddsTrifectaUsedKey,
@@ -1717,7 +1879,7 @@ async function fetchKdreamsRaceResult(slug, kdreamsRaceId, raceNo, riders) {
   }
 }
 
-async function fetchRaceOddsWithFallback({ raceId, venue, raceNo }) {
+async function fetchRaceOddsWithFallback({ raceId, venue, raceNo, detailLink }) {
   const netkeirinOdds = await fetchNetkeirinTrifectaOddsForRaceId(raceId);
   if (hasMeaningfulRaceOdds(netkeirinOdds)) {
     console.log(
@@ -1726,15 +1888,27 @@ async function fetchRaceOddsWithFallback({ raceId, venue, raceNo }) {
     return netkeirinOdds;
   }
 
-  // TODO: Probe WINTICKET / OddsPark / KDreams odds as additional fallbacks when netkeirin odds API is unavailable.
+  const netkeirinFailureNote = `netkeirin odds fetch failed: ${netkeirinOdds.reason}`;
+  const kdreamsOdds = await fetchKdreamsTrifectaOdds(detailLink?.slug ?? venue.slug, detailLink?.raceId);
+  if (hasMeaningfulRaceOdds(kdreamsOdds)) {
+    console.log(
+      `[odds] ${venue.venue} ${raceNo}R netkeirin=${netkeirinOdds.reason} kdreams=accepted count=${kdreamsOdds.oddsTrifecta.length} matrix=${kdreamsOdds.matrixCount} popular=${kdreamsOdds.popularityCount}`,
+    );
+    return {
+      ...kdreamsOdds,
+      oddsNote: `${netkeirinFailureNote} / ${kdreamsOdds.oddsNote}`,
+    };
+  }
+
+  // TODO: Probe WINTICKET / OddsPark odds pages if KDreams odds become unavailable or structurally unstable.
   console.log(
-    `[odds] ${venue.venue} ${raceNo}R source=${netkeirinOdds.source} count=${netkeirinOdds.oddsTrifecta.length} reason=${netkeirinOdds.reason}`,
+    `[odds] ${venue.venue} ${raceNo}R netkeirin=${netkeirinOdds.reason} kdreams=${kdreamsOdds.reason}`,
   );
 
   return {
     ...createEmptyRaceOddsData(),
     source: "pending",
-    oddsNote: netkeirinOdds.oddsNote,
+    oddsNote: `${netkeirinFailureNote} / ${kdreamsOdds.oddsNote}`,
   };
 }
 
