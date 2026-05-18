@@ -322,6 +322,7 @@ export type PredictionRiderItem = {
   name: string;
   style?: string;
   score?: string;
+  gearRatio?: string | number;
   comment?: string;
   prefecture?: string;
   age?: string | number;
@@ -329,6 +330,7 @@ export type PredictionRiderItem = {
   grade?: string;
   s?: string | number;
   b?: string | number;
+  escape?: string | number;
   nige?: string | number;
   makuri?: string | number;
   sashi?: string | number;
@@ -1753,21 +1755,39 @@ export const parsePredictionVenueSummary = (markdown: string): PredictionVenueSu
 };
 
 export const buildPredictionLineupDisplay = (race?: PredictionRaceItem | null) => {
-  const raw = [race?.lineup, race?.netkeirinLineupRaw, race?.winticketLineupRaw, race?.kdreamsLineupRaw]
+  const raw = [race?.lineup, race?.kdreamsLineupRaw, race?.winticketLineupRaw, race?.netkeirinLineupRaw]
     .map((item) => (item ?? "").trim())
     .find(Boolean) ?? "";
+  const fallbackNote = compactPredictionGuideText(
+    String(race?.sourceNote ?? "").match(/lineFallback\s*:\s*([^/]+)/i)?.[1] ?? ""
+  );
+  const target = raw || fallbackNote;
 
-  if (!raw) return "並び未取得";
-  return raw.replace(/\s+/g, "-");
+  if (!target) return "並び未取得";
+
+  const groups = target
+    .split(/\s+/)
+    .map((group) => group.trim())
+    .filter(Boolean)
+    .filter((group) => /^[0-9-]+$/.test(group))
+    .map((group) => group.replace(/-/g, "").split("").join("-"));
+
+  if (groups.length > 0) return groups.join(" / ");
+  return target;
 };
 
 export const buildPredictionLineupGroups = (race?: PredictionRaceItem | null) => {
-  const raw = [race?.lineup, race?.netkeirinLineupRaw, race?.winticketLineupRaw, race?.kdreamsLineupRaw]
+  const raw = [race?.lineup, race?.kdreamsLineupRaw, race?.winticketLineupRaw, race?.netkeirinLineupRaw]
     .map((item) => (item ?? "").trim())
     .find(Boolean) ?? "";
 
   if (!raw) return [] as string[];
-  return raw.split(/\s+/).filter(Boolean);
+  return raw
+    .split(/\s+/)
+    .map((group) => group.trim())
+    .filter(Boolean)
+    .filter((group) => /^[0-9-]+$/.test(group))
+    .map((group) => group.replace(/-/g, "").split("").join("-"));
 };
 
 export const getPredictionWeatherLabelFromCode = (code?: number | null) => {
@@ -2484,9 +2504,25 @@ export const buildPredictionExportText = ({
     race.title || race.sourceNote || (venue.title ? `${venue.title} ${race.raceNo}R` : ""),
     "レース名なし"
   );
+  const venueFallbackLabel = venueSummary.source === "missing" ? "未登録" : "未取得";
   const lineupLabel = buildPredictionLineupDisplay(race) === "並び未取得"
-    ? "ライン情報なし"
+    ? "未取得"
     : buildPredictionLineupDisplay(race);
+  const lineupGroups = buildPredictionLineupGroups(race);
+  const leadCandidate = lineupGroups[0]?.split("-")[0] ?? "";
+  const leadRider = race.riders?.find((rider) => String(rider.carNo) === leadCandidate);
+  const leadParts = [
+    normalizePredictionMaterialValue(race.lead, ""),
+    !race.lead && leadCandidate ? `${leadCandidate}番が先頭候補` : "",
+    !race.lead && leadRider?.style ? `脚質=${leadRider.style}` : "",
+    !race.lead && normalizePredictionNumericText(leadRider?.nige ?? leadRider?.escape) ? `逃=${normalizePredictionNumericText(leadRider?.nige ?? leadRider?.escape)}` : "",
+    !race.lead && normalizePredictionNumericText(leadRider?.b) ? `B=${normalizePredictionNumericText(leadRider?.b)}` : "",
+  ].filter(Boolean);
+  const leadMemo = leadParts.length > 0
+    ? leadParts.join(" / ")
+    : normalizePredictionMaterialValue(
+        compactPredictionGuideText(String(race.sourceNote ?? "").match(/lineFallback\s*:\s*([^/]+)/i)?.[1] ?? "")
+      );
 
   return [
     "[A. レース基本情報]",
@@ -2501,18 +2537,18 @@ export const buildPredictionExportText = ({
     "",
     "[B. 並び予想 / 主導権]",
     `並び予想: ${lineupLabel}`,
-    ...(buildPredictionLineupGroups(race).length > 0
-      ? ["ライン区切り:", ...buildPredictionLineupGroups(race).map((group, index) => `- ライン${index + 1}: ${group}`)]
-      : ["ライン区切り: ライン情報なし"]),
-    `主導権メモ: ${normalizePredictionExportValue(race.lead, "主導権情報なし")}`,
+    ...(lineupGroups.length > 0
+      ? [`ライン区切り: ${lineupGroups.join(" / ")}`]
+      : ["ライン区切り: 未取得"]),
+    `主導権メモ: ${leadMemo}`,
     "",
     "[C. 会場特徴 / バンク傾向]",
-    `バンク特徴: ${normalizePredictionExportValue(venueSummary.bankFeature, "会場特徴情報なし")}`,
-    `狙いどころ: ${normalizePredictionExportValue(venueSummary.target, "狙いどころ情報なし")}`,
-    `注意点: ${normalizePredictionExportValue(venueSummary.caution, "注意点情報なし")}`,
-    `荒れそう度: ${normalizePredictionExportValue(venueSummary.volatility, "荒れそう度情報なし")}`,
-    `バンク長: ${normalizePredictionExportValue(venueSummary.bankLength, "バンク長情報なし")}`,
-    `会場メモ: ${normalizePredictionExportValue(venueSummary.bankMemo, "会場メモなし")}`,
+    `バンク特徴: ${normalizePredictionMaterialValue(venueSummary.bankFeature, venueFallbackLabel)}`,
+    `狙いどころ: ${normalizePredictionMaterialValue(venueSummary.target, venueFallbackLabel)}`,
+    `注意点: ${normalizePredictionMaterialValue(venueSummary.caution, venueFallbackLabel)}`,
+    `荒れそう度: ${normalizePredictionMaterialValue(venueSummary.volatility, venueFallbackLabel)}`,
+    `バンク長: ${normalizePredictionMaterialValue(venueSummary.bankLength, venueFallbackLabel)}`,
+    `会場メモ: ${normalizePredictionMaterialValue(venueSummary.bankMemo, venueFallbackLabel)}`,
     "",
     "[D. 天気 / 風]",
     `基準時刻: ${normalizePredictionExportValue(weather?.referenceText ?? weatherFallbackText, "時刻情報なし")}`,
@@ -6190,6 +6226,20 @@ function normalizePredictionExportValue(value: unknown, fallback = "情報なし
   return fallback;
 }
 
+function normalizePredictionMaterialValue(value: unknown, fallback = "未取得") {
+  const normalized = normalizePredictionExportValue(value, fallback);
+  return normalized === "情報なし" ? fallback : normalized;
+}
+
+function normalizePredictionNumericText(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  if (typeof value === "string") {
+    const normalized = value.trim();
+    return normalized ? normalized : "";
+  }
+  return "";
+}
+
 function sanitizePredictionTemplateNoise(value?: string | null) {
   return (value ?? "")
     .replace(/\{\{[^}]+\}\}/g, "")
@@ -6214,7 +6264,7 @@ function extractPredictionNarrativeLines(value?: string | null) {
 }
 
 function formatPredictionAnalysisBlock(title: string, data: string, memo?: string) {
-  const normalizedData = normalizePredictionExportValue(sanitizePredictionTemplateNoise(data), "情報なし");
+  const normalizedData = normalizePredictionMaterialValue(sanitizePredictionTemplateNoise(data), "未取得");
   const normalizedMemo = normalizePredictionExportValue(sanitizePredictionTemplateNoise(memo), "");
   return [
     `- ${title}`,
@@ -6225,13 +6275,13 @@ function formatPredictionAnalysisBlock(title: string, data: string, memo?: strin
 }
 
 function buildPredictionKimariteBreakdown(metrics: {
-  nige: number;
-  makuri: number;
-  sashi: number;
-  mark: number;
+  nige: number | null;
+  makuri: number | null;
+  sashi: number | null;
+  mark: number | null;
 }) {
   const total = Number(metrics.nige) + Number(metrics.makuri) + Number(metrics.sashi) + Number(metrics.mark);
-  if (total <= 0) return "情報なし";
+  if (total <= 0) return "未取得";
   return ([
     ["逃げ", Number(metrics.nige)],
     ["捲り", Number(metrics.makuri)],
@@ -6247,21 +6297,22 @@ function buildPredictionAnalysisSummary(context: PredictionExportRiderContext, m
   winRate: string;
   quinellaRate: string;
   trifectaRate: string;
-  nige: number;
-  sashi: number;
-  mark: number;
-  b: number;
+  nige: number | null;
+  sashi: number | null;
+  mark: number | null;
+  b: number | null;
 }) {
+  const hasTendencyData = [metrics.nige, metrics.sashi, metrics.mark, metrics.b].some((value) => value !== null && Number.isFinite(value));
   const tendency = Number(metrics.nige) + Number(metrics.b) >= Number(metrics.sashi) + Number(metrics.mark)
     ? "主導権寄り"
     : "差し脚寄り";
   return [
-    normalizePredictionExportValue(context.rider.style),
-    `得点:${normalizePredictionExportValue(context.rider.score)}`,
-    `勝率:${normalizePredictionExportValue(metrics.winRate)}`,
-    `2連対率:${normalizePredictionExportValue(metrics.quinellaRate)}`,
-    `3連対率:${normalizePredictionExportValue(metrics.trifectaRate)}`,
-    `傾向:${tendency}`,
+    normalizePredictionMaterialValue(context.rider.style),
+    `得点:${normalizePredictionMaterialValue(context.rider.score)}`,
+    `勝率:${normalizePredictionMaterialValue(metrics.winRate)}`,
+    `2連対率:${normalizePredictionMaterialValue(metrics.quinellaRate)}`,
+    `3連対率:${normalizePredictionMaterialValue(metrics.trifectaRate)}`,
+    `傾向:${hasTendencyData ? tendency : "未取得"}`,
   ].join(" / ");
 }
 
@@ -6311,25 +6362,24 @@ function buildPredictionRiderSamePrefectureRow(context: PredictionExportRiderCon
   const sameLineMembers = currentLine
     ? sameMembers.filter((entry) => currentLine.includes(entry.rider.carNo))
     : [];
-  const starts = Math.max(2, 3 + contexts.findIndex((entry) => entry.rider.carNo === context.rider.carNo));
 
   if (sameMembers.length >= 2) {
     if (sameLineMembers.length >= 2) {
       return {
         status: "same-line" as const,
-        text: `${prefecture} / 同県人数:${sameMembers.length} / 同ライン: ${sameLineMembers.map((entry) => `${entry.rider.carNo} ${entry.rider.name}`).join(", ")} / メモ: 同県連携あり / 出走:${starts}`,
+        text: `${prefecture} / 同県人数:${sameMembers.length} / 同ライン: ${sameLineMembers.map((entry) => `${entry.rider.carNo} ${entry.rider.name}`).join(", ")} / メモ: 同県連携あり`,
       };
     }
     return {
       status: "split-line" as const,
-      text: `${prefecture} / 同県人数:${sameMembers.length} / 別線含む: ${sameMembers.map((entry) => `${entry.rider.carNo} ${entry.rider.name}`).join(", ")} / メモ: 同県連携あり / 出走:${starts}`,
+      text: `${prefecture} / 同県人数:${sameMembers.length} / 別線含む: ${sameMembers.map((entry) => `${entry.rider.carNo} ${entry.rider.name}`).join(", ")} / メモ: 同県連携あり`,
     };
   }
 
   if (assessment.hasComparableData) {
     return {
       status: "none" as const,
-      text: `該当なし / メモ: 単独県 / 出走:${starts}`,
+      text: "該当なし / メモ: 単独県",
     };
   }
 
@@ -6396,14 +6446,6 @@ function getPredictionFirstBodyRow(table?: { header: string[]; body: string[][] 
   return record;
 }
 
-function parsePredictionScoreValue(value?: string) {
-  if (!value) return null;
-  const normalized = value.replace(/[^\d.]/g, "");
-  if (!normalized) return null;
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
 function parsePredictionIntegerLike(value: unknown) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string") {
@@ -6421,7 +6463,7 @@ function formatPredictionRateValue(value: unknown, numerator?: number | null, de
   if (numerator !== undefined && denominator !== undefined && numerator !== null && denominator !== null && denominator > 0) {
     return `${((numerator / denominator) * 100).toFixed(1)}%`;
   }
-  return "情報なし";
+  return "未取得";
 }
 
 function getPredictionContextProfile(context: PredictionExportRiderContext) {
@@ -6437,7 +6479,7 @@ function getPredictionContextProfile(context: PredictionExportRiderContext) {
   };
 }
 
-function buildPredictionEnhancedMetrics(context: PredictionExportRiderContext, index: number) {
+function buildPredictionEnhancedMetrics(context: PredictionExportRiderContext) {
   const rider = context.rider;
   const recentTables = getPredictionSectionTables(context.card, "10）直近4ヶ月");
   const recentCounts = getPredictionFirstBodyRow(recentTables[0]);
@@ -6445,77 +6487,58 @@ function buildPredictionEnhancedMetrics(context: PredictionExportRiderContext, i
   const kimariteTables = getPredictionSectionTables(context.card, "13）決まり手");
   const kimarite = getPredictionFirstBodyRow(kimariteTables[0]);
 
-  const wins = parsePredictionIntegerLike(rider.wins) ?? parsePredictionIntegerLike(recentCounts?.["1着"]) ?? Math.max(Math.round(((parsePredictionScoreValue(rider.score) ?? 92) - 90) / 2), 0);
-  const seconds = parsePredictionIntegerLike(rider.seconds) ?? parsePredictionIntegerLike(recentCounts?.["2着"]) ?? ((index + wins) % 5);
-  const thirds = parsePredictionIntegerLike(rider.thirds) ?? parsePredictionIntegerLike(recentCounts?.["3着"]) ?? ((index + 2) % 4);
-  const loses = parsePredictionIntegerLike(rider.loses) ?? parsePredictionIntegerLike(recentCounts?.["着外"]) ?? (14 + index * 2);
-  const totalStarts = parsePredictionIntegerLike(recentCounts?.["出走"]) ?? Math.max(wins + seconds + thirds + loses, 1);
+  const wins = parsePredictionIntegerLike(rider.wins) ?? parsePredictionIntegerLike(recentCounts?.["1着"]);
+  const seconds = parsePredictionIntegerLike(rider.seconds) ?? parsePredictionIntegerLike(recentCounts?.["2着"]);
+  const thirds = parsePredictionIntegerLike(rider.thirds) ?? parsePredictionIntegerLike(recentCounts?.["3着"]);
+  const loses = parsePredictionIntegerLike(rider.loses) ?? parsePredictionIntegerLike(recentCounts?.["着外"]);
+  const totalStarts = parsePredictionIntegerLike(recentCounts?.["出走"])
+    ?? (wins !== null && seconds !== null && thirds !== null && loses !== null ? wins + seconds + thirds + loses : null);
 
   return {
-    s: parsePredictionIntegerLike(rider.s) ?? parsePredictionIntegerLike(recentRates?.["S"]) ?? ((index + 1) % 5),
-    b: parsePredictionIntegerLike(rider.b) ?? parsePredictionIntegerLike(recentRates?.["B（バック）"]) ?? (String(rider.style).includes("逃") ? 4 + (index % 3) : index % 3),
-    nige: parsePredictionIntegerLike(rider.nige) ?? parsePredictionIntegerLike(kimarite?.["逃げ"]) ?? (String(rider.style).includes("逃") ? 3 + (index % 4) : index % 2),
-    makuri: parsePredictionIntegerLike(rider.makuri) ?? parsePredictionIntegerLike(kimarite?.["捲り"]) ?? (String(rider.style).includes("捲") ? 2 + (index % 3) : (index + 1) % 2),
-    sashi: parsePredictionIntegerLike(rider.sashi) ?? parsePredictionIntegerLike(kimarite?.["差し"]) ?? (String(rider.style).includes("両") || String(rider.style).includes("追") ? 2 + (index % 4) : index % 3),
-    mark: parsePredictionIntegerLike(rider.mark) ?? parsePredictionIntegerLike(kimarite?.["マーク"]) ?? (String(rider.style).includes("追") ? 2 + (index % 2) : index % 2),
+    s: parsePredictionIntegerLike(rider.s) ?? parsePredictionIntegerLike(recentRates?.["S"]),
+    b: parsePredictionIntegerLike(rider.b) ?? parsePredictionIntegerLike(recentRates?.["B（バック）"]),
+    nige: parsePredictionIntegerLike(rider.nige ?? rider.escape) ?? parsePredictionIntegerLike(kimarite?.["逃げ"]),
+    makuri: parsePredictionIntegerLike(rider.makuri) ?? parsePredictionIntegerLike(kimarite?.["捲り"]),
+    sashi: parsePredictionIntegerLike(rider.sashi) ?? parsePredictionIntegerLike(kimarite?.["差し"]),
+    mark: parsePredictionIntegerLike(rider.mark) ?? parsePredictionIntegerLike(kimarite?.["マーク"]),
     wins,
     seconds,
     thirds,
     loses,
     totalStarts,
     winRate: formatPredictionRateValue(rider.winRate, wins, totalStarts),
-    quinellaRate: formatPredictionRateValue(rider.quinellaRate, wins + seconds, totalStarts),
-    trifectaRate: formatPredictionRateValue(rider.trifectaRate, wins + seconds + thirds, totalStarts),
+    quinellaRate: formatPredictionRateValue(rider.quinellaRate, wins !== null && seconds !== null ? wins + seconds : null, totalStarts),
+    trifectaRate: formatPredictionRateValue(rider.trifectaRate, wins !== null && seconds !== null && thirds !== null ? wins + seconds + thirds : null, totalStarts),
   };
 }
 
-function derivePredictionRiderProfileLine(context: PredictionExportRiderContext) {
+function buildPredictionRiderProfileLine(context: PredictionExportRiderContext) {
   const profile = getPredictionContextProfile(context);
-  return [profile.prefecture, profile.age !== "情報なし" ? `${profile.age}歳` : "", profile.term !== "情報なし" ? `${profile.term}期` : "", profile.grade].filter(Boolean).join(" ") || "プロフィール情報なし";
-}
-
-function getPredictionRecentFallback(context: PredictionExportRiderContext, index: number, venueName?: string, gradeLabel?: string) {
-  const scoreValue = parsePredictionScoreValue(context.rider.score) ?? 92;
-  const recent1 = Math.max(1, Math.min(9, Math.round(8 - (scoreValue - 90) / 2 + (index % 3))));
-  const recent2 = Math.max(1, Math.min(9, Math.round(7 - (scoreValue - 90) / 2 + ((index + 1) % 3))));
-  const recent3 = Math.max(1, Math.min(9, Math.round(6 - (scoreValue - 90) / 2 + ((index + 2) % 3))));
-  const kimarite = String(context.rider.style).includes("逃") ? "逃" : String(context.rider.style).includes("捲") ? "捲" : String(context.rider.style).includes("追") ? "差" : "両";
-  return [
-    `- 1走前: ${recent1}`,
-    `- 2走前: ${recent2}`,
-    `- 3走前: ${recent3}`,
-    `- 決まり手: ${kimarite}`,
-    `- 開催場: ${normalizePredictionExportValue(venueName)}`,
-    `- 種別: ${normalizePredictionExportValue(gradeLabel)}`,
-  ].join("\n");
-}
-
-function buildPredictionRiderProfileLine(context: PredictionExportRiderContext, index: number) {
-  const profile = getPredictionContextProfile(context);
-  const metrics = buildPredictionEnhancedMetrics(context, index);
+  const metrics = buildPredictionEnhancedMetrics(context);
 
   return [
     `### ${context.rider.carNo}番 ${context.rider.name}`,
-    `- 脚質: ${normalizePredictionExportValue(context.rider.style ?? context.indexItem?.style)}`,
-    `- 競走得点: ${normalizePredictionExportValue(context.rider.score)}`,
-    `- 府県: ${profile.prefecture}`,
-    `- 期別: ${profile.term}`,
-    `- 年齢: ${profile.age}`,
-    `- 級班: ${profile.grade}`,
-    `- S:${metrics.s} / B:${metrics.b} / 逃:${metrics.nige} / 捲:${metrics.makuri} / 差:${metrics.sashi} / マ:${metrics.mark}`,
-    `- コメント: ${normalizePredictionExportValue(context.rider.comment)}`,
+    `- 脚質: ${normalizePredictionMaterialValue(context.rider.style ?? context.indexItem?.style)}`,
+    `- 競走得点: ${normalizePredictionMaterialValue(context.rider.score)}`,
+    `- 府県: ${normalizePredictionMaterialValue(profile.prefecture)}`,
+    `- 期別: ${normalizePredictionMaterialValue(profile.term)}`,
+    `- 年齢: ${normalizePredictionMaterialValue(profile.age)}`,
+    `- 級班: ${normalizePredictionMaterialValue(profile.grade)}`,
+    `- ギア倍率: ${normalizePredictionMaterialValue(context.rider.gearRatio)}`,
+    `- S:${normalizePredictionMaterialValue(metrics.s)} / B:${normalizePredictionMaterialValue(metrics.b)} / 逃:${normalizePredictionMaterialValue(metrics.nige)} / 捲:${normalizePredictionMaterialValue(metrics.makuri)} / 差:${normalizePredictionMaterialValue(metrics.sashi)} / マ:${normalizePredictionMaterialValue(metrics.mark)}`,
+    `- コメント: ${normalizePredictionMaterialValue(context.rider.comment)}`,
   ].join("\n");
 }
 
 function buildPredictionBasicRiderExport(contexts: PredictionExportRiderContext[]) {
   if (contexts.length === 0) return "出走データなし";
-  return contexts.map((context, index) => buildPredictionRiderProfileLine(context, index)).join("\n\n");
+  return contexts.map((context) => buildPredictionRiderProfileLine(context)).join("\n\n");
 }
 
 function buildPredictionRecentPerformanceExport(contexts: PredictionExportRiderContext[]) {
   if (contexts.length === 0) return "近況データなし";
-  return contexts.map((context, index) => {
-    const metrics = buildPredictionEnhancedMetrics(context, index);
+  return contexts.map((context) => {
+    const metrics = buildPredictionEnhancedMetrics(context);
     const recentTables = getPredictionSectionTables(context.card, "10）直近4ヶ月");
     const recentCounts = getPredictionFirstBodyRow(recentTables[0]);
     const recentRates = getPredictionFirstBodyRow(recentTables[1]);
@@ -6525,20 +6548,22 @@ function buildPredictionRecentPerformanceExport(contexts: PredictionExportRiderC
     return [
       `### ${context.rider.carNo}番 ${context.rider.name}`,
       "[直近4ヶ月]",
-      `- 出走:${recentCounts?.["出走"] ?? metrics.totalStarts} / 1着:${recentCounts?.["1着"] ?? metrics.wins} / 2着:${recentCounts?.["2着"] ?? metrics.seconds} / 3着:${recentCounts?.["3着"] ?? metrics.thirds} / 着外:${recentCounts?.["着外"] ?? metrics.loses}`,
-      `- 勝率:${recentRates?.["勝率"] ?? metrics.winRate} / 2連対率:${recentRates?.["2連対率"] ?? metrics.quinellaRate} / 3連対率:${recentRates?.["3連対率"] ?? metrics.trifectaRate} / 競走得点:${normalizePredictionExportValue(recentRates?.["競走得点"] ?? context.rider.score)} / B:${recentRates?.["B（バック）"] ?? metrics.b} / S:${recentRates?.["S"] ?? metrics.s}`,
+      `- 出走:${normalizePredictionMaterialValue(recentCounts?.["出走"] ?? metrics.totalStarts)} / 1着:${normalizePredictionMaterialValue(recentCounts?.["1着"] ?? metrics.wins)} / 2着:${normalizePredictionMaterialValue(recentCounts?.["2着"] ?? metrics.seconds)} / 3着:${normalizePredictionMaterialValue(recentCounts?.["3着"] ?? metrics.thirds)} / 着外:${normalizePredictionMaterialValue(recentCounts?.["着外"] ?? metrics.loses)}`,
+      `- 勝率:${normalizePredictionMaterialValue(recentRates?.["勝率"] ?? metrics.winRate)} / 2連対率:${normalizePredictionMaterialValue(recentRates?.["2連対率"] ?? metrics.quinellaRate)} / 3連対率:${normalizePredictionMaterialValue(recentRates?.["3連対率"] ?? metrics.trifectaRate)} / 競走得点:${normalizePredictionMaterialValue(recentRates?.["競走得点"] ?? context.rider.score)} / B:${normalizePredictionMaterialValue(recentRates?.["B（バック）"] ?? metrics.b)} / S:${normalizePredictionMaterialValue(recentRates?.["S"] ?? metrics.s)}`,
       ...(recentNotes.length > 0 ? [`- 補足: ${recentNotes.join(" / ")}`] : []),
       "",
       "[決まり手]",
-      `- 逃げ:${kimariteRow?.["逃げ"] ?? metrics.nige} / 捲り:${kimariteRow?.["捲り"] ?? metrics.makuri} / 差し:${kimariteRow?.["差し"] ?? metrics.sashi} / マーク:${kimariteRow?.["マーク"] ?? metrics.mark}`,
-      `- 連対内訳:${normalizePredictionExportValue(kimariteRow?.["連対内訳（割合）"], buildPredictionKimariteBreakdown(metrics))}`,
+      `- 逃げ:${normalizePredictionMaterialValue(kimariteRow?.["逃げ"] ?? metrics.nige)} / 捲り:${normalizePredictionMaterialValue(kimariteRow?.["捲り"] ?? metrics.makuri)} / 差し:${normalizePredictionMaterialValue(kimariteRow?.["差し"] ?? metrics.sashi)} / マーク:${normalizePredictionMaterialValue(kimariteRow?.["マーク"] ?? metrics.mark)}`,
+      `- 連対内訳:${normalizePredictionMaterialValue(kimariteRow?.["連対内訳（割合）"], buildPredictionKimariteBreakdown(metrics))}`,
     ].join("\n");
   }).join("\n\n");
 }
 
 function buildPredictionRecentRaceExport(contexts: PredictionExportRiderContext[], venue?: PredictionVenueItem | null, gradeLabel?: string) {
   if (contexts.length === 0) return "直近3走データなし";
-  return contexts.map((context, index) => {
+  void venue;
+  void gradeLabel;
+  return contexts.map((context) => {
     const recentRaceTable = getPredictionSectionTables(context.card, "14）直近レース")[0];
     const recentRaceRows = (recentRaceTable?.body ?? [])
       .slice(0, 3)
@@ -6553,58 +6578,41 @@ function buildPredictionRecentRaceExport(contexts: PredictionExportRiderContext[
       .filter(Boolean);
     return [
       `### ${context.rider.carNo}番 ${context.rider.name}`,
-      ...(recentRaceRows.length > 0 ? recentRaceRows : [getPredictionRecentFallback(context, index, venue?.venue, gradeLabel)]),
+      ...(recentRaceRows.length > 0 ? recentRaceRows : ["- 直近3走: 未取得"]),
     ].join("\n");
   }).join("\n\n");
 }
 
 function buildPredictionMatchupExport(contexts: PredictionExportRiderContext[], race: PredictionRaceItem) {
   if (contexts.length === 0) return "相性データなし";
-  const matchupRows = contexts.map((rowContext, rowIndex) => ({
-    rider: rowContext.rider,
-    cells: contexts.map((colContext, colIndex) => {
-      if (rowContext.rider.carNo === colContext.rider.carNo) return "-";
-      const left = (rowIndex + colIndex + Number(rowContext.rider.carNo)) % 4;
-      const right = (colIndex + rowIndex + Number(colContext.rider.carNo)) % 3;
-      return `${left}-${right}`;
-    }),
-  }));
   const lineupGroups = buildPredictionLineupGroups(race).map((group, index) => `- 同一ライン候補${index + 1}: ${group}`);
 
   return [
     "[対戦表]",
-    ...matchupRows.map((row) => `- ${row.rider.carNo} ${row.rider.name}: ${row.cells.map((cell, index) => `${contexts[index]?.rider.carNo ?? "-"}:${cell}`).join(" / ")}`),
+    "- 対戦データ: 未取得",
     buildPredictionRaceSamePrefectureText(contexts),
-    lineupGroups.length > 0 ? lineupGroups.join("\n") : "- 同一ライン候補: ライン情報なし",
-    `[再戦材料] ${normalizePredictionExportValue(race.sourceNote ?? race.lead, "情報なし")}`,
+    lineupGroups.length > 0 ? lineupGroups.join("\n") : "- 同一ライン候補: 未取得",
+    `[再戦材料] ${normalizePredictionMaterialValue(race.sourceNote ?? race.lead)}`,
   ].join("\n");
 }
 
 function buildPredictionTrackAffinityExport(contexts: PredictionExportRiderContext[], venue: PredictionVenueItem) {
   if (contexts.length === 0) return "会場相性データなし";
-  return contexts.map((context, index) => {
+  return contexts.map((context) => {
     const profile = getPredictionContextProfile(context);
-    const metrics = buildPredictionEnhancedMetrics(context, index);
     const circumferenceSection = getPredictionCardSectionSubcontent(context.card, "24）条件別・位置別", "周長別成績");
     const venueMemo = profile.homeBank && profile.homeBank.includes(venue.venue)
       ? `ホームバンク一致: ${profile.homeBank}`
       : profile.homeBank
         ? `ホームバンク: ${profile.homeBank}`
-        : "ホームバンク: 情報なし";
-    const winRate = metrics.winRate;
-    const quinellaRate = metrics.quinellaRate;
-    const trifectaRate = metrics.trifectaRate;
-    const first = Math.max(0, Math.round((typeof metrics.wins === "number" ? metrics.wins : 0)));
-    const second = Math.max(0, Math.round((typeof metrics.seconds === "number" ? metrics.seconds : 0)));
-    const third = Math.max(0, Math.round((typeof metrics.thirds === "number" ? metrics.thirds : 0)));
-    const out = Math.max(0, Math.round((typeof metrics.loses === "number" ? metrics.loses : 0)));
+        : "ホームバンク: 未取得";
     return [
       `### ${context.rider.carNo}番 ${context.rider.name}`,
-      `- 競輪場別: 競輪場:${venue.venue} / 1着:${first} / 2着:${second} / 3着:${third} / 着外:${out} / 出走:${metrics.totalStarts} / 勝率:${winRate} / 2連対率:${quinellaRate} / 3連対率:${trifectaRate}`,
+      `- 競輪場別: 未取得`,
       `- 会場相性メモ: ${venueMemo}`,
-      `- ホームバンク: ${profile.homeBank}`,
-      `- 得意な周長: ${profile.preferredLength}`,
-      normalizePredictionExportValue(sanitizePredictionTemplateNoise(circumferenceSection), "- 周長別成績: 情報なし"),
+      `- ホームバンク: ${normalizePredictionMaterialValue(profile.homeBank)}`,
+      `- 得意な周長: ${normalizePredictionMaterialValue(profile.preferredLength)}`,
+      normalizePredictionMaterialValue(sanitizePredictionTemplateNoise(circumferenceSection), "- 周長別成績: 未取得"),
     ].join("\n");
   }).join("\n\n");
 }
@@ -6614,9 +6622,8 @@ function buildPredictionDataAnalysisExport(contexts: PredictionExportRiderContex
 
   const lineupGroups = buildPredictionLineupGroups(race);
 
-  return contexts.map((context, index) => {
-    const metrics = buildPredictionEnhancedMetrics(context, index);
-    const profileLine = derivePredictionRiderProfileLine(context);
+  return contexts.map((context) => {
+    const metrics = buildPredictionEnhancedMetrics(context);
     const summary = getPredictionCardSummaryValue(context.card, ["格・軸", "直近4ヶ月の型"]);
     const gradeSection = getPredictionCardSectionContent(context.card, "11）通算・グレード別");
     const predictionSection = getPredictionCardSectionContent(context.card, "23）予想への落とし込み");
@@ -6625,42 +6632,31 @@ function buildPredictionDataAnalysisExport(contexts: PredictionExportRiderContex
     const position = getPredictionCardSectionSubcontent(context.card, "24）条件別・位置別", "位置別成績");
     const timeBand = getPredictionCardSectionSubcontent(context.card, "24）条件別・位置別", "時間帯別成績");
     const sameLine = lineupGroups.find((group) => group.includes(context.rider.carNo));
-    const raceTypeSummary = `プロフィール:${profileLine} / レース種目:${venue.hasGirls ? "混合開催" : "男子戦中心"} / 1着寄り:${Math.max(0, Number(metrics.wins) - (index % 2))} / 2着寄り:${Math.max(0, Number(metrics.seconds) + (index % 2))}`;
-    const raceTypeMemo = `脚質相性:${String(context.rider.style).includes("逃") ? "先行寄り" : String(context.rider.style).includes("捲") ? "捲り寄り" : String(context.rider.style).includes("追") ? "差し寄り" : "自在寄り"}`;
-    const circumferenceSummary = `バンク周長:${normalizePredictionExportValue(venueSummary.bankLength)} / 出走:${Math.max(5, 7 + index)} / 勝率:${metrics.winRate}`;
-    const circumferenceMemo = `会場特徴:${normalizePredictionExportValue((venueSummary.bankFeature || "").slice(0, 32))}`;
-    const straightSummary = `見なし直線:${normalizePredictionExportValue(venueSummary.bankFeature)} / 終い指数:${Math.max(0, Number(metrics.sashi) + Number(metrics.mark) + index)}`;
-    const straightMemo = Number(metrics.sashi) >= Number(metrics.nige) ? "差し届く" : "踏み直し優先";
-    const venueSummaryLine = `競輪場:${venue.venue} / 出走:${metrics.totalStarts} / 勝率:${metrics.winRate} / 2連対率:${metrics.quinellaRate} / 3連対率:${metrics.trifectaRate}`;
-    const positionSummary = `ライン先頭:${Math.max(0, Number(metrics.nige) + (index % 2))} / 番手:${Math.max(0, Number(metrics.sashi) + Number(metrics.mark))} / 3番手以降:${Math.max(0, Number(metrics.makuri) + (index % 3))} / 単騎:${Math.max(0, (Number(metrics.nige) + Number(metrics.makuri) + index) % 5)}`;
-    const positionMemo = Number(metrics.nige) >= Number(metrics.sashi) ? "前受け候補" : "番手・差し候補";
-    const timeSummary = `時間帯:${getPredictionSessionBadge(venue)} / 出走:${Math.max(4, 6 + index)} / 勝率:${metrics.winRate} / 3連対率:${metrics.trifectaRate}`;
-    const dateSummary = `日程:${venue.startDate || "本日"}〜${venue.endDate || "本日"} / 出走:${Math.max(3, 5 + index)} / 2連対率:${metrics.quinellaRate}`;
-    const dateMemo = index % 2 === 0 ? "初日向き" : "終盤向き";
-    const gradeSummary = `グレード:${normalizePredictionExportValue(venue.grade)} / 出走:${Math.max(4, 6 + index)} / 勝率:${metrics.winRate}`;
-    const gradeMemo = Number(metrics.b) >= 3 ? "機動型" : "差し型";
-    const gradeTypeSummary = `${normalizePredictionExportValue(venue.grade)}・${normalizePredictionExportValue(race.title || `${race.raceNo}R`)} / 3連対率:${metrics.trifectaRate}`;
-    const gradeTypeMemo = Number(metrics.nige) + Number(metrics.makuri) >= Number(metrics.sashi) + Number(metrics.mark) ? "自力戦向き" : "差し戦向き";
-    const carNumberSummary = `車番:${context.rider.carNo} / 出走:${Math.max(5, 7 + index)} / 勝率:${metrics.winRate} / 2連対率:${metrics.quinellaRate} / 3連対率:${metrics.trifectaRate}`;
-    const carNumberMemo = Number(context.rider.carNo) <= 3 ? "内枠想定" : "外枠想定";
     const samePrefectureText = buildPredictionRiderSamePrefectureText(context, contexts, race);
+    const venueSummaryLine = venueSummary.source === "linked"
+      ? `競輪場:${normalizePredictionMaterialValue(venue.venue)} / バンク長:${normalizePredictionMaterialValue(venueSummary.bankLength)} / 会場特徴:${normalizePredictionMaterialValue(venueSummary.bankFeature)}`
+      : "未登録";
+    const dateSummary = venue.startDate || venue.endDate
+      ? `日程:${normalizePredictionMaterialValue(venue.startDate)}〜${normalizePredictionMaterialValue(venue.endDate)}`
+      : "未取得";
+    const carNumberSummary = `車番:${context.rider.carNo}`;
 
     return [
       `### ${context.rider.carNo}番 ${context.rider.name}`,
-      `- データ分析の概要: ${normalizePredictionExportValue(summary, buildPredictionAnalysisSummary(context, metrics))}`,
-      `- 対象会場: ${normalizePredictionExportValue(venue.venue)} ${race.raceNo ? `${race.raceNo}R` : ""}`.trim(),
-      formatPredictionAnalysisBlock("レース種目別", raceType || raceTypeSummary, raceType ? undefined : raceTypeMemo),
-      formatPredictionAnalysisBlock("周長", circumference || circumferenceSummary, circumference ? undefined : circumferenceMemo),
-      formatPredictionAnalysisBlock("見なし直線", straightSummary, straightMemo),
+      `- データ分析の概要: ${normalizePredictionMaterialValue(summary, buildPredictionAnalysisSummary(context, metrics))}`,
+      `- 対象会場: ${normalizePredictionMaterialValue(venue.venue)} ${race.raceNo ? `${race.raceNo}R` : ""}`.trim(),
+      formatPredictionAnalysisBlock("レース種目別", raceType || "未取得"),
+      formatPredictionAnalysisBlock("周長", circumference || "未取得"),
+      formatPredictionAnalysisBlock("見なし直線", venueSummary.source === "linked" ? venueSummary.bankFeature : "未登録"),
       formatPredictionAnalysisBlock("競輪場別", venueSummaryLine),
-      formatPredictionAnalysisBlock("位置別", position || positionSummary, position ? undefined : positionMemo),
-      formatPredictionAnalysisBlock("時間帯別", timeBand || timeSummary),
-      formatPredictionAnalysisBlock("日程別", dateSummary, dateMemo),
-      formatPredictionAnalysisBlock("グレード別", gradeSection || gradeSummary, gradeSection ? undefined : gradeMemo),
-      formatPredictionAnalysisBlock("グレードレース種目", predictionSection || gradeTypeSummary, predictionSection ? undefined : gradeTypeMemo),
-      formatPredictionAnalysisBlock("車番別", carNumberSummary, carNumberMemo),
+      formatPredictionAnalysisBlock("位置別", position || "未取得"),
+      formatPredictionAnalysisBlock("時間帯別", timeBand || "未取得"),
+      formatPredictionAnalysisBlock("日程別", dateSummary),
+      formatPredictionAnalysisBlock("グレード別", gradeSection || "未取得"),
+      formatPredictionAnalysisBlock("グレードレース種目", predictionSection || "未取得"),
+      formatPredictionAnalysisBlock("車番別", carNumberSummary),
       `- 同県選手同乗時: ${samePrefectureText}`,
-      `- 同一ライン: ${normalizePredictionExportValue(sanitizePredictionTemplateNoise(sameLine || ""), "ライン情報なし")}`,
+      `- 同一ライン: ${normalizePredictionMaterialValue(sanitizePredictionTemplateNoise(sameLine || ""))}`,
     ].join("\n");
   }).join("\n\n");
 }
@@ -6706,7 +6702,7 @@ function buildPredictionMemoExport(race: PredictionRaceItem, memo: string) {
     });
 
   return [
-    `主導権候補: ${normalizePredictionExportValue(race.lead, "主導権情報なし")}`,
+    `主導権候補: ${normalizePredictionMaterialValue(race.lead)}`,
     `補足ソース: ${normalizePredictionExportValue(race.sourceNote, "情報なし")}`,
     "",
     memoLines.length > 0 ? memoLines.join("\n") : "展開メモなし",
@@ -8498,7 +8494,7 @@ if (!nextSlots[currentKey] && nextSlots[legacyKey]) {
   
 
   const lineupDisplay = buildPredictionLineupDisplay(selectedRace);
-  const leadLabel = compactPredictionGuideText(selectedRace?.lead ?? "") || "主導権情報なし";
+  const leadLabel = compactPredictionGuideText(selectedRace?.lead ?? "") || "未取得";
   const venueMemoLabel = useMemo(() => {
     const candidates = [
       selectedVenueSummary.source === "linked" ? selectedVenueSummary.bankMemo : "",
@@ -8536,15 +8532,15 @@ if (!nextSlots[currentKey] && nextSlots[legacyKey]) {
           .join(" / ");
       }
 
-      return weatherLoadingVenue === selectedVenue?.venue ? "取得中" : "天気情報なし";
+      return weatherLoadingVenue === selectedVenue?.venue ? "取得中" : "未取得";
     }, [selectedSavedPredictionResult?.weatherActual, selectedWeather, selectedVenue?.venue, weatherLoadingVenue]);
   const bankGuideItems = useMemo(
     () => [
-      { label: "バンク長", value: summarizePredictionGuideText(selectedVenueSummary.bankLength, 42) || "バンク長情報なし" },
-      { label: "バンク特徴", value: summarizePredictionGuideText(selectedVenueSummary.bankFeature, 60) || "会場特徴情報なし" },
-      { label: "狙いどころ", value: summarizePredictionGuideText(selectedVenueSummary.target, 58) || "狙いどころ情報なし" },
-      { label: "注意点", value: summarizePredictionGuideText(selectedVenueSummary.caution, 58) || "注意点情報なし" },
-      { label: "会場メモ", value: summarizePredictionGuideText(venueMemoLabel, 58) || "会場メモなし" },
+      { label: "バンク長", value: summarizePredictionGuideText(selectedVenueSummary.bankLength, 42) || (selectedVenueSummary.source === "missing" ? "未登録" : "未取得") },
+      { label: "バンク特徴", value: summarizePredictionGuideText(selectedVenueSummary.bankFeature, 60) || (selectedVenueSummary.source === "missing" ? "未登録" : "未取得") },
+      { label: "狙いどころ", value: summarizePredictionGuideText(selectedVenueSummary.target, 58) || (selectedVenueSummary.source === "missing" ? "未登録" : "未取得") },
+      { label: "注意点", value: summarizePredictionGuideText(selectedVenueSummary.caution, 58) || (selectedVenueSummary.source === "missing" ? "未登録" : "未取得") },
+      { label: "会場メモ", value: summarizePredictionGuideText(venueMemoLabel, 58) || (selectedVenueSummary.source === "missing" ? "未登録" : "未取得") },
     ],
     [selectedVenueSummary, venueMemoLabel]
   );
