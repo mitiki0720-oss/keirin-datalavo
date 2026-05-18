@@ -317,6 +317,80 @@ export type PredictionRaceResult = {
   bLeaderCarNo?: string;
 };
 
+export const normalizeBetTypeLabel = (value?: string | null) => {
+  const normalized = String(value ?? "")
+    .replace(/[\s\u3000]+/g, "")
+    .replace(/三連単/g, "3連単")
+    .replace(/三連複/g, "3連複")
+    .replace(/二車単/g, "2車単")
+    .replace(/二車複/g, "2車複")
+    .trim();
+
+  return normalized;
+};
+
+export const findPayoutByBetType = <T extends { betType?: string | null }>(
+  payouts?: readonly T[] | null,
+  betType?: string | null,
+): T | undefined => {
+  const normalizedBetType = normalizeBetTypeLabel(betType);
+  if (!normalizedBetType || !Array.isArray(payouts)) return undefined;
+
+  return payouts.find((item) => normalizeBetTypeLabel(item?.betType) === normalizedBetType);
+};
+
+type RacePayoutLikeItem = {
+  betType?: string | null;
+  combination?: string | null;
+  payout?: string | null;
+  popularity?: string | null;
+};
+
+type RacePayoutLikeResult = {
+  payout2tan?: RacePayoutLikeItem | string | null;
+  payout3tan?: RacePayoutLikeItem | string | null;
+  payout3fuku?: RacePayoutLikeItem | string | null;
+};
+
+const normalizeRacePayoutItem = (
+  payout: RacePayoutLikeItem | string | null | undefined,
+  betType: string,
+): RacePayoutLikeItem | undefined => {
+  if (!payout) return undefined;
+  if (typeof payout === "string") {
+    return {
+      betType,
+      payout,
+    };
+  }
+  return payout;
+};
+
+export const resolveRacePayoutByBetType = (
+  race?: {
+    payouts?: readonly RacePayoutLikeItem[] | null;
+    result?: RacePayoutLikeResult | null;
+  } | null,
+  betType?: string | null,
+): RacePayoutLikeItem | undefined => {
+  const normalizedBetType = normalizeBetTypeLabel(betType);
+  if (!race || !normalizedBetType) return undefined;
+
+  if (normalizedBetType === "2車単") {
+    return normalizeRacePayoutItem(race.result?.payout2tan, normalizedBetType) ?? findPayoutByBetType(race.payouts, normalizedBetType);
+  }
+
+  if (normalizedBetType === "3連単") {
+    return normalizeRacePayoutItem(race.result?.payout3tan, normalizedBetType) ?? findPayoutByBetType(race.payouts, normalizedBetType);
+  }
+
+  if (normalizedBetType === "3連複") {
+    return normalizeRacePayoutItem(race.result?.payout3fuku, normalizedBetType) ?? findPayoutByBetType(race.payouts, normalizedBetType);
+  }
+
+  return findPayoutByBetType(race.payouts, normalizedBetType);
+};
+
 export type PredictionRiderItem = {
   carNo: string;
   name: string;
@@ -514,24 +588,24 @@ export const PREDICTION_OPEN_METEO_FORECAST_URL = "https://api.open-meteo.com/v1
 export const PREDICTION_WEATHER_CACHE_TTL_MS = 5 * 60 * 1000;
 export const DEFAULT_PREDICTION_MEMO = "・主導権候補:\n・差し注意:\n・荒れ筋:\n・3着抜け注意:";
 export const DEFAULT_PREDICTION_VENUE_SUMMARY: PredictionVenueSummary = {
-  bankFeature: "会場特徴情報なし",
-  target: "狙いどころ情報なし",
-  caution: "注意点情報なし",
-  volatility: "荒れそう度情報なし",
-  bankLength: "バンク長情報なし",
-  bankMemo: "会場メモなし",
+  bankFeature: "",
+  target: "",
+  caution: "",
+  volatility: "",
+  bankLength: "",
+  bankMemo: "",
   source: "loading",
 };
 
 export const EMPTY_FAVORITE_RIDER_FEED: FavoriteRiderFeedItem[] = [];
 
 export const MISSING_PREDICTION_VENUE_SUMMARY: PredictionVenueSummary = {
-  bankFeature: "会場特徴情報なし",
-  target: "狙いどころ情報なし",
-  caution: "注意点情報なし",
-  volatility: "荒れそう度情報なし",
-  bankLength: "バンク長情報なし",
-  bankMemo: "会場メモなし",
+  bankFeature: "",
+  target: "",
+  caution: "",
+  volatility: "",
+  bankLength: "",
+  bankMemo: "",
   source: "missing",
 };
 
@@ -963,15 +1037,18 @@ export const resolvePredictionRaceGeneratedResult = (
   const resultOrder = extractPredictionRaceResultOrder(race);
   const resultStatus = race.result?.status ?? race.resultStatus ?? (resultOrder ? "confirmed" : "pending");
 const autoHitDetail = resolvePredictionAutoHitDetail(predictionText, resultOrder);
-const trifectaPayout = parsePredictionPayoutAmount(race.result?.payout3tan?.payout);
-const exactaPayout = parsePredictionPayoutAmount(race.result?.payout2tan?.payout);
-
-const matchedPayout =
-  autoHitDetail.hitBetType === "2車単"
-    ? exactaPayout
-    : autoHitDetail.hitBetType === "3連単"
-      ? trifectaPayout
-      : undefined;
+const matchedMetrics = resolvePredictionResultMetrics({
+  record: {
+    resultOrder,
+    autoHitStatus: autoHitDetail.status,
+    hitStatus: autoHitDetail.status,
+    hitBetType: autoHitDetail.hitBetType,
+    hitCombination: autoHitDetail.hitCombination,
+    investment: extractPredictionBetEntriesWithFallback(predictionText).length * 100,
+  },
+  race,
+  predictionText,
+});
 
 return {
   raceKey,
@@ -982,7 +1059,7 @@ return {
   resultStatus,
   resultOrder,
   autoHitStatus: autoHitDetail.status,
-  payout: matchedPayout,
+  payout: matchedMetrics.payout,
   kimarite: race.result?.kimarite ?? race.resultTop3?.[0]?.kimarite ?? "",
   finalizedAt: race.result?.finalizedAt ?? "",
 };
@@ -1059,7 +1136,19 @@ const autoHitStatus = autoHitDetail.status;
 const effectiveHitStatusPreview: PredictionResultHitStatus =
   saved.manualHitStatus !== undefined ? saved.manualHitStatus : autoHitStatus;
 
-const expectedPayout = resolvePredictionEffectivePayout(effectiveHitStatusPreview, generated?.payout);
+const expectedMetrics = resolvePredictionResultMetrics({
+  record: {
+    ...saved,
+    resultOrder: generated?.resultOrder ?? saved.resultOrder,
+    hitStatus: effectiveHitStatusPreview,
+    hitBetType: autoHitDetail.status === "hit" ? autoHitDetail.hitBetType : saved.hitBetType,
+    hitCombination: autoHitDetail.status === "hit" ? autoHitDetail.hitCombination : saved.hitCombination,
+  },
+  race,
+  predictionText,
+});
+
+const expectedPayout = expectedMetrics.payout;
 
 const needsPayoutResync =
   Boolean(generated?.resultOrder) &&
@@ -1109,17 +1198,6 @@ const needsPayoutResync =
       const effectiveHitStatus: PredictionResultHitStatus =
         saved.manualHitStatus !== undefined ? saved.manualHitStatus : autoHitStatus;
 
-      const effectivePayout = resolvePredictionEffectivePayout(effectiveHitStatus, generated.payout);
-      const investment = saved.investment;
-      const profitLoss =
-        investment !== undefined && effectivePayout !== undefined
-          ? effectivePayout - investment
-          : undefined;
-      const roi =
-        investment !== undefined && effectivePayout !== undefined && investment > 0
-          ? (effectivePayout / investment) * 100
-          : undefined;
-
       const generatedMemo = buildPredictionGeneratedResultMemo(generated, predictionText);
       const mergedMemo = mergePredictionResultMemo(saved.memo ?? "", generatedMemo);
 
@@ -1130,9 +1208,9 @@ const needsPayoutResync =
         hitStatus: effectiveHitStatus,
         hitBetType: autoHitDetail.status === "hit" ? autoHitDetail.hitBetType : undefined,
         hitCombination: autoHitDetail.status === "hit" ? autoHitDetail.hitCombination : undefined,
-        payout: effectivePayout,
-        profitLoss,
-        roi,
+        payout: expectedMetrics.payout,
+        profitLoss: expectedMetrics.profitLoss,
+        roi: expectedMetrics.roi,
         memo: mergedMemo,
         savedAt: new Date().toISOString(),
       });
@@ -1429,7 +1507,89 @@ export const resolvePredictionAutoHitStatus = (predictionText: string, resultOrd
   return resolvePredictionAutoHitDetail(predictionText, resultOrder).status;
 };
 
-export const getNormalizedPredictionResultDisplay = (record?: PredictionResultRecord | null) => {
+export const resolvePredictionResultMetrics = ({
+  record,
+  race,
+  predictionText,
+  manualPayout,
+}: {
+  record?: Partial<PredictionResultRecord> | null;
+  race?: {
+    payouts?: readonly RacePayoutLikeItem[] | null;
+    result?: RacePayoutLikeResult | null;
+  } | null;
+  predictionText?: string;
+  manualPayout?: number;
+}) => {
+  const sourceRecord = record ?? {};
+  const entries = predictionText ? extractPredictionBetEntriesWithFallback(predictionText) : [];
+  const ticketCount = entries.length;
+  const investment = typeof sourceRecord.investment === "number" && Number.isFinite(sourceRecord.investment)
+    ? sourceRecord.investment
+    : ticketCount > 0
+      ? ticketCount * 100
+      : undefined;
+  const hitStatus = sourceRecord.hitStatus ?? sourceRecord.autoHitStatus ?? "pending";
+  const derivedHitDetail = sourceRecord.resultOrder
+    ? resolvePredictionAutoHitDetail(predictionText ?? "", sourceRecord.resultOrder)
+    : { status: "pending" as const };
+  const hitBetType = sourceRecord.hitBetType ?? (derivedHitDetail.status === "hit" ? derivedHitDetail.hitBetType : undefined);
+  const hitCombination = sourceRecord.hitCombination ?? (derivedHitDetail.status === "hit" ? derivedHitDetail.hitCombination : undefined);
+  const racePayout = parsePredictionPayoutAmount(resolveRacePayoutByBetType(race, hitBetType)?.payout);
+  const perTicketStake = ticketCount > 0 && investment !== undefined
+    ? investment / ticketCount
+    : undefined;
+  const normalizedHitCombination = hitCombination ? normalizePredictionTrifectaText(hitCombination) : "";
+  const hitTicketCount = hitBetType && normalizedHitCombination
+    ? entries.filter((entry) => entry.betType === hitBetType && normalizePredictionTrifectaText(entry.combination) === normalizedHitCombination).length
+    : 0;
+
+  let payout = typeof manualPayout === "number" && Number.isFinite(manualPayout)
+    ? manualPayout
+    : typeof sourceRecord.payout === "number" && Number.isFinite(sourceRecord.payout)
+      ? sourceRecord.payout
+      : undefined;
+
+  if (hitStatus === "miss") {
+    payout = 0;
+  } else if (hitStatus === "hit" && racePayout !== undefined) {
+    const effectiveStake = perTicketStake ?? 100;
+    const effectiveHitTicketCount = Math.max(hitTicketCount, hitBetType && normalizedHitCombination ? 1 : 0);
+    payout = Math.round(racePayout * (effectiveStake / 100) * (effectiveHitTicketCount || 1));
+  } else if (hitStatus === "pending") {
+    payout = undefined;
+  }
+
+  const effectivePayout = resolvePredictionEffectivePayout(hitStatus, payout);
+  const profitLoss = investment !== undefined && effectivePayout !== undefined
+    ? effectivePayout - investment
+    : undefined;
+  const roi = investment !== undefined && effectivePayout !== undefined && investment > 0
+    ? (effectivePayout / investment) * 100
+    : undefined;
+
+  return {
+    investment,
+    payout: effectivePayout,
+    profitLoss,
+    roi,
+    ticketCount,
+    hitTicketCount,
+    perTicketStake,
+    racePayout,
+    hitBetType,
+    hitCombination,
+  };
+};
+
+export const getNormalizedPredictionResultDisplay = (
+  record?: PredictionResultRecord | null,
+  race?: {
+    payouts?: readonly RacePayoutLikeItem[] | null;
+    result?: RacePayoutLikeResult | null;
+  } | null,
+  predictionText?: string,
+) => {
   if (!record) {
     return {
       investment: undefined,
@@ -1439,7 +1599,11 @@ export const getNormalizedPredictionResultDisplay = (record?: PredictionResultRe
     };
   }
 
-  const normalizedRecord = normalizePredictionResultRecord(record);
+  const normalizedRecord = resolvePredictionResultMetrics({
+    record: normalizePredictionResultRecord(record),
+    race,
+    predictionText,
+  });
 
   return {
     investment: normalizedRecord.investment,
@@ -1673,7 +1837,7 @@ export const derivePredictionVenueBankLength = (markdown: string, rawBankLength:
   if (/335\s*m?/i.test(source)) return "335m・短走路";
   if (/400\s*m?/i.test(source)) return "400m・標準寄り";
   if (/500\s*m?/i.test(source)) return "500m・長走路";
-  return rawBankLength || "バンク長情報なし";
+  return rawBankLength || "";
 };
 
 export const derivePredictionVenueBankTarget = (feature: string, markdown: string) => {
@@ -6536,7 +6700,7 @@ function buildPredictionBasicRiderExport(contexts: PredictionExportRiderContext[
 }
 
 function buildPredictionRecentPerformanceExport(contexts: PredictionExportRiderContext[]) {
-  if (contexts.length === 0) return "近況データなし";
+  if (contexts.length === 0) return "未取得";
   return contexts.map((context) => {
     const metrics = buildPredictionEnhancedMetrics(context);
     const recentTables = getPredictionSectionTables(context.card, "10）直近4ヶ月");
@@ -6560,7 +6724,7 @@ function buildPredictionRecentPerformanceExport(contexts: PredictionExportRiderC
 }
 
 function buildPredictionRecentRaceExport(contexts: PredictionExportRiderContext[], venue?: PredictionVenueItem | null, gradeLabel?: string) {
-  if (contexts.length === 0) return "直近3走データなし";
+  if (contexts.length === 0) return "未取得";
   void venue;
   void gradeLabel;
   return contexts.map((context) => {
@@ -6584,7 +6748,7 @@ function buildPredictionRecentRaceExport(contexts: PredictionExportRiderContext[
 }
 
 function buildPredictionMatchupExport(contexts: PredictionExportRiderContext[], race: PredictionRaceItem) {
-  if (contexts.length === 0) return "相性データなし";
+  if (contexts.length === 0) return "未取得";
   const lineupGroups = buildPredictionLineupGroups(race).map((group, index) => `- 同一ライン候補${index + 1}: ${group}`);
 
   return [
@@ -6597,7 +6761,7 @@ function buildPredictionMatchupExport(contexts: PredictionExportRiderContext[], 
 }
 
 function buildPredictionTrackAffinityExport(contexts: PredictionExportRiderContext[], venue: PredictionVenueItem) {
-  if (contexts.length === 0) return "会場相性データなし";
+  if (contexts.length === 0) return "未取得";
   return contexts.map((context) => {
     const profile = getPredictionContextProfile(context);
     const circumferenceSection = getPredictionCardSectionSubcontent(context.card, "24）条件別・位置別", "周長別成績");
@@ -6618,7 +6782,7 @@ function buildPredictionTrackAffinityExport(contexts: PredictionExportRiderConte
 }
 
 function buildPredictionDataAnalysisExport(contexts: PredictionExportRiderContext[], venue: PredictionVenueItem, race: PredictionRaceItem, venueSummary: PredictionVenueSummary) {
-  if (contexts.length === 0) return "データ分析情報なし";
+  if (contexts.length === 0) return "未取得";
 
   const lineupGroups = buildPredictionLineupGroups(race);
 
@@ -8502,7 +8666,7 @@ if (!nextSlots[currentKey] && nextSlots[legacyKey]) {
     ]
       .map((value) => compactPredictionGuideText(value ?? ""))
       .filter(Boolean);
-    return candidates[0] ?? "会場メモなし";
+    return candidates[0] ?? "";
   }, [selectedVenue?.note, selectedVenueSummary.bankMemo, selectedVenueSummary.source]);
     const selectedSavedPredictionResult = useMemo(
       () => findPredictionResultRecord(savedPredictionResults, predictionFeed?.date ?? TODAY, selectedVenue, selectedRace).record ?? null,
@@ -8737,23 +8901,23 @@ if (
     () => (predictionResultDraft.manualHitStatus === "auto" ? predictionAutoHitStatus : predictionResultDraft.manualHitStatus),
     [predictionAutoHitStatus, predictionResultDraft.manualHitStatus]
   );
+  const predictionResolvedHitDetail = useMemo(() => {
+    if (predictionFinalHitStatus !== "hit") return undefined;
+    if (predictionAutoHitDetail.status === "hit") return predictionAutoHitDetail;
+    if (selectedSavedPredictionResult?.hitStatus === "hit" && selectedSavedPredictionResult.hitBetType && selectedSavedPredictionResult.hitCombination) {
+      return {
+        status: "hit" as const,
+        hitBetType: selectedSavedPredictionResult.hitBetType,
+        hitCombination: selectedSavedPredictionResult.hitCombination,
+      };
+    }
+    return undefined;
+  }, [predictionAutoHitDetail, predictionFinalHitStatus, selectedSavedPredictionResult]);
 
   const predictionResultInvestment = useMemo(
     () => parsePredictionResultAmount(predictionResultDraft.investmentInput),
     [predictionResultDraft.investmentInput]
   );
-  const predictionResultPayout = useMemo(
-    () => resolvePredictionEffectivePayout(predictionFinalHitStatus, parsePredictionResultAmount(predictionResultDraft.payoutInput)),
-    [predictionFinalHitStatus, predictionResultDraft.payoutInput]
-  );
-  const predictionResultProfitLoss = useMemo(() => {
-    if (predictionResultInvestment === undefined || predictionResultPayout === undefined) return undefined;
-    return predictionResultPayout - predictionResultInvestment;
-  }, [predictionResultInvestment, predictionResultPayout]);
-  const predictionResultRoi = useMemo(() => {
-    if (predictionResultInvestment === undefined || predictionResultPayout === undefined || predictionResultInvestment <= 0) return undefined;
-    return (predictionResultPayout / predictionResultInvestment) * 100;
-  }, [predictionResultInvestment, predictionResultPayout]);
   const normalizedPredictionResultOrder = useMemo(
     () => normalizePredictionTrifectaText(predictionResultDraft.resultOrder),
     [predictionResultDraft.resultOrder]
@@ -8766,6 +8930,25 @@ if (
     () => normalizedPredictionResultOrder ? normalizedPredictionResultOrder.split("-").filter(Boolean).slice(0, 3) : [],
     [normalizedPredictionResultOrder]
   );
+  const predictionResolvedDraftMetrics = useMemo(
+    () => resolvePredictionResultMetrics({
+      record: {
+        resultOrder: normalizedPredictionResultOrder,
+        autoHitStatus: predictionAutoHitStatus,
+        hitStatus: predictionFinalHitStatus,
+        hitBetType: predictionResolvedHitDetail?.hitBetType,
+        hitCombination: predictionResolvedHitDetail?.hitCombination,
+        investment: predictionResultInvestment,
+      },
+      race: selectedRace,
+      predictionText: resolvedPredictionSourceText,
+      manualPayout: parsePredictionResultAmount(predictionResultDraft.payoutInput),
+    }),
+    [normalizedPredictionResultOrder, predictionAutoHitStatus, predictionFinalHitStatus, predictionResolvedHitDetail, predictionResultInvestment, selectedRace, resolvedPredictionSourceText, predictionResultDraft.payoutInput]
+  );
+  const predictionResultPayout = predictionResolvedDraftMetrics.payout;
+  const predictionResultProfitLoss = predictionResolvedDraftMetrics.profitLoss;
+  const predictionResultRoi = predictionResolvedDraftMetrics.roi;
   const predictionResultTone = useMemo(() => {
     if (predictionFinalHitStatus === "hit") {
       return {
@@ -8920,8 +9103,8 @@ if (
     ? (todayPredictionPayout / todaySavedInvestmentTotal) * 100
     : undefined;
   const normalizedSelectedSavedPredictionResult = useMemo(
-    () => getNormalizedPredictionResultDisplay(selectedSavedPredictionResult),
-    [selectedSavedPredictionResult]
+    () => getNormalizedPredictionResultDisplay(selectedSavedPredictionResult, selectedRace, resolvedPredictionSourceText),
+    [resolvedPredictionSourceText, selectedRace, selectedSavedPredictionResult]
   );
   const predictionHitBadgeDetail = useMemo(() => {
     if (predictionFinalHitStatus !== "hit") return null;
@@ -9272,16 +9455,10 @@ if (
 
   const handlePredictionResultSave = () => {
     if (!predictionFeed || !selectedVenue || !selectedRace || !selectedPredictionSlotRaceKey) return;
-    const normalizedPayout = resolvePredictionEffectivePayout(predictionFinalHitStatus, predictionResultPayout);
-    const normalizedProfitLoss = predictionResultInvestment !== undefined && normalizedPayout !== undefined
-      ? normalizedPayout - predictionResultInvestment
-      : undefined;
-    const normalizedRoi = predictionResultInvestment !== undefined && normalizedPayout !== undefined && predictionResultInvestment > 0
-      ? (normalizedPayout / predictionResultInvestment) * 100
-      : undefined;
-    const normalizedHitDetail = predictionFinalHitStatus === "hit" && predictionAutoHitDetail.status === "hit"
-      ? predictionAutoHitDetail
-      : undefined;
+    const normalizedPayout = predictionResolvedDraftMetrics.payout;
+    const normalizedProfitLoss = predictionResolvedDraftMetrics.profitLoss;
+    const normalizedRoi = predictionResolvedDraftMetrics.roi;
+    const normalizedHitDetail = predictionResolvedHitDetail;
     if (predictionResultInvestment === undefined) {
     if (ENABLE_PREDICTION_DEBUG_LOGS) {
     console.warn("[PredictionPage] investment missing", {
@@ -9864,7 +10041,7 @@ const record = normalizePredictionResultRecord({
                   </div>
                   <div style={{ display: "grid", gap: "10px" }}>
                     {[
-                      { label: "会場特徴", value: bankGuideItems[1]?.value ?? "会場特徴情報なし" },
+                      { label: "会場特徴", value: bankGuideItems[1]?.value ?? (selectedVenueSummary.source === "missing" ? "未登録" : "未取得") },
                       { label: "天気", value: weatherCardValue },
                       { label: "並び", value: lineupDisplay },
                       { label: "主導権候補", value: leadLabel },

@@ -1,8 +1,12 @@
 import { type ChangeEvent, useEffect, useMemo, useState } from "react";
 import {
   SiteHeader,
+  findPayoutByBetType,
   fetchPredictionVenueWeather,
   getPredictionVenueStageLabel,
+  normalizeBetTypeLabel,
+  resolvePredictionResultMetrics,
+  resolveRacePayoutByBetType,
   type PredictionWeatherData,
 } from "./PageImplementations";
 
@@ -968,7 +972,11 @@ function getSBMarkText(feedRace?: PredictionRaceItem) {
   return parts.join(" / ");
 }
 
-function formatReviewPayoutItem(item?: PredictionRaceResultPayoutItem | null) {
+function formatReviewPayoutItem(item?: {
+  combination?: string | null;
+  payout?: string | null;
+  popularity?: string | null;
+} | null) {
   if (!item) return "";
   const combination = item.combination ?? "--";
   const payout = item.payout ?? "--";
@@ -1153,30 +1161,46 @@ function pickReviewTrifectaOdds(
 function buildReviewPayoutLines(feedRace?: PredictionRaceItem) {
   const result = feedRace?.result;
   const lines: string[] = [];
+  const fallbackPayouts = feedRace?.payouts;
 
-  if (result?.payout2tan) {
-    lines.push(`2車単: ${formatReviewPayoutItem(result.payout2tan)}`);
+  const payout2tan = resolveRacePayoutByBetType(feedRace, "2車単");
+  if (payout2tan) {
+    lines.push(`2車単: ${formatReviewPayoutItem(payout2tan)}`);
   }
 
   if (result?.payout2fuku?.length) {
     lines.push(`2車複: ${result.payout2fuku.map(formatReviewPayoutItem).filter(Boolean).join(" / ")}`);
   }
 
-  if (result?.payout3tan) {
-    lines.push(`3連単: ${formatReviewPayoutItem(result.payout3tan)}`);
+  const payout3tan = resolveRacePayoutByBetType(feedRace, "3連単");
+  if (payout3tan) {
+    lines.push(`3連単: ${formatReviewPayoutItem(payout3tan)}`);
   }
 
-  if (result?.payout3fuku) {
-    lines.push(`3連複: ${formatReviewPayoutItem(result.payout3fuku)}`);
+  const payout3fuku = resolveRacePayoutByBetType(feedRace, "3連複");
+  if (payout3fuku) {
+    lines.push(`3連複: ${formatReviewPayoutItem(payout3fuku)}`);
   }
 
   if (result?.payoutWide?.length) {
     lines.push(`ワイド: ${result.payoutWide.map(formatReviewPayoutItem).filter(Boolean).join(" / ")}`);
   }
 
-  if (lines.length === 0 && feedRace?.payouts?.length) {
-    feedRace.payouts.forEach((item) => {
-      lines.push(`${item.betType ?? "払戻"}: ${formatReviewPayoutItem(item)}`);
+  if (lines.length === 0 && fallbackPayouts?.length) {
+    fallbackPayouts.forEach((item) => {
+      const label = normalizeBetTypeLabel(item.betType) || item.betType || "払戻";
+      lines.push(`${label}: ${formatReviewPayoutItem(item)}`);
+    });
+  } else if (fallbackPayouts?.length) {
+    fallbackPayouts.forEach((item) => {
+      const normalizedBetType = normalizeBetTypeLabel(item.betType);
+      if (!normalizedBetType) return;
+      if (normalizedBetType === "2車単" || normalizedBetType === "3連単" || normalizedBetType === "3連複") return;
+      const fallbackItem = findPayoutByBetType(fallbackPayouts, normalizedBetType);
+      if (!fallbackItem) return;
+      const label = normalizedBetType || item.betType || "払戻";
+      const line = `${label}: ${formatReviewPayoutItem(fallbackItem)}`;
+      if (!lines.includes(line)) lines.push(line);
     });
   }
 
@@ -1402,8 +1426,14 @@ const current = groups.get(key) ?? {
       resultRecord,
     });
 
-    current.totalInvestment += resultRecord?.investment ?? 0;
-    current.totalPayout += resultRecord?.payout ?? 0;
+    const resolvedMetrics = resolvePredictionResultMetrics({
+      record: resultRecord,
+      race: feedRace,
+      predictionText: slot.predictionText,
+    });
+
+    current.totalInvestment += resolvedMetrics.investment ?? 0;
+    current.totalPayout += resolvedMetrics.payout ?? 0;
     if (resultRecord?.hitStatus === "hit" || resultRecord?.hitStatus === "miss") {
       current.settledCount += 1;
       if (resultRecord.hitStatus === "hit") current.hitCount += 1;
@@ -1455,12 +1485,17 @@ function buildResultCopy(group: VenueReviewGroup, reviewWeatherActualMap: Review
       .find((weatherActual) => hasReviewWeatherActual(weatherActual));
 
   group.races.forEach((race) => {
+    const resolvedMetrics = resolvePredictionResultMetrics({
+      record: race.resultRecord,
+      race: race.feedRace,
+      predictionText: race.predictionText,
+    });
     const resultOrder = getResultOrder(race.resultRecord, race.feedRace);
     const hitStatus = race.resultRecord?.hitStatus ?? "保留";
-    const investment = formatYen(race.resultRecord?.investment);
-    const payout = formatYen(race.resultRecord?.payout);
-    const profit = formatProfit(race.resultRecord?.profitLoss);
-    const roi = formatRate(race.resultRecord?.roi);
+    const investment = formatYen(resolvedMetrics.investment);
+    const payout = formatYen(resolvedMetrics.payout);
+    const profit = formatProfit(resolvedMetrics.profitLoss);
+    const roi = formatRate(resolvedMetrics.roi);
     const kimarite = getKimarite(race.resultRecord, race.feedRace);
     const secondKimarite = getSecondKimarite(race.feedRace);
     const sbText = getSBMarkText(race.feedRace);
