@@ -757,9 +757,10 @@ function pickNetkeirinPayoutItem(payouts, betTypes, multiple = false) {
   return matched[0] ?? null;
 }
 
-function createPendingRaceResultData() {
+function createPendingRaceResultData(resultNote = "") {
   return {
     resultStatus: "pending",
+    resultNote,
     resultTop3: [],
     payouts: [],
     result: {
@@ -1016,6 +1017,20 @@ function hasMeaningfulRaceResult(race) {
   );
 }
 
+function hasConfirmedRaceResult(race) {
+  if (!race) return false;
+
+  return Boolean(
+    race.resultStatus === "confirmed"
+      && Array.isArray(race.resultTop3)
+      && race.resultTop3.length >= 3
+      && Array.isArray(race.payouts)
+      && race.payouts.length > 0
+      && Array.isArray(race.result?.finishOrder)
+      && race.result.finishOrder.length >= 3,
+  );
+}
+
 function hasMeaningfulRaceOdds(race) {
   if (!race) return false;
 
@@ -1060,6 +1075,7 @@ function mergeRaceDetailWithFallback(primary, fallback) {
         ? safePrimary.oddsTrifecta
         : safeFallback.oddsTrifecta,
     oddsNote: safePrimary.oddsNote || safeFallback.oddsNote,
+    resultNote: safePrimary.resultNote || safeFallback.resultNote || "",
     resultStatus: hasMeaningfulRaceResult(safePrimary) ? safePrimary.resultStatus : safeFallback.resultStatus,
     resultTop3:
       Array.isArray(safePrimary.resultTop3) && safePrimary.resultTop3.length
@@ -1302,7 +1318,7 @@ async function fetchNetkeirinRaceResult(raceId) {
 
     if (!response.ok) {
       return {
-        ...createPendingRaceResultData(),
+        ...createPendingRaceResultData(`netkeirin result fetch failed: ${response.status}`),
         source: "netkeirin:result",
         sourceNote: `netkeirin result取得失敗: ${response.status}`,
         debug: { finishOrderCount: 0, payoutTableFound: false, payoutRowCount: 0, payoutCount: 0, sLeaderCarNo: "", hLeaderCarNo: "", bLeaderCarNo: "" },
@@ -1326,10 +1342,14 @@ async function fetchNetkeirinRaceResult(raceId) {
       ...resultData,
       source: "netkeirin:result",
       sourceNote: `netkeirin result race_id=${raceId}`,
+      resultNote:
+        resultData.resultStatus === "confirmed"
+          ? `netkeirin result accepted: race_id=${raceId}`
+          : `netkeirin result pending: no finish order race_id=${raceId}`,
     };
   } catch (error) {
     return {
-      ...createPendingRaceResultData(),
+      ...createPendingRaceResultData(`netkeirin result fetch failed: ${error instanceof Error ? error.message : String(error)}`),
       source: "netkeirin:result",
       sourceNote: `netkeirin result取得失敗: ${error instanceof Error ? error.message : String(error)}`,
       debug: { finishOrderCount: 0, payoutTableFound: false, payoutRowCount: 0, payoutCount: 0, sLeaderCarNo: "", hLeaderCarNo: "", bLeaderCarNo: "" },
@@ -1507,6 +1527,14 @@ function extractKdreamsResultData(html, raceNo, kdreamsRaceId) {
   const payouts = payoutExtraction.payouts;
   const scope = extractKdreamsResultScope(html, raceNo, kdreamsRaceId);
   const isConfirmed = resultTop3.length >= 3 && payouts.length > 0 && scope.raceIdMatched && scope.raceNoMatched;
+  let pendingReason = "";
+  if (!scope.raceIdMatched || !scope.raceNoMatched) {
+    pendingReason = "race scope mismatch";
+  } else if (resultTop3.length < 3) {
+    pendingReason = "no finish order";
+  } else if (payouts.length === 0) {
+    pendingReason = "payout missing";
+  }
   const finishOrder = resultTop3.map((item) => item.carNo).filter(Boolean);
   const sLeaderCarNo = getNetkeirinLeaderCarNoFromRows(resultRows, "sMark");
   const hLeaderCarNo = getNetkeirinLeaderCarNoFromRows(resultRows, "hMark");
@@ -1530,9 +1558,11 @@ function extractKdreamsResultData(html, raceNo, kdreamsRaceId) {
 
   return {
     resultStatus: result.status,
+    resultNote: isConfirmed ? "" : `kdreams result pending: ${pendingReason || "parse empty"}`,
     resultTop3,
     payouts,
     result,
+    pendingReason,
     scope,
     debug: {
       finishOrderCount: finishOrder.length,
@@ -1550,7 +1580,7 @@ async function fetchKdreamsRaceResult(slug, kdreamsRaceId, raceNo, riders) {
   const url = buildKdreamsRaceResultDetailUrl(slug, kdreamsRaceId);
   if (!url) {
     return {
-      ...createPendingRaceResultData(),
+      ...createPendingRaceResultData("kdreams result skipped: url unavailable"),
       source: "kdreams:result",
       sourceNote: "kdreams result unavailable",
       debug: { finishOrderCount: 0, payoutTableFound: false, payoutRowCount: 0, payoutCount: 0, sLeaderCarNo: "", hLeaderCarNo: "", bLeaderCarNo: "" },
@@ -1567,7 +1597,7 @@ async function fetchKdreamsRaceResult(slug, kdreamsRaceId, raceNo, riders) {
 
     if (!response.ok) {
       return {
-        ...createPendingRaceResultData(),
+        ...createPendingRaceResultData(`kdreams result fetch failed: ${response.status}`),
         source: "kdreams:result",
         sourceNote: `kdreams result取得失敗: ${response.status} result=${url}`,
         debug: { finishOrderCount: 0, payoutTableFound: false, payoutRowCount: 0, payoutCount: 0, sLeaderCarNo: "", hLeaderCarNo: "", bLeaderCarNo: "" },
@@ -1576,10 +1606,26 @@ async function fetchKdreamsRaceResult(slug, kdreamsRaceId, raceNo, riders) {
 
     const html = await response.text();
     const resultData = extractKdreamsResultData(html, raceNo, kdreamsRaceId);
+    if (!hasConfirmedRaceResult(resultData)) {
+      return {
+        ...createPendingRaceResultData(`${resultData.resultNote || "kdreams result pending: parse empty"} result=${url}`),
+        source: "kdreams:result",
+        sourceNote: `kdreams result pending result=${url}`,
+        debug: {
+          finishOrderCount: resultData.debug.finishOrderCount,
+          payoutTableFound: resultData.debug.payoutTableFound,
+          payoutRowCount: resultData.debug.payoutRowCount,
+          payoutCount: resultData.debug.payoutCount,
+          sLeaderCarNo: resultData.debug.sLeaderCarNo,
+          hLeaderCarNo: resultData.debug.hLeaderCarNo,
+          bLeaderCarNo: resultData.debug.bLeaderCarNo,
+        },
+      };
+    }
     const compatibility = isKdreamsResultCompatibleWithRace(resultData, riders, raceNo, kdreamsRaceId);
     if (!compatibility.ok) {
       return {
-        ...createPendingRaceResultData(),
+        ...createPendingRaceResultData(`kdreams result rejected: ${compatibility.reason}`),
         source: "kdreams:result",
         sourceNote: `kdreams result rejected: ${compatibility.reason} result=${url}`,
         debug: {
@@ -1598,10 +1644,11 @@ async function fetchKdreamsRaceResult(slug, kdreamsRaceId, raceNo, riders) {
       ...resultData,
       source: "kdreams:result",
       sourceNote: `kdreams result=${url}`,
+      resultNote: `kdreams result accepted: result=${url}`,
     };
   } catch (error) {
     return {
-      ...createPendingRaceResultData(),
+      ...createPendingRaceResultData(`kdreams result fetch failed: ${error instanceof Error ? error.message : String(error)}`),
       source: "kdreams:result",
       sourceNote: `kdreams result取得失敗: ${error instanceof Error ? error.message : String(error)} result=${url}`,
       debug: { finishOrderCount: 0, payoutTableFound: false, payoutRowCount: 0, payoutCount: 0, sLeaderCarNo: "", hLeaderCarNo: "", bLeaderCarNo: "" },
@@ -1632,28 +1679,28 @@ async function fetchRaceOddsWithFallback({ raceId, venue, raceNo }) {
 
 async function fetchRaceResultWithFallback({ raceId, venue, raceNo, detailLink, riders }) {
   const netkeirinResult = await fetchNetkeirinRaceResult(raceId);
-  if (hasMeaningfulRaceResult(netkeirinResult)) {
+  if (hasConfirmedRaceResult(netkeirinResult)) {
     console.log(
-      `[result] ${venue.venue} ${raceNo}R source=${netkeirinResult.source} ${netkeirinResult.resultStatus} payoutCount=${netkeirinResult.payouts.length} SHB=${netkeirinResult.result.sLeaderCarNo || "-"}:${netkeirinResult.result.hLeaderCarNo || "-"}:${netkeirinResult.result.bLeaderCarNo || "-"}`,
+      `[result] ${venue.venue} ${raceNo}R netkeirin=accepted top3=${netkeirinResult.resultTop3.length} payouts=${netkeirinResult.payouts.length}`,
     );
     return netkeirinResult;
   }
 
   const kdreamsResult = await fetchKdreamsRaceResult(detailLink?.slug ?? venue.slug, detailLink?.raceId, raceNo, riders);
-  if (hasMeaningfulRaceResult(kdreamsResult)) {
+  if (hasConfirmedRaceResult(kdreamsResult)) {
     console.log(
-      `[result] ${venue.venue} ${raceNo}R source=${kdreamsResult.source} ${kdreamsResult.resultStatus} payoutCount=${kdreamsResult.payouts.length} SHB=${kdreamsResult.result.sLeaderCarNo || "-"}:${kdreamsResult.result.hLeaderCarNo || "-"}:${kdreamsResult.result.bLeaderCarNo || "-"}`,
+      `[result] ${venue.venue} ${raceNo}R netkeirin=${netkeirinResult.resultNote || netkeirinResult.sourceNote} kdreams=accepted top3=${kdreamsResult.resultTop3.length} payouts=${kdreamsResult.payouts.length}`,
     );
     return kdreamsResult;
   }
 
   // TODO: Probe OddsPark result/payout pages as an additional fallback when netkeirin and KDreams fail.
   console.log(
-    `[result] ${venue.venue} ${raceNo}R source=pending payoutCount=0 because ${kdreamsResult.sourceNote || netkeirinResult.sourceNote}`,
+    `[result] ${venue.venue} ${raceNo}R netkeirin=${netkeirinResult.resultNote || netkeirinResult.sourceNote} kdreams=${kdreamsResult.resultNote || kdreamsResult.sourceNote}`,
   );
 
   return {
-    ...createPendingRaceResultData(),
+    ...createPendingRaceResultData(`${netkeirinResult.resultNote || netkeirinResult.sourceNote} / ${kdreamsResult.resultNote || kdreamsResult.sourceNote}`),
     source: "pending",
     sourceNote: kdreamsResult.sourceNote || netkeirinResult.sourceNote,
   };
@@ -1747,18 +1794,19 @@ async function main() {
             ? detailRace.oddsTrifecta
             : oddsData.oddsTrifecta,
         oddsNote: oddsData.oddsNote || detailRace.oddsNote || "",
-        resultStatus: hasMeaningfulRaceResult(resultData) ? resultData.resultStatus : detailRace.resultStatus,
+        resultNote: resultData.resultNote || detailRace.resultNote || "",
+        resultStatus: hasConfirmedRaceResult(resultData) ? resultData.resultStatus : detailRace.resultStatus,
         resultTop3:
-          Array.isArray(resultData.resultTop3) && resultData.resultTop3.length
+          hasConfirmedRaceResult(resultData) && Array.isArray(resultData.resultTop3) && resultData.resultTop3.length
             ? resultData.resultTop3
             : detailRace.resultTop3,
         payouts:
-          Array.isArray(resultData.payouts) && resultData.payouts.length
+          hasConfirmedRaceResult(resultData) && Array.isArray(resultData.payouts) && resultData.payouts.length
             ? resultData.payouts
             : detailRace.payouts,
-        result: hasMeaningfulRaceResult(resultData) ? resultData.result : detailRace.result,
+        result: hasConfirmedRaceResult(resultData) ? resultData.result : detailRace.result,
         sourceNote:
-          resultData.source && resultData.source.startsWith("kdreams:") && hasMeaningfulRaceResult(resultData)
+          resultData.source && resultData.source.startsWith("kdreams:") && hasConfirmedRaceResult(resultData)
             ? `${detailRace.sourceNote} / resultFallback: ${resultData.sourceNote}`
             : detailRace.sourceNote,
       };
