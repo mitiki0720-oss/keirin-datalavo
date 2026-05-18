@@ -183,6 +183,129 @@ async function readRaceScheduleData() {
   }
 }
 
+function appendNote(currentNote, appendedNote) {
+  const current = String(currentNote ?? "").trim();
+  const next = String(appendedNote ?? "").trim();
+  if (!current) return next;
+  if (!next || current.includes(next)) return current;
+  return `${current} / ${next}`;
+}
+
+async function loadExistingTodayFeedForCache(outputPath, todayIso) {
+  const candidates = outputPath === PUBLIC_OUTPUT_PATH
+    ? [PUBLIC_OUTPUT_PATH]
+    : [outputPath, PUBLIC_OUTPUT_PATH];
+  const seenPaths = new Set();
+
+  for (const candidatePath of candidates) {
+    if (!candidatePath || seenPaths.has(candidatePath)) continue;
+    seenPaths.add(candidatePath);
+
+    try {
+      const raw = await fs.readFile(candidatePath, "utf-8");
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.venues)) {
+        continue;
+      }
+      if (parsed.date !== todayIso) {
+        console.log(
+          `[cache] skip existing feed due to date mismatch path=${candidatePath} date=${parsed.date || "(empty)"} target=${todayIso}`,
+        );
+        continue;
+      }
+      return {
+        payload: parsed,
+        path: candidatePath,
+      };
+    } catch (error) {
+      if (error?.code === "ENOENT") continue;
+      console.warn(`[cache] failed to read existing feed path=${candidatePath}`, error);
+    }
+  }
+
+  return {
+    payload: null,
+    path: "",
+  };
+}
+
+function buildRaceCacheKey({ venue, raceNo, raceId }) {
+  const normalizedRaceId = String(raceId ?? "").trim();
+  if (normalizedRaceId) {
+    return `raceId:${normalizedRaceId}`;
+  }
+
+  const normalizedVenue = String(venue ?? "").trim();
+  const normalizedRaceNo = Number(raceNo);
+  if (!normalizedVenue || !Number.isFinite(normalizedRaceNo)) {
+    return "";
+  }
+
+  return `venue:${normalizedVenue}:${normalizedRaceNo}`;
+}
+
+function buildExistingRaceCache(existingFeed) {
+  const raceCache = new Map();
+
+  for (const venue of existingFeed?.venues ?? []) {
+    const raceIds = Array.isArray(venue?.raceIds) ? venue.raceIds : [];
+    const races = Array.isArray(venue?.races) ? venue.races : [];
+
+    races.forEach((race, index) => {
+      const raceNo = Number(race?.raceNo ?? index + 1);
+      const raceId = String(race?.raceId ?? race?.kdreamsRaceId ?? raceIds[index] ?? "").trim();
+      const primaryKey = buildRaceCacheKey({
+        venue: venue?.venue,
+        raceNo,
+        raceId,
+      });
+      const fallbackKey = buildRaceCacheKey({
+        venue: venue?.venue,
+        raceNo,
+      });
+
+      if (primaryKey) {
+        raceCache.set(primaryKey, race);
+      }
+      if (fallbackKey && !raceCache.has(fallbackKey)) {
+        raceCache.set(fallbackKey, race);
+      }
+    });
+  }
+
+  return raceCache;
+}
+
+function isReusableFinalRace(race) {
+  return Boolean(
+    race
+      && race.resultStatus === "confirmed"
+      && race.result?.status === "confirmed"
+      && Array.isArray(race.resultTop3)
+      && race.resultTop3.length >= 3
+      && Array.isArray(race.payouts)
+      && race.payouts.length >= 1
+      && String(race.time ?? "").trim()
+      && String(race.title ?? "").trim()
+      && Array.isArray(race.riders)
+      && race.riders.length >= 1,
+  );
+}
+
+function prepareCachedRaceForReuse(cachedRace, raceNo) {
+  const cacheNote = "reused finalized race from previous generated feed";
+  const cacheMarker = "cache: reused finalized race";
+
+  return {
+    ...cachedRace,
+    raceNo,
+    sourceNote: appendNote(cachedRace?.sourceNote, cacheMarker),
+    oddsNote: appendNote(cachedRace?.oddsNote, cacheMarker),
+    resultNote: appendNote(cachedRace?.resultNote, cacheMarker),
+    cacheNote: appendNote(cachedRace?.cacheNote, cacheNote),
+  };
+}
+
 function normalizeScheduleVenueName(value) {
   return String(value ?? "")
     .normalize("NFKC")
@@ -1947,8 +2070,17 @@ async function main() {
     console.log("[mode] local debug output");
     console.log(`[mode] writing generated data to ${OUTPUT_PATH}`);
   }
+  const existingTodayFeed = await loadExistingTodayFeedForCache(OUTPUT_PATH, todayIso);
+  const existingRaceCache = buildExistingRaceCache(existingTodayFeed.payload);
+  if (existingTodayFeed.path) {
+    console.log(`[cache] using existing feed ${existingTodayFeed.path}`);
+  } else {
+    console.log(`[cache] no reusable existing feed for ${todayIso}`);
+  }
   const overrides = await readOverrides();
   const scheduleData = await readRaceScheduleData();
+  let cacheReusedCount = 0;
+  let cacheFetchedCount = 0;
 
   await fs.mkdir(DEBUG_DIR, { recursive: true });
   await fs.mkdir(DEBUG_ODDS_DIR, { recursive: true });
@@ -1984,9 +2116,33 @@ async function main() {
 
     const fetchedRaces = [];
     for (const raceNo of raceNos) {
+      const extra = overrideRaces.find((item) => item.raceNo === raceNo) ?? {};
       const detailLink = Array.isArray(venue.raceDetailLinks)
         ? venue.raceDetailLinks.find((item) => item.raceNo === raceNo)
         : undefined;
+      const kdreamsRaceId = detailLink?.raceId ?? venue.raceIds?.[raceNos.indexOf(raceNo)] ?? "";
+      const cachedRace = existingRaceCache.get(buildRaceCacheKey({
+        venue: venue.venue,
+        raceNo,
+        raceId: kdreamsRaceId,
+      })) ?? existingRaceCache.get(buildRaceCacheKey({
+        venue: venue.venue,
+        raceNo,
+      }));
+
+      if (isReusableFinalRace(cachedRace)) {
+        const reusableRace = prepareCachedRaceForReuse(cachedRace, raceNo);
+        fetchedRaces.push({
+          ...reusableRace,
+          ...extra,
+          riders: Array.isArray(extra.riders) && extra.riders.length ? extra.riders : reusableRace.riders,
+        });
+        cacheReusedCount += 1;
+        console.log(`[cache] ${venue.venue} ${raceNo}R finalized; skip detail/odds/result fetch`);
+        continue;
+      }
+
+      cacheFetchedCount += 1;
       const netkeirinRaceId = buildNetkeirinRaceId(todayIso, venue.venueCode, raceNo);
       const netkeirinRace = await fetchNetkeirinRaceDetail(todayIso, venue.venueCode, raceNo, !savedSample);
       if (/^netkeirin race_id=/.test(netkeirinRace.sourceNote)) {
@@ -2045,7 +2201,6 @@ async function main() {
             ? `${detailRace.sourceNote} / resultFallback: ${resultData.sourceNote}`
             : detailRace.sourceNote,
       };
-      const extra = overrideRaces.find((item) => item.raceNo === race.raceNo) ?? {};
       fetchedRaces.push({
         ...race,
         ...extra,
@@ -2173,6 +2328,7 @@ async function main() {
   }
 
   console.log(`todayIso=${todayIso}`);
+  console.log(`[cache] finalized reused=${cacheReusedCount}, fetched=${cacheFetchedCount}`);
   console.log(`matched venues=${todayVenues.length}`);
   console.log(`Generated ${venues.length} venues with race details -> ${OUTPUT_PATH}`);
   console.log(`parse debug -> ${DEBUG_JSON_PATH}`);
