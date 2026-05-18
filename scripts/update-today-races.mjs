@@ -24,6 +24,9 @@ const KDREAMS_DEBUG_HTML_PATH = path.join(DEBUG_DIR, "kdreams-racecard-debug.htm
 const DEBUG_JSON_PATH = path.join(DEBUG_DIR, "aggregate-parse-debug.json");
 const NETKEIRIN_SAMPLE_HTML_PATH = path.join(DEBUG_DIR, "netkeirin-race-detail-sample.html");
 const NETKEIRIN_SAMPLE_TEXT_PATH = path.join(DEBUG_DIR, "netkeirin-race-detail-sample.txt");
+const KDREAMS_RACE_DETAIL_BASE_URL = "https://keirin.kdreams.jp";
+const KDREAMS_SAMPLE_DETAIL_HTML_PATH = path.join(DEBUG_DIR, "kdreams-race-detail-sample.html");
+const KDREAMS_SAMPLE_DETAIL_TEXT_PATH = path.join(DEBUG_DIR, "kdreams-race-detail-sample.txt");
 const NETKEIRIN_RESULT_DEBUG_PREFIX = "result-page";
 const NETKEIRIN_TRIFECTA_CANDIDATE_KEYS = ["list_9", "trifecta", "trifecta_list", "odds_3t"];
 const GRADE_CHECK_TARGET_VENUES = ["別府", "名古屋", "熊本", "松戸", "奈良", "函館"];
@@ -281,6 +284,7 @@ function parseKdreamsTodayVenues(html, todayIso, scheduleData) {
       note: "Kドリームス出走表一覧から自動生成",
       raceNos: detailLinks.map((item) => item.raceNo),
       raceIds: detailLinks.map((item) => item.raceId),
+      raceDetailLinks: detailLinks,
       races: [],
     });
   }
@@ -810,6 +814,267 @@ function extractNetkeirinLead(html) {
   return text.match(/netkeirin本紙の競輪予想\s*見解\s*(.+?)\s*ワイド/)?.[1]?.trim() ?? "";
 }
 
+function extractKdreamsRaceTime(html) {
+  return matchOne(html, [
+    /<dt[^>]*class="start"[^>]*>\s*発走予定\s*<\/dt>\s*<dd[^>]*>([0-9]{1,2}:[0-9]{2})<\/dd>/i,
+    /発走予定[\s\S]{0,80}?([0-9]{1,2}:[0-9]{2})/i,
+  ]);
+}
+
+function extractKdreamsRaceTitle(html) {
+  const headline = cleanCellText(matchOne(html, [
+    /<h2[^>]*>([\s\S]*?)<\/h2>/i,
+  ]));
+
+  const raceType = cleanCellText(matchOne(html, [
+    /<title>[\s\S]*?\d{1,2}R\s+([^|]+?)\s+\|\s+\d{4}年/i,
+    /<meta[^>]+property="og:title"[^>]+content="[^"]*?\d{1,2}R\s+([^"|]+?)\s+\|\s+\d{4}年/i,
+  ])).normalize("NFKC");
+
+  if (headline && raceType && !headline.includes(raceType) && !raceType.includes(headline)) {
+    return `${headline} ${raceType}`.trim();
+  }
+
+  return headline || raceType;
+}
+
+function extractKdreamsRiders(html) {
+  const riders = [];
+  const riderBlocks = Array.from(
+    html.matchAll(
+      /<tr[^>]*>\s*<th[^>]*class="n([1-9])[^"]*"[^>]*>([\s\S]*?)<\/th>\s*<\/tr>([\s\S]*?)(?=<tr[^>]*>\s*<th[^>]*class="n[1-9]|<\/tbody>|<\/table>)/gi,
+    ),
+  );
+
+  for (const block of riderBlocks) {
+    const carNo = block[1] ?? "";
+    const headerHtml = block[2] ?? "";
+    const bodyHtml = block[3] ?? "";
+    const headerText = cleanCellText(headerHtml).normalize("NFKC");
+    const bodyText = cleanCellText(bodyHtml).normalize("NFKC");
+    const detailCells = Array.from(bodyHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi))
+      .map((match) => cleanCellText(match[1]).normalize("NFKC"))
+      .filter(Boolean);
+
+    const name = cleanCellText(matchOne(headerHtml, [
+      /<span[^>]*class="name"[^>]*>([\s\S]*?)<\/span>/i,
+    ]));
+
+    if (!carNo || !name) continue;
+
+    const headerMeta = headerText.match(/【(.+?)】/)?.[1] ?? "";
+    const prefecture = (headerMeta.match(/^(.+?)\s+[0-9]{1,3}期$/)?.[1] ?? "").replace(/\s+/g, "");
+    const term = headerMeta.match(/([0-9]{1,3})期$/)?.[1] ?? "";
+    const age = bodyText.match(/([0-9]{1,2})歳/)?.[1] ?? "";
+    const grade = bodyText.match(/(?:^|\s)([SABL][12])(?:\s|$)/)?.[1] ?? "";
+    const style = detailCells.find((value) => /^(逃|追|両|自在)$/.test(value)) ?? "";
+    const score = detailCells.find((value) => /^[0-9]{2}\.[0-9]{2}$/.test(value)) ?? "";
+    const gearRatio = detailCells.find((value) => /^[0-9]\.[0-9]{2}$/.test(value)) ?? "";
+
+    riders.push({
+      carNo,
+      name,
+      prefecture,
+      age,
+      term,
+      grade,
+      style,
+      score,
+      s: "",
+      b: "",
+      escape: "",
+      makuri: "",
+      sashi: "",
+      mark: "",
+      wins: "",
+      seconds: "",
+      thirds: "",
+      loses: "",
+      winRate: "",
+      quinellaRate: "",
+      trifectaRate: "",
+      gearRatio,
+      comment: "",
+    });
+  }
+
+  return riders;
+}
+
+function createEmptyRaceDetail(raceNo, sourceNote) {
+  return {
+    raceNo,
+    time: "",
+    title: "",
+    lineup: "",
+    winticketLineupRaw: "",
+    netkeirinLineupRaw: "",
+    kdreamsLineupRaw: "",
+    isGirls: false,
+    sourceNote,
+    lead: "",
+    oddsPreview: [],
+    oddsTrifecta: [],
+    oddsNote: "",
+    resultStatus: "pending",
+    resultTop3: [],
+    payouts: [],
+    result: {
+      status: "pending",
+      finishOrder: [],
+      kimarite: "",
+      secondKimarite: "",
+      sLeaderCarNo: "",
+      hLeaderCarNo: "",
+      bLeaderCarNo: "",
+      payout2tan: null,
+      payout2fuku: [],
+      payout3tan: null,
+      payout3fuku: null,
+      payoutWide: [],
+      finalizedAt: "",
+    },
+    riders: [],
+  };
+}
+
+async function fetchKdreamsRaceDetail(slug, kdreamsRaceId, raceNo, saveSample = false) {
+  if (!slug || !kdreamsRaceId) {
+    return createEmptyRaceDetail(raceNo, "kdreams racedetail unavailable");
+  }
+
+  const url = `${KDREAMS_RACE_DETAIL_BASE_URL}/${slug}/racedetail/${kdreamsRaceId}/`;
+  const response = await fetch(url, {
+    headers: {
+      "user-agent": "Mozilla/5.0",
+      "accept-language": "ja-JP,ja;q=0.9,en;q=0.8",
+    },
+  });
+
+  if (!response.ok) {
+    return createEmptyRaceDetail(raceNo, `kdreams取得失敗: ${response.status} racedetail=${url}`);
+  }
+
+  const html = await response.text();
+
+  if (saveSample) {
+    await fs.writeFile(KDREAMS_SAMPLE_DETAIL_HTML_PATH, html, "utf-8");
+    await fs.writeFile(KDREAMS_SAMPLE_DETAIL_TEXT_PATH, stripTags(html), "utf-8");
+  }
+
+  const title = extractKdreamsRaceTitle(html);
+  const riders = extractKdreamsRiders(html);
+  const isGirls = /ガールズ|女子|L級|Ｌ級/i.test(title) || riders.some((rider) => /^L[12]$/i.test(rider.grade));
+
+  return {
+    ...createEmptyRaceDetail(raceNo, `kdreams racedetail=${url}`),
+    time: extractKdreamsRaceTime(html),
+    title,
+    isGirls,
+    riders,
+  };
+}
+
+function hasMeaningfulRaceData(race) {
+  if (!race) return false;
+
+  return Boolean(
+    race.time ||
+      race.title ||
+      race.lineup ||
+      race.lead ||
+      (Array.isArray(race.riders) && race.riders.length) ||
+      (Array.isArray(race.oddsPreview) && race.oddsPreview.length) ||
+      (Array.isArray(race.oddsTrifecta) && race.oddsTrifecta.length) ||
+      (Array.isArray(race.resultTop3) && race.resultTop3.length) ||
+      (Array.isArray(race.payouts) && race.payouts.length) ||
+      (race.resultStatus && race.resultStatus !== "pending") ||
+      (Array.isArray(race.result?.finishOrder) && race.result.finishOrder.length),
+  );
+}
+
+function hasMeaningfulRaceResult(race) {
+  if (!race) return false;
+
+  return Boolean(
+    (race.resultStatus && race.resultStatus !== "pending") ||
+      (Array.isArray(race.resultTop3) && race.resultTop3.length) ||
+      (Array.isArray(race.payouts) && race.payouts.length) ||
+      (Array.isArray(race.result?.finishOrder) && race.result.finishOrder.length),
+  );
+}
+
+function mergeRaceDetailWithFallback(primary, fallback) {
+  const safePrimary = primary ?? createEmptyRaceDetail(fallback?.raceNo ?? 0, "primary unavailable");
+  const safeFallback = fallback ?? createEmptyRaceDetail(primary?.raceNo ?? 0, "fallback unavailable");
+  const primaryHasData = hasMeaningfulRaceData(safePrimary);
+  const fallbackHasData = hasMeaningfulRaceData(safeFallback);
+
+  const merged = {
+    raceNo: safePrimary.raceNo ?? safeFallback.raceNo,
+    time: safePrimary.time || safeFallback.time,
+    title: safePrimary.title || safeFallback.title,
+    lineup: safePrimary.lineup || safeFallback.lineup,
+    winticketLineupRaw: safePrimary.winticketLineupRaw || safeFallback.winticketLineupRaw,
+    netkeirinLineupRaw: safePrimary.netkeirinLineupRaw || safeFallback.netkeirinLineupRaw,
+    kdreamsLineupRaw: safePrimary.kdreamsLineupRaw || safeFallback.kdreamsLineupRaw,
+    isGirls: Boolean(safePrimary.isGirls || safeFallback.isGirls),
+    sourceNote: safePrimary.sourceNote,
+    lead: safePrimary.lead || safeFallback.lead,
+    oddsPreview:
+      Array.isArray(safePrimary.oddsPreview) && safePrimary.oddsPreview.length
+        ? safePrimary.oddsPreview
+        : safeFallback.oddsPreview,
+    oddsTrifecta:
+      Array.isArray(safePrimary.oddsTrifecta) && safePrimary.oddsTrifecta.length
+        ? safePrimary.oddsTrifecta
+        : safeFallback.oddsTrifecta,
+    oddsNote: safePrimary.oddsNote || safeFallback.oddsNote,
+    resultStatus: hasMeaningfulRaceResult(safePrimary) ? safePrimary.resultStatus : safeFallback.resultStatus,
+    resultTop3:
+      Array.isArray(safePrimary.resultTop3) && safePrimary.resultTop3.length
+        ? safePrimary.resultTop3
+        : safeFallback.resultTop3,
+    payouts:
+      Array.isArray(safePrimary.payouts) && safePrimary.payouts.length
+        ? safePrimary.payouts
+        : safeFallback.payouts,
+    result: hasMeaningfulRaceResult(safePrimary) ? safePrimary.result : safeFallback.result,
+    riders:
+      Array.isArray(safePrimary.riders) && safePrimary.riders.length
+        ? safePrimary.riders
+        : safeFallback.riders,
+  };
+
+  const fallbackFields = [];
+  if (!safePrimary.time && safeFallback.time) fallbackFields.push("time");
+  if (!safePrimary.title && safeFallback.title) fallbackFields.push("title");
+  if ((!Array.isArray(safePrimary.riders) || !safePrimary.riders.length) && Array.isArray(safeFallback.riders) && safeFallback.riders.length) {
+    fallbackFields.push("riders");
+  }
+  if (!safePrimary.isGirls && safeFallback.isGirls) fallbackFields.push("isGirls");
+  if (!safePrimary.lineup && safeFallback.lineup) fallbackFields.push("lineup");
+  if (!hasMeaningfulRaceResult(safePrimary) && hasMeaningfulRaceResult(safeFallback)) fallbackFields.push("result");
+  if ((!Array.isArray(safePrimary.oddsPreview) || !safePrimary.oddsPreview.length) && Array.isArray(safeFallback.oddsPreview) && safeFallback.oddsPreview.length) {
+    fallbackFields.push("oddsPreview");
+  }
+  if ((!Array.isArray(safePrimary.oddsTrifecta) || !safePrimary.oddsTrifecta.length) && Array.isArray(safeFallback.oddsTrifecta) && safeFallback.oddsTrifecta.length) {
+    fallbackFields.push("oddsTrifecta");
+  }
+
+  if (!fallbackHasData) {
+    merged.sourceNote = safePrimary.sourceNote;
+  } else if (!primaryHasData) {
+    merged.sourceNote = `${safePrimary.sourceNote} / fallback: ${safeFallback.sourceNote}`;
+  } else if (fallbackFields.length) {
+    merged.sourceNote = `${safePrimary.sourceNote} / fallback補完(${fallbackFields.join(",")}): ${safeFallback.sourceNote}`;
+  } else {
+    merged.sourceNote = safePrimary.sourceNote;
+  }
+
+  return merged;
+}
+
 function extractNetkeirinRiders(html) {
   const riders = [];
 
@@ -914,19 +1179,7 @@ async function fetchNetkeirinRaceDetail(todayIso, venueCode, raceNo, saveSample 
   });
 
   if (!response.ok) {
-    return {
-      raceNo,
-      time: "",
-      title: "",
-      lineup: "",
-      winticketLineupRaw: "",
-      netkeirinLineupRaw: "",
-      kdreamsLineupRaw: "",
-      sourceNote: `netkeirin取得失敗: ${response.status}`,
-      lead: "",
-      isGirls: false,
-      riders: [],
-    };
+    return createEmptyRaceDetail(raceNo, `netkeirin取得失敗: ${response.status}`);
   }
 
   const html = await response.text();
@@ -939,6 +1192,7 @@ async function fetchNetkeirinRaceDetail(todayIso, venueCode, raceNo, saveSample 
   const title = extractNetkeirinRaceTitle(html);
   const riders = extractNetkeirinRiders(html);
   const isGirls = /ガールズ|女子|L級|Ｌ級/i.test(title);
+  // TODO: Add WINTICKET / OddsPark odds fallback when netkeirin odds API is unavailable.
   const oddsPreview = extractNetkeirinOddsPreview(html);
   let oddsTrifecta = [];
   let oddsTrifectaReason = "not-requested";
@@ -970,25 +1224,25 @@ async function fetchNetkeirinRaceDetail(todayIso, venueCode, raceNo, saveSample 
   });
 
   let resultData = {
-  resultStatus: "pending",
-  resultTop3: [],
-  payouts: [],
-  result: {
-    status: "pending",
-    finishOrder: [],
-    kimarite: "",
-    secondKimarite: "",
-    sLeaderCarNo: "",
-    hLeaderCarNo: "",
-    bLeaderCarNo: "",
-    payout2tan: null,
-    payout2fuku: [],
-    payout3tan: null,
-    payout3fuku: null,
-    payoutWide: [],
-    finalizedAt: "",
-  },
-};
+    resultStatus: "pending",
+    resultTop3: [],
+    payouts: [],
+    result: {
+      status: "pending",
+      finishOrder: [],
+      kimarite: "",
+      secondKimarite: "",
+      sLeaderCarNo: "",
+      hLeaderCarNo: "",
+      bLeaderCarNo: "",
+      payout2tan: null,
+      payout2fuku: [],
+      payout3tan: null,
+      payout3fuku: null,
+      payoutWide: [],
+      finalizedAt: "",
+    },
+  };
   try {
     const resultResponse = await fetch(`${NETKEIRIN_RESULT_URL}?race_id=${raceId}`, {
       headers: {
@@ -1099,6 +1353,7 @@ async function main() {
   );
 
   let savedSample = false;
+  let savedKdreamsSample = false;
 
   for (const venue of todayVenues) {
     const override = overrides[venue.venue] ?? {};
@@ -1107,8 +1362,26 @@ async function main() {
 
     const fetchedRaces = [];
     for (const raceNo of raceNos) {
-      const race = await fetchNetkeirinRaceDetail(todayIso, venue.venueCode, raceNo, !savedSample);
-      savedSample = true;
+      const detailLink = Array.isArray(venue.raceDetailLinks)
+        ? venue.raceDetailLinks.find((item) => item.raceNo === raceNo)
+        : undefined;
+      const netkeirinRace = await fetchNetkeirinRaceDetail(todayIso, venue.venueCode, raceNo, !savedSample);
+      if (/^netkeirin race_id=/.test(netkeirinRace.sourceNote)) {
+        savedSample = true;
+      }
+      const kdreamsRace = await fetchKdreamsRaceDetail(
+        detailLink?.slug ?? venue.slug,
+        detailLink?.raceId,
+        raceNo,
+        !savedKdreamsSample,
+      );
+      if (/^kdreams racedetail=/.test(kdreamsRace.sourceNote)) {
+        savedKdreamsSample = true;
+      }
+      const race = mergeRaceDetailWithFallback(netkeirinRace, kdreamsRace);
+      if (race.sourceNote.includes("fallback")) {
+        console.log(`[fallback] ${venue.venue} ${raceNo}R using KDreams detail because ${netkeirinRace.sourceNote}`);
+      }
       const extra = overrideRaces.find((item) => item.raceNo === race.raceNo) ?? {};
       fetchedRaces.push({
         ...race,
@@ -1122,8 +1395,10 @@ async function main() {
 
   const venues = todayVenues.map((venue) => {
     const override = overrides[venue.venue] ?? {};
+    const { raceDetailLinks, ...publicVenue } = venue;
+
     return {
-      ...venue,
+      ...publicVenue,
       ...override,
       races: venue.races,
     };
@@ -1134,6 +1409,7 @@ async function main() {
     source: {
       racecard: KDREAMS_RACECARD_URL,
       detailPrimary: `${NETKEIRIN_ENTRY_URL}?race_id=[YYYYMMDD][venueCode][raceNo]&rf=racetoplive`,
+      detailFallback: `${KDREAMS_RACE_DETAIL_BASE_URL}/[slug]/racedetail/[kdreamsRaceId]/`,
     },
     date: todayIso,
     venues,
@@ -1238,6 +1514,7 @@ async function main() {
   console.log(`Generated ${venues.length} venues with race details -> ${OUTPUT_PATH}`);
   console.log(`parse debug -> ${DEBUG_JSON_PATH}`);
   console.log(`netkeirin sample html -> ${NETKEIRIN_SAMPLE_HTML_PATH}`);
+  console.log(`kdreams sample html -> ${KDREAMS_SAMPLE_DETAIL_HTML_PATH}`);
 }
 
 main().catch((error) => {
