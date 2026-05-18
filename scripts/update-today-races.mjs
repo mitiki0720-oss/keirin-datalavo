@@ -281,6 +281,13 @@ function isReusableFinalRace(race) {
     race?.result?.payout3tan
       || (Array.isArray(race?.payouts) && race.payouts.some((item) => normalizeNetkeirinBetType(item?.betType) === normalizeNetkeirinBetType("3連単"))),
   );
+  const hasLineupState = Boolean(
+    String(race?.lineup ?? "").trim()
+      || String(race?.kdreamsLineupRaw ?? "").trim()
+      || String(race?.winticketLineupRaw ?? "").trim()
+      || String(race?.netkeirinLineupRaw ?? "").trim()
+      || /lineFallback\s*:/i.test(String(race?.sourceNote ?? "")),
+  );
 
   return Boolean(
     race
@@ -294,6 +301,7 @@ function isReusableFinalRace(race) {
       && String(race.title ?? "").trim()
       && Array.isArray(race.riders)
       && race.riders.length >= 1
+      && hasLineupState
       && hasPayout3tan,
   );
 }
@@ -312,6 +320,15 @@ function getReusableFinalRaceSkipReason(race) {
       || (Array.isArray(race?.payouts) && race.payouts.some((item) => normalizeNetkeirinBetType(item?.betType) === normalizeNetkeirinBetType("2車単"))),
   );
   if (!hasPayout2tan) return "payout2tan missing";
+
+  const hasLineupState = Boolean(
+    String(race?.lineup ?? "").trim()
+      || String(race?.kdreamsLineupRaw ?? "").trim()
+      || String(race?.winticketLineupRaw ?? "").trim()
+      || String(race?.netkeirinLineupRaw ?? "").trim()
+      || /lineFallback\s*:/i.test(String(race?.sourceNote ?? "")),
+  );
+  if (!hasLineupState) return "lineup fallback missing";
 
   return "";
 }
@@ -1210,7 +1227,7 @@ async function fetchKdreamsRaceDetail(slug, kdreamsRaceId, raceNo, saveSample = 
       raceNo,
       lineupData.lineup
         ? `kdreams racedetail=${url} / lineFallback: kdreams lineup accepted`
-        : `kdreams racedetail=${url}`,
+        : `kdreams racedetail=${url} / lineFallback: kdreams lineup unavailable${lineupData.reason ? ` (${lineupData.reason})` : ""}`,
     ),
     time: extractKdreamsRaceTime(html),
     title,
