@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   SiteHeader,
   findPredictionResultRecord,
+  resolveRacePayoutByBetType,
   loadStoredPredictionResults,
   PREDICTION_RESULT_STORAGE_KEY,
   useIsMobile,
@@ -614,7 +615,10 @@ function formatRacesPageResultOrder(value?: string[] | null) {
   return value.slice(0, 3).join("-");
 }
 
-function formatRacesPageResultPayout(item?: LiveRaceResultPayoutItem | string | number | null) {
+function formatRacesPageResultPayout(item?: {
+  combination?: string | null;
+  payout?: string | null;
+} | string | number | null) {
   if (item === null || item === undefined || item === "") return "--";
   if (typeof item === "string") return item;
   if (typeof item === "number") return `${item.toLocaleString()}円`;
@@ -1984,6 +1988,9 @@ const selectedRaceHLeaderCarNo = selectedRaceResult?.hLeaderCarNo ?? "";
 const selectedRaceBLeaderCarNo = selectedRaceResult?.bLeaderCarNo ?? "";
 const selectedRaceAllRows = selectedRace?.resultTop3 ?? [];
 const selectedRaceLeaderText = formatRacesPageLeaderText(selectedRace ?? undefined);
+const selectedRacePayout2tan = resolveRacePayoutByBetType(selectedRace as never, "2車単");
+const selectedRacePayout3tan = resolveRacePayoutByBetType(selectedRace as never, "3連単");
+const selectedRacePayout3fuku = resolveRacePayoutByBetType(selectedRace as never, "3連複");
 
 const selectedRaceResultCards = [
   {
@@ -2026,7 +2033,7 @@ const selectedRaceResultCards = [
 },
   {
     label: "3連単",
-    value: formatRacesPageResultPayout(selectedRaceResult?.payout3tan),
+    value: formatRacesPageResultPayout(selectedRacePayout3tan),
     sub: "払戻",
   },
 ];
@@ -3854,10 +3861,10 @@ gap: isMobile ? "10px" : "12px",
                   <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#7b8a9d", marginBottom: "8px" }}>払戻</div>
                   <div style={{ display: "grid", gap: "8px" }}>
                     {[
-                      { label: "2車単", value: formatRacesPageResultPayout(selectedRaceResult?.payout2tan) },
+                      { label: "2車単", value: formatRacesPageResultPayout(selectedRacePayout2tan) },
                       { label: "2車複", value: formatRacesPageResultPayoutList(selectedRaceResult?.payout2fuku) },
-                      { label: "3連単", value: formatRacesPageResultPayout(selectedRaceResult?.payout3tan) },
-                      { label: "3連複", value: formatRacesPageResultPayout(selectedRaceResult?.payout3fuku) },
+                      { label: "3連単", value: formatRacesPageResultPayout(selectedRacePayout3tan) },
+                      { label: "3連複", value: formatRacesPageResultPayout(selectedRacePayout3fuku) },
                       { label: "ワイド", value: formatRacesPageResultPayoutList(selectedRaceResult?.payoutWide) },
                     ].map((item) => (
                       <div key={item.label} style={{ display: "grid", gridTemplateColumns: "56px minmax(0, 1fr)", gap: "10px", alignItems: "start", borderRadius: "12px", border: "1px solid #edf2f7", background: "#ffffff", padding: "9px 10px" }}>
