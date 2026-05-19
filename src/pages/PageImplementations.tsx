@@ -251,12 +251,15 @@ export type PredictionRaceItem = {
   time?: string;
   title?: string;
   lineup?: string;
+  charilotoLineupRaw?: string;
+  oddsparkLineupRaw?: string;
   winticketLineupRaw?: string;
   netkeirinLineupRaw?: string;
   kdreamsLineupRaw?: string;
   isGirls?: boolean;
   sourceNote?: string;
   oddsNote?: string;
+  resultNote?: string;
   lead?: string;
   coreBuy?: string;
   coreFade?: string;
@@ -435,6 +438,7 @@ export type PredictionVenueBankIndexItem = {
   venueKey: string;
   venueName: string;
   file: string;
+  aliases?: string[];
 };
 
 export type PredictionVenueSummary = {
@@ -1718,6 +1722,7 @@ export const findPredictionVenueBankTarget = (
 
   return bankIndex.find((item) => {
     if (item.venueKey === venueSlug) return true;
+    if (Array.isArray(item.aliases) && item.aliases.some((alias) => normalizePredictionVenueName(alias) === normalizedVenueName)) return true;
     return normalizePredictionVenueName(item.venueName) === normalizedVenueName;
   }) ?? null;
 };
@@ -1918,10 +1923,24 @@ export const parsePredictionVenueSummary = (markdown: string): PredictionVenueSu
   };
 };
 
+const getPredictionLineupCandidates = (race?: PredictionRaceItem | null) => [
+  race?.lineup,
+  race?.netkeirinLineupRaw,
+  race?.kdreamsLineupRaw,
+  race?.charilotoLineupRaw,
+  race?.oddsparkLineupRaw,
+  race?.winticketLineupRaw,
+].map((item) => (item ?? "").trim()).filter(Boolean);
+
+const extractPredictionLineupNotes = (race?: PredictionRaceItem | null) => {
+  const sourceText = String(race?.sourceNote ?? "");
+  const noteMatches = Array.from(sourceText.matchAll(/(?:lineFallback|winticket probe)\s*:\s*([^/]+)/gi)).map((match) => match[1].trim());
+  const uniqueNotes = Array.from(new Set(noteMatches.filter(Boolean)));
+  return uniqueNotes.join(" / ");
+};
+
 export const buildPredictionLineupDisplay = (race?: PredictionRaceItem | null) => {
-  const raw = [race?.lineup, race?.kdreamsLineupRaw, race?.winticketLineupRaw, race?.netkeirinLineupRaw]
-    .map((item) => (item ?? "").trim())
-    .find(Boolean) ?? "";
+  const raw = getPredictionLineupCandidates(race)[0] ?? "";
   const fallbackNote = compactPredictionGuideText(
     String(race?.sourceNote ?? "").match(/lineFallback\s*:\s*([^/]+)/i)?.[1] ?? ""
   );
@@ -1934,6 +1953,7 @@ export const buildPredictionLineupDisplay = (race?: PredictionRaceItem | null) =
     .map((group) => group.trim())
     .filter(Boolean)
     .filter((group) => /^[0-9-]+$/.test(group))
+    .filter((group) => group.includes("-") || group.length > 1)
     .map((group) => group.replace(/-/g, "").split("").join("-"));
 
   if (groups.length > 0) return groups.join(" / ");
@@ -1941,9 +1961,7 @@ export const buildPredictionLineupDisplay = (race?: PredictionRaceItem | null) =
 };
 
 export const buildPredictionLineupGroups = (race?: PredictionRaceItem | null) => {
-  const raw = [race?.lineup, race?.kdreamsLineupRaw, race?.winticketLineupRaw, race?.netkeirinLineupRaw]
-    .map((item) => (item ?? "").trim())
-    .find(Boolean) ?? "";
+  const raw = getPredictionLineupCandidates(race)[0] ?? "";
 
   if (!raw) return [] as string[];
   return raw
@@ -1951,6 +1969,7 @@ export const buildPredictionLineupGroups = (race?: PredictionRaceItem | null) =>
     .map((group) => group.trim())
     .filter(Boolean)
     .filter((group) => /^[0-9-]+$/.test(group))
+    .filter((group) => group.includes("-") || group.length > 1)
     .map((group) => group.replace(/-/g, "").split("").join("-"));
 };
 
@@ -2673,6 +2692,7 @@ export const buildPredictionExportText = ({
     ? "未取得"
     : buildPredictionLineupDisplay(race);
   const lineupGroups = buildPredictionLineupGroups(race);
+  const lineupSupplement = extractPredictionLineupNotes(race);
   const leadCandidate = lineupGroups[0]?.split("-")[0] ?? "";
   const leadRider = race.riders?.find((rider) => String(rider.carNo) === leadCandidate);
   const leadParts = [
@@ -2705,6 +2725,7 @@ export const buildPredictionExportText = ({
       ? [`ライン区切り: ${lineupGroups.join(" / ")}`]
       : ["ライン区切り: 未取得"]),
     `主導権メモ: ${leadMemo}`,
+    ...(lineupSupplement ? [`補足: ${lineupSupplement}`] : []),
     "",
     "[C. 会場特徴 / バンク傾向]",
     `バンク特徴: ${normalizePredictionMaterialValue(venueSummary.bankFeature, venueFallbackLabel)}`,
