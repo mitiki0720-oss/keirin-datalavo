@@ -547,6 +547,7 @@ type LiveRaceDetail = {
   title?: string;
   lineup?: string;
   sourceNote?: string;
+  resultNote?: string;
   weather?: string;
   lead?: string;
   coreBuy?: string;
@@ -639,7 +640,22 @@ function formatRacesPageResultPayoutList(items?: LiveRaceResultPayoutItem[] | st
   if (typeof items === "string") return items;
   if (typeof items === "number") return `${items.toLocaleString()}円`;
   if (!Array.isArray(items) || items.length === 0) return "--";
-  return items.map((item) => formatRacesPageResultPayout(item)).filter((item) => item !== "--").join(" / ") || "--";
+  const seen = new Set<string>();
+  return items
+    .map((item) => formatRacesPageResultPayout(item))
+    .filter((item) => item !== "--")
+    .filter((item) => {
+      if (seen.has(item)) return false;
+      seen.add(item);
+      return true;
+    })
+    .join(" / ") || "--";
+}
+
+function getRacesPageFullResultScopeNote(race?: LiveRaceDetail) {
+  return String(race?.sourceNote ?? race?.resultNote ?? "").includes("KDreamsでは3着まで")
+    ? "注記: KDreamsでは3着まで"
+    : "";
 }
 
 function cleanRacesPageRiderName(value?: string) {
@@ -793,6 +809,7 @@ function useGeneratedTodayRaces() {
                           )
                         : [],
                       riders: Array.isArray(race.riders) ? race.riders : [],
+                      resultNote: typeof race.resultNote === "string" ? race.resultNote : "",
                       resultTop3: Array.isArray(race.resultTop3)
                         ? race.resultTop3.filter(
                             (item): item is LiveRaceResultEntry =>
@@ -1987,6 +2004,7 @@ const selectedRaceSLeaderCarNo = selectedRaceResult?.sLeaderCarNo ?? "";
 const selectedRaceHLeaderCarNo = selectedRaceResult?.hLeaderCarNo ?? "";
 const selectedRaceBLeaderCarNo = selectedRaceResult?.bLeaderCarNo ?? "";
 const selectedRaceAllRows = selectedRace?.resultTop3 ?? [];
+const selectedRaceFullResultScopeNote = getRacesPageFullResultScopeNote(selectedRace ?? undefined);
 const selectedRaceLeaderText = formatRacesPageLeaderText(selectedRace ?? undefined);
 const selectedRacePayout2tan = resolveRacePayoutByBetType(selectedRace as never, "2車単");
 const selectedRacePayout3tan = resolveRacePayoutByBetType(selectedRace as never, "3連単");
@@ -3852,6 +3870,9 @@ gap: isMobile ? "10px" : "12px",
                           </div>
                         );
                       })}
+                      {selectedRaceFullResultScopeNote ? (
+                        <div style={{ fontSize: "12px", color: "#8b5e3c", lineHeight: 1.7 }}>{selectedRaceFullResultScopeNote}</div>
+                      ) : null}
                     </div>
                   ) : (
                     <div style={{ fontSize: "13px", color: "#64748b", lineHeight: 1.8 }}>結果確定後に着順と決まり手を表示します。</div>

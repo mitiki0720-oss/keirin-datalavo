@@ -109,6 +109,8 @@ type PredictionRaceItem = {
   title?: string;
   lineup?: string;
   isGirls?: boolean;
+  sourceNote?: string;
+  resultNote?: string;
   oddsPreview?: PredictionOddsPreviewItem[];
   oddsTrifecta?: PredictionTrifectaItem[];
   resultStatus?: "pending" | "confirmed";
@@ -734,6 +736,8 @@ function compactReviewRaceResultSnapshot(race: PredictionRaceItem): PredictionRa
     title: race.title,
     lineup: race.lineup,
     isGirls: race.isGirls,
+    sourceNote: race.sourceNote,
+    resultNote: race.resultNote,
     oddsPreview: normalizeReviewOddsPreviewList(race.oddsPreview),
     oddsTrifecta: normalizeReviewTrifectaOddsList(race.oddsTrifecta),
     resultStatus: race.resultStatus,
@@ -857,6 +861,8 @@ function mergeReviewRaceWithSnapshot(
     resultTop3: feedRace.resultTop3?.length ? feedRace.resultTop3 : snapshotRace.resultTop3,
     payouts: feedRace.payouts?.length ? feedRace.payouts : snapshotRace.payouts,
     result: mergePredictionRaceResult(feedRace.result, snapshotRace.result),
+    sourceNote: feedRace.sourceNote || snapshotRace.sourceNote,
+    resultNote: feedRace.resultNote || snapshotRace.resultNote,
   };
 }
 
@@ -982,6 +988,28 @@ function formatReviewPayoutItem(item?: {
   const payout = item.payout ?? "--";
   const popularity = item.popularity ? ` / ${item.popularity}` : "";
   return `${combination} ${payout}${popularity}`;
+}
+
+function dedupeReviewPayoutItems(items?: Array<{
+  combination?: string | null;
+  payout?: string | null;
+  popularity?: string | null;
+}> | null) {
+  if (!Array.isArray(items) || items.length === 0) return [];
+
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = `${item?.combination ?? ""}|${item?.payout ?? ""}|${item?.popularity ?? ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function getReviewFullResultScopeNote(feedRace?: PredictionRaceItem) {
+  return String(feedRace?.sourceNote ?? feedRace?.resultNote ?? "").includes("KDreamsでは3着まで")
+    ? "注記: KDreamsでは3着まで"
+    : "";
 }
 
 function decodeReviewHtmlEntities(value?: string) {
@@ -1162,6 +1190,7 @@ function buildReviewPayoutLines(feedRace?: PredictionRaceItem) {
   const result = feedRace?.result;
   const lines: string[] = [];
   const fallbackPayouts = feedRace?.payouts;
+  const payoutWide = dedupeReviewPayoutItems(result?.payoutWide);
 
   const payout2tan = resolveRacePayoutByBetType(feedRace, "2車単");
   if (payout2tan) {
@@ -1182,8 +1211,8 @@ function buildReviewPayoutLines(feedRace?: PredictionRaceItem) {
     lines.push(`3連複: ${formatReviewPayoutItem(payout3fuku)}`);
   }
 
-  if (result?.payoutWide?.length) {
-    lines.push(`ワイド: ${result.payoutWide.map(formatReviewPayoutItem).filter(Boolean).join(" / ")}`);
+  if (payoutWide.length) {
+    lines.push(`ワイド: ${payoutWide.map(formatReviewPayoutItem).filter(Boolean).join(" / ")}`);
   }
 
   if (lines.length === 0 && fallbackPayouts?.length) {
@@ -1211,7 +1240,7 @@ function buildReviewFullResultLines(feedRace?: PredictionRaceItem) {
   const entries = feedRace?.resultTop3 ?? [];
   if (entries.length === 0) return ["全着順: 接続待ち"];
 
-  return entries.map((entry) => {
+  const lines = entries.map((entry) => {
     const marks = [
      entry.sMark || feedRace?.result?.sLeaderCarNo === entry.carNo ? "S" : "",
      entry.hMark || feedRace?.result?.hLeaderCarNo === entry.carNo ? "H" : "",
@@ -1228,6 +1257,11 @@ function buildReviewFullResultLines(feedRace?: PredictionRaceItem) {
 
     return `${place}: ${carNo}${markText} ${name}${agari}${margin}${kimarite}`;
   });
+
+  const scopeNote = getReviewFullResultScopeNote(feedRace);
+  if (scopeNote) lines.push(scopeNote);
+
+  return lines;
 }
 
 function convertReviewWeatherToActual(weather: PredictionWeatherData): PredictionRaceResultWeatherActual {
