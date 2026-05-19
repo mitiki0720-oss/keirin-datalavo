@@ -408,6 +408,7 @@ export const resolveRacePayoutByBetType = (
 export type PredictionRiderItem = {
   carNo: string;
   name: string;
+  fullName?: string;
   style?: string;
   score?: string;
   totalScore?: string | number;

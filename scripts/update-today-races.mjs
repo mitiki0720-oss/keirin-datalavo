@@ -1,6 +1,7 @@
 
 import fs from "node:fs/promises";
 import path from "node:path";
+import { load } from "cheerio";
 
 const KDREAMS_RACECARD_URL = "https://keirin.kdreams.jp/racecard/";
 const NETKEIRIN_ENTRY_URL = "https://keirin.netkeiba.com/race/entry/";
@@ -13,6 +14,7 @@ const ODDSPARK_RACE_RESULT_URL = "https://sp.oddspark.com/keirin/SpRaceResultInf
 const WINTICKET_KEIRIN_URL = "https://www.winticket.jp/keirin";
 const PUBLIC_OUTPUT_PATH = path.resolve("public/data/races/today.generated.json");
 const LOCAL_DEBUG_OUTPUT_PATH = path.resolve("scripts/debug/today.generated.local.json");
+const JAPANESE_PREFECTURE_PATTERN = /^(北海道|青森|岩手|宮城|秋田|山形|福島|茨城|栃木|群馬|埼玉|千葉|東京|神奈川|新潟|富山|石川|福井|山梨|長野|岐阜|静岡|愛知|三重|滋賀|京都|大阪|兵庫|奈良|和歌山|鳥取|島根|岡山|広島|山口|徳島|香川|愛媛|高知|福岡|佐賀|長崎|熊本|大分|宮崎|鹿児島|沖縄)$/;
 
 const args = process.argv.slice(2);
 const phaseArgIndex = args.findIndex((arg) => arg === "--phase");
@@ -453,6 +455,23 @@ function hasKdreamsRiderMaterial(rider) {
   );
 }
 
+function hasKdreamsRiderIdentity(rider) {
+  if (!rider || typeof rider !== "object") return false;
+
+  const fullName = String(rider.fullName ?? rider.name ?? "").replace(/\s+/g, " ").trim();
+  const prefecture = String(rider.prefecture ?? "").replace(/\s+/g, "").trim();
+  return /.+\s.+/.test(fullName) && JAPANESE_PREFECTURE_PATTERN.test(prefecture);
+}
+
+function hasKdreamsLineupMaterial(race) {
+  if (!race || typeof race !== "object") return false;
+  const riderCount = Array.isArray(race.riders) ? race.riders.length : 0;
+  return validateLineupRaw(race.kdreamsLineupRaw, {
+    riderCount,
+    isGirls: Boolean(race.isGirls),
+  }).valid;
+}
+
 function hasPolicyMismatchSourceNote(note) {
   const normalized = String(note ?? "");
   if (!normalized) return false;
@@ -505,6 +524,8 @@ function getCachedRaceRefreshReason(race, venueName = "") {
   if (hasMojibakeRace(race, venueName)) return "mojibake cached race";
   if (hasPolicyMismatchSourceNote(race?.sourceNote)) return "source policy mismatch";
   if (hasInconsistentAcceptedSource(race)) return "inconsistent accepted source markers";
+  if (SOURCE_POLICY.kdreams && Array.isArray(race?.riders) && race.riders.length && race.riders.some((rider) => !hasKdreamsRiderIdentity(rider))) return "kdreams rider identity incomplete";
+  if (SOURCE_POLICY.kdreams && /lineFallback:\s*kdreams lineup unavailable/i.test(String(race?.sourceNote ?? "")) && hasLineupValue(race) && !hasKdreamsLineupMaterial(race)) return "kdreams lineup missing";
   if (SOURCE_POLICY.kdreams && hasSparseKdreamsRiderFields(race)) return "kdreams rider fields sparse";
   return "";
 }
@@ -1998,53 +2019,44 @@ function extractKdreamsLineupFromForecast(html, raceNo, isGirls = false) {
     /<dt>並び予想<\/dt>\s*<dd>\s*<div class="line_position">([\s\S]*?)<\/div>/i,
   ]);
   if (linePositionHtml) {
-    const tokens = [];
-    let pendingSpaces = 0;
+    const $ = load(`<div class="line_position-root">${linePositionHtml}</div>`);
+    const explicitGroups = [];
+    let currentGroup = "";
 
-    Array.from(linePositionHtml.matchAll(/<span class="icon_p(?:\s+(space))?"[^>]*>([\s\S]*?)<\/span>/gi)).forEach((match) => {
-      const isSpace = Boolean(match[1]);
-      const tokenHtml = match[2] ?? "";
-      if (isSpace) {
-        pendingSpaces += 1;
-        return;
-      }
-
-      const carNo = matchOne(tokenHtml, [/class="p\d+">([1-9])<\/span>/i]);
-      if (!carNo) return;
-      const note = cleanCellText(
-        (tokenHtml.match(/<span class="p\d+">[1-9]<\/span>([\s\S]*)/i)?.[1] ?? "")
-      ).normalize("NFKC");
-      tokens.push({ carNo, note, gapCount: pendingSpaces });
-      pendingSpaces = 0;
-    });
-
-    if (tokens.length > 0) {
-      const explicitGroups = [];
-      let currentGroup = "";
-      tokens.forEach((token, index) => {
-        if (index > 0 && token.gapCount >= 2 && currentGroup) {
+    $(".icon_p").each((_, element) => {
+      const token = $(element);
+      if (token.hasClass("space")) {
+        if (currentGroup) {
           explicitGroups.push(currentGroup);
           currentGroup = "";
         }
-        currentGroup += token.carNo;
-      });
-      if (currentGroup) explicitGroups.push(currentGroup);
+        return;
+      }
 
-      if (explicitGroups.length >= 2) {
-        const candidate = explicitGroups.join(" ");
-        const validation = validateLineupRaw(candidate, {
-          source: "kdreams",
-          raceNo,
-          isGirls,
-          riderCount: tokens.length,
-        });
-        if (validation.valid) {
-          return {
-            lineup: validation.normalizedRawText,
-            rawText: validation.normalizedRawText,
-            reason: "accepted",
-          };
-        }
+      const carNo = token.find("span").toArray()
+        .map((span) => cleanCellText($(span).text()).normalize("NFKC"))
+        .find((value) => /^[1-9]$/.test(value));
+      if (!carNo) return;
+      currentGroup += carNo;
+    });
+
+    if (currentGroup) explicitGroups.push(currentGroup);
+
+    const riderCount = explicitGroups.join("").length;
+    if (explicitGroups.length > 0) {
+      const candidate = explicitGroups.join(" ");
+      const validation = validateLineupRaw(candidate, {
+        source: "kdreams",
+        raceNo,
+        isGirls,
+        riderCount,
+      });
+      if (validation.valid) {
+        return {
+          lineup: validation.normalizedRawText,
+          rawText: validation.normalizedRawText,
+          reason: "accepted",
+        };
       }
     }
   }
@@ -2267,6 +2279,16 @@ function extractKdreamsRiders(html) {
   const sameTrackYearlyStatsByCarNo = extractKdreamsSameTrackYearlyStatsMap(html);
   const localFiveYearStatsByCarNo = extractKdreamsLocalFiveYearStatsMap(html);
 
+  const normalizeKdreamsFullName = (value) => {
+    const parts = cleanCellText(value).normalize("NFKC").replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+    if (parts.length <= 1) return parts[0] ?? "";
+    const givenNameParts = parts.slice(1);
+    const givenName = givenNameParts.every((part) => part.length <= 2)
+      ? givenNameParts.join("")
+      : givenNameParts.join(" ");
+    return `${parts[0]} ${givenName}`.trim();
+  };
+
   Array.from(commentTableHtml.matchAll(/<tr[^>]*class="n([1-9])[^\"]*"[^>]*>([\s\S]*?)<\/tr>/gi)).forEach((match) => {
     const carNo = match[1] ?? "";
     const rowHtml = match[2] ?? "";
@@ -2280,12 +2302,18 @@ function extractKdreamsRiders(html) {
   for (const match of statsTableHtml.matchAll(/<tr[^>]*class="n([1-9])[^\"]*"[^>]*>([\s\S]*?)<\/tr>/gi)) {
     const carNo = match[1] ?? "";
     const rowHtml = match[2] ?? "";
-    const cells = Array.from(rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)).map((cellMatch) => cleanCellText(cellMatch[1]).normalize("NFKC"));
+    const rawCells = Array.from(rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)).map((cellMatch) => cellMatch[1] ?? "");
+    const cells = rawCells.map((cellHtml) => cleanCellText(cellHtml).normalize("NFKC"));
     if (!carNo || cells.length < 23) continue;
 
-    const riderMeta = (cells[5] ?? "").replace(/\s+/g, " ").trim();
-    const name = riderMeta.split(/\s+/)[0] ?? "";
-    const metaTail = riderMeta.replace(name, "").trim();
+    const riderMetaHtml = rawCells[5] ?? "";
+    const riderMetaDom = load(`<td>${riderMetaHtml}</td>`);
+    const riderHomeText = cleanCellText(riderMetaDom(".home").first().text()).normalize("NFKC");
+    riderMetaDom(".home").remove();
+    const riderNameHtml = riderMetaDom("td").text();
+    const [prefecture, age, term] = riderHomeText.split("/").map((part) => part.replace(/\s+/g, " ").trim());
+    const fullName = normalizeKdreamsFullName(riderNameHtml);
+    const name = fullName ?? "";
     if (!name) continue;
 
     const yearlyStats = yearlyStatsByCarNo.get(carNo);
@@ -2303,9 +2331,10 @@ function extractKdreamsRiders(html) {
     riders.push({
       carNo,
       name,
-      prefecture: matchOne(metaTail, [/^([^/]+?)\//]).replace(/\s+/g, ""),
-      age: matchOne(metaTail, [/\/\s*([0-9]{1,2})\s*\//]),
-      term: matchOne(metaTail, [/\/\s*([0-9]{1,3})\s*$/]),
+      fullName: name,
+      prefecture: (prefecture ?? "").replace(/\s+/g, ""),
+      age: age ?? "",
+      term: term ?? "",
       grade: cells[6] ?? "",
       style: cells[7] ?? "",
       score: cells[9] ?? "",
@@ -3523,7 +3552,7 @@ async function main() {
       const effectiveCachedRace = cachedRaceRefreshReason ? null : cachedRace;
       const incompleteCacheReason = getReusableFinalRaceSkipReason(cachedRace);
 
-      if (isReusableFinalRace(cachedRace)) {
+      if (!cachedRaceRefreshReason && isReusableFinalRace(cachedRace)) {
         const reusableRace = prepareCachedRaceForReuse(cachedRace, raceNo);
         fetchedRaces.push({
           ...reusableRace,
