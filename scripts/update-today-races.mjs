@@ -500,15 +500,24 @@ function hasInconsistentAcceptedSource(race) {
   return false;
 }
 
+function getCachedRaceRefreshReason(race, venueName = "") {
+  if (!race) return "";
+  if (hasMojibakeRace(race, venueName)) return "mojibake cached race";
+  if (hasPolicyMismatchSourceNote(race?.sourceNote)) return "source policy mismatch";
+  if (hasInconsistentAcceptedSource(race)) return "inconsistent accepted source markers";
+  if (SOURCE_POLICY.kdreams && hasSparseKdreamsRiderFields(race)) return "kdreams rider fields sparse";
+  return "";
+}
+
 function sanitizeSourceNoteForPolicy(note) {
   return String(note ?? "")
     .split(" / ")
     .map((part) => part.trim())
     .filter(Boolean)
     .filter((part) => {
-      if (!SOURCE_POLICY.netkeirin && /netkeirin (?:race_id=|odds fetch failed|result fetch failed|accepted|取得失敗)/i.test(part)) return false;
-      if (!SOURCE_POLICY.oddspark && /oddspark (?:racelist accepted|lineup accepted|accepted|unavailable)/i.test(part)) return false;
-      if (!SOURCE_POLICY.winticket && /winticket (?:probe found public payload markers|probe skipped|unavailable)/i.test(part)) return false;
+      if (!SOURCE_POLICY.netkeirin && /(netkeirin|AplRaceOdds)/i.test(part)) return false;
+      if (!SOURCE_POLICY.oddspark && /oddspark/i.test(part)) return false;
+      if (!SOURCE_POLICY.winticket && /winticket/i.test(part)) return false;
       return true;
     })
     .join(" / ");
@@ -3510,6 +3519,8 @@ async function main() {
         venue: venue.venue,
         raceNo,
       }));
+      const cachedRaceRefreshReason = getCachedRaceRefreshReason(cachedRace, venue.venue);
+      const effectiveCachedRace = cachedRaceRefreshReason ? null : cachedRace;
       const incompleteCacheReason = getReusableFinalRaceSkipReason(cachedRace);
 
       if (isReusableFinalRace(cachedRace)) {
@@ -3529,16 +3540,20 @@ async function main() {
         console.log(`[cache] skip finalized race because ${incompleteCacheReason} ${venue.venue} ${raceNo}R`);
       }
 
+      if (cachedRaceRefreshReason) {
+        console.log(`[cache] ignore stale race because ${cachedRaceRefreshReason} ${venue.venue} ${raceNo}R`);
+      }
+
       cacheFetchedCount += 1;
       const netkeirinRaceId = buildNetkeirinRaceId(todayIso, venue.venueCode, raceNo);
-      const needsSeedDetail = !cachedRace || !String(cachedRace.time ?? "").trim() || !String(cachedRace.title ?? "").trim();
-      const fetchLineup = shouldFetchLineupForRace(cachedRace, venue, updatePhase);
-      const fetchRiderDetail = shouldFetchRiderDetailForRace(cachedRace, venue, updatePhase);
-      const fetchOdds = shouldFetchOddsForRace(cachedRace, venue, updatePhase);
-      const fetchResult = shouldFetchResultForRace(cachedRace, venue, updatePhase);
+      const needsSeedDetail = !effectiveCachedRace || !String(effectiveCachedRace.time ?? "").trim() || !String(effectiveCachedRace.title ?? "").trim();
+      const fetchLineup = shouldFetchLineupForRace(effectiveCachedRace, venue, updatePhase);
+      const fetchRiderDetail = shouldFetchRiderDetailForRace(effectiveCachedRace, venue, updatePhase);
+      const fetchOdds = shouldFetchOddsForRace(effectiveCachedRace, venue, updatePhase);
+      const fetchResult = shouldFetchResultForRace(effectiveCachedRace, venue, updatePhase);
 
-      let detailRace = cachedRace
-        ? { ...cachedRace, raceNo }
+      let detailRace = effectiveCachedRace
+        ? { ...effectiveCachedRace, raceNo }
         : createEmptyRaceDetail(raceNo, "cache missing");
       detailRace = sanitizeRaceForCurrentPolicy(detailRace);
 
@@ -3652,7 +3667,7 @@ async function main() {
           };
       if (!fetchResult) {
         console.log(`[skip] ${venue.venue} ${raceNo}R result skipped in ${updatePhase.phase} phase`);
-      } else if (cachedRace && (cachedRace.resultStatus !== "confirmed" || cachedRace.result?.status !== "confirmed")) {
+      } else if (effectiveCachedRace && (effectiveCachedRace.resultStatus !== "confirmed" || effectiveCachedRace.result?.status !== "confirmed")) {
         console.log(`[fetch] ${venue.venue} ${raceNo}R pending; result only`);
       }
       const race = sanitizeRaceForCurrentPolicy({
