@@ -314,12 +314,19 @@ async function readRaceScheduleData() {
   }
 }
 
+function splitNoteParts(note) {
+  return String(note ?? "")
+    .split(/\s+\/\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function joinUniqueNoteParts(parts) {
+  return Array.from(new Set(parts.map((part) => String(part ?? "").trim()).filter(Boolean))).join(" / ");
+}
+
 function appendNote(currentNote, appendedNote) {
-  const current = String(currentNote ?? "").trim();
-  const next = String(appendedNote ?? "").trim();
-  if (!current) return next;
-  if (!next || current.includes(next)) return current;
-  return `${current} / ${next}`;
+  return joinUniqueNoteParts([...splitNoteParts(currentNote), ...splitNoteParts(appendedNote)]);
 }
 
 async function loadExistingTodayFeedForCache(outputPath, todayIso) {
@@ -615,6 +622,17 @@ function hasSparseKdreamsRiderFields(race) {
   ].some((value) => String(value ?? "").trim()));
 }
 
+function hasUsableRiderMaterial(race) {
+  return Array.isArray(race?.riders) && race.riders.some((rider) => hasSubstantiveRiderDetail(rider));
+}
+
+function hasLineupOddsButMissingRiders(race) {
+  if (!race) return false;
+  return hasLineupValue(race)
+    && isRaceOddsComplete(race)
+    && !hasUsableRiderMaterial(race);
+}
+
 function hasInconsistentAcceptedSource(race) {
   const sourceNote = String(race?.sourceNote ?? "");
   const charilotoAccepted = /chariloto shukai accepted/i.test(sourceNote);
@@ -631,6 +649,7 @@ function getCachedRaceRefreshReason(race, venueName = "") {
   if (hasMojibakeRace(race, venueName)) return "mojibake cached race";
   if (hasPolicyMismatchSourceNote(race?.sourceNote)) return "source policy mismatch";
   if (hasInconsistentAcceptedSource(race)) return "inconsistent accepted source markers";
+  if (hasLineupOddsButMissingRiders(race)) return "lineup/odds present but riders missing";
   if (SOURCE_POLICY.kdreams && Array.isArray(race?.riders) && race.riders.length && race.riders.some((rider) => !hasKdreamsRiderIdentity(rider))) return "kdreams rider identity incomplete";
   if (SOURCE_POLICY.kdreams && /lineFallback:\s*kdreams lineup unavailable/i.test(String(race?.sourceNote ?? "")) && hasLineupValue(race) && !hasKdreamsLineupMaterial(race)) return "kdreams lineup missing";
   if (SOURCE_POLICY.kdreams && hasSparseKdreamsRiderFields(race)) return "kdreams rider fields sparse";
@@ -638,8 +657,7 @@ function getCachedRaceRefreshReason(race, venueName = "") {
 }
 
 function sanitizeSourceNoteForPolicy(note) {
-  return String(note ?? "")
-    .split(" / ")
+  return splitNoteParts(note)
     .map((part) => part.trim())
     .filter(Boolean)
     .filter((part) => {
@@ -648,12 +666,12 @@ function sanitizeSourceNoteForPolicy(note) {
       if (!SOURCE_POLICY.winticket && /winticket/i.test(part)) return false;
       return true;
     })
+    .filter((part, index, parts) => parts.indexOf(part) === index)
     .join(" / ");
 }
 
 function sanitizeOddsNoteForPolicy(note) {
-  const parts = String(note ?? "")
-    .split(" / ")
+  const parts = splitNoteParts(note)
     .map((part) => part.trim())
     .filter(Boolean)
     .filter((part) => !(!SOURCE_POLICY.netkeirin && /netkeirin odds fetch failed|source=netkeirin|AplRaceOdds/i.test(part)));
@@ -662,7 +680,11 @@ function sanitizeOddsNoteForPolicy(note) {
     parts.unshift("netkeirin odds disabled by source policy");
   }
 
-  return parts.join(" / ");
+  return joinUniqueNoteParts(parts);
+}
+
+function sanitizeResultNote(note) {
+  return joinUniqueNoteParts(splitNoteParts(note));
 }
 
 function sanitizeRaceForCurrentPolicy(race) {
@@ -670,8 +692,7 @@ function sanitizeRaceForCurrentPolicy(race) {
 
   const riderCount = Array.isArray(race.riders) ? race.riders.length : 0;
   const charilotoProbe = sanitizeExternalLineupRaw(race.charilotoLineupRaw, { riderCount });
-  const sanitizedSourceParts = sanitizeSourceNoteForPolicy(race.sourceNote)
-    .split(" / ")
+  const sanitizedSourceParts = splitNoteParts(sanitizeSourceNoteForPolicy(race.sourceNote))
     .map((part) => part.trim())
     .filter(Boolean)
     .filter((part) => !( /chariloto shukai accepted/i.test(part) && !charilotoProbe.accepted));
@@ -684,8 +705,9 @@ function sanitizeRaceForCurrentPolicy(race) {
     ...race,
     charilotoLineupRaw: charilotoProbe.accepted ? charilotoProbe.rawText : "",
     charilotoLineupRawDiagnostic: charilotoProbe.accepted ? (race.charilotoLineupRawDiagnostic ?? "") : (charilotoProbe.diagnosticRawText || race.charilotoLineupRawDiagnostic || ""),
-    sourceNote: sanitizedSourceParts.join(" / "),
+    sourceNote: joinUniqueNoteParts(sanitizedSourceParts),
     oddsNote: sanitizeOddsNoteForPolicy(race.oddsNote),
+    resultNote: sanitizeResultNote(race.resultNote),
   };
 }
 
@@ -744,6 +766,8 @@ function isRaceRiderDetailCheckedOrComplete(race) {
     if (!SOURCE_POLICY.kdreams || race.riders.some((rider) => hasKdreamsRiderMaterial(rider))) return true;
   }
 
+  if (hasLineupOddsButMissingRiders(race)) return false;
+
   const note = `${race?.sourceNote ?? ""} / ${race?.resultNote ?? ""}`;
   const requiredChecks = [];
 
@@ -791,6 +815,7 @@ function getReusableFinalRaceSkipReason(race) {
   if (!race || race.resultStatus !== "confirmed" || race.result?.status !== "confirmed") return "";
 
   if (hasMojibakeRace(race)) return "mojibake detected";
+  if (hasLineupOddsButMissingRiders(race)) return "lineup/odds present but riders missing";
   if (hasSparseKdreamsRiderFields(race)) return "rider material empty after kdreams decode fix";
   if (hasPolicyMismatchSourceNote(race?.sourceNote)) return "source policy mismatch note detected";
   if (hasInconsistentAcceptedSource(race)) return "accepted source note inconsistent with saved raw";
@@ -845,7 +870,7 @@ function shouldFetchRiderDetailForRace(race, venue, updatePhase) {
   if (!riderMissing) return false;
   if (["lineup", "backfill", "final"].includes(updatePhase.phase)) return true;
   if (updatePhase.phase === "result") {
-    console.log(`[cache] skip ${venue?.venue ?? ""} because riders missing`);
+    console.log(`[fetch] ${venue?.venue ?? ""} riders missing; kdreams detail/racecard`);
     return true;
   }
   return false;
@@ -1560,12 +1585,7 @@ function buildTop3FromFinishOrderItems(items) {
 }
 
 function appendUniqueNote(base, note) {
-  const normalizedBase = String(base ?? "").trim();
-  const normalizedNote = String(note ?? "").trim();
-  if (!normalizedNote) return normalizedBase;
-  if (!normalizedBase) return normalizedNote;
-  if (normalizedBase.includes(normalizedNote)) return normalizedBase;
-  return `${normalizedBase} / ${normalizedNote}`;
+  return joinUniqueNoteParts([...splitNoteParts(base), ...splitNoteParts(note)]);
 }
 
 function createExternalRaceProbeResult(source, url, note = "") {

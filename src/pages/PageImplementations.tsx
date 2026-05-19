@@ -410,6 +410,8 @@ export type PredictionRiderItem = {
   name: string;
   fullName?: string;
   materialMissing?: boolean;
+  isPlaceholder?: boolean;
+  source?: string;
   style?: string;
   score?: string;
   totalScore?: string | number;
@@ -2085,6 +2087,7 @@ export const getDisplayRidersForKeirinRace = (
       carNo,
       name: "未取得",
       fullName: "未取得",
+      source: "lineup-placeholder",
       style: "",
       score: "",
       prefecture: "",
@@ -2101,8 +2104,33 @@ export const getDisplayRidersForKeirinRace = (
       mark: "",
       comment: "出走表: 未取得",
       materialMissing: true,
+      isPlaceholder: true,
     })
     .sort((a, b) => Number(a.carNo) - Number(b.carNo));
+};
+
+export const getPredictionMaterialRidersForKeirinRace = (
+  race?: PredictionRaceItem | null,
+  venue?: PredictionVenueItem | null,
+): PredictionRiderItem[] => {
+  void venue;
+  const realRiders = Array.isArray(race?.riders)
+    ? race.riders.filter((rider): rider is PredictionRiderItem => Boolean(rider?.carNo) && rider.isPlaceholder !== true)
+    : [];
+  if (realRiders.length === 0) return [];
+
+  const ridersByCarNo = new Map(realRiders.map((rider) => [String(rider.carNo), rider]));
+  const lineupCarNos = extractPredictionLineupCarNos(race);
+  const orderedCarNos = lineupCarNos.length > 0
+    ? [
+        ...lineupCarNos.filter((carNo, index) => lineupCarNos.indexOf(carNo) === index && ridersByCarNo.has(carNo)),
+        ...realRiders.map((rider) => String(rider.carNo)).filter((carNo) => !lineupCarNos.includes(carNo)),
+      ]
+    : realRiders.map((rider) => String(rider.carNo)).sort((a, b) => Number(a) - Number(b));
+
+  return orderedCarNos
+    .map((carNo) => ridersByCarNo.get(carNo))
+    .filter((rider): rider is PredictionRiderItem => Boolean(rider));
 };
 
 export const getMissingDisplayRiderCarNos = (race?: PredictionRaceItem | null) => {
@@ -2834,11 +2862,7 @@ const preferBetterRiders = (
 };
 
 const mergePredictionSourceNote = (primary?: string | null, fallback?: string | null) => {
-  const parts = [primary, fallback]
-    .flatMap((value) => String(value ?? "").split(/\s*\/\s*/))
-    .map((value) => value.trim())
-    .filter(Boolean);
-  return Array.from(new Set(parts)).join(" / ");
+  return normalizePredictionNoteText([primary, fallback].filter(Boolean).join(" / "));
 };
 
 const mergePredictionRaceResultPreserveRichData = (
@@ -3035,6 +3059,8 @@ export const buildPredictionExportText = ({
   date,
   venue,
   race,
+  materialRace,
+  materialRiders,
   gradeLabel,
   venueSummary,
   weather,
@@ -3051,6 +3077,8 @@ export const buildPredictionExportText = ({
   date: string;
   venue: PredictionVenueItem;
   race: PredictionRaceItem;
+  materialRace?: PredictionRaceItem;
+  materialRiders?: PredictionRiderItem[];
   gradeLabel: string;
   venueSummary: PredictionVenueSummary;
   weather: PredictionWeatherData | null;
@@ -3064,39 +3092,51 @@ export const buildPredictionExportText = ({
   dataAnalysisText: string;
   oddsText: string;
 }) => {
-  const raceIdLabel = normalizePredictionExportValue(getPredictionRaceIdForVenue(venue, race) || race.sourceNote, "race_idなし");
+  const exportRace = materialRace ?? race;
+  const exportRiders = materialRiders?.length
+    ? materialRiders
+    : getPredictionMaterialRidersForKeirinRace(exportRace, venue);
+  const exportContexts = buildPredictionExportContextsFromRiders(exportRiders);
+  const resolvedRiderBasicText = riderBasicText.trim() || buildPredictionBasicRiderExport(exportContexts, exportRace);
+  const resolvedRecentPerformanceText = recentPerformanceText.trim() || (exportContexts.length > 0 ? buildPredictionRecentPerformanceExport(exportContexts) : "未取得");
+  const resolvedRecentRaceText = recentRaceText.trim() || (exportContexts.length > 0 ? buildPredictionRecentRaceExport(exportContexts, venue, gradeLabel) : "未取得");
+  const resolvedMatchupText = matchupText.trim() || (exportContexts.length > 0 ? buildPredictionMatchupExport(exportContexts, exportRace) : "未取得");
+  const resolvedTrackAffinityText = trackAffinityText.trim() || (exportContexts.length > 0 ? buildPredictionTrackAffinityExport(exportContexts, venue) : "未取得");
+  const resolvedDataAnalysisText = dataAnalysisText.trim() || buildPredictionDataAnalysisExport(exportContexts, venue, exportRace, venueSummary);
+  const resolvedOddsText = oddsText.trim() || buildPredictionOddsExport(exportRace);
+  const raceIdLabel = normalizePredictionExportValue(getPredictionRaceIdForVenue(venue, exportRace) || exportRace.sourceNote, "race_idなし");
   const raceTitleLabel = normalizePredictionExportValue(
-    race.title || race.sourceNote || (venue.title ? `${venue.title} ${race.raceNo}R` : ""),
+    exportRace.title || exportRace.sourceNote || (venue.title ? `${venue.title} ${exportRace.raceNo}R` : ""),
     "レース名なし"
   );
   const venueFallbackLabel = venueSummary.source === "missing" ? "未登録" : "未取得";
-  const lineup = resolvePredictionLineup(race);
+  const lineup = resolvePredictionLineup(exportRace);
   const lineupLabel = lineup.orderLabel || "未取得";
   const lineupGroups = lineup.groupedGroups;
-  const lineupSupplement = extractPredictionLineupNotes(race);
+  const lineupSupplement = extractPredictionLineupNotes(exportRace);
   const leadCandidate = lineup.leadCarNo;
-  const leadRider = race.riders?.find((rider) => String(rider.carNo) === leadCandidate);
+  const leadRider = exportRace.riders?.find((rider) => String(rider.carNo) === leadCandidate);
   const leadParts = [
-    normalizePredictionMaterialValue(race.lead, ""),
-    !race.lead && leadCandidate && lineupGroups.length > 0 ? `${leadCandidate}番が先頭候補` : "",
-    !race.lead && leadCandidate && lineupGroups.length === 0 && lineup.orderLabel ? `${leadCandidate}番が周回予想の先頭` : "",
-    !race.lead && !lineupGroups.length && lineup.orderLabel ? "ライン構成は未判定" : "",
-    !race.lead && leadRider?.style ? `脚質=${leadRider.style}` : "",
-    !race.lead && normalizePredictionNumericText(leadRider?.nige ?? leadRider?.escape) ? `逃=${normalizePredictionNumericText(leadRider?.nige ?? leadRider?.escape)}` : "",
-    !race.lead && normalizePredictionNumericText(leadRider?.b) ? `B=${normalizePredictionNumericText(leadRider?.b)}` : "",
+    normalizePredictionMaterialValue(exportRace.lead, ""),
+    !exportRace.lead && leadCandidate && lineupGroups.length > 0 ? `${leadCandidate}番が先頭候補` : "",
+    !exportRace.lead && leadCandidate && lineupGroups.length === 0 && lineup.orderLabel ? `${leadCandidate}番が周回予想の先頭` : "",
+    !exportRace.lead && !lineupGroups.length && lineup.orderLabel ? "ライン構成は未判定" : "",
+    !exportRace.lead && leadRider?.style ? `脚質=${leadRider.style}` : "",
+    !exportRace.lead && normalizePredictionNumericText(leadRider?.nige ?? leadRider?.escape) ? `逃=${normalizePredictionNumericText(leadRider?.nige ?? leadRider?.escape)}` : "",
+    !exportRace.lead && normalizePredictionNumericText(leadRider?.b) ? `B=${normalizePredictionNumericText(leadRider?.b)}` : "",
   ].filter(Boolean);
   const leadMemo = leadParts.length > 0
     ? leadParts.join(" / ")
     : normalizePredictionMaterialValue(
-        compactPredictionGuideText(String(race.sourceNote ?? "").match(/lineFallback\s*:\s*([^/]+)/i)?.[1] ?? "")
+        compactPredictionGuideText(String(exportRace.sourceNote ?? "").match(/lineFallback\s*:\s*([^/]+)/i)?.[1] ?? "")
       );
 
   return [
     "[A. レース基本情報]",
     `会場名: ${normalizePredictionExportValue(venue.venue, "会場情報なし")}`,
     `日付: ${normalizePredictionExportValue(date, "日付情報なし")}`,
-    `レース番号: ${race.raceNo}R`,
-    `発走時刻: ${normalizePredictionExportValue(race.time, "時刻情報なし")}`,
+    `レース番号: ${exportRace.raceNo}R`,
+    `発走時刻: ${normalizePredictionExportValue(exportRace.time, "時刻情報なし")}`,
     `時間帯: ${normalizePredictionExportValue(getPredictionSessionBadge(venue), "時間帯情報なし")}`,
     `グレード: ${normalizePredictionExportValue(gradeLabel, "グレード情報なし")}`,
     `race_id: ${raceIdLabel}`,
@@ -3128,25 +3168,25 @@ export const buildPredictionExportText = ({
     `採用予報: ${normalizePredictionExportValue(weather?.updatedAtText ?? weatherFallbackText, "時刻情報なし")}`,
     "",
     "[E. 出走表 基本データ]",
-    riderBasicText,
+    resolvedRiderBasicText,
     "",
     "[F. 近況成績]",
-    recentPerformanceText,
+    resolvedRecentPerformanceText,
     "",
     "[G. 直近3走]",
-    recentRaceText,
+    resolvedRecentRaceText,
     "",
     "[H. 対戦表 / 相性メモ]",
-    matchupText,
+    resolvedMatchupText,
     "",
     "[I. 競輪場別 / 会場相性]",
-    trackAffinityText,
+    resolvedTrackAffinityText,
     "",
     "[J. データ分析]",
-    dataAnalysisText,
+    resolvedDataAnalysisText,
     "",
     "[K. オッズ]",
-    oddsText,
+    resolvedOddsText,
     "",
     "[L. 展開メモ]",
     memo,
@@ -6561,6 +6601,9 @@ type PredictionExportRiderContext = {
   card: ParsedPlayerCard | null;
 };
 
+const buildPredictionExportContextsFromRiders = (riders: PredictionRiderItem[]): PredictionExportRiderContext[] =>
+  riders.map((rider) => ({ rider, indexItem: null, card: null }));
+
 
 type PlayerImageIndexArrayItem = {
   id?: string;
@@ -6797,6 +6840,22 @@ function normalizePredictionExportValue(value: unknown, fallback = "情報なし
 function normalizePredictionMaterialValue(value: unknown, fallback = "未取得") {
   const normalized = normalizePredictionExportValue(value, fallback);
   return normalized === "情報なし" ? fallback : normalized;
+}
+
+function splitPredictionNoteParts(value?: string | null) {
+  return String(value ?? "")
+    .split(/\s+\/\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function dedupePredictionNoteParts(parts: string[]) {
+  return Array.from(new Set(parts.map((part) => part.trim()).filter(Boolean)));
+}
+
+function normalizePredictionNoteText(value?: string | null, maxParts = Number.POSITIVE_INFINITY) {
+  const parts = dedupePredictionNoteParts(splitPredictionNoteParts(value));
+  return parts.slice(0, maxParts).join(" / ");
 }
 
 function normalizePredictionNumericText(value: unknown) {
@@ -7161,11 +7220,21 @@ function buildPredictionRiderProfileLine(context: PredictionExportRiderContext) 
   ].join("\n");
 }
 
-function buildPredictionBasicRiderExport(contexts: PredictionExportRiderContext[]) {
-  if (contexts.length === 0) return "出走データなし";
-  const missingCarNos = contexts
-    .filter((context) => context.rider.materialMissing)
-    .map((context) => context.rider.carNo);
+function buildPredictionBasicRiderExport(contexts: PredictionExportRiderContext[], race?: PredictionRaceItem | null) {
+  const missingCarNos = getMissingDisplayRiderCarNos(race);
+  if (contexts.length === 0) {
+    const lineupCarNos = extractPredictionLineupCarNos(race);
+    const causeParts = [
+      Array.isArray(race?.riders) && race.riders.length === 0 ? "public JSON riders欠損" : "",
+      /riderFallback:\s*kdreams detail lacks stats/i.test(String(race?.sourceNote ?? "")) ? "KDreams rider parser未反映" : "",
+      race ? "materialRace merge不備" : "",
+    ].filter(Boolean);
+    return [
+      "出走表データ未取得。",
+      lineupCarNos.length > 0 ? `lineup上の車番: ${lineupCarNos.join(",")}` : "lineup上の車番: 未取得",
+      `原因候補: ${causeParts.length > 0 ? causeParts.join(" / ") : "public JSON riders欠損 / materialRace merge不備"}`,
+    ].join("\n");
+  }
   const missingNote = missingCarNos.length > 0
     ? [`※出走表データに不足があります: 車番${missingCarNos.join(",")}が未取得`, ""]
     : [];
@@ -7270,7 +7339,7 @@ function buildPredictionTrackAffinityExport(contexts: PredictionExportRiderConte
 }
 
 function buildPredictionDataAnalysisExport(contexts: PredictionExportRiderContext[], venue: PredictionVenueItem, race: PredictionRaceItem, venueSummary: PredictionVenueSummary) {
-  if (contexts.length === 0) return "未取得";
+  if (contexts.length === 0) return "会場特徴・並び・オッズのみ取得。選手別分析は出走表未取得のため省略。";
 
   const lineup = resolvePredictionLineup(race);
   const lineupGroups = lineup.groupedGroups;
@@ -7316,6 +7385,7 @@ function buildPredictionDataAnalysisExport(contexts: PredictionExportRiderContex
 }
 
 function buildPredictionOddsExport(race: PredictionRaceItem) {
+  const normalizedOddsNote = normalizePredictionNoteText(race.oddsNote ?? race.sourceNote, 5);
   const oddsBuckets = buildPredictionOddsBuckets(race);
   const previewText = (race.oddsPreview ?? []).length > 0
     ? (race.oddsPreview ?? []).map((item) => `- ${item.tag ?? "オッズ"}: ${item.combo} ${item.odds}`).join("\n")
@@ -7331,7 +7401,7 @@ function buildPredictionOddsExport(race: PredictionRaceItem) {
   ].join("\n")).join("\n\n");
 
   return [
-    `オッズ注記: ${normalizePredictionExportValue(race.oddsNote ?? race.sourceNote, "情報なし")}`,
+    `オッズ注記: ${normalizePredictionExportValue(normalizedOddsNote, "情報なし")}`,
     "[オッズプレビュー]",
     previewText,
     "",
@@ -7344,6 +7414,7 @@ function buildPredictionOddsExport(race: PredictionRaceItem) {
 }
 
 function buildPredictionMemoExport(race: PredictionRaceItem, memo: string) {
+  const normalizedSourceNote = normalizePredictionNoteText(race.sourceNote, 5);
   const memoLines = (memo ?? "")
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -7357,7 +7428,7 @@ function buildPredictionMemoExport(race: PredictionRaceItem, memo: string) {
 
   return [
     `主導権候補: ${normalizePredictionMaterialValue(race.lead)}`,
-    `補足ソース: ${normalizePredictionExportValue(race.sourceNote, "情報なし")}`,
+    `補足ソース: ${normalizePredictionExportValue(normalizedSourceNote, "情報なし")}`,
     "",
     memoLines.length > 0 ? memoLines.join("\n") : "展開メモなし",
   ].join("\n");
@@ -9231,27 +9302,29 @@ if (!nextSlots[currentKey] && nextSlots[legacyKey]) {
     }),
     [predictionFeed, selectedRace, selectedSavedPredictionSlot, selectedVenue]
   );
-  const materialRace = useMemo(() => {
+  const selectedPredictionMaterialRace = useMemo(() => {
     const fullRace = mergeRacePreserveRichData(hydratedPredictionMaterialRace.hydratedRace, selectedRace);
     return mergeRacePreserveRichData(fullRace, selectedSavedPredictionSlot as Partial<PredictionRaceItem> | null);
   }, [hydratedPredictionMaterialRace.hydratedRace, selectedRace, selectedSavedPredictionSlot]);
-  const materialVenue = hydratedPredictionMaterialRace.sourceVenue ?? selectedVenue;
+  const selectedPredictionMaterialVenue = hydratedPredictionMaterialRace.sourceVenue ?? selectedVenue;
   useEffect(() => {
-    if (!materialRace) return;
+    if (!selectedPredictionMaterialRace) return;
     console.log("[GPT MATERIAL DEBUG]", {
-      venue: materialVenue?.venue,
-      raceNo: materialRace?.raceNo,
-      raceId: getPredictionRaceIdForVenue(materialVenue, materialRace),
-      lineup: materialRace.lineup,
-      kdreamsLineupRaw: materialRace.kdreamsLineupRaw,
-      ridersCount: Array.isArray(materialRace?.riders) ? materialRace.riders.length : 0,
-      firstRider: materialRace.riders?.[0],
-      oddsCount: Array.isArray(materialRace?.oddsTrifecta) ? materialRace.oddsTrifecta.length : 0,
-      sourceNote: materialRace.sourceNote,
-      resultStatus: materialRace.resultStatus,
+      venue: selectedPredictionMaterialVenue?.venue,
+      raceNo: selectedPredictionMaterialRace?.raceNo,
+      raceId: getPredictionRaceIdForVenue(selectedPredictionMaterialVenue, selectedPredictionMaterialRace),
+      lineup: selectedPredictionMaterialRace.lineup,
+      kdreamsLineupRaw: selectedPredictionMaterialRace.kdreamsLineupRaw,
+      ridersCount: Array.isArray(selectedPredictionMaterialRace?.riders) ? selectedPredictionMaterialRace.riders.length : 0,
+      firstRider: selectedPredictionMaterialRace.riders?.[0],
+      oddsCount: Array.isArray(selectedPredictionMaterialRace?.oddsTrifecta) ? selectedPredictionMaterialRace.oddsTrifecta.length : 0,
+      sourceNote: selectedPredictionMaterialRace.sourceNote,
+      resultStatus: selectedPredictionMaterialRace.resultStatus,
       source: `hydrated generated feed (${hydratedPredictionMaterialRace.reason})`,
     });
-  }, [hydratedPredictionMaterialRace.reason, materialRace, materialVenue]);
+  }, [hydratedPredictionMaterialRace.reason, selectedPredictionMaterialRace, selectedPredictionMaterialVenue]);
+  const materialRace = selectedPredictionMaterialRace;
+  const materialVenue = selectedPredictionMaterialVenue;
   if (ENABLE_PREDICTION_DEBUG_LOGS) {
   console.log("[selectedSavedPredictionResult checkpoint]", selectedSavedPredictionResult);
 }
@@ -9653,8 +9726,12 @@ if (
     }
     return null;
   }, [predictionAutoHitDetail, predictionFinalHitStatus, selectedSavedPredictionResult]);
+  const selectedPredictionMaterialRiders = useMemo(
+    () => getPredictionMaterialRidersForKeirinRace(selectedPredictionMaterialRace, selectedPredictionMaterialVenue),
+    [selectedPredictionMaterialRace, selectedPredictionMaterialVenue]
+  );
   const selectedPredictionRiderContexts = useMemo<PredictionExportRiderContext[]>(() => {
-    return getDisplayRidersForKeirinRace(materialRace, materialVenue).map((rider) => {
+    return selectedPredictionMaterialRiders.map((rider) => {
       const normalizedName = normalizePredictionPlayerName(rider.name);
       const indexItem = predictionPlayerIndex.find((item) => normalizePredictionPlayerName(item.name) === normalizedName) ?? null;
       return {
@@ -9663,7 +9740,7 @@ if (
         card: indexItem ? predictionPlayerCards[indexItem.id] ?? null : null,
       };
     });
-  }, [materialRace, materialVenue, predictionPlayerCards, predictionPlayerIndex]);
+  }, [predictionPlayerCards, predictionPlayerIndex, selectedPredictionMaterialRiders]);
 
   useEffect(() => {
     if (selectedPredictionRiderContexts.length === 0) return;
@@ -9697,36 +9774,36 @@ if (
   }, [predictionPlayerCards, selectedPredictionRiderContexts]);
 
   const selectedPredictionRiderBasicText = useMemo(
-    () => buildPredictionBasicRiderExport(selectedPredictionRiderContexts),
-    [selectedPredictionRiderContexts]
+    () => buildPredictionBasicRiderExport(selectedPredictionRiderContexts, selectedPredictionMaterialRace),
+    [selectedPredictionMaterialRace, selectedPredictionRiderContexts]
   );
   const selectedPredictionRecentPerformanceText = useMemo(
     () => buildPredictionRecentPerformanceExport(selectedPredictionRiderContexts),
     [selectedPredictionRiderContexts]
   );
   const selectedPredictionRecentRaceText = useMemo(
-    () => buildPredictionRecentRaceExport(selectedPredictionRiderContexts, materialVenue, selectedVenueGradeLabel),
-    [selectedPredictionRiderContexts, materialVenue, selectedVenueGradeLabel]
+    () => buildPredictionRecentRaceExport(selectedPredictionRiderContexts, selectedPredictionMaterialVenue, selectedVenueGradeLabel),
+    [selectedPredictionMaterialVenue, selectedPredictionRiderContexts, selectedVenueGradeLabel]
   );
   const selectedPredictionMatchupText = useMemo(
-    () => buildPredictionMatchupExport(selectedPredictionRiderContexts, materialRace ?? { raceNo: 0, riders: [] }),
-    [selectedPredictionRiderContexts, materialRace]
+    () => buildPredictionMatchupExport(selectedPredictionRiderContexts, selectedPredictionMaterialRace ?? { raceNo: 0, riders: [] }),
+    [selectedPredictionMaterialRace, selectedPredictionRiderContexts]
   );
   const selectedPredictionTrackAffinityText = useMemo(
-    () => buildPredictionTrackAffinityExport(selectedPredictionRiderContexts, materialVenue ?? { id: "", venue: "", session: "day", races: [] }),
-    [selectedPredictionRiderContexts, materialVenue]
+    () => buildPredictionTrackAffinityExport(selectedPredictionRiderContexts, selectedPredictionMaterialVenue ?? { id: "", venue: "", session: "day", races: [] }),
+    [selectedPredictionMaterialVenue, selectedPredictionRiderContexts]
   );
   const selectedPredictionDataAnalysisText = useMemo(
-    () => buildPredictionDataAnalysisExport(selectedPredictionRiderContexts, materialVenue ?? { id: "", venue: "", session: "day", races: [] }, materialRace ?? { raceNo: 0, riders: [] }, selectedVenueSummary),
-    [selectedPredictionRiderContexts, materialRace, materialVenue, selectedVenueSummary]
+    () => buildPredictionDataAnalysisExport(selectedPredictionRiderContexts, selectedPredictionMaterialVenue ?? { id: "", venue: "", session: "day", races: [] }, selectedPredictionMaterialRace ?? { raceNo: 0, riders: [] }, selectedVenueSummary),
+    [selectedPredictionMaterialRace, selectedPredictionMaterialVenue, selectedPredictionRiderContexts, selectedVenueSummary]
   );
   const selectedPredictionOddsText = useMemo(
-    () => buildPredictionOddsExport(materialRace ?? { raceNo: 0 }),
-    [materialRace]
+    () => buildPredictionOddsExport(selectedPredictionMaterialRace ?? { raceNo: 0 }),
+    [selectedPredictionMaterialRace]
   );
   const selectedPredictionMemoText = useMemo(
-    () => buildPredictionMemoExport(materialRace ?? { raceNo: 0 }, predictionMemo),
-    [predictionMemo, materialRace]
+    () => buildPredictionMemoExport(selectedPredictionMaterialRace ?? { raceNo: 0 }, predictionMemo),
+    [predictionMemo, selectedPredictionMaterialRace]
   );
   const sortedPredictionVenues = useMemo(
     () => [...(predictionFeed?.venues ?? [])].sort(comparePredictionVenues),
@@ -9740,11 +9817,13 @@ if (
   const reflectedWeatherCount = Object.values(weatherByVenue).filter((item) => item !== null).length;
 
   const gptExportText = useMemo(() => {
-    if (!predictionFeed || !materialVenue || !materialRace) return "対象レースを選択してください。";
+    if (!predictionFeed || !selectedPredictionMaterialVenue || !selectedPredictionMaterialRace) return "対象レースを選択してください。";
     return buildPredictionExportText({
       date: predictionFeed.date,
-      venue: materialVenue,
-      race: materialRace,
+      venue: selectedPredictionMaterialVenue,
+      race: selectedPredictionMaterialRace,
+      materialRace: selectedPredictionMaterialRace,
+      materialRiders: selectedPredictionMaterialRiders,
       gradeLabel: selectedVenueGradeLabel,
       venueSummary: selectedVenueSummary,
       weather: selectedWeather,
@@ -9758,7 +9837,7 @@ if (
       dataAnalysisText: selectedPredictionDataAnalysisText,
       oddsText: selectedPredictionOddsText,
     });
-  }, [predictionFeed, selectedPredictionDataAnalysisText, selectedPredictionMatchupText, selectedPredictionMemoText, selectedPredictionOddsText, selectedPredictionRecentPerformanceText, selectedPredictionRecentRaceText, selectedPredictionRiderBasicText, selectedPredictionTrackAffinityText, materialRace, materialVenue, selectedVenueGradeLabel, selectedVenueSummary, selectedWeather, selectedWeatherFallbackText]);
+  }, [predictionFeed, selectedPredictionDataAnalysisText, selectedPredictionMatchupText, selectedPredictionMaterialRace, selectedPredictionMaterialRiders, selectedPredictionMaterialVenue, selectedPredictionMemoText, selectedPredictionOddsText, selectedPredictionRecentPerformanceText, selectedPredictionRecentRaceText, selectedPredictionRiderBasicText, selectedPredictionTrackAffinityText, selectedVenueGradeLabel, selectedVenueSummary, selectedWeather, selectedWeatherFallbackText]);
   const gptExportLineCount = useMemo(() => gptExportText.split(/\r?\n/).length, [gptExportText]);
   const gptExportCharCount = useMemo(() => gptExportText.length, [gptExportText]);
   const selectedPredictionTargetLabel = selectedVenue && selectedRace ? `${selectedVenue.venue} ${selectedRace.raceNo}R` : "レース選択待ち";
