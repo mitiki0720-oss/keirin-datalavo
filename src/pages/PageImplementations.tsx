@@ -1753,6 +1753,7 @@ export const gradeMismatchWarningKeys = new Set<string>();
 export const normalizePredictionVenueName = (value?: string | null) =>
   (value ?? "")
     .normalize("NFKC")
+    .toLowerCase()
     .replace(/競輪場|競輪/g, "")
     .replace(/[\s　]/g, "")
     .replace(/[()（）]/g, "")
