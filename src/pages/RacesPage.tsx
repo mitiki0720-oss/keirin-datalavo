@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   SiteHeader,
   findPredictionResultRecord,
+  getDisplayRidersForKeirinRace,
   resolveRacePayoutByBetType,
   loadStoredPredictionResults,
   PREDICTION_RESULT_STORAGE_KEY,
@@ -2207,7 +2208,7 @@ const selectedRaceResultCards = [
       return toMin(a.time) - toMin(b.time);
     })
     .slice(0, 3);
-  const selectedRiders = selectedRace?.riders ?? [];
+  const selectedRiders = getDisplayRidersForKeirinRace(selectedRace as never, selectedVenue as never) as LiveRaceRider[];
   const totalRiderCount = selectedRiders.length;
 
   const parseScoreValue = (value?: string) => {

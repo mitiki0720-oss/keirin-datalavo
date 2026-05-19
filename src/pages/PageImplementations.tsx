@@ -409,6 +409,7 @@ export type PredictionRiderItem = {
   carNo: string;
   name: string;
   fullName?: string;
+  materialMissing?: boolean;
   style?: string;
   score?: string;
   totalScore?: string | number;
@@ -2058,6 +2059,59 @@ export const buildPredictionLineupGroups = (race?: PredictionRaceItem | null) =>
   return resolvePredictionLineup(race).groupedGroups;
 };
 
+export const extractPredictionLineupCarNos = (race?: PredictionRaceItem | null) => {
+  const lineup = resolvePredictionLineup(race);
+  return lineup.orderLabel
+    ? lineup.orderLabel.split(" → ").map((value) => value.trim()).filter(Boolean)
+    : [];
+};
+
+export const getDisplayRidersForKeirinRace = (
+  race?: PredictionRaceItem | null,
+  venue?: PredictionVenueItem | null,
+): PredictionRiderItem[] => {
+  void venue;
+  const realRiders = Array.isArray(race?.riders)
+    ? race.riders.filter((rider): rider is PredictionRiderItem => Boolean(rider?.carNo))
+    : [];
+  const ridersByCarNo = new Map(realRiders.map((rider) => [String(rider.carNo), rider]));
+  const lineupCarNos = extractPredictionLineupCarNos(race);
+  const orderedCarNos = lineupCarNos.length > 0
+    ? Array.from(new Set([...lineupCarNos, ...realRiders.map((rider) => String(rider.carNo))]))
+    : realRiders.map((rider) => String(rider.carNo)).sort((a, b) => Number(a) - Number(b));
+
+  return orderedCarNos
+    .map((carNo) => ridersByCarNo.get(carNo) ?? {
+      carNo,
+      name: "未取得",
+      fullName: "未取得",
+      style: "",
+      score: "",
+      prefecture: "",
+      term: "",
+      age: "",
+      grade: "",
+      gearRatio: "",
+      s: "",
+      b: "",
+      nige: "",
+      escape: "",
+      makuri: "",
+      sashi: "",
+      mark: "",
+      comment: "出走表: 未取得",
+      materialMissing: true,
+    })
+    .sort((a, b) => Number(a.carNo) - Number(b.carNo));
+};
+
+export const getMissingDisplayRiderCarNos = (race?: PredictionRaceItem | null) => {
+  const lineupCarNos = extractPredictionLineupCarNos(race);
+  if (lineupCarNos.length === 0) return [];
+  const riderCarNos = new Set((race?.riders ?? []).map((rider) => String(rider.carNo)));
+  return lineupCarNos.filter((carNo) => !riderCarNos.has(carNo));
+};
+
 export const getPredictionWeatherLabelFromCode = (code?: number | null) => {
   switch (code) {
     case 0:
@@ -2741,6 +2795,44 @@ const preferPredictionLongerArray = <T,>(primary?: T[] | null, fallback?: T[] | 
   return primaryItems.length > fallbackItems.length ? primaryItems : fallbackItems;
 };
 
+const scoreRiderMaterial = (riders?: PredictionRiderItem[] | null) => {
+  if (!Array.isArray(riders)) return 0;
+  return riders.reduce((sum, rider) => {
+    if (!rider || rider.materialMissing) return sum;
+    return sum
+      + (rider.carNo ? 1 : 0)
+      + (rider.name ? 2 : 0)
+      + (rider.prefecture ? 1 : 0)
+      + (rider.term ? 1 : 0)
+      + (rider.age ? 1 : 0)
+      + (rider.grade ? 1 : 0)
+      + (rider.style ? 1 : 0)
+      + (rider.score || rider.totalScore ? 2 : 0)
+      + (rider.gearRatio ? 1 : 0)
+      + (rider.s ? 1 : 0)
+      + (rider.b ? 1 : 0)
+      + (rider.nige || rider.escape ? 1 : 0)
+      + (rider.makuri ? 1 : 0)
+      + (rider.sashi ? 1 : 0)
+      + (rider.mark ? 1 : 0);
+  }, 0);
+};
+
+const preferBetterRiders = (
+  primary?: PredictionRiderItem[] | null,
+  fallback?: PredictionRiderItem[] | null,
+): PredictionRiderItem[] | undefined => {
+  const primaryItems = Array.isArray(primary) ? primary : [];
+  const fallbackItems = Array.isArray(fallback) ? fallback : [];
+  if (primaryItems.length === 0) return fallbackItems;
+  if (fallbackItems.length === 0) return primaryItems;
+
+  const primaryScore = scoreRiderMaterial(primaryItems);
+  const fallbackScore = scoreRiderMaterial(fallbackItems);
+  if (primaryScore !== fallbackScore) return primaryScore > fallbackScore ? primaryItems : fallbackItems;
+  return primaryItems.length >= fallbackItems.length ? primaryItems : fallbackItems;
+};
+
 const mergePredictionSourceNote = (primary?: string | null, fallback?: string | null) => {
   const parts = [primary, fallback]
     .flatMap((value) => String(value ?? "").split(/\s*\/\s*/))
@@ -2794,7 +2886,7 @@ export const mergeRacePreserveRichData = (
     (merged as Record<string, unknown>)[key] = preferPredictionNonEmpty(value, merged[key]);
   });
 
-  merged.riders = preferPredictionLongerArray(overlay.riders, merged.riders);
+  merged.riders = preferBetterRiders(overlay.riders, merged.riders);
   merged.oddsPreview = preferPredictionLongerArray(overlay.oddsPreview, merged.oddsPreview);
   merged.oddsTrifecta = preferPredictionLongerArray(overlay.oddsTrifecta, merged.oddsTrifecta);
   merged.resultTop3 = preferPredictionLongerArray(overlay.resultTop3, merged.resultTop3);
@@ -7045,6 +7137,13 @@ function buildPredictionEnhancedMetrics(context: PredictionExportRiderContext) {
 }
 
 function buildPredictionRiderProfileLine(context: PredictionExportRiderContext) {
+  if (context.rider.materialMissing) {
+    return [
+      `### ${context.rider.carNo}番`,
+      "- 出走表: 未取得",
+    ].join("\n");
+  }
+
   const profile = getPredictionContextProfile(context);
   const metrics = buildPredictionEnhancedMetrics(context);
 
@@ -7064,7 +7163,13 @@ function buildPredictionRiderProfileLine(context: PredictionExportRiderContext) 
 
 function buildPredictionBasicRiderExport(contexts: PredictionExportRiderContext[]) {
   if (contexts.length === 0) return "出走データなし";
-  return contexts.map((context) => buildPredictionRiderProfileLine(context)).join("\n\n");
+  const missingCarNos = contexts
+    .filter((context) => context.rider.materialMissing)
+    .map((context) => context.rider.carNo);
+  const missingNote = missingCarNos.length > 0
+    ? [`※出走表データに不足があります: 車番${missingCarNos.join(",")}が未取得`, ""]
+    : [];
+  return [...missingNote, contexts.map((context) => buildPredictionRiderProfileLine(context)).join("\n\n")].join("\n");
 }
 
 function buildPredictionRecentPerformanceExport(contexts: PredictionExportRiderContext[]) {
@@ -9133,16 +9238,16 @@ if (!nextSlots[currentKey] && nextSlots[legacyKey]) {
   const materialVenue = hydratedPredictionMaterialRace.sourceVenue ?? selectedVenue;
   useEffect(() => {
     if (!materialRace) return;
-    console.log("[material race]", {
+    console.log("[GPT MATERIAL DEBUG]", {
       venue: materialVenue?.venue,
-      raceNo: materialRace.raceNo,
+      raceNo: materialRace?.raceNo,
       raceId: getPredictionRaceIdForVenue(materialVenue, materialRace),
       lineup: materialRace.lineup,
       kdreamsLineupRaw: materialRace.kdreamsLineupRaw,
-      ridersCount: materialRace.riders?.length,
+      ridersCount: Array.isArray(materialRace?.riders) ? materialRace.riders.length : 0,
       firstRider: materialRace.riders?.[0],
+      oddsCount: Array.isArray(materialRace?.oddsTrifecta) ? materialRace.oddsTrifecta.length : 0,
       sourceNote: materialRace.sourceNote,
-      oddsCount: materialRace.oddsTrifecta?.length,
       resultStatus: materialRace.resultStatus,
       source: `hydrated generated feed (${hydratedPredictionMaterialRace.reason})`,
     });
@@ -9549,7 +9654,7 @@ if (
     return null;
   }, [predictionAutoHitDetail, predictionFinalHitStatus, selectedSavedPredictionResult]);
   const selectedPredictionRiderContexts = useMemo<PredictionExportRiderContext[]>(() => {
-    return (materialRace?.riders ?? []).map((rider) => {
+    return getDisplayRidersForKeirinRace(materialRace, materialVenue).map((rider) => {
       const normalizedName = normalizePredictionPlayerName(rider.name);
       const indexItem = predictionPlayerIndex.find((item) => normalizePredictionPlayerName(item.name) === normalizedName) ?? null;
       return {
@@ -9558,7 +9663,7 @@ if (
         card: indexItem ? predictionPlayerCards[indexItem.id] ?? null : null,
       };
     });
-  }, [materialRace, predictionPlayerCards, predictionPlayerIndex]);
+  }, [materialRace, materialVenue, predictionPlayerCards, predictionPlayerIndex]);
 
   useEffect(() => {
     if (selectedPredictionRiderContexts.length === 0) return;

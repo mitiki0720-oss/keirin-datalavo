@@ -324,9 +324,11 @@ function appendNote(currentNote, appendedNote) {
 
 async function loadExistingTodayFeedForCache(outputPath, todayIso) {
   const candidates = outputPath === PUBLIC_OUTPUT_PATH
-    ? [PUBLIC_OUTPUT_PATH]
-    : [outputPath, PUBLIC_OUTPUT_PATH];
+    ? [PUBLIC_OUTPUT_PATH, LOCAL_DEBUG_OUTPUT_PATH]
+    : [outputPath, PUBLIC_OUTPUT_PATH, LOCAL_DEBUG_OUTPUT_PATH];
   const seenPaths = new Set();
+  const feeds = [];
+  const feedPaths = [];
 
   for (const candidatePath of candidates) {
     if (!candidatePath || seenPaths.has(candidatePath)) continue;
@@ -344,20 +346,91 @@ async function loadExistingTodayFeedForCache(outputPath, todayIso) {
         );
         continue;
       }
-      return {
-        payload: parsed,
-        path: candidatePath,
-      };
+      feeds.push(parsed);
+      feedPaths.push(candidatePath);
     } catch (error) {
       if (error?.code === "ENOENT") continue;
       console.warn(`[cache] failed to read existing feed path=${candidatePath}`, error);
     }
   }
 
+  if (feeds.length > 0) {
+    return {
+      payload: mergeExistingTodayFeedsForCache(feeds),
+      path: feedPaths.join(", "),
+    };
+  }
+
   return {
     payload: null,
     path: "",
   };
+}
+
+function findExistingVenueForCache(venues, targetVenue) {
+  const targetVenueName = String(targetVenue?.venue ?? "").trim();
+  const targetSlug = String(targetVenue?.slug ?? "").trim();
+  const targetCode = String(targetVenue?.venueCode ?? "").trim();
+  return venues.find((venue) => {
+    if (targetCode && String(venue?.venueCode ?? "").trim() === targetCode) return true;
+    if (targetSlug && String(venue?.slug ?? "").trim() === targetSlug) return true;
+    return targetVenueName && String(venue?.venue ?? "").trim() === targetVenueName;
+  });
+}
+
+function mergeExistingVenueForCache(baseVenue, overlayVenue) {
+  const merged = {
+    ...baseVenue,
+    ...Object.fromEntries(
+      Object.entries(overlayVenue ?? {}).filter(([, value]) => {
+        if (value === null || value === undefined) return false;
+        if (typeof value === "string" && !value.trim()) return false;
+        if (Array.isArray(value) && !value.length) return false;
+        return true;
+      }),
+    ),
+    races: Array.isArray(baseVenue?.races) ? [...baseVenue.races] : [],
+  };
+
+  for (const overlayRace of overlayVenue?.races ?? []) {
+    const overlayRaceNo = Number(overlayRace?.raceNo);
+    const overlayRaceId = String(overlayRace?.raceId ?? overlayRace?.kdreamsRaceId ?? overlayVenue?.raceIds?.[overlayRaceNo - 1] ?? "").trim();
+    const raceIndex = merged.races.findIndex((race, index) => {
+      const raceNo = Number(race?.raceNo ?? index + 1);
+      const raceId = String(race?.raceId ?? race?.kdreamsRaceId ?? merged.raceIds?.[index] ?? "").trim();
+      return (overlayRaceId && raceId === overlayRaceId) || (Number.isFinite(overlayRaceNo) && raceNo === overlayRaceNo);
+    });
+    if (raceIndex >= 0) {
+      merged.races[raceIndex] = mergeRaceDetailWithFallback(overlayRace, merged.races[raceIndex]);
+    } else {
+      merged.races.push(overlayRace);
+    }
+  }
+
+  merged.races.sort((a, b) => Number(a?.raceNo ?? 0) - Number(b?.raceNo ?? 0));
+  return merged;
+}
+
+function mergeExistingTodayFeedsForCache(feeds) {
+  const [firstFeed, ...restFeeds] = feeds;
+  const merged = {
+    ...firstFeed,
+    venues: Array.isArray(firstFeed?.venues) ? [...firstFeed.venues] : [],
+  };
+
+  for (const feed of restFeeds) {
+    for (const overlayVenue of feed?.venues ?? []) {
+      const existingVenue = findExistingVenueForCache(merged.venues, overlayVenue);
+      if (!existingVenue) {
+        merged.venues.push(overlayVenue);
+        continue;
+      }
+      const venueIndex = merged.venues.indexOf(existingVenue);
+      merged.venues[venueIndex] = mergeExistingVenueForCache(existingVenue, overlayVenue);
+    }
+  }
+
+  return merged;
 }
 
 function buildRaceCacheKey({ venue, raceNo, raceId }) {
@@ -461,6 +534,40 @@ function hasKdreamsRiderIdentity(rider) {
   const fullName = String(rider.fullName ?? rider.name ?? "").replace(/\s+/g, " ").trim();
   const prefecture = String(rider.prefecture ?? "").replace(/\s+/g, "").trim();
   return /.+\s.+/.test(fullName) && JAPANESE_PREFECTURE_PATTERN.test(prefecture);
+}
+
+function scoreRiderMaterial(riders) {
+  if (!Array.isArray(riders)) return 0;
+  return riders.reduce((sum, rider) => {
+    if (!rider || typeof rider !== "object") return sum;
+    return sum
+      + (rider.carNo ? 1 : 0)
+      + (rider.name ? 2 : 0)
+      + (rider.prefecture ? 1 : 0)
+      + (rider.term ? 1 : 0)
+      + (rider.age ? 1 : 0)
+      + (rider.grade ? 1 : 0)
+      + (rider.style ? 1 : 0)
+      + (rider.score || rider.totalScore ? 2 : 0)
+      + (rider.gearRatio ? 1 : 0)
+      + (rider.s ? 1 : 0)
+      + (rider.b ? 1 : 0)
+      + (rider.nige || rider.escape ? 1 : 0)
+      + (rider.makuri ? 1 : 0)
+      + (rider.sashi ? 1 : 0)
+      + (rider.mark ? 1 : 0);
+  }, 0);
+}
+
+function preferBetterRiders(primary, fallback) {
+  const primaryRiders = Array.isArray(primary) ? primary : [];
+  const fallbackRiders = Array.isArray(fallback) ? fallback : [];
+  if (!primaryRiders.length) return fallbackRiders;
+  if (!fallbackRiders.length) return primaryRiders;
+  const primaryScore = scoreRiderMaterial(primaryRiders);
+  const fallbackScore = scoreRiderMaterial(fallbackRiders);
+  if (primaryScore !== fallbackScore) return primaryScore > fallbackScore ? primaryRiders : fallbackRiders;
+  return primaryRiders.length >= fallbackRiders.length ? primaryRiders : fallbackRiders;
 }
 
 function hasKdreamsLineupMaterial(race) {
@@ -730,11 +837,18 @@ function shouldFetchLineupForRace(race, venue, updatePhase) {
 
 function shouldFetchRiderDetailForRace(race, venue, updatePhase) {
   if (!isVenueInPhaseSession(venue, updatePhase)) return false;
-  if (!(["lineup", "backfill", "final"].includes(updatePhase.phase))) return false;
-  return !Array.isArray(race?.riders)
+  const riderMissing =
+    !Array.isArray(race?.riders)
     || !race.riders.some((rider) => hasSubstantiveRiderDetail(rider))
     || (SOURCE_POLICY.kdreams && race.riders.some((rider) => !hasKdreamsRiderMaterial(rider)))
     || !isRaceRiderDetailCheckedOrComplete(race);
+  if (!riderMissing) return false;
+  if (["lineup", "backfill", "final"].includes(updatePhase.phase)) return true;
+  if (updatePhase.phase === "result") {
+    console.log(`[cache] skip ${venue?.venue ?? ""} because riders missing`);
+    return true;
+  }
+  return false;
 }
 
 function shouldFetchOddsForRace(race, venue, updatePhase) {
@@ -2711,10 +2825,7 @@ function mergeRaceDetailWithFallback(primary, fallback) {
         ? safePrimary.payouts
         : safeFallback.payouts,
     result: hasMeaningfulRaceResult(safePrimary) ? safePrimary.result : safeFallback.result,
-    riders:
-      Array.isArray(safePrimary.riders) && safePrimary.riders.length
-        ? safePrimary.riders
-        : safeFallback.riders,
+    riders: preferBetterRiders(safePrimary.riders, safeFallback.riders),
   };
 
   const fallbackFields = [];
@@ -3549,7 +3660,11 @@ async function main() {
         raceNo,
       }));
       const cachedRaceRefreshReason = getCachedRaceRefreshReason(cachedRace, venue.venue);
-      const effectiveCachedRace = cachedRaceRefreshReason ? null : cachedRace;
+      const canUseStaleRaceAsFallback = cachedRaceRefreshReason
+        && /rider fields sparse|rider identity incomplete|kdreams lineup missing/i.test(cachedRaceRefreshReason)
+        && !hasMojibakeRace(cachedRace, venue.venue)
+        && !hasPolicyMismatchSourceNote(cachedRace?.sourceNote);
+      const effectiveCachedRace = cachedRaceRefreshReason && !canUseStaleRaceAsFallback ? null : cachedRace;
       const incompleteCacheReason = getReusableFinalRaceSkipReason(cachedRace);
 
       if (!cachedRaceRefreshReason && isReusableFinalRace(cachedRace)) {
