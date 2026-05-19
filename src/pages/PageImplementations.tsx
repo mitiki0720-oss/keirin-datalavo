@@ -1936,14 +1936,56 @@ export const parsePredictionVenueSummary = (markdown: string): PredictionVenueSu
   };
 };
 
+const PREDICTION_LINEUP_SEPARATOR_PATTERN = /[\s/・-]+/;
+
 const getPredictionLineupCandidates = (race?: PredictionRaceItem | null) => [
-  race?.lineup,
-  race?.netkeirinLineupRaw,
-  race?.kdreamsLineupRaw,
-  race?.charilotoLineupRaw,
-  race?.oddsparkLineupRaw,
-  race?.winticketLineupRaw,
-].map((item) => (item ?? "").trim()).filter(Boolean);
+  { source: "lineup", raw: race?.lineup },
+  { source: "netkeirin", raw: race?.netkeirinLineupRaw },
+  { source: "kdreams", raw: race?.kdreamsLineupRaw },
+  { source: "chariloto", raw: race?.charilotoLineupRaw },
+  { source: "oddspark", raw: race?.oddsparkLineupRaw },
+  { source: "winticket", raw: race?.winticketLineupRaw },
+].map((item) => ({ ...item, raw: (item.raw ?? "").trim() })).filter((item) => Boolean(item.raw));
+
+const parsePredictionLineupRaw = (raw: string) => {
+  const normalized = (raw ?? "").trim();
+  const groups = normalized
+    .split(PREDICTION_LINEUP_SEPARATOR_PATTERN)
+    .map((group) => group.replace(/[^0-9]/g, ""))
+    .filter(Boolean);
+  const orderCars = groups.join("").split("").filter(Boolean);
+  const hasExplicitGroups = groups.length >= 2 && groups.some((group) => group.length > 1);
+  const groupedGroups = hasExplicitGroups ? groups.map((group) => group.split("").join("-")) : [];
+
+  return {
+    raw: normalized,
+    orderCars,
+    orderLabel: orderCars.length > 0 ? orderCars.join(" → ") : "",
+    hasExplicitGroups,
+    groupedGroups,
+    groupedLabel: groupedGroups.length > 0 ? groupedGroups.join(" / ") : "",
+    leadCarNo: orderCars[0] ?? "",
+  };
+};
+
+const resolvePredictionLineup = (race?: PredictionRaceItem | null) => {
+  const candidates = getPredictionLineupCandidates(race).map((candidate) => ({
+    ...candidate,
+    parsed: parsePredictionLineupRaw(candidate.raw),
+  }));
+  const groupedCandidate = candidates.find((candidate) => candidate.parsed.hasExplicitGroups) ?? null;
+  const orderCandidate = candidates.find((candidate) => candidate.parsed.orderCars.length > 0) ?? null;
+
+  return {
+    groupedCandidate,
+    orderCandidate,
+    groupedGroups: groupedCandidate?.parsed.groupedGroups ?? [],
+    groupedLabel: groupedCandidate?.parsed.groupedLabel ?? "",
+    orderLabel: orderCandidate?.parsed.orderLabel ?? "",
+    leadCarNo: groupedCandidate?.parsed.leadCarNo ?? orderCandidate?.parsed.leadCarNo ?? "",
+    hasAnyLineup: Boolean(groupedCandidate || orderCandidate),
+  };
+};
 
 const extractPredictionLineupNotes = (race?: PredictionRaceItem | null) => {
   const sourceText = String(race?.sourceNote ?? "");
@@ -1953,8 +1995,8 @@ const extractPredictionLineupNotes = (race?: PredictionRaceItem | null) => {
       if (/kdreams lineup unavailable/i.test(value)) return "KDreams並び予想未公開";
       if (/chariloto shukai unavailable/i.test(value)) return "Chariloto周回予想未取得";
       if (/chariloto shukai accepted/i.test(value)) return "Chariloto周回予想から取得";
-      if (/oddspark lineup unavailable/i.test(value)) return "OddsPark並び予想未取得";
-      if (/oddspark lineup accepted/i.test(value)) return "OddsPark並び予想から取得";
+      if (/oddspark lineup unavailable/i.test(value)) return "OddsPark周回予想未取得";
+      if (/oddspark lineup accepted/i.test(value)) return "OddsPark周回予想から取得";
       if (/winticket probe skipped/i.test(value)) return "WINTICKET公開payload未取得";
       return value;
     });
@@ -1962,37 +2004,15 @@ const extractPredictionLineupNotes = (race?: PredictionRaceItem | null) => {
   return uniqueNotes.join(" / ");
 };
 
-const splitPredictionLineupRawGroups = (raw: string) =>
-  raw
-    .split(/[\s/・]+/)
-    .map((group) => group.trim())
-    .filter(Boolean);
-
 export const buildPredictionLineupDisplay = (race?: PredictionRaceItem | null) => {
-  const raw = getPredictionLineupCandidates(race)[0] ?? "";
-  if (!raw) return "並び未取得";
-
-  const groups = splitPredictionLineupRawGroups(raw)
-    .map((group) => group.trim())
-    .filter(Boolean)
-    .filter((group) => /^[0-9-]+$/.test(group))
-    .filter((group) => group.includes("-") || group.length > 1)
-    .map((group) => group.replace(/-/g, "").split("").join("-"));
-
-  if (groups.length > 0) return groups.join(" / ");
-  return raw;
+  const lineup = resolvePredictionLineup(race);
+  if (lineup.groupedLabel) return lineup.groupedLabel;
+  if (lineup.orderLabel) return lineup.orderLabel;
+  return "並び未取得";
 };
 
 export const buildPredictionLineupGroups = (race?: PredictionRaceItem | null) => {
-  const raw = getPredictionLineupCandidates(race)[0] ?? "";
-
-  if (!raw) return [] as string[];
-  return splitPredictionLineupRawGroups(raw)
-    .map((group) => group.trim())
-    .filter(Boolean)
-    .filter((group) => /^[0-9-]+$/.test(group))
-    .filter((group) => group.includes("-") || group.length > 1)
-    .map((group) => group.replace(/-/g, "").split("").join("-"));
+  return resolvePredictionLineup(race).groupedGroups;
 };
 
 export const getPredictionWeatherLabelFromCode = (code?: number | null) => {
@@ -2710,16 +2730,17 @@ export const buildPredictionExportText = ({
     "レース名なし"
   );
   const venueFallbackLabel = venueSummary.source === "missing" ? "未登録" : "未取得";
-  const lineupLabel = buildPredictionLineupDisplay(race) === "並び未取得"
-    ? "未取得"
-    : buildPredictionLineupDisplay(race);
-  const lineupGroups = buildPredictionLineupGroups(race);
+  const lineup = resolvePredictionLineup(race);
+  const lineupLabel = lineup.orderLabel || "未取得";
+  const lineupGroups = lineup.groupedGroups;
   const lineupSupplement = extractPredictionLineupNotes(race);
-  const leadCandidate = lineupGroups[0]?.split("-")[0] ?? "";
+  const leadCandidate = lineup.leadCarNo;
   const leadRider = race.riders?.find((rider) => String(rider.carNo) === leadCandidate);
   const leadParts = [
     normalizePredictionMaterialValue(race.lead, ""),
-    !race.lead && leadCandidate ? `${leadCandidate}番が先頭候補` : "",
+    !race.lead && leadCandidate && lineupGroups.length > 0 ? `${leadCandidate}番が先頭候補` : "",
+    !race.lead && leadCandidate && lineupGroups.length === 0 && lineup.orderLabel ? `${leadCandidate}番が周回予想の先頭` : "",
+    !race.lead && !lineupGroups.length && lineup.orderLabel ? "ライン構成は未判定" : "",
     !race.lead && leadRider?.style ? `脚質=${leadRider.style}` : "",
     !race.lead && normalizePredictionNumericText(leadRider?.nige ?? leadRider?.escape) ? `逃=${normalizePredictionNumericText(leadRider?.nige ?? leadRider?.escape)}` : "",
     !race.lead && normalizePredictionNumericText(leadRider?.b) ? `B=${normalizePredictionNumericText(leadRider?.b)}` : "",
@@ -2742,10 +2763,10 @@ export const buildPredictionExportText = ({
     `レースタイトル: ${raceTitleLabel}`,
     "",
     "[B. 並び予想 / 主導権]",
-    `並び予想: ${lineupLabel}`,
+    `周回予想: ${lineupLabel}`,
     ...(lineupGroups.length > 0
       ? [`ライン区切り: ${lineupGroups.join(" / ")}`]
-      : ["ライン区切り: 未取得"]),
+      : [lineup.orderLabel ? "ライン区切り: 未判定" : "ライン区切り: 未取得"]),
     `主導権メモ: ${leadMemo}`,
     ...(lineupSupplement ? [`補足: ${lineupSupplement}`] : []),
     "",
@@ -6792,13 +6813,15 @@ function buildPredictionRecentRaceExport(contexts: PredictionExportRiderContext[
 
 function buildPredictionMatchupExport(contexts: PredictionExportRiderContext[], race: PredictionRaceItem) {
   if (contexts.length === 0) return "未取得";
-  const lineupGroups = buildPredictionLineupGroups(race).map((group, index) => `- 同一ライン候補${index + 1}: ${group}`);
+  const lineup = resolvePredictionLineup(race);
+  const lineupGroups = lineup.groupedGroups.map((group, index) => `- 同一ライン候補${index + 1}: ${group}`);
 
   return [
     "[対戦表]",
     "- 対戦データ: 未取得",
     buildPredictionRaceSamePrefectureText(contexts),
-    lineupGroups.length > 0 ? lineupGroups.join("\n") : "- 同一ライン候補: 未取得",
+    lineup.orderLabel ? `- 周回予想: ${lineup.orderLabel}` : "- 周回予想: 未取得",
+    lineupGroups.length > 0 ? lineupGroups.join("\n") : lineup.orderLabel ? "- 同一ライン候補: 未判定" : "- 同一ライン候補: 未取得",
     `[再戦材料] ${normalizePredictionMaterialValue(race.sourceNote ?? race.lead)}`,
   ].join("\n");
 }
@@ -6827,7 +6850,8 @@ function buildPredictionTrackAffinityExport(contexts: PredictionExportRiderConte
 function buildPredictionDataAnalysisExport(contexts: PredictionExportRiderContext[], venue: PredictionVenueItem, race: PredictionRaceItem, venueSummary: PredictionVenueSummary) {
   if (contexts.length === 0) return "未取得";
 
-  const lineupGroups = buildPredictionLineupGroups(race);
+  const lineup = resolvePredictionLineup(race);
+  const lineupGroups = lineup.groupedGroups;
 
   return contexts.map((context) => {
     const metrics = buildPredictionEnhancedMetrics(context);
@@ -6863,7 +6887,8 @@ function buildPredictionDataAnalysisExport(contexts: PredictionExportRiderContex
       formatPredictionAnalysisBlock("グレードレース種目", predictionSection || "未取得"),
       formatPredictionAnalysisBlock("車番別", carNumberSummary),
       `- 同県選手同乗時: ${samePrefectureText}`,
-      `- 同一ライン: ${normalizePredictionMaterialValue(sanitizePredictionTemplateNoise(sameLine || ""))}`,
+      `- 周回予想: ${normalizePredictionMaterialValue(lineup.orderLabel, "未取得")}`,
+      `- 同一ライン: ${sameLine ? normalizePredictionMaterialValue(sanitizePredictionTemplateNoise(sameLine || "")) : lineup.orderLabel ? "未判定" : "未取得"}`,
     ].join("\n");
   }).join("\n\n");
 }
@@ -8606,7 +8631,7 @@ if (!nextSlots[currentKey] && nextSlots[legacyKey]) {
     let isActive = true;
 
     const loadVenueSummary = async () => {
-      const target = predictionBankIndex.find((item) => normalizePredictionVenueName(item.venueName) === summaryKey);
+      const target = findPredictionVenueBankTarget(predictionBankIndex, selectedVenue);
       if (!target) {
         if (isActive) {
           setVenueSummaryMap((current) => ({ ...current, [summaryKey]: MISSING_PREDICTION_VENUE_SUMMARY }));
@@ -8615,7 +8640,7 @@ if (!nextSlots[currentKey] && nextSlots[legacyKey]) {
       }
 
       try {
-        const response = await fetch(target.file, { cache: "force-cache" });
+        const response = await fetch(toPublicPath(target.file), { cache: "force-cache" });
         if (!response.ok) throw new Error(`prediction-bank-${response.status}`);
         const markdown = await response.text();
         if (!isActive) return;

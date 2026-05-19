@@ -344,13 +344,18 @@ function buildExistingRaceCache(existingFeed) {
 }
 
 function hasLineupValue(race) {
+  const riderCount = Array.isArray(race?.riders) ? race.riders.length : 0;
+  const isGirls = Boolean(race?.isGirls);
+
   return Boolean(
     String(race?.lineup ?? "").trim()
-      || String(race?.netkeirinLineupRaw ?? "").trim()
-      || String(race?.kdreamsLineupRaw ?? "").trim()
-      || String(race?.charilotoLineupRaw ?? "").trim()
-      || String(race?.oddsparkLineupRaw ?? "").trim()
-      || String(race?.winticketLineupRaw ?? "").trim(),
+      || [
+        race?.netkeirinLineupRaw,
+        race?.kdreamsLineupRaw,
+        race?.charilotoLineupRaw,
+        race?.oddsparkLineupRaw,
+        race?.winticketLineupRaw,
+      ].some((raw) => validateLineupRaw(raw, { riderCount, isGirls }).valid),
   );
 }
 
@@ -446,6 +451,8 @@ function isReusableFinalRace(race) {
       && String(race.title ?? "").trim()
       && Array.isArray(race.riders)
       && race.riders.length >= 1
+      && race.riders.some((rider) => hasSubstantiveRiderDetail(rider))
+      && hasLineupValue(race)
       && isRaceLineupCheckedOrComplete(race)
       && isRaceRiderDetailCheckedOrComplete(race)
       && isRaceFinishOrderCheckedOrComplete(race)
@@ -457,6 +464,8 @@ function getReusableFinalRaceSkipReason(race) {
   if (!race || race.resultStatus !== "confirmed" || race.result?.status !== "confirmed") return "";
 
   if (!isRaceResultComplete(race)) return "result incomplete";
+  if (!hasLineupValue(race)) return "lineup material unavailable";
+  if (!Array.isArray(race?.riders) || !race.riders.some((rider) => hasSubstantiveRiderDetail(rider))) return "rider material unavailable";
   if (!isRaceLineupCheckedOrComplete(race)) return "lineup not checked by chariloto";
   if (!isRaceRiderDetailCheckedOrComplete(race)) return "rider detail not checked";
   if (!isRaceFinishOrderCheckedOrComplete(race)) {
@@ -490,13 +499,15 @@ function isVenueInPhaseSession(venue, updatePhase) {
 function shouldFetchLineupForRace(race, venue, updatePhase) {
   if (!isVenueInPhaseSession(venue, updatePhase)) return false;
   if (!(["lineup", "backfill", "final"].includes(updatePhase.phase))) return false;
-  return !isRaceLineupCheckedOrComplete(race);
+  return !hasLineupValue(race) || !isRaceLineupCheckedOrComplete(race);
 }
 
 function shouldFetchRiderDetailForRace(race, venue, updatePhase) {
   if (!isVenueInPhaseSession(venue, updatePhase)) return false;
   if (!(["lineup", "backfill", "final"].includes(updatePhase.phase))) return false;
-  return !isRaceRiderDetailCheckedOrComplete(race);
+  return !Array.isArray(race?.riders)
+    || !race.riders.some((rider) => hasSubstantiveRiderDetail(rider))
+    || !isRaceRiderDetailCheckedOrComplete(race);
 }
 
 function shouldFetchOddsForRace(race, venue, updatePhase) {
@@ -709,6 +720,46 @@ function validateLineupRaw(rawText, options = {}) {
   }
 
   return { valid: true, normalizedRawText, groups, normalizedLineup: groups.join("-") };
+}
+
+function getExternalLineupMinCars(riderCount = 0) {
+  if (riderCount >= 9) return 7;
+  if (riderCount >= 7) return 5;
+  if (riderCount >= 5) return 4;
+  if (riderCount >= 3) return 3;
+  return 5;
+}
+
+function sanitizeExternalLineupRaw(rawText, options = {}) {
+  const normalizedRawText = normalizeLineupRawText(rawText);
+  const riderCount = Number.isFinite(options.riderCount) ? Number(options.riderCount) : 0;
+  const cars = Array.from(new Set(extractLineupRawCars(normalizedRawText)));
+  const minCars = getExternalLineupMinCars(riderCount);
+
+  if (!normalizedRawText) {
+    return {
+      accepted: false,
+      rawText: "",
+      diagnosticRawText: "",
+      reason: "empty",
+    };
+  }
+
+  if (cars.length < minCars) {
+    return {
+      accepted: false,
+      rawText: "",
+      diagnosticRawText: normalizedRawText,
+      reason: `too short raw=${normalizedRawText}`,
+    };
+  }
+
+  return {
+    accepted: true,
+    rawText: normalizedRawText,
+    diagnosticRawText: "",
+    reason: "",
+  };
 }
 
 function logInvalidLineupSource(options) {
@@ -1182,6 +1233,8 @@ function createExternalRaceProbeResult(source, url, note = "") {
     ok: false,
     url,
     lineupRaw: "",
+    lineupRawDiagnostic: "",
+    lineupNote: "",
     riders: [],
     finishOrder: [],
     payouts: [],
@@ -1196,13 +1249,15 @@ function buildCharilotoRaceDetailUrl(date, venueCode, raceNo) {
 
 function extractCharilotoLineupRaw(html) {
   const sectionHtml = matchOne(html, [
-    /<tr[^>]*>[\s\S]*?<th[^>]*>周回予想<\/th>[\s\S]*?<\/tr>/i,
+    /<th[^>]*>周回予想<\/th>\s*<td[^>]*>([\s\S]*?)<\/td>/i,
   ]);
 
   if (!sectionHtml) return "";
 
+  const squares = Array.from(sectionHtml.matchAll(/square-slim bg-([1-9])/gi)).map((match) => match[1]);
+  if (squares.length > 0) return squares.join(" ");
+
   return stripTags(sectionHtml)
-    .replace(/周回予想/g, " ")
     .replace(/[←→]/g, " ")
     .replace(/[・/]/g, " ")
     .replace(/\s+/g, " ")
@@ -1227,27 +1282,30 @@ async function fetchCharilotoRaceDetailFallback({ date, venueCode, raceNo, venue
     }
 
     const html = await response.text();
-    const lineupRaw = extractCharilotoLineupRaw(html);
-    const note = lineupRaw
+    const lineupProbe = sanitizeExternalLineupRaw(extractCharilotoLineupRaw(html));
+    const note = lineupProbe.accepted
       ? "lineFallback: chariloto shukai accepted"
-      : "lineFallback: chariloto shukai unavailable";
+      : `lineFallback: chariloto shukai unavailable (${lineupProbe.reason || "not lineup format"})`;
 
     if (!savedCharilotoProbeDebugSample) {
       savedCharilotoProbeDebugSample = true;
       await writeExternalProbeDebugFiles("chariloto-probe", `${date}-${venueCode}-${raceNo}`, html, {
         source: "chariloto",
         url,
-        lineupRaw,
+        lineupRaw: lineupProbe.rawText,
+        lineupRawDiagnostic: lineupProbe.diagnosticRawText,
         note,
       });
     }
 
-    console.log(`[source-probe] chariloto ${venueName || venueCode} ${raceNo}R lineup ${lineupRaw ? "accepted" : "unavailable"}`);
+    console.log(`[source-probe] chariloto ${venueName || venueCode} ${raceNo}R lineup ${lineupProbe.accepted ? "accepted" : "unavailable"}`);
     return {
       source: "chariloto",
-      ok: Boolean(lineupRaw),
+      ok: lineupProbe.accepted,
       url,
-      lineupRaw,
+      lineupRaw: lineupProbe.rawText,
+      lineupRawDiagnostic: lineupProbe.diagnosticRawText,
+      lineupNote: note,
       riders: [],
       finishOrder: [],
       payouts: [],
@@ -1494,6 +1552,8 @@ async function fetchOddsParkRaceDetailFallback({ date, venueCode, raceNo, venueN
     ok: false,
     url: resultUrl,
     lineupRaw: "",
+    lineupRawDiagnostic: "",
+    lineupNote: "",
     riders: [],
     finishOrder: [],
     payouts: [],
@@ -1530,13 +1590,18 @@ async function fetchOddsParkRaceDetailFallback({ date, venueCode, raceNo, venueN
 
     const infoHtml = infoResponse.ok ? await infoResponse.text() : "";
     const resultHtml = resultResponse.ok ? await resultResponse.text() : "";
-    const lineupRaw = infoHtml ? extractOddsParkLineupRaw(infoHtml) : "";
     const riders = infoHtml ? extractOddsParkRiders(infoHtml) : [];
+    const lineupProbe = sanitizeExternalLineupRaw(infoHtml ? extractOddsParkLineupRaw(infoHtml) : "", {
+      riderCount: riders.length,
+    });
     const resultData = resultHtml ? extractOddsParkResultData(resultHtml) : { resultTop3: [], finishOrder: [], payouts: [], result: createPendingRaceResultData().result };
     const ok = resultData.finishOrder.length >= 3 && resultData.payouts.length > 0;
     const note = ok
       ? `resultFallback: oddspark accepted / allFinishOrder: oddspark full order accepted count=${resultData.finishOrder.length}`
       : "resultFallback: oddspark unavailable";
+    const lineupNote = lineupProbe.accepted
+      ? "lineFallback: oddspark lineup accepted"
+      : `lineFallback: oddspark lineup unavailable (${lineupProbe.reason || "not lineup format"})`;
 
     if (!savedOddsParkProbeDebugSample && resultHtml) {
       savedOddsParkProbeDebugSample = true;
@@ -1544,7 +1609,8 @@ async function fetchOddsParkRaceDetailFallback({ date, venueCode, raceNo, venueN
         source: "oddspark",
         infoUrl,
         resultUrl,
-        lineupRaw,
+        lineupRaw: lineupProbe.rawText,
+        lineupRawDiagnostic: lineupProbe.diagnosticRawText,
         riderCount: riders.length,
         finishOrder: resultData.finishOrder,
         payoutCount: resultData.payouts.length,
@@ -1557,7 +1623,9 @@ async function fetchOddsParkRaceDetailFallback({ date, venueCode, raceNo, venueN
       ok,
       url: resultUrl,
       infoUrl,
-      lineupRaw,
+      lineupRaw: lineupProbe.rawText,
+      lineupRawDiagnostic: lineupProbe.diagnosticRawText,
+      lineupNote,
       riders,
       finishOrder: resultData.finishOrder,
       payouts: resultData.payouts,
@@ -1625,7 +1693,9 @@ function convertExternalProbeToRaceDetail(raceNo, probe) {
     ...base,
     lineup: lineupValidation.valid ? lineupValidation.normalizedRawText : "",
     charilotoLineupRaw: probe.source === "chariloto" ? probe.lineupRaw || "" : "",
+    charilotoLineupRawDiagnostic: probe.source === "chariloto" ? probe.lineupRawDiagnostic || "" : "",
     oddsparkLineupRaw: probe.source === "oddspark" ? probe.lineupRaw || "" : "",
+    oddsparkLineupRawDiagnostic: probe.source === "oddspark" ? probe.lineupRawDiagnostic || "" : "",
     winticketLineupRaw: probe.source === "winticket" ? probe.lineupRaw || "" : "",
     riders: Array.isArray(probe.riders) ? probe.riders : [],
   };
@@ -1777,63 +1847,60 @@ function extractKdreamsLineupFromForecast(html, raceNo, isGirls = false) {
 }
 
 function extractKdreamsRiders(html) {
+  const statsTableHtml = matchOne(html, [
+    /<table[^>]*class="racecard_table[^\"]*"[^>]*>[\s\S]*?<th colspan="14">直近4ヶ月の成績<\/th>[\s\S]*?<\/table>/i,
+  ]);
+  const commentTableHtml = matchOne(html, [
+    /<table[^>]*class="racecard_table[^\"]*"[^>]*>[\s\S]*?<th class="bdr_r">選手コメント<\/th>[\s\S]*?<\/table>/i,
+  ]);
   const riders = [];
-  const riderBlocks = Array.from(
-    html.matchAll(
-      /<tr[^>]*>\s*<th[^>]*class="n([1-9])[^"]*"[^>]*>([\s\S]*?)<\/th>\s*<\/tr>([\s\S]*?)(?=<tr[^>]*>\s*<th[^>]*class="n[1-9]|<\/tbody>|<\/table>)/gi,
-    ),
-  );
+  const commentByCarNo = new Map();
 
-  for (const block of riderBlocks) {
-    const carNo = block[1] ?? "";
-    const headerHtml = block[2] ?? "";
-    const bodyHtml = block[3] ?? "";
-    const headerText = cleanCellText(headerHtml).normalize("NFKC");
-    const bodyText = cleanCellText(bodyHtml).normalize("NFKC");
-    const detailCells = Array.from(bodyHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi))
-      .map((match) => cleanCellText(match[1]).normalize("NFKC"))
-      .filter(Boolean);
+  Array.from(commentTableHtml.matchAll(/<tr[^>]*class="n([1-9])[^\"]*"[^>]*>([\s\S]*?)<\/tr>/gi)).forEach((match) => {
+    const carNo = match[1] ?? "";
+    const rowHtml = match[2] ?? "";
+    const comment = cleanCellText(matchOne(rowHtml, [
+      /<td[^>]*class="comment[^\"]*"[^>]*>([\s\S]*?)<\/td>/i,
+    ])).normalize("NFKC");
+    if (carNo && comment) commentByCarNo.set(carNo, comment);
+  });
 
-    const name = cleanCellText(matchOne(headerHtml, [
-      /<span[^>]*class="name"[^>]*>([\s\S]*?)<\/span>/i,
-    ]));
+  for (const match of statsTableHtml.matchAll(/<tr[^>]*class="n([1-9])[^\"]*"[^>]*>([\s\S]*?)<\/tr>/gi)) {
+    const carNo = match[1] ?? "";
+    const rowHtml = match[2] ?? "";
+    const cells = Array.from(rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)).map((cellMatch) => cleanCellText(cellMatch[1]).normalize("NFKC"));
+    if (!carNo || cells.length < 23) continue;
 
-    if (!carNo || !name) continue;
-
-    const headerMeta = headerText.match(/【(.+?)】/)?.[1] ?? "";
-    const prefecture = (headerMeta.match(/^(.+?)\s+[0-9]{1,3}期$/)?.[1] ?? "").replace(/\s+/g, "");
-    const term = headerMeta.match(/([0-9]{1,3})期$/)?.[1] ?? "";
-    const age = bodyText.match(/([0-9]{1,2})歳/)?.[1] ?? "";
-    const grade = bodyText.match(/(?:^|\s)([SABL][12])(?:\s|$)/)?.[1] ?? "";
-    const style = detailCells.find((value) => /^(逃|追|両|自在)$/.test(value)) ?? "";
-    const score = detailCells.find((value) => /^[0-9]{2}\.[0-9]{2}$/.test(value)) ?? "";
-    const gearRatio = detailCells.find((value) => /^[0-9]\.[0-9]{2}$/.test(value)) ?? "";
+    const riderMeta = (cells[5] ?? "").replace(/\s+/g, " ").trim();
+    const name = riderMeta.split(/\s+/)[0] ?? "";
+    const metaTail = riderMeta.replace(name, "").trim();
+    if (!name) continue;
 
     riders.push({
       carNo,
       name,
-      prefecture,
-      age,
-      term,
-      grade,
-      style,
-      score,
-      s: "",
-      b: "",
-      nige: "",
-      escape: "",
-      makuri: "",
-      sashi: "",
-      mark: "",
-      wins: "",
-      seconds: "",
-      thirds: "",
-      loses: "",
-      winRate: "",
-      quinellaRate: "",
-      trifectaRate: "",
-      gearRatio,
-      comment: "",
+      prefecture: matchOne(metaTail, [/^([^/]+?)\//]).replace(/\s+/g, ""),
+      age: matchOne(metaTail, [/\/\s*([0-9]{1,2})\s*\//]),
+      term: matchOne(metaTail, [/\/\s*([0-9]{1,3})\s*$/]),
+      grade: cells[6] ?? "",
+      style: cells[7] ?? "",
+      score: cells[9] ?? "",
+      s: cells[10] ?? "",
+      b: cells[11] ?? "",
+      nige: cells[12] ?? "",
+      escape: cells[12] ?? "",
+      makuri: cells[13] ?? "",
+      sashi: cells[14] ?? "",
+      mark: cells[15] ?? "",
+      wins: cells[16] ?? "",
+      seconds: cells[17] ?? "",
+      thirds: cells[18] ?? "",
+      loses: cells[19] ?? "",
+      winRate: cells[20] ?? "",
+      quinellaRate: cells[21] ?? "",
+      trifectaRate: cells[22] ?? "",
+      gearRatio: cells[8] ?? "",
+      comment: commentByCarNo.get(carNo) ?? "",
     });
   }
 
@@ -1847,7 +1914,9 @@ function createEmptyRaceDetail(raceNo, sourceNote) {
     title: "",
     lineup: "",
     charilotoLineupRaw: "",
+    charilotoLineupRawDiagnostic: "",
     oddsparkLineupRaw: "",
+    oddsparkLineupRawDiagnostic: "",
     winticketLineupRaw: "",
     netkeirinLineupRaw: "",
     kdreamsLineupRaw: "",
@@ -1888,6 +1957,12 @@ async function fetchKdreamsRaceDetail(slug, kdreamsRaceId, raceNo, saveSample = 
   const riders = extractKdreamsRiders(html);
   const isGirls = /ガールズ|女子|L級|Ｌ級/i.test(title) || riders.some((rider) => /^L[12]$/i.test(rider.grade));
   const lineupData = extractKdreamsLineupFromForecast(html, raceNo, isGirls);
+  const baseSourceNote = lineupData.lineup
+    ? `kdreams racedetail=${url} / lineFallback: kdreams lineup accepted`
+    : `kdreams racedetail=${url} / lineFallback: kdreams lineup unavailable${lineupData.reason ? ` (${lineupData.reason})` : ""}`;
+  const riderFallbackNote = riders.some((rider) => hasSubstantiveRiderDetail(rider))
+    ? ""
+    : "riderFallback: kdreams detail lacks stats";
 
   if (lineupData.rawText && !lineupData.lineup) {
     logInvalidLineupSource({
@@ -1900,17 +1975,13 @@ async function fetchKdreamsRaceDetail(slug, kdreamsRaceId, raceNo, saveSample = 
   }
 
   return {
-    ...createEmptyRaceDetail(
-      raceNo,
-      lineupData.lineup
-        ? `kdreams racedetail=${url} / lineFallback: kdreams lineup accepted`
-        : `kdreams racedetail=${url} / lineFallback: kdreams lineup unavailable${lineupData.reason ? ` (${lineupData.reason})` : ""}`,
-    ),
+    ...createEmptyRaceDetail(raceNo, baseSourceNote),
     time: extractKdreamsRaceTime(html),
     title,
     lineup: lineupData.lineup,
     kdreamsLineupRaw: lineupData.rawText,
     isGirls,
+    sourceNote: appendUniqueNote(baseSourceNote, riderFallbackNote),
     riders,
   };
 }
@@ -2150,7 +2221,9 @@ function mergeRaceDetailWithFallback(primary, fallback) {
     title: safePrimary.title || safeFallback.title,
     lineup: safePrimary.lineup || safeFallback.lineup,
     charilotoLineupRaw: safePrimary.charilotoLineupRaw || safeFallback.charilotoLineupRaw,
+    charilotoLineupRawDiagnostic: safePrimary.charilotoLineupRawDiagnostic || safeFallback.charilotoLineupRawDiagnostic,
     oddsparkLineupRaw: safePrimary.oddsparkLineupRaw || safeFallback.oddsparkLineupRaw,
+    oddsparkLineupRawDiagnostic: safePrimary.oddsparkLineupRawDiagnostic || safeFallback.oddsparkLineupRawDiagnostic,
     winticketLineupRaw: safePrimary.winticketLineupRaw || safeFallback.winticketLineupRaw,
     netkeirinLineupRaw: safePrimary.netkeirinLineupRaw || safeFallback.netkeirinLineupRaw,
     kdreamsLineupRaw: safePrimary.kdreamsLineupRaw || safeFallback.kdreamsLineupRaw,
@@ -3052,7 +3125,10 @@ async function main() {
         });
         detailRace = mergeRaceDetailWithFallback(detailRace, convertExternalProbeToRaceDetail(raceNo, oddsparkDetail));
         detailRace.sourceNote = appendUniqueNote(detailRace.sourceNote, oddsparkDetail.note);
-        detailRace.sourceNote = appendUniqueNote(detailRace.sourceNote, oddsparkDetail.lineupRaw ? "lineFallback: oddspark lineup accepted" : "lineFallback: oddspark lineup unavailable");
+        detailRace.sourceNote = appendUniqueNote(
+          detailRace.sourceNote,
+          oddsparkDetail.lineupNote || (oddsparkDetail.lineupRaw ? "lineFallback: oddspark lineup accepted" : "lineFallback: oddspark lineup unavailable"),
+        );
         if (!Array.isArray(oddsparkDetail.riders) || oddsparkDetail.riders.length === 0) {
           detailRace.sourceNote = appendUniqueNote(detailRace.sourceNote, "riderFallback: oddspark unavailable");
         }
@@ -3068,6 +3144,12 @@ async function main() {
         detailRace = mergeRaceDetailWithFallback(detailRace, convertExternalProbeToRaceDetail(raceNo, winticketRace));
         detailRace.sourceNote = appendUniqueNote(detailRace.sourceNote, winticketRace.note);
         detailRace.sourceNote = appendUniqueNote(detailRace.sourceNote, "riderFallback: winticket skipped");
+      }
+
+      if (!Array.isArray(detailRace.riders) || !detailRace.riders.some((rider) => hasSubstantiveRiderDetail(rider))) {
+        if (/kdreams racedetail=/i.test(String(detailRace.sourceNote ?? ""))) {
+          detailRace.sourceNote = appendUniqueNote(detailRace.sourceNote, "riderFallback: kdreams detail lacks stats");
+        }
       }
 
       if (detailRace.sourceNote.includes("fallback")) {
