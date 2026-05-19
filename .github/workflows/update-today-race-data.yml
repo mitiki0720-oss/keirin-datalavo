@@ -11,6 +11,19 @@ on:
     - cron: "47 14 * * *"  # 23:47 JST final result pickup
     - cron: "53 14 * * *"  # 23:53 JST backfill pickup
   workflow_dispatch:
+    inputs:
+      phase:
+        description: "update phase"
+        required: false
+        default: "auto"
+        type: choice
+        options:
+          - auto
+          - lineup
+          - odds
+          - result
+          - final
+          - backfill
 
 permissions:
   contents: write
@@ -52,26 +65,30 @@ jobs:
       - name: Update today race data
         run: |
           PHASE_ARG=""
-          case "${{ github.event.schedule }}" in
-            "0 23 * * *")
-              PHASE_ARG="--phase lineup"
-              ;;
-            "0 1 * * *"|"0 5 * * *"|"0 11 * * *")
-              PHASE_ARG="--phase odds"
-              ;;
-            "0 8 * * *")
-              PHASE_ARG="--phase lineup"
-              ;;
-            "*/30 0-14 * * *")
-              PHASE_ARG="--phase result"
-              ;;
-            "47 14 * * *")
-              PHASE_ARG="--phase final"
-              ;;
-            "53 14 * * *")
-              PHASE_ARG="--phase backfill"
-              ;;
-          esac
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            PHASE_ARG="--phase ${{ github.event.inputs.phase || 'auto' }}"
+          else
+            case "${{ github.event.schedule }}" in
+              "0 23 * * *")
+                PHASE_ARG="--phase lineup"
+                ;;
+              "0 1 * * *"|"0 5 * * *"|"0 11 * * *")
+                PHASE_ARG="--phase odds"
+                ;;
+              "0 8 * * *")
+                PHASE_ARG="--phase lineup"
+                ;;
+              "*/30 0-14 * * *")
+                PHASE_ARG="--phase result"
+                ;;
+              "47 14 * * *")
+                PHASE_ARG="--phase final"
+                ;;
+              "53 14 * * *")
+                PHASE_ARG="--phase backfill"
+                ;;
+            esac
+          fi
 
           if [ -n "$PHASE_ARG" ]; then
             npm run update:today-races:write -- $PHASE_ARG
