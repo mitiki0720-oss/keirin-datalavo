@@ -15,6 +15,10 @@ const PUBLIC_OUTPUT_PATH = path.resolve("public/data/races/today.generated.json"
 const LOCAL_DEBUG_OUTPUT_PATH = path.resolve("scripts/debug/today.generated.local.json");
 
 const args = process.argv.slice(2);
+const phaseArgIndex = args.findIndex((arg) => arg === "--phase");
+const phaseArgValue = phaseArgIndex >= 0 ? args[phaseArgIndex + 1] : "";
+const inlinePhaseArgValue = args.find((arg) => arg.startsWith("--phase="))?.split("=")[1] ?? "";
+const requestedPhase = String(phaseArgValue || inlinePhaseArgValue || "auto").trim().toLowerCase();
 const shouldWritePublic =
   process.env.GITHUB_ACTIONS === "true" ||
   args.includes("--write-public");
@@ -57,6 +61,61 @@ function getJstTodayIso() {
   });
 
   return formatter.format(new Date());
+}
+
+function getJstNowParts(base = new Date()) {
+  const formatter = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+
+  const parts = formatter.formatToParts(base);
+  const get = (type) => parts.find((part) => part.type === type)?.value ?? "00";
+  return {
+    isoDate: `${get("year")}-${get("month")}-${get("day")}`,
+    isoDateTime: `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}:${get("second")}`,
+    hour: Number(get("hour")),
+    minute: Number(get("minute")),
+    second: Number(get("second")),
+  };
+}
+
+function resolveUpdatePhase(base = new Date()) {
+  const now = getJstNowParts(base);
+  const normalizedPhase = ["auto", "lineup", "odds", "result", "final", "backfill"].includes(requestedPhase)
+    ? requestedPhase
+    : "auto";
+
+  if (normalizedPhase !== "auto") {
+    return { phase: normalizedPhase, session: "all", jst: now.isoDateTime, explicit: true };
+  }
+
+  if (now.hour === 23 && now.minute >= 40) {
+    return { phase: now.minute >= 53 ? "backfill" : "final", session: "all", jst: now.isoDateTime, explicit: false };
+  }
+  if (now.hour >= 19 && now.hour < 21) {
+    return { phase: "odds", session: "midnight", jst: now.isoDateTime, explicit: false };
+  }
+  if (now.hour >= 16 && now.hour < 18) {
+    return { phase: "lineup", session: "midnight", jst: now.isoDateTime, explicit: false };
+  }
+  if (now.hour >= 13 && now.hour < 15) {
+    return { phase: "odds", session: "night", jst: now.isoDateTime, explicit: false };
+  }
+  if (now.hour >= 9 && now.hour < 11) {
+    return { phase: "odds", session: "day", jst: now.isoDateTime, explicit: false };
+  }
+  if (now.hour >= 7 && now.hour < 9) {
+    return { phase: "lineup", session: "day", jst: now.isoDateTime, explicit: false };
+  }
+
+  return { phase: "result", session: "all", jst: now.isoDateTime, explicit: false };
 }
 
 function compactDate(dateIso) {
@@ -284,59 +343,128 @@ function buildExistingRaceCache(existingFeed) {
   return raceCache;
 }
 
-function isReusableFinalRace(race) {
-  const hasPayout3tan = Boolean(
-    race?.result?.payout3tan
-      || (Array.isArray(race?.payouts) && race.payouts.some((item) => normalizeNetkeirinBetType(item?.betType) === normalizeNetkeirinBetType("3連単"))),
-  );
-  const hasLineupState = Boolean(
+function hasLineupValue(race) {
+  return Boolean(
     String(race?.lineup ?? "").trim()
-      || String(race?.kdreamsLineupRaw ?? "").trim()
-      || String(race?.winticketLineupRaw ?? "").trim()
       || String(race?.netkeirinLineupRaw ?? "").trim()
-      || /lineFallback\s*:/i.test(String(race?.sourceNote ?? "")),
+      || String(race?.kdreamsLineupRaw ?? "").trim()
+      || String(race?.charilotoLineupRaw ?? "").trim()
+      || String(race?.oddsparkLineupRaw ?? "").trim()
+      || String(race?.winticketLineupRaw ?? "").trim(),
   );
+}
 
+function hasSubstantiveRiderDetail(rider) {
+  if (!rider || typeof rider !== "object") return false;
+  return Boolean(
+    String(rider.age ?? "").trim()
+      || String(rider.grade ?? "").trim()
+      || String(rider.style ?? "").trim()
+      || String(rider.score ?? "").trim()
+      || String(rider.gearRatio ?? "").trim()
+      || String(rider.s ?? "").trim()
+      || String(rider.b ?? "").trim()
+      || String(rider.nige ?? rider.escape ?? "").trim()
+      || String(rider.makuri ?? "").trim()
+      || String(rider.sashi ?? "").trim()
+      || String(rider.mark ?? "").trim()
+      || String(rider.comment ?? "").trim(),
+  );
+}
+
+function getResultFinishOrderItems(race) {
+  return Array.isArray(race?.result?.finishOrder) ? race.result.finishOrder.filter(Boolean) : [];
+}
+
+function hasStructuredFinishOrderItems(race) {
+  return getResultFinishOrderItems(race).some((item) => typeof item === "object" && item && typeof item.carNo === "string" && typeof item.rank === "string");
+}
+
+function getFinishOrderCarNos(race) {
+  return getResultFinishOrderItems(race)
+    .map((item) => {
+      if (typeof item === "string") return item;
+      return String(item?.carNo ?? "").trim();
+    })
+    .filter(Boolean);
+}
+
+function isRaceResultComplete(race) {
+  return Boolean(
+    race?.resultStatus === "confirmed"
+      && race?.result?.status === "confirmed"
+      && Array.isArray(race?.resultTop3)
+      && race.resultTop3.length === 3
+      && Array.isArray(race?.payouts)
+      && race.payouts.length > 0,
+  );
+}
+
+function isRaceOddsComplete(race) {
+  return Boolean(
+    (Array.isArray(race?.oddsTrifecta) && race.oddsTrifecta.length > 0)
+      || /unavailable|fetch failed|skipped/i.test(String(race?.oddsNote ?? ""))
+      || race?.resultStatus === "confirmed",
+  );
+}
+
+function isRaceLineupCheckedOrComplete(race) {
+  if (hasLineupValue(race)) return true;
+
+  const note = String(race?.sourceNote ?? "");
+  return /kdreams lineup unavailable/i.test(note)
+    && /chariloto shukai (accepted|unavailable)/i.test(note)
+    && (/oddspark lineup (accepted|unavailable)/i.test(note) || /oddspark racelist accepted/i.test(note))
+    && /winticket probe skipped|winticket .*unavailable/i.test(note);
+}
+
+function isRaceRiderDetailCheckedOrComplete(race) {
+  if (Array.isArray(race?.riders) && race.riders.some((rider) => hasSubstantiveRiderDetail(rider))) return true;
+
+  const note = `${race?.sourceNote ?? ""} / ${race?.resultNote ?? ""}`;
+  return /riderFallback:\s*oddspark unavailable/i.test(note)
+    && /riderFallback:\s*chariloto unavailable/i.test(note)
+    && /riderFallback:\s*winticket skipped/i.test(note);
+}
+
+function isRaceFinishOrderCheckedOrComplete(race) {
+  const finishOrder = getResultFinishOrderItems(race);
+  const riderCount = Array.isArray(race?.riders) ? race.riders.length : 0;
+  if (finishOrder.length > 0 && riderCount > 0 && finishOrder.length >= riderCount && hasStructuredFinishOrderItems(race)) return true;
+
+  const note = String(race?.resultNote ?? "");
+  return /allFinishOrder:/i.test(note)
+    || /kdreams only top3 available/i.test(note)
+    || /oddspark unavailable/i.test(note);
+}
+
+function isReusableFinalRace(race) {
   return Boolean(
     race
-      && race.resultStatus === "confirmed"
-      && race.result?.status === "confirmed"
-      && Array.isArray(race.resultTop3)
-      && race.resultTop3.length >= 3
-      && Array.isArray(race.payouts)
-      && race.payouts.length >= 1
+      && isRaceResultComplete(race)
       && String(race.time ?? "").trim()
       && String(race.title ?? "").trim()
       && Array.isArray(race.riders)
       && race.riders.length >= 1
-      && hasLineupState
-      && hasPayout3tan,
+      && isRaceLineupCheckedOrComplete(race)
+      && isRaceRiderDetailCheckedOrComplete(race)
+      && isRaceFinishOrderCheckedOrComplete(race)
+      && isRaceOddsComplete(race),
   );
 }
 
 function getReusableFinalRaceSkipReason(race) {
   if (!race || race.resultStatus !== "confirmed" || race.result?.status !== "confirmed") return "";
 
-  const hasPayout3tan = Boolean(
-    race?.result?.payout3tan
-      || (Array.isArray(race?.payouts) && race.payouts.some((item) => normalizeNetkeirinBetType(item?.betType) === normalizeNetkeirinBetType("3連単"))),
-  );
-  if (!hasPayout3tan) return "payout3tan missing";
-
-  const hasPayout2tan = Boolean(
-    race?.result?.payout2tan
-      || (Array.isArray(race?.payouts) && race.payouts.some((item) => normalizeNetkeirinBetType(item?.betType) === normalizeNetkeirinBetType("2車単"))),
-  );
-  if (!hasPayout2tan) return "payout2tan missing";
-
-  const hasLineupState = Boolean(
-    String(race?.lineup ?? "").trim()
-      || String(race?.kdreamsLineupRaw ?? "").trim()
-      || String(race?.winticketLineupRaw ?? "").trim()
-      || String(race?.netkeirinLineupRaw ?? "").trim()
-      || /lineFallback\s*:/i.test(String(race?.sourceNote ?? "")),
-  );
-  if (!hasLineupState) return "lineup fallback missing";
+  if (!isRaceResultComplete(race)) return "result incomplete";
+  if (!isRaceLineupCheckedOrComplete(race)) return "lineup not checked by chariloto";
+  if (!isRaceRiderDetailCheckedOrComplete(race)) return "rider detail not checked";
+  if (!isRaceFinishOrderCheckedOrComplete(race)) {
+    const finishOrderCount = getResultFinishOrderItems(race).length;
+    const riderCount = Array.isArray(race?.riders) ? race.riders.length : 0;
+    return `finishOrder incomplete without note finishOrder=${finishOrderCount} riders=${riderCount}`;
+  }
+  if (!isRaceOddsComplete(race)) return "odds incomplete";
 
   return "";
 }
@@ -353,6 +481,37 @@ function prepareCachedRaceForReuse(cachedRace, raceNo) {
     resultNote: appendNote(cachedRace?.resultNote, cacheMarker),
     cacheNote: appendNote(cachedRace?.cacheNote, cacheNote),
   };
+}
+
+function isVenueInPhaseSession(venue, updatePhase) {
+  return updatePhase.session === "all" || venue?.session === updatePhase.session;
+}
+
+function shouldFetchLineupForRace(race, venue, updatePhase) {
+  if (!isVenueInPhaseSession(venue, updatePhase)) return false;
+  if (!(["lineup", "backfill", "final"].includes(updatePhase.phase))) return false;
+  return !isRaceLineupCheckedOrComplete(race);
+}
+
+function shouldFetchRiderDetailForRace(race, venue, updatePhase) {
+  if (!isVenueInPhaseSession(venue, updatePhase)) return false;
+  if (!(["lineup", "backfill", "final"].includes(updatePhase.phase))) return false;
+  return !isRaceRiderDetailCheckedOrComplete(race);
+}
+
+function shouldFetchOddsForRace(race, venue, updatePhase) {
+  if (!isVenueInPhaseSession(venue, updatePhase)) return false;
+  if (!(["odds", "backfill"].includes(updatePhase.phase))) return false;
+  if (race?.resultStatus === "confirmed") return false;
+  return !isRaceOddsComplete(race);
+}
+
+function shouldFetchResultForRace(race, venue, updatePhase) {
+  if (!["result", "final", "backfill", "odds", "lineup"].includes(updatePhase.phase)) return false;
+  if (!isVenueInPhaseSession(venue, updatePhase) && !["final", "backfill", "result"].includes(updatePhase.phase)) return false;
+  if (!race) return ["result", "final", "backfill"].includes(updatePhase.phase);
+  if (race.resultStatus !== "confirmed" || race.result?.status !== "confirmed") return true;
+  return !isRaceFinishOrderCheckedOrComplete(race) || !isRaceResultComplete(race);
 }
 
 function normalizeScheduleVenueName(value) {
@@ -976,6 +1135,38 @@ function createEmptyRaceOddsData() {
   };
 }
 
+function createFinishOrderItem(entry, overrides = {}) {
+  const rank = String(overrides.rank ?? entry?.place ?? "").trim();
+  const status = String(overrides.status ?? (/失格|落車|欠車|棄権|失/i.test(rank) ? rank : "")).trim();
+  return {
+    rank,
+    carNo: String(overrides.carNo ?? entry?.carNo ?? "").trim(),
+    name: String(overrides.name ?? entry?.name ?? "").trim(),
+    agari: String(overrides.agari ?? entry?.agari ?? "").trim(),
+    gap: String(overrides.gap ?? entry?.margin ?? "").trim(),
+    kimarite: String(overrides.kimarite ?? entry?.kimarite ?? "").trim(),
+    mark: String(overrides.mark ?? "").trim(),
+    status,
+  };
+}
+
+function buildTop3FromFinishOrderItems(items) {
+  return (items ?? [])
+    .filter((item) => item?.carNo && /^[0-9]+$/.test(String(item.rank ?? "")))
+    .slice(0, 3)
+    .map((item, index) => ({
+      place: String(index + 1),
+      carNo: item.carNo,
+      name: item.name,
+      margin: item.gap,
+      agari: item.agari,
+      kimarite: item.kimarite,
+      sMark: String(item.mark ?? "").includes("S"),
+      hMark: String(item.mark ?? "").includes("H"),
+      bMark: String(item.mark ?? "").includes("B"),
+    }));
+}
+
 function appendUniqueNote(base, note) {
   const normalizedBase = String(base ?? "").trim();
   const normalizedNote = String(note ?? "").trim();
@@ -1005,12 +1196,13 @@ function buildCharilotoRaceDetailUrl(date, venueCode, raceNo) {
 
 function extractCharilotoLineupRaw(html) {
   const sectionHtml = matchOne(html, [
-    /<th[^>]*>周回予想<\/th>\s*<td[^>]*>([\s\S]*?)<\/td>/i,
+    /<tr[^>]*>[\s\S]*?<th[^>]*>周回予想<\/th>[\s\S]*?<\/tr>/i,
   ]);
 
   if (!sectionHtml) return "";
 
   return stripTags(sectionHtml)
+    .replace(/周回予想/g, " ")
     .replace(/[←→]/g, " ")
     .replace(/[・/]/g, " ")
     .replace(/\s+/g, " ")
@@ -1212,7 +1404,11 @@ function extractOddsParkResultRows(html) {
 function extractOddsParkResultData(html) {
   const rows = extractOddsParkResultRows(html);
   const payouts = extractOddsParkPayouts(html);
-  const finishOrder = rows.map((item) => item.carNo).filter(Boolean);
+  const finishOrder = rows.map((item) => createFinishOrderItem(item, {
+    rank: item.place,
+    gap: item.margin,
+    mark: `${item.sMark ? "S" : ""}${item.hMark ? "H" : ""}${item.bMark ? "B" : ""}`,
+  }));
   const top3 = rows.slice(0, 3);
   const result = {
     ...createPendingRaceResultData().result,
@@ -1339,7 +1535,7 @@ async function fetchOddsParkRaceDetailFallback({ date, venueCode, raceNo, venueN
     const resultData = resultHtml ? extractOddsParkResultData(resultHtml) : { resultTop3: [], finishOrder: [], payouts: [], result: createPendingRaceResultData().result };
     const ok = resultData.finishOrder.length >= 3 && resultData.payouts.length > 0;
     const note = ok
-      ? "resultFallback: oddspark accepted / allFinishOrder: oddspark full order accepted"
+      ? `resultFallback: oddspark accepted / allFinishOrder: oddspark full order accepted count=${resultData.finishOrder.length}`
       : "resultFallback: oddspark unavailable";
 
     if (!savedOddsParkProbeDebugSample && resultHtml) {
@@ -1436,14 +1632,19 @@ function convertExternalProbeToRaceDetail(raceNo, probe) {
 }
 
 function extractNetkeirinResultData(html) {
-  const resultTop3 = extractNetkeirinResultTop3(html);
+  const resultRows = extractNetkeirinResultTop3(html);
+  const resultTop3 = resultRows.slice(0, 3);
   const payoutExtraction = extractNetkeirinPayouts(html);
   const payouts = payoutExtraction.payouts;
   const isConfirmed = resultTop3.length > 0 || payouts.length > 0 || /レースが確定しました/.test(html);
-  const finishOrder = resultTop3.map((item) => item.carNo).filter(Boolean);
-  const sLeaderCarNo = getNetkeirinLeaderCarNoFromRows(resultTop3, "sMark");
-  const hLeaderCarNo = getNetkeirinLeaderCarNoFromRows(resultTop3, "hMark");
-  const bLeaderCarNo = getNetkeirinLeaderCarNoFromRows(resultTop3, "bMark");
+  const finishOrder = resultRows.map((item) => createFinishOrderItem(item, {
+    rank: item.place,
+    gap: item.margin,
+    mark: `${item.sMark ? "S" : ""}${item.hMark ? "H" : ""}${item.bMark ? "B" : ""}`,
+  }));
+  const sLeaderCarNo = getNetkeirinLeaderCarNoFromRows(resultRows, "sMark");
+  const hLeaderCarNo = getNetkeirinLeaderCarNoFromRows(resultRows, "hMark");
+  const bLeaderCarNo = getNetkeirinLeaderCarNoFromRows(resultRows, "bMark");
 const result = {
   status: isConfirmed ? "confirmed" : "pending",
   finishOrder,
@@ -2237,7 +2438,7 @@ async function fetchNetkeirinRaceResult(raceId) {
       sourceNote: `netkeirin result race_id=${raceId}`,
       resultNote:
         resultData.resultStatus === "confirmed"
-          ? `netkeirin result accepted: race_id=${raceId}`
+          ? `netkeirin result accepted: race_id=${raceId} / allFinishOrder: netkeirin full order accepted count=${resultData.result.finishOrder.length}`
           : `netkeirin result pending: no finish order race_id=${raceId}`,
     };
   } catch (error) {
@@ -2450,7 +2651,11 @@ function extractKdreamsResultData(html, resultUrl, raceNo, kdreamsRaceId) {
   } else if (!scope.exactUrl) {
     pendingReason = "exact url mismatch";
   }
-  const finishOrder = resultRows.map((item) => item.carNo).filter(Boolean);
+  const finishOrder = resultRows.map((item) => createFinishOrderItem(item, {
+    rank: item.place,
+    gap: item.margin,
+    mark: `${item.sMark ? "S" : ""}${item.hMark ? "H" : ""}${item.bMark ? "B" : ""}`,
+  }));
   const sLeaderCarNo = getNetkeirinLeaderCarNoFromRows(resultRows, "sMark");
   const hLeaderCarNo = getNetkeirinLeaderCarNoFromRows(resultRows, "hMark");
   const bLeaderCarNo = getNetkeirinLeaderCarNoFromRows(resultRows, "bMark");
@@ -2481,7 +2686,7 @@ function extractKdreamsResultData(html, resultUrl, raceNo, kdreamsRaceId) {
       htmlHasRaceNo: scope.htmlHasRaceNo,
       resultUrl,
     }),
-    resultTop3: resultRows,
+    resultTop3: top3Rows,
     payouts,
     result,
     pendingReason,
@@ -2603,8 +2808,8 @@ async function fetchKdreamsRaceResult(slug, kdreamsRaceId, raceNo, riders) {
       };
     }
 
-    const resultScopeNote = Array.isArray(riders) && riders.length > resultData.resultTop3.length && resultData.resultTop3.length > 0
-      ? "KDreamsでは3着まで"
+    const resultScopeNote = Array.isArray(riders) && riders.length > resultData.result.finishOrder.length && resultData.resultTop3.length > 0
+      ? `KDreamsでは3着まで / allFinishOrder: kdreams only top3 available`
       : "";
 
     return {
@@ -2708,11 +2913,13 @@ async function fetchRaceResultWithFallback({ raceId, date, venue, raceNo, detail
 }
 
 async function main() {
+  const updatePhase = resolveUpdatePhase();
   const todayIso = getJstTodayIso();
   if (!shouldWritePublic) {
     console.log("[mode] local debug output");
     console.log(`[mode] writing generated data to ${OUTPUT_PATH}`);
   }
+  console.log(`[phase] ${updatePhase.explicit ? "manual" : "auto"} jst=${updatePhase.jst} phase=${updatePhase.phase} session=${updatePhase.session}`);
   const existingTodayFeed = await loadExistingTodayFeedForCache(OUTPUT_PATH, todayIso);
   const existingRaceCache = buildExistingRaceCache(existingTodayFeed.payload);
   if (existingTodayFeed.path) {
@@ -2783,7 +2990,7 @@ async function main() {
           riders: Array.isArray(extra.riders) && extra.riders.length ? extra.riders : reusableRace.riders,
         });
         cacheReusedCount += 1;
-        console.log(`[cache] ${venue.venue} ${raceNo}R finalized; skip detail/odds/result fetch`);
+        console.log(`[skip] ${venue.venue} ${raceNo}R finalized complete; skip all fetch`);
         continue;
       }
 
@@ -2794,21 +3001,37 @@ async function main() {
 
       cacheFetchedCount += 1;
       const netkeirinRaceId = buildNetkeirinRaceId(todayIso, venue.venueCode, raceNo);
-      const netkeirinRace = await fetchNetkeirinRaceDetail(todayIso, venue.venueCode, raceNo, !savedSample);
-      if (/^netkeirin race_id=/.test(netkeirinRace.sourceNote)) {
-        savedSample = true;
+      const needsSeedDetail = !cachedRace || !String(cachedRace.time ?? "").trim() || !String(cachedRace.title ?? "").trim();
+      const fetchLineup = shouldFetchLineupForRace(cachedRace, venue, updatePhase);
+      const fetchRiderDetail = shouldFetchRiderDetailForRace(cachedRace, venue, updatePhase);
+      const fetchOdds = shouldFetchOddsForRace(cachedRace, venue, updatePhase);
+      const fetchResult = shouldFetchResultForRace(cachedRace, venue, updatePhase);
+
+      let detailRace = cachedRace
+        ? { ...cachedRace, raceNo }
+        : createEmptyRaceDetail(raceNo, "cache missing");
+
+      if (needsSeedDetail || fetchLineup || fetchRiderDetail) {
+        console.log(`[fetch] ${venue.venue} ${raceNo}R detail ${needsSeedDetail ? "seed" : "phase-driven"}`);
+        const netkeirinRace = await fetchNetkeirinRaceDetail(todayIso, venue.venueCode, raceNo, !savedSample);
+        if (/^netkeirin race_id=/.test(netkeirinRace.sourceNote)) {
+          savedSample = true;
+        }
+        const kdreamsRace = await fetchKdreamsRaceDetail(
+          detailLink?.slug ?? venue.slug,
+          detailLink?.raceId,
+          raceNo,
+          !savedKdreamsSample,
+        );
+        if (/^kdreams racedetail=/.test(kdreamsRace.sourceNote)) {
+          savedKdreamsSample = true;
+        }
+        detailRace = mergeRaceDetailWithFallback(detailRace, mergeRaceDetailWithFallback(netkeirinRace, kdreamsRace));
+      } else {
+        console.log(`[skip] ${venue.venue} ${raceNo}R detail skipped outside lineup/detail window`);
       }
-      const kdreamsRace = await fetchKdreamsRaceDetail(
-        detailLink?.slug ?? venue.slug,
-        detailLink?.raceId,
-        raceNo,
-        !savedKdreamsSample,
-      );
-      if (/^kdreams racedetail=/.test(kdreamsRace.sourceNote)) {
-        savedKdreamsSample = true;
-      }
-      let detailRace = mergeRaceDetailWithFallback(netkeirinRace, kdreamsRace);
-      if (!detailRace.lineup && !detailRace.kdreamsLineupRaw) {
+
+      if (fetchLineup && !String(detailRace.charilotoLineupRaw ?? "").trim()) {
         const charilotoRace = await fetchCharilotoRaceDetailFallback({
           date: todayIso,
           venueCode: venue.venueCode,
@@ -2817,8 +3040,10 @@ async function main() {
         });
         detailRace = mergeRaceDetailWithFallback(detailRace, convertExternalProbeToRaceDetail(raceNo, charilotoRace));
         detailRace.sourceNote = appendUniqueNote(detailRace.sourceNote, charilotoRace.note);
+        detailRace.sourceNote = appendUniqueNote(detailRace.sourceNote, "riderFallback: chariloto unavailable");
       }
-      if (!Array.isArray(detailRace.riders) || detailRace.riders.length === 0) {
+
+      if ((fetchLineup || fetchRiderDetail) && (!hasLineupValue(detailRace) || !isRaceRiderDetailCheckedOrComplete(detailRace))) {
         const oddsparkDetail = await fetchOddsParkRaceDetailFallback({
           date: todayIso,
           venueCode: venue.venueCode,
@@ -2827,8 +3052,13 @@ async function main() {
         });
         detailRace = mergeRaceDetailWithFallback(detailRace, convertExternalProbeToRaceDetail(raceNo, oddsparkDetail));
         detailRace.sourceNote = appendUniqueNote(detailRace.sourceNote, oddsparkDetail.note);
+        detailRace.sourceNote = appendUniqueNote(detailRace.sourceNote, oddsparkDetail.lineupRaw ? "lineFallback: oddspark lineup accepted" : "lineFallback: oddspark lineup unavailable");
+        if (!Array.isArray(oddsparkDetail.riders) || oddsparkDetail.riders.length === 0) {
+          detailRace.sourceNote = appendUniqueNote(detailRace.sourceNote, "riderFallback: oddspark unavailable");
+        }
       }
-      if ((!Array.isArray(detailRace.riders) || detailRace.riders.length === 0) || (!detailRace.lineup && !detailRace.winticketLineupRaw)) {
+
+      if ((fetchLineup || fetchRiderDetail) && !String(detailRace.winticketLineupRaw ?? "").trim()) {
         const winticketRace = await fetchWinticketRaceFallback({
           date: todayIso,
           venueCode: venue.venueCode,
@@ -2837,24 +3067,48 @@ async function main() {
         });
         detailRace = mergeRaceDetailWithFallback(detailRace, convertExternalProbeToRaceDetail(raceNo, winticketRace));
         detailRace.sourceNote = appendUniqueNote(detailRace.sourceNote, winticketRace.note);
+        detailRace.sourceNote = appendUniqueNote(detailRace.sourceNote, "riderFallback: winticket skipped");
       }
+
       if (detailRace.sourceNote.includes("fallback")) {
-        console.log(`[fallback] ${venue.venue} ${raceNo}R using KDreams detail because ${netkeirinRace.sourceNote}`);
+        console.log(`[fallback] ${venue.venue} ${raceNo}R detail fallback used`);
       }
-      const oddsData = await fetchRaceOddsWithFallback({
-        raceId: netkeirinRaceId,
-        venue,
-        raceNo,
-        detailLink,
-      });
-      const resultData = await fetchRaceResultWithFallback({
-        raceId: netkeirinRaceId,
-        date: todayIso,
-        venue,
-        raceNo,
-        detailLink,
-        riders: detailRace.riders,
-      });
+      const oddsData = fetchOdds
+        ? await fetchRaceOddsWithFallback({
+            raceId: netkeirinRaceId,
+            venue,
+            raceNo,
+            detailLink,
+          })
+        : {
+            ...createEmptyRaceOddsData(),
+            oddsNote: appendUniqueNote(detailRace.oddsNote, `odds skipped outside ${updatePhase.phase} window`),
+          };
+      if (!fetchOdds) {
+        console.log(`[skip] ${venue.venue} ${raceNo}R odds skipped outside odds window`);
+      }
+
+      const resultData = fetchResult
+        ? await fetchRaceResultWithFallback({
+            raceId: netkeirinRaceId,
+            date: todayIso,
+            venue,
+            raceNo,
+            detailLink,
+            riders: detailRace.riders,
+          })
+        : {
+            ...createPendingRaceResultData(detailRace.resultNote || "result skipped in current phase"),
+            resultStatus: detailRace.resultStatus,
+            resultTop3: detailRace.resultTop3,
+            payouts: detailRace.payouts,
+            result: detailRace.result,
+          };
+      if (!fetchResult) {
+        console.log(`[skip] ${venue.venue} ${raceNo}R result skipped in ${updatePhase.phase} phase`);
+      } else if (cachedRace && (cachedRace.resultStatus !== "confirmed" || cachedRace.result?.status !== "confirmed")) {
+        console.log(`[fetch] ${venue.venue} ${raceNo}R pending; result only`);
+      }
       const race = {
         ...detailRace,
         oddsPreview:

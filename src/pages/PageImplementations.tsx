@@ -303,9 +303,20 @@ export type PredictionRaceResultWeatherActual = {
   source?: string;
 };
 
+export type PredictionRaceFinishOrderItem = {
+  rank: string;
+  carNo: string;
+  name: string;
+  agari?: string;
+  gap?: string;
+  kimarite?: string;
+  mark?: string;
+  status?: string;
+};
+
 export type PredictionRaceResult = {
   status?: "pending" | "confirmed";
-  finishOrder?: string[];
+  finishOrder?: Array<string | PredictionRaceFinishOrderItem>;
   kimarite?: string;
   secondKimarite?: string;
   payout2tan?: PredictionRaceResultPayoutItem | null;
@@ -1014,7 +1025,9 @@ export const findPredictionResultRecord = (
 };
 
 export const extractPredictionRaceResultOrder = (race: PredictionRaceItem | null | undefined) => {
-  const order = race?.result?.finishOrder?.filter(Boolean) ?? [];
+  const order = (race?.result?.finishOrder ?? [])
+    .map((item) => typeof item === "string" ? item : item?.carNo)
+    .filter(Boolean);
   if (order.length >= 3) return normalizePredictionTrifectaText(order.slice(0, 3).join("-"));
   const top3Order = race?.resultTop3?.map((item) => item.carNo).filter(Boolean) ?? [];
   if (top3Order.length >= 3) return normalizePredictionTrifectaText(top3Order.slice(0, 3).join("-"));
@@ -1934,22 +1947,32 @@ const getPredictionLineupCandidates = (race?: PredictionRaceItem | null) => [
 
 const extractPredictionLineupNotes = (race?: PredictionRaceItem | null) => {
   const sourceText = String(race?.sourceNote ?? "");
-  const noteMatches = Array.from(sourceText.matchAll(/(?:lineFallback|winticket probe)\s*:\s*([^/]+)/gi)).map((match) => match[1].trim());
+  const noteMatches = Array.from(sourceText.matchAll(/(?:lineFallback|winticket probe)\s*:\s*([^/]+)/gi))
+    .map((match) => match[1].trim())
+    .map((value) => {
+      if (/kdreams lineup unavailable/i.test(value)) return "KDreams並び予想未公開";
+      if (/chariloto shukai unavailable/i.test(value)) return "Chariloto周回予想未取得";
+      if (/chariloto shukai accepted/i.test(value)) return "Chariloto周回予想から取得";
+      if (/oddspark lineup unavailable/i.test(value)) return "OddsPark並び予想未取得";
+      if (/oddspark lineup accepted/i.test(value)) return "OddsPark並び予想から取得";
+      if (/winticket probe skipped/i.test(value)) return "WINTICKET公開payload未取得";
+      return value;
+    });
   const uniqueNotes = Array.from(new Set(noteMatches.filter(Boolean)));
   return uniqueNotes.join(" / ");
 };
 
+const splitPredictionLineupRawGroups = (raw: string) =>
+  raw
+    .split(/[\s/・]+/)
+    .map((group) => group.trim())
+    .filter(Boolean);
+
 export const buildPredictionLineupDisplay = (race?: PredictionRaceItem | null) => {
   const raw = getPredictionLineupCandidates(race)[0] ?? "";
-  const fallbackNote = compactPredictionGuideText(
-    String(race?.sourceNote ?? "").match(/lineFallback\s*:\s*([^/]+)/i)?.[1] ?? ""
-  );
-  const target = raw || fallbackNote;
+  if (!raw) return "並び未取得";
 
-  if (!target) return "並び未取得";
-
-  const groups = target
-    .split(/\s+/)
+  const groups = splitPredictionLineupRawGroups(raw)
     .map((group) => group.trim())
     .filter(Boolean)
     .filter((group) => /^[0-9-]+$/.test(group))
@@ -1957,15 +1980,14 @@ export const buildPredictionLineupDisplay = (race?: PredictionRaceItem | null) =
     .map((group) => group.replace(/-/g, "").split("").join("-"));
 
   if (groups.length > 0) return groups.join(" / ");
-  return target;
+  return raw;
 };
 
 export const buildPredictionLineupGroups = (race?: PredictionRaceItem | null) => {
   const raw = getPredictionLineupCandidates(race)[0] ?? "";
 
   if (!raw) return [] as string[];
-  return raw
-    .split(/\s+/)
+  return splitPredictionLineupRawGroups(raw)
     .map((group) => group.trim())
     .filter(Boolean)
     .filter((group) => /^[0-9-]+$/.test(group))

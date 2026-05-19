@@ -73,9 +73,20 @@ type PredictionRaceResultWeatherActual = {
   source?: string;
 };
 
+type PredictionRaceFinishOrderItem = {
+  rank: string;
+  carNo: string;
+  name: string;
+  agari?: string;
+  gap?: string;
+  kimarite?: string;
+  mark?: string;
+  status?: string;
+};
+
 type PredictionRaceResult = {
   status?: "pending" | "confirmed";
-  finishOrder?: string[];
+  finishOrder?: Array<string | PredictionRaceFinishOrderItem>;
   kimarite?: string;
   secondKimarite?: string;
   payout2tan?: PredictionRaceResultPayoutItem | null;
@@ -920,11 +931,35 @@ function cleanReviewRiderName(value?: string) {
 
 function getResultOrder(record?: PredictionResultRecord, feedRace?: PredictionRaceItem) {
   if (record?.resultOrder) return record.resultOrder;
-  const finish = feedRace?.result?.finishOrder?.filter(Boolean) ?? [];
+  const finish = (feedRace?.result?.finishOrder ?? [])
+    .map((item) => typeof item === "string" ? item : item?.carNo)
+    .filter(Boolean);
   if (finish.length >= 3) return finish.slice(0, 3).join("-");
   const top3 = feedRace?.resultTop3?.map((item) => item.carNo).filter(Boolean) ?? [];
   if (top3.length >= 3) return top3.slice(0, 3).join("-");
   return "--";
+}
+
+function getReviewFinishOrderRows(feedRace?: PredictionRaceItem) {
+  const items = feedRace?.result?.finishOrder ?? [];
+  const rows = items
+    .map((item): PredictionRaceResultEntry | null => {
+      if (!item || typeof item === "string") return null;
+      return {
+        place: item.rank || item.status || "",
+        carNo: item.carNo,
+        name: item.name,
+        margin: item.gap,
+        agari: item.agari,
+        kimarite: item.kimarite,
+        sMark: String(item.mark ?? "").includes("S"),
+        hMark: String(item.mark ?? "").includes("H"),
+        bMark: String(item.mark ?? "").includes("B"),
+      };
+    })
+    .filter((item): item is PredictionRaceResultEntry => item !== null);
+
+  return rows.length > 0 ? rows : (feedRace?.resultTop3 ?? []);
 }
 
 function getKimarite(record?: PredictionResultRecord, feedRace?: PredictionRaceItem) {
@@ -1237,7 +1272,7 @@ function buildReviewPayoutLines(feedRace?: PredictionRaceItem) {
 }
 
 function buildReviewFullResultLines(feedRace?: PredictionRaceItem) {
-  const entries = feedRace?.resultTop3 ?? [];
+  const entries = getReviewFinishOrderRows(feedRace);
   if (entries.length === 0) return ["全着順: 接続待ち"];
 
   const lines = entries.map((entry) => {
@@ -1248,7 +1283,7 @@ function buildReviewFullResultLines(feedRace?: PredictionRaceItem) {
      ].filter(Boolean);
 
     const markText = marks.length > 0 ? ` ${marks.join("")}` : "";
-    const place = entry.place ? `${entry.place}着` : "着順不明";
+    const place = entry.place ? (/^\d+$/.test(entry.place) ? `${entry.place}着` : entry.place) : "着順不明";
     const carNo = entry.carNo ?? "--";
     const name = cleanReviewRiderName(entry.name);
     const agari = entry.agari ? ` / 上がり ${entry.agari}` : "";

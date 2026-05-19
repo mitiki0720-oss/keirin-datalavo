@@ -2,14 +2,14 @@ name: Update today race data
 
 on:
   schedule:
-    # GitHub ActionsのcronはUTC。
-    # 22,23時 UTC = 日本時間 7時・8時。
-    # 0-14時 UTC = 日本時間 9時〜23時。
-    # GitHub schedule の取りこぼし対策として、日本時間 7:00〜23:50 に10分ごと実行。
-    - cron: "*/10 22,23 * * *"
-    - cron: "*/10 0-14 * * *"
-    - cron: "47 14 * * *" # 23:47 JST final result pickup
-    - cron: "53 14 * * *" # 23:53 JST final result backup
+    - cron: "0 23 * * *"   # 08:00 JST lineup + morning odds seed
+    - cron: "0 1 * * *"    # 10:00 JST day odds
+    - cron: "0 5 * * *"    # 14:00 JST night odds
+    - cron: "0 8 * * *"    # 17:00 JST midnight lineup
+    - cron: "0 11 * * *"   # 20:00 JST midnight odds
+    - cron: "*/30 0-14 * * *" # result refresh window (pending races only by script)
+    - cron: "47 14 * * *"  # 23:47 JST final result pickup
+    - cron: "53 14 * * *"  # 23:53 JST backfill pickup
   workflow_dispatch:
 
 permissions:
@@ -50,7 +50,34 @@ jobs:
           git pull --ff-only origin main
 
       - name: Update today race data
-        run: npm run update:today-races:write
+        run: |
+          PHASE_ARG=""
+          case "${{ github.event.schedule }}" in
+            "0 23 * * *")
+              PHASE_ARG="--phase lineup"
+              ;;
+            "0 1 * * *"|"0 5 * * *"|"0 11 * * *")
+              PHASE_ARG="--phase odds"
+              ;;
+            "0 8 * * *")
+              PHASE_ARG="--phase lineup"
+              ;;
+            "*/30 0-14 * * *")
+              PHASE_ARG="--phase result"
+              ;;
+            "47 14 * * *")
+              PHASE_ARG="--phase final"
+              ;;
+            "53 14 * * *")
+              PHASE_ARG="--phase backfill"
+              ;;
+          esac
+
+          if [ -n "$PHASE_ARG" ]; then
+            npm run update:today-races:write -- $PHASE_ARG
+          else
+            npm run update:today-races:write
+          fi
 
       - name: Notify Slack hits
         env:

@@ -524,9 +524,20 @@ type LiveRaceResultWeatherActual = {
   temperature?: string;
 };
 
+type LiveRaceFinishOrderItem = {
+  rank: string;
+  carNo: string;
+  name: string;
+  agari?: string;
+  gap?: string;
+  kimarite?: string;
+  mark?: string;
+  status?: string;
+};
+
 type LiveRaceResult = {
   status?: "pending" | "confirmed";
-  finishOrder?: string[];
+  finishOrder?: Array<string | LiveRaceFinishOrderItem>;
   kimarite?: string;
   secondKimarite?: string;
   payout2tan?: LiveRaceResultPayoutItem | null;
@@ -614,6 +625,30 @@ function normalizeGeneratedSession(value: unknown): RaceScheduleItem["session"] 
 function formatRacesPageResultOrder(value?: string[] | null) {
   if (!Array.isArray(value) || value.length < 3) return "未確定";
   return value.slice(0, 3).join("-");
+}
+
+function mapRacesPageFinishOrderToRows(items?: Array<string | LiveRaceFinishOrderItem> | null) {
+  if (!Array.isArray(items) || items.length === 0) return [] as LiveRaceResultEntry[];
+  return items
+    .map((item): LiveRaceResultEntry | null => {
+      if (!item || typeof item === "string") return null;
+      return {
+        place: item.rank || item.status || "",
+        carNo: item.carNo,
+        name: item.name,
+        margin: item.gap,
+        agari: item.agari,
+        kimarite: item.kimarite,
+        sMark: String(item.mark ?? "").includes("S"),
+        hMark: String(item.mark ?? "").includes("H"),
+        bMark: String(item.mark ?? "").includes("B"),
+      };
+    })
+    .filter((item): item is LiveRaceResultEntry => item !== null);
+}
+
+function extractRacesPageFinishOrderCarNos(items?: Array<string | LiveRaceFinishOrderItem> | null) {
+  return (items ?? []).map((item) => typeof item === "string" ? item : item?.carNo).filter((item): item is string => Boolean(item));
 }
 
 function formatRacesPageResultPayout(item?: {
@@ -833,7 +868,10 @@ function useGeneratedTodayRaces() {
                               ? "confirmed" as const
                               : "pending" as const,
                             finishOrder: Array.isArray(race.result.finishOrder)
-                              ? race.result.finishOrder.filter((item): item is string => typeof item === "string")
+                              ? race.result.finishOrder.filter((item): item is string | LiveRaceFinishOrderItem => {
+                                  if (typeof item === "string") return true;
+                                  return Boolean(item) && typeof item.rank === "string" && typeof item.carNo === "string" && typeof item.name === "string";
+                                })
                               : [],
                             kimarite: typeof race.result.kimarite === "string" ? race.result.kimarite : "",
                             secondKimarite: typeof race.result.secondKimarite === "string" ? race.result.secondKimarite : "",
@@ -1892,11 +1930,12 @@ const selectedRace =
   null;
 
 const selectedRaceResult = selectedRace?.result;
+const selectedRaceFinishOrderItems = extractRacesPageFinishOrderCarNos(selectedRaceResult?.finishOrder);
 
 const selectedRaceFinishOrder =
-  selectedRaceResult?.finishOrder ??
-  selectedRace?.resultTop3?.map((item) => item.carNo).filter(Boolean) ??
-  [];
+  selectedRaceFinishOrderItems.length > 0
+    ? selectedRaceFinishOrderItems
+    : (selectedRace?.resultTop3?.map((item) => item.carNo).filter(Boolean) ?? []);
 
 const selectedRaceResultStatus =
   selectedRaceResult?.status ?? selectedRace?.resultStatus ?? "pending";
@@ -2003,7 +2042,8 @@ useEffect(() => {
 const selectedRaceSLeaderCarNo = selectedRaceResult?.sLeaderCarNo ?? "";
 const selectedRaceHLeaderCarNo = selectedRaceResult?.hLeaderCarNo ?? "";
 const selectedRaceBLeaderCarNo = selectedRaceResult?.bLeaderCarNo ?? "";
-const selectedRaceAllRows = selectedRace?.resultTop3 ?? [];
+const selectedRaceFinishOrderRows = mapRacesPageFinishOrderToRows(selectedRace?.result?.finishOrder);
+const selectedRaceAllRows = selectedRaceFinishOrderRows.length > 0 ? selectedRaceFinishOrderRows : (selectedRace?.resultTop3 ?? []);
 const selectedRaceFullResultScopeNote = getRacesPageFullResultScopeNote(selectedRace ?? undefined);
 const selectedRaceLeaderText = formatRacesPageLeaderText(selectedRace ?? undefined);
 const selectedRacePayout2tan = resolveRacePayoutByBetType(selectedRace as never, "2車単");
@@ -3848,7 +3888,7 @@ gap: isMobile ? "10px" : "12px",
     padding: isMobile ? "9px 9px" : "10px 12px",
   }}
 >
-                            <div style={{ fontSize: "15px", fontWeight: 900, color: "#081224" }}>{item.place}着</div>
+                            <div style={{ fontSize: "15px", fontWeight: 900, color: "#081224" }}>{/^\d+$/.test(item.place) ? `${item.place}着` : item.place}</div>
                             <div>
                               <div style={{ fontSize: "15px", fontWeight: 900, color: "#7a67b8" }}>{item.carNo}</div>
                               {(hasSMark || hasHMark || hasBMark) && (
