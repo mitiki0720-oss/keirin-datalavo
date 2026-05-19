@@ -632,6 +632,10 @@ export type PredictionResultVenueSummary = {
 export type PredictionResultVenueSummaryMap = Record<string, PredictionResultVenueSummary>;
 
 export const PREDICTION_TODAY_DATA_URL = toPublicPath("/data/races/today.generated.json");
+export const LOCAL_PREDICTION_TODAY_DATA_URL = toPublicPath("/scripts/debug/today.generated.local.json");
+export const PREDICTION_TODAY_DATA_URL_CANDIDATES = import.meta.env.DEV
+  ? [LOCAL_PREDICTION_TODAY_DATA_URL, PREDICTION_TODAY_DATA_URL]
+  : [PREDICTION_TODAY_DATA_URL];
 export const PREDICTION_VENUE_BANK_INDEX_URL = toPublicPath("/data/venues/banks/index.json");
 export const PREDICTION_OPEN_METEO_GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search";
 export const PREDICTION_OPEN_METEO_FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
@@ -2029,6 +2033,7 @@ const extractPredictionLineupNotes = (race?: PredictionRaceItem | null) => {
     .map((match) => match[1].trim())
     .map((value) => {
       if (/kdreams lineup unavailable/i.test(value)) return "KDreams並び予想未公開";
+      if (/kdreams lineup accepted/i.test(value)) return "KDreams並び予想から取得";
       if (/chariloto shukai unavailable/i.test(value)) return "Chariloto周回予想未取得";
       if (/chariloto shukai accepted/i.test(value)) return "Chariloto周回予想から取得";
       if (/oddspark lineup unavailable/i.test(value)) return "OddsPark周回予想未取得";
@@ -2037,6 +2042,8 @@ const extractPredictionLineupNotes = (race?: PredictionRaceItem | null) => {
       return value;
     });
   const uniqueNotes = Array.from(new Set(noteMatches.filter(Boolean)));
+  const acceptedNotes = uniqueNotes.filter((value) => value.includes("から取得"));
+  if (acceptedNotes.length > 0) return acceptedNotes.join(" / ");
   return uniqueNotes.join(" / ");
 };
 
@@ -2710,6 +2717,211 @@ export const getPredictionMaterialReady = (race?: PredictionRaceItem | null) => 
   return hasRiders && hasLineup && hasOdds;
 };
 
+const getPredictionRaceExternalId = (race?: PredictionRaceItem | null) => {
+  const source = race as (PredictionRaceItem & { race_id?: unknown; raceId?: unknown; id?: unknown }) | null | undefined;
+  return String(source?.race_id ?? source?.raceId ?? source?.id ?? "").trim();
+};
+
+const getPredictionRaceIdForVenue = (venue?: PredictionVenueItem | null, race?: PredictionRaceItem | null) => {
+  return getPredictionRaceExternalId(race) || (race ? String(venue?.raceIds?.[race.raceNo - 1] ?? "").trim() : "");
+};
+
+const getPredictionVenueCode = (venue?: PredictionVenueItem | null) => String(venue?.venueCode ?? "").trim();
+
+const preferPredictionNonEmpty = <T,>(primary: T | null | undefined, fallback: T | null | undefined): T | undefined => {
+  if (primary === null || primary === undefined) return fallback === null ? undefined : fallback;
+  if (typeof primary === "string" && primary.trim() === "") return fallback === null ? undefined : fallback;
+  if (Array.isArray(primary) && primary.length === 0) return fallback === null ? undefined : fallback;
+  return primary;
+};
+
+const preferPredictionLongerArray = <T,>(primary?: T[] | null, fallback?: T[] | null): T[] | undefined => {
+  const primaryItems = Array.isArray(primary) ? primary : [];
+  const fallbackItems = Array.isArray(fallback) ? fallback : [];
+  return primaryItems.length > fallbackItems.length ? primaryItems : fallbackItems;
+};
+
+const mergePredictionSourceNote = (primary?: string | null, fallback?: string | null) => {
+  const parts = [primary, fallback]
+    .flatMap((value) => String(value ?? "").split(/\s*\/\s*/))
+    .map((value) => value.trim())
+    .filter(Boolean);
+  return Array.from(new Set(parts)).join(" / ");
+};
+
+const mergePredictionRaceResultPreserveRichData = (
+  baseResult?: PredictionRaceResult | null,
+  overlayResult?: PredictionRaceResult | null,
+): PredictionRaceResult | undefined => {
+  if (!baseResult && !overlayResult) return undefined;
+  const merged: PredictionRaceResult = { ...(baseResult ?? {}) };
+  const overlay = overlayResult ?? {};
+
+  (Object.keys(overlay) as Array<keyof PredictionRaceResult>).forEach((key) => {
+    const value = overlay[key];
+    if (key === "finishOrder") return;
+    if (key === "payout2fuku" || key === "payoutWide") return;
+    (merged as Record<string, unknown>)[key] = preferPredictionNonEmpty(value, merged[key]);
+  });
+
+  merged.finishOrder = preferPredictionLongerArray(overlay.finishOrder, merged.finishOrder) as PredictionRaceResult["finishOrder"];
+  merged.payout2fuku = preferPredictionLongerArray(overlay.payout2fuku, merged.payout2fuku);
+  merged.payoutWide = preferPredictionLongerArray(overlay.payoutWide, merged.payoutWide);
+  return merged;
+};
+
+export const mergeRacePreserveRichData = (
+  baseRace?: PredictionRaceItem | null,
+  overlayRace?: Partial<PredictionRaceItem> | null,
+): PredictionRaceItem => {
+  const base = baseRace ?? { raceNo: overlayRace?.raceNo ?? 0 };
+  const overlay = overlayRace ?? {};
+  const merged: PredictionRaceItem = { ...base };
+
+  (Object.keys(overlay) as Array<keyof PredictionRaceItem>).forEach((key) => {
+    const value = overlay[key];
+    if (
+      key === "riders" ||
+      key === "oddsPreview" ||
+      key === "oddsTrifecta" ||
+      key === "resultTop3" ||
+      key === "payouts" ||
+      key === "result" ||
+      key === "sourceNote"
+    ) {
+      return;
+    }
+    (merged as Record<string, unknown>)[key] = preferPredictionNonEmpty(value, merged[key]);
+  });
+
+  merged.riders = preferPredictionLongerArray(overlay.riders, merged.riders);
+  merged.oddsPreview = preferPredictionLongerArray(overlay.oddsPreview, merged.oddsPreview);
+  merged.oddsTrifecta = preferPredictionLongerArray(overlay.oddsTrifecta, merged.oddsTrifecta);
+  merged.resultTop3 = preferPredictionLongerArray(overlay.resultTop3, merged.resultTop3);
+  merged.payouts = preferPredictionLongerArray(overlay.payouts, merged.payouts);
+  merged.result = mergePredictionRaceResultPreserveRichData(merged.result, overlay.result);
+  merged.sourceNote = mergePredictionSourceNote(merged.sourceNote, overlay.sourceNote);
+
+  return merged;
+};
+
+export const resolveHydratedRaceForPredictionMaterial = ({
+  feed,
+  selectedVenue,
+  selectedRace,
+  savedPrediction,
+}: {
+  feed?: PredictionTodayFeed | null;
+  selectedVenue?: PredictionVenueItem | null;
+  selectedRace?: PredictionRaceItem | null;
+  savedPrediction?: { raceId?: string; raceNumber?: number; venue?: string } | null;
+}) => {
+  const venues = feed?.venues ?? [];
+  const selectedRaceNo = selectedRace?.raceNo ?? savedPrediction?.raceNumber;
+  const selectedRaceId = getPredictionRaceIdForVenue(selectedVenue, selectedRace) || String(savedPrediction?.raceId ?? "").trim();
+  const selectedVenueCode = getPredictionVenueCode(selectedVenue);
+  const selectedVenueName = normalizePredictionVenueName(selectedVenue?.venue ?? savedPrediction?.venue ?? "");
+  const selectedSlug = String(selectedVenue?.slug ?? "").trim();
+
+  const allRaceEntries = venues.flatMap((venue) => (venue.races ?? []).map((race) => ({ venue, race })));
+
+  const byRaceId = selectedRaceId
+    ? allRaceEntries.find(({ venue, race }) => getPredictionRaceIdForVenue(venue, race) === selectedRaceId)
+    : undefined;
+  if (byRaceId) return { hydratedRace: byRaceId.race, sourceVenue: byRaceId.venue, reason: "race_id" };
+
+  const byVenueCode = selectedVenueCode && selectedRaceNo
+    ? allRaceEntries.find(({ venue, race }) => getPredictionVenueCode(venue) === selectedVenueCode && race.raceNo === selectedRaceNo)
+    : undefined;
+  if (byVenueCode) return { hydratedRace: byVenueCode.race, sourceVenue: byVenueCode.venue, reason: "venueCode+raceNo" };
+
+  const byVenueName = selectedVenueName && selectedRaceNo
+    ? allRaceEntries.find(({ venue, race }) => normalizePredictionVenueName(venue.venue) === selectedVenueName && race.raceNo === selectedRaceNo)
+    : undefined;
+  if (byVenueName) return { hydratedRace: byVenueName.race, sourceVenue: byVenueName.venue, reason: "normalizedVenueName+raceNo" };
+
+  const bySlug = selectedSlug && selectedRaceNo
+    ? allRaceEntries.find(({ venue, race }) => venue.slug === selectedSlug && race.raceNo === selectedRaceNo)
+    : undefined;
+  if (bySlug) return { hydratedRace: bySlug.race, sourceVenue: bySlug.venue, reason: "slug+raceNo" };
+
+  return { hydratedRace: selectedRace ?? null, sourceVenue: selectedVenue ?? null, reason: "selectedRace fallback" };
+};
+
+const findPredictionVenueMatch = (venues: PredictionVenueItem[], target: PredictionVenueItem) => {
+  const targetCode = getPredictionVenueCode(target);
+  const targetName = normalizePredictionVenueName(target.venue);
+  return venues.find((venue) => {
+    if (targetCode && getPredictionVenueCode(venue) === targetCode) return true;
+    if (target.slug && venue.slug === target.slug) return true;
+    return normalizePredictionVenueName(venue.venue) === targetName;
+  });
+};
+
+const mergePredictionVenuePreserveRichData = (baseVenue: PredictionVenueItem, overlayVenue: PredictionVenueItem): PredictionVenueItem => {
+  const merged: PredictionVenueItem = {
+    ...baseVenue,
+    id: preferPredictionNonEmpty(baseVenue.id, overlayVenue.id) ?? baseVenue.id,
+    venue: preferPredictionNonEmpty(baseVenue.venue, overlayVenue.venue) ?? baseVenue.venue,
+    venueCode: preferPredictionNonEmpty(baseVenue.venueCode, overlayVenue.venueCode),
+    slug: preferPredictionNonEmpty(baseVenue.slug, overlayVenue.slug),
+    title: preferPredictionNonEmpty(baseVenue.title, overlayVenue.title),
+    grade: preferPredictionNonEmpty(baseVenue.grade, overlayVenue.grade),
+    startDate: preferPredictionNonEmpty(baseVenue.startDate, overlayVenue.startDate),
+    endDate: preferPredictionNonEmpty(baseVenue.endDate, overlayVenue.endDate),
+    session: preferPredictionNonEmpty(baseVenue.session, overlayVenue.session) ?? baseVenue.session,
+    hasGirls: baseVenue.hasGirls ?? overlayVenue.hasGirls,
+    note: mergePredictionSourceNote(baseVenue.note, overlayVenue.note),
+    raceNos: preferPredictionLongerArray(baseVenue.raceNos, overlayVenue.raceNos),
+    raceIds: preferPredictionLongerArray(baseVenue.raceIds, overlayVenue.raceIds),
+    races: [...(baseVenue.races ?? [])],
+  };
+
+  for (const overlayRace of overlayVenue.races ?? []) {
+    const overlayRaceId = getPredictionRaceIdForVenue(overlayVenue, overlayRace);
+    const raceIndex = merged.races.findIndex((race) => {
+      const raceId = getPredictionRaceIdForVenue(merged, race);
+      if (overlayRaceId && raceId === overlayRaceId) return true;
+      return race.raceNo === overlayRace.raceNo;
+    });
+
+    if (raceIndex >= 0) {
+      merged.races[raceIndex] = mergeRacePreserveRichData(merged.races[raceIndex], overlayRace);
+    } else {
+      merged.races.push(overlayRace);
+    }
+  }
+
+  merged.races = merged.races.sort((a, b) => a.raceNo - b.raceNo);
+  return merged;
+};
+
+export const mergePredictionTodayFeedsPreserveRichData = (feeds: PredictionTodayFeed[]): PredictionTodayFeed => {
+  const [firstFeed, ...restFeeds] = feeds;
+  const merged: PredictionTodayFeed = {
+    generatedAt: firstFeed.generatedAt,
+    date: firstFeed.date,
+    venues: [...(firstFeed.venues ?? [])],
+  };
+
+  for (const feed of restFeeds) {
+    merged.generatedAt = preferPredictionNonEmpty(merged.generatedAt, feed.generatedAt);
+    merged.date = preferPredictionNonEmpty(merged.date, feed.date) ?? merged.date;
+
+    for (const overlayVenue of feed.venues ?? []) {
+      const existingVenue = findPredictionVenueMatch(merged.venues, overlayVenue);
+      if (!existingVenue) {
+        merged.venues.push(overlayVenue);
+        continue;
+      }
+      const venueIndex = merged.venues.indexOf(existingVenue);
+      merged.venues[venueIndex] = mergePredictionVenuePreserveRichData(existingVenue, overlayVenue);
+    }
+  }
+
+  return merged;
+};
+
 export const buildPredictionOddsBuckets = (race?: PredictionRaceItem | null) => {
   const trifecta = [...(race?.oddsTrifecta ?? [])]
     .sort((a, b) => (a.popularity ?? 999) - (b.popularity ?? 999) || a.odds - b.odds);
@@ -2760,7 +2972,7 @@ export const buildPredictionExportText = ({
   dataAnalysisText: string;
   oddsText: string;
 }) => {
-  const raceIdLabel = normalizePredictionExportValue(venue.raceIds?.[race.raceNo - 1] ?? race.sourceNote, "race_idなし");
+  const raceIdLabel = normalizePredictionExportValue(getPredictionRaceIdForVenue(venue, race) || race.sourceNote, "race_idなし");
   const raceTitleLabel = normalizePredictionExportValue(
     race.title || race.sourceNote || (venue.title ? `${venue.title} ${race.raceNo}R` : ""),
     "レース名なし"
@@ -8508,14 +8720,25 @@ useEffect(() => {
 
     const loadPredictionData = async () => {
       try {
-        const [feedResponse, bankIndexResponse] = await Promise.all([
-          fetch(`${PREDICTION_TODAY_DATA_URL}?t=${Date.now()}`, { cache: "no-store" }),
+        const [feed, bankIndexResponse] = await Promise.all([
+          (async () => {
+            let lastError: unknown = null;
+            const feeds: PredictionTodayFeed[] = [];
+            for (const url of PREDICTION_TODAY_DATA_URL_CANDIDATES) {
+              try {
+                const response = await fetch(`${url}?t=${Date.now()}`, { cache: "no-store" });
+                if (!response.ok) throw new Error(`prediction-feed-${response.status}`);
+                feeds.push((await response.json()) as PredictionTodayFeed);
+              } catch (error) {
+                lastError = error;
+              }
+            }
+            if (feeds.length > 0) return mergePredictionTodayFeedsPreserveRichData(feeds);
+            throw lastError ?? new Error("prediction-feed-missing");
+          })(),
           fetch(PREDICTION_VENUE_BANK_INDEX_URL, { cache: "force-cache" }),
         ]);
 
-        if (!feedResponse.ok) throw new Error(`prediction-feed-${feedResponse.status}`);
-
-        const feed = (await feedResponse.json()) as PredictionTodayFeed;
         const bankIndex = bankIndexResponse.ok
           ? (await bankIndexResponse.json()) as PredictionVenueBankIndexItem[]
           : [];
@@ -8894,6 +9117,36 @@ if (!nextSlots[currentKey] && nextSlots[legacyKey]) {
     [savedPredictionSlots, predictionFeed?.date, selectedVenue, selectedRace]
   );
   const selectedSavedPredictionSlot = selectedPredictionSlotLookup.record ?? null;
+  const hydratedPredictionMaterialRace = useMemo(
+    () => resolveHydratedRaceForPredictionMaterial({
+      feed: predictionFeed,
+      selectedVenue,
+      selectedRace,
+      savedPrediction: selectedSavedPredictionSlot,
+    }),
+    [predictionFeed, selectedRace, selectedSavedPredictionSlot, selectedVenue]
+  );
+  const materialRace = useMemo(() => {
+    const fullRace = mergeRacePreserveRichData(hydratedPredictionMaterialRace.hydratedRace, selectedRace);
+    return mergeRacePreserveRichData(fullRace, selectedSavedPredictionSlot as Partial<PredictionRaceItem> | null);
+  }, [hydratedPredictionMaterialRace.hydratedRace, selectedRace, selectedSavedPredictionSlot]);
+  const materialVenue = hydratedPredictionMaterialRace.sourceVenue ?? selectedVenue;
+  useEffect(() => {
+    if (!materialRace) return;
+    console.log("[material race]", {
+      venue: materialVenue?.venue,
+      raceNo: materialRace.raceNo,
+      raceId: getPredictionRaceIdForVenue(materialVenue, materialRace),
+      lineup: materialRace.lineup,
+      kdreamsLineupRaw: materialRace.kdreamsLineupRaw,
+      ridersCount: materialRace.riders?.length,
+      firstRider: materialRace.riders?.[0],
+      sourceNote: materialRace.sourceNote,
+      oddsCount: materialRace.oddsTrifecta?.length,
+      resultStatus: materialRace.resultStatus,
+      source: `hydrated generated feed (${hydratedPredictionMaterialRace.reason})`,
+    });
+  }, [hydratedPredictionMaterialRace.reason, materialRace, materialVenue]);
   if (ENABLE_PREDICTION_DEBUG_LOGS) {
   console.log("[selectedSavedPredictionResult checkpoint]", selectedSavedPredictionResult);
 }
@@ -8914,8 +9167,8 @@ const resolvedPredictionSourceText = useMemo(
     [predictionResultDraft.resultOrder, resolvedPredictionSourceText]
   );
   const selectedGeneratedPredictionResult = useMemo(
-    () => resolvePredictionRaceGeneratedResult(predictionFeed?.date ?? TODAY, selectedVenue, selectedRace, resolvedPredictionSourceText),
-    [predictionFeed?.date, resolvedPredictionSourceText, selectedRace, selectedVenue]
+    () => resolvePredictionRaceGeneratedResult(predictionFeed?.date ?? TODAY, materialVenue, materialRace, resolvedPredictionSourceText),
+    [predictionFeed?.date, resolvedPredictionSourceText, materialRace, materialVenue]
   );
 
 
@@ -9113,11 +9366,11 @@ if (
         hitCombination: predictionResolvedHitDetail?.hitCombination,
         investment: predictionResultInvestment,
       },
-      race: selectedRace,
+      race: materialRace,
       predictionText: resolvedPredictionSourceText,
       manualPayout: parsePredictionResultAmount(predictionResultDraft.payoutInput),
     }),
-    [normalizedPredictionResultOrder, predictionAutoHitStatus, predictionFinalHitStatus, predictionResolvedHitDetail, predictionResultInvestment, selectedRace, resolvedPredictionSourceText, predictionResultDraft.payoutInput]
+    [normalizedPredictionResultOrder, predictionAutoHitStatus, predictionFinalHitStatus, predictionResolvedHitDetail, predictionResultInvestment, materialRace, resolvedPredictionSourceText, predictionResultDraft.payoutInput]
   );
   const predictionResultPayout = predictionResolvedDraftMetrics.payout;
   const predictionResultProfitLoss = predictionResolvedDraftMetrics.profitLoss;
@@ -9276,8 +9529,8 @@ if (
     ? (todayPredictionPayout / todaySavedInvestmentTotal) * 100
     : undefined;
   const normalizedSelectedSavedPredictionResult = useMemo(
-    () => getNormalizedPredictionResultDisplay(selectedSavedPredictionResult, selectedRace, resolvedPredictionSourceText),
-    [resolvedPredictionSourceText, selectedRace, selectedSavedPredictionResult]
+    () => getNormalizedPredictionResultDisplay(selectedSavedPredictionResult, materialRace, resolvedPredictionSourceText),
+    [resolvedPredictionSourceText, materialRace, selectedSavedPredictionResult]
   );
   const predictionHitBadgeDetail = useMemo(() => {
     if (predictionFinalHitStatus !== "hit") return null;
@@ -9296,7 +9549,7 @@ if (
     return null;
   }, [predictionAutoHitDetail, predictionFinalHitStatus, selectedSavedPredictionResult]);
   const selectedPredictionRiderContexts = useMemo<PredictionExportRiderContext[]>(() => {
-    return (selectedRace?.riders ?? []).map((rider) => {
+    return (materialRace?.riders ?? []).map((rider) => {
       const normalizedName = normalizePredictionPlayerName(rider.name);
       const indexItem = predictionPlayerIndex.find((item) => normalizePredictionPlayerName(item.name) === normalizedName) ?? null;
       return {
@@ -9305,7 +9558,7 @@ if (
         card: indexItem ? predictionPlayerCards[indexItem.id] ?? null : null,
       };
     });
-  }, [predictionPlayerCards, predictionPlayerIndex, selectedRace]);
+  }, [materialRace, predictionPlayerCards, predictionPlayerIndex]);
 
   useEffect(() => {
     if (selectedPredictionRiderContexts.length === 0) return;
@@ -9347,28 +9600,28 @@ if (
     [selectedPredictionRiderContexts]
   );
   const selectedPredictionRecentRaceText = useMemo(
-    () => buildPredictionRecentRaceExport(selectedPredictionRiderContexts, selectedVenue, selectedVenueGradeLabel),
-    [selectedPredictionRiderContexts, selectedVenue, selectedVenueGradeLabel]
+    () => buildPredictionRecentRaceExport(selectedPredictionRiderContexts, materialVenue, selectedVenueGradeLabel),
+    [selectedPredictionRiderContexts, materialVenue, selectedVenueGradeLabel]
   );
   const selectedPredictionMatchupText = useMemo(
-    () => buildPredictionMatchupExport(selectedPredictionRiderContexts, selectedRace ?? { raceNo: 0, riders: [] }),
-    [selectedPredictionRiderContexts, selectedRace]
+    () => buildPredictionMatchupExport(selectedPredictionRiderContexts, materialRace ?? { raceNo: 0, riders: [] }),
+    [selectedPredictionRiderContexts, materialRace]
   );
   const selectedPredictionTrackAffinityText = useMemo(
-    () => buildPredictionTrackAffinityExport(selectedPredictionRiderContexts, selectedVenue ?? { id: "", venue: "", session: "day", races: [] }),
-    [selectedPredictionRiderContexts, selectedVenue]
+    () => buildPredictionTrackAffinityExport(selectedPredictionRiderContexts, materialVenue ?? { id: "", venue: "", session: "day", races: [] }),
+    [selectedPredictionRiderContexts, materialVenue]
   );
   const selectedPredictionDataAnalysisText = useMemo(
-    () => buildPredictionDataAnalysisExport(selectedPredictionRiderContexts, selectedVenue ?? { id: "", venue: "", session: "day", races: [] }, selectedRace ?? { raceNo: 0, riders: [] }, selectedVenueSummary),
-    [selectedPredictionRiderContexts, selectedRace, selectedVenue, selectedVenueSummary]
+    () => buildPredictionDataAnalysisExport(selectedPredictionRiderContexts, materialVenue ?? { id: "", venue: "", session: "day", races: [] }, materialRace ?? { raceNo: 0, riders: [] }, selectedVenueSummary),
+    [selectedPredictionRiderContexts, materialRace, materialVenue, selectedVenueSummary]
   );
   const selectedPredictionOddsText = useMemo(
-    () => buildPredictionOddsExport(selectedRace ?? { raceNo: 0 }),
-    [selectedRace]
+    () => buildPredictionOddsExport(materialRace ?? { raceNo: 0 }),
+    [materialRace]
   );
   const selectedPredictionMemoText = useMemo(
-    () => buildPredictionMemoExport(selectedRace ?? { raceNo: 0 }, predictionMemo),
-    [predictionMemo, selectedRace]
+    () => buildPredictionMemoExport(materialRace ?? { raceNo: 0 }, predictionMemo),
+    [predictionMemo, materialRace]
   );
   const sortedPredictionVenues = useMemo(
     () => [...(predictionFeed?.venues ?? [])].sort(comparePredictionVenues),
@@ -9382,11 +9635,11 @@ if (
   const reflectedWeatherCount = Object.values(weatherByVenue).filter((item) => item !== null).length;
 
   const gptExportText = useMemo(() => {
-    if (!predictionFeed || !selectedVenue || !selectedRace) return "対象レースを選択してください。";
+    if (!predictionFeed || !materialVenue || !materialRace) return "対象レースを選択してください。";
     return buildPredictionExportText({
       date: predictionFeed.date,
-      venue: selectedVenue,
-      race: selectedRace,
+      venue: materialVenue,
+      race: materialRace,
       gradeLabel: selectedVenueGradeLabel,
       venueSummary: selectedVenueSummary,
       weather: selectedWeather,
@@ -9400,7 +9653,7 @@ if (
       dataAnalysisText: selectedPredictionDataAnalysisText,
       oddsText: selectedPredictionOddsText,
     });
-  }, [predictionFeed, selectedPredictionDataAnalysisText, selectedPredictionMatchupText, selectedPredictionMemoText, selectedPredictionOddsText, selectedPredictionRecentPerformanceText, selectedPredictionRecentRaceText, selectedPredictionRiderBasicText, selectedPredictionTrackAffinityText, selectedRace, selectedVenue, selectedVenueGradeLabel, selectedVenueSummary, selectedWeather, selectedWeatherFallbackText]);
+  }, [predictionFeed, selectedPredictionDataAnalysisText, selectedPredictionMatchupText, selectedPredictionMemoText, selectedPredictionOddsText, selectedPredictionRecentPerformanceText, selectedPredictionRecentRaceText, selectedPredictionRiderBasicText, selectedPredictionTrackAffinityText, materialRace, materialVenue, selectedVenueGradeLabel, selectedVenueSummary, selectedWeather, selectedWeatherFallbackText]);
   const gptExportLineCount = useMemo(() => gptExportText.split(/\r?\n/).length, [gptExportText]);
   const gptExportCharCount = useMemo(() => gptExportText.length, [gptExportText]);
   const selectedPredictionTargetLabel = selectedVenue && selectedRace ? `${selectedVenue.venue} ${selectedRace.raceNo}R` : "レース選択待ち";
@@ -9409,7 +9662,7 @@ if (
   : "日程確認中";
   const predictionMaterialStateLabel = !selectedVenue || !selectedRace
     ? "対象未選択"
-    : getPredictionMaterialReady(selectedRace)
+    : getPredictionMaterialReady(materialRace)
       ? "素材生成済み"
       : "素材補完中";
   const predictionSlotSaveStateLabel = selectedSavedPredictionSlot ? "保存済み" : "未保存";
