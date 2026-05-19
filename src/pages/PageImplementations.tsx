@@ -410,6 +410,7 @@ export type PredictionRiderItem = {
   name: string;
   style?: string;
   score?: string;
+  totalScore?: string | number;
   gearRatio?: string | number;
   comment?: string;
   prefecture?: string;
@@ -427,9 +428,42 @@ export type PredictionRiderItem = {
   seconds?: string | number;
   thirds?: string | number;
   loses?: string | number;
+  starts?: string | number;
   winRate?: string | number;
   quinellaRate?: string | number;
   trifectaRate?: string | number;
+  previousRaceSummary?: string;
+  previousRaceResults?: PredictionRiderHistoricalRaceItem[];
+  yearlyStats?: PredictionRiderStatsSummaryItem | null;
+  sameTrackYearlyStats?: PredictionRiderStatsSummaryItem | null;
+  localFiveYearStats?: PredictionRiderStatsSummaryItem | null;
+  kdreamsRiderNote?: string;
+};
+
+export type PredictionRiderHistoricalRaceItem = {
+  venue?: string;
+  date?: string;
+  raceName?: string;
+  place?: string;
+  agari?: string;
+  summary?: string;
+};
+
+export type PredictionRiderStatsSummaryItem = {
+  score?: string | number;
+  starts?: string | number;
+  wins?: string | number;
+  seconds?: string | number;
+  thirds?: string | number;
+  losses?: string | number;
+  trackLength?: string;
+  summary?: string;
+  categories?: Record<string, {
+    wins?: string | number;
+    seconds?: string | number;
+    thirds?: string | number;
+    losses?: string | number;
+  }>;
 };
 
 export type PredictionOddsPreviewItem = {
@@ -6694,6 +6728,60 @@ function formatPredictionRateValue(value: unknown, numerator?: number | null, de
   return "未取得";
 }
 
+function getPredictionRiderScoreValue(rider: PredictionRiderItem) {
+  return rider.totalScore ?? rider.score;
+}
+
+function buildPredictionStatsSummaryLine(stats?: PredictionRiderStatsSummaryItem | null) {
+  if (!stats) return "未取得";
+  if (stats.summary) return stats.summary;
+  const starts = normalizePredictionMaterialValue(stats.starts, "");
+  const wins = normalizePredictionMaterialValue(stats.wins, "");
+  const seconds = normalizePredictionMaterialValue(stats.seconds, "");
+  const thirds = normalizePredictionMaterialValue(stats.thirds, "");
+  const losses = normalizePredictionMaterialValue(stats.losses, "");
+  const parts = [
+    starts ? `出走${starts}` : "",
+    wins ? `1着${wins}` : "",
+    seconds ? `2着${seconds}` : "",
+    thirds ? `3着${thirds}` : "",
+    losses ? `着外${losses}` : "",
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join(" / ") : "未取得";
+}
+
+function buildPredictionStatsCategoryLine(stats?: PredictionRiderStatsSummaryItem | null) {
+  const categories = stats?.categories;
+  if (!categories) return "";
+  const parts = Object.entries(categories)
+    .map(([label, value]) => {
+      const wins = normalizePredictionMaterialValue(value?.wins, "");
+      const seconds = normalizePredictionMaterialValue(value?.seconds, "");
+      const thirds = normalizePredictionMaterialValue(value?.thirds, "");
+      const losses = normalizePredictionMaterialValue(value?.losses, "");
+      if (![wins, seconds, thirds, losses].some(Boolean)) return "";
+      return `${label}:${[wins, seconds, thirds, losses].map((item) => item || "-").join("-")}`;
+    })
+    .filter(Boolean);
+  return parts.length > 0 ? parts.join(" / ") : "";
+}
+
+function buildPredictionHistoricalRaceLine(item: PredictionRiderHistoricalRaceItem, index: number) {
+  const summary = item.summary
+    || [
+      item.venue,
+      item.date,
+      item.raceName,
+      item.place,
+      item.agari ? `上がり${item.agari}` : "",
+    ].filter(Boolean).join(" / ");
+  return `- ${index + 1}走前: ${normalizePredictionExportValue(summary, "未取得")}`;
+}
+
+function hasPredictionNarrativeSummary(value?: string) {
+  return Boolean(value && /[^\d.％%\s-]/.test(value));
+}
+
 function getPredictionContextProfile(context: PredictionExportRiderContext) {
   const prefectureProfile = getPredictionCardProfileValue(context.card, ["府県／地域"]);
   const ageProfile = getPredictionCardProfileValue(context.card, ["生年月日／年齢", "年齢"]);
@@ -6720,6 +6808,8 @@ function buildPredictionEnhancedMetrics(context: PredictionExportRiderContext) {
   const thirds = parsePredictionIntegerLike(rider.thirds) ?? parsePredictionIntegerLike(recentCounts?.["3着"]);
   const loses = parsePredictionIntegerLike(rider.loses) ?? parsePredictionIntegerLike(recentCounts?.["着外"]);
   const totalStarts = parsePredictionIntegerLike(recentCounts?.["出走"])
+    ?? parsePredictionIntegerLike(rider.starts)
+    ?? parsePredictionIntegerLike(rider.yearlyStats?.starts)
     ?? (wins !== null && seconds !== null && thirds !== null && loses !== null ? wins + seconds + thirds + loses : null);
 
   return {
@@ -6747,7 +6837,7 @@ function buildPredictionRiderProfileLine(context: PredictionExportRiderContext) 
   return [
     `### ${context.rider.carNo}番 ${context.rider.name}`,
     `- 脚質: ${normalizePredictionMaterialValue(context.rider.style ?? context.indexItem?.style)}`,
-    `- 競走得点: ${normalizePredictionMaterialValue(context.rider.score)}`,
+    `- 競走得点: ${normalizePredictionMaterialValue(getPredictionRiderScoreValue(context.rider))}`,
     `- 府県: ${normalizePredictionMaterialValue(profile.prefecture)}`,
     `- 期別: ${normalizePredictionMaterialValue(profile.term)}`,
     `- 年齢: ${normalizePredictionMaterialValue(profile.age)}`,
@@ -6773,16 +6863,22 @@ function buildPredictionRecentPerformanceExport(contexts: PredictionExportRiderC
     const recentNotes = extractPredictionNarrativeLines(getPredictionCardSectionContent(context.card, "10）直近4ヶ月"));
     const kimariteTables = getPredictionSectionTables(context.card, "13）決まり手");
     const kimariteRow = getPredictionFirstBodyRow(kimariteTables[0]);
+    const yearlySummary = buildPredictionStatsSummaryLine(context.rider.yearlyStats);
+    const yearlyCategories = buildPredictionStatsCategoryLine(context.rider.yearlyStats);
     return [
       `### ${context.rider.carNo}番 ${context.rider.name}`,
       "[直近4ヶ月]",
-      `- 出走:${normalizePredictionMaterialValue(recentCounts?.["出走"] ?? metrics.totalStarts)} / 1着:${normalizePredictionMaterialValue(recentCounts?.["1着"] ?? metrics.wins)} / 2着:${normalizePredictionMaterialValue(recentCounts?.["2着"] ?? metrics.seconds)} / 3着:${normalizePredictionMaterialValue(recentCounts?.["3着"] ?? metrics.thirds)} / 着外:${normalizePredictionMaterialValue(recentCounts?.["着外"] ?? metrics.loses)}`,
-      `- 勝率:${normalizePredictionMaterialValue(recentRates?.["勝率"] ?? metrics.winRate)} / 2連対率:${normalizePredictionMaterialValue(recentRates?.["2連対率"] ?? metrics.quinellaRate)} / 3連対率:${normalizePredictionMaterialValue(recentRates?.["3連対率"] ?? metrics.trifectaRate)} / 競走得点:${normalizePredictionMaterialValue(recentRates?.["競走得点"] ?? context.rider.score)} / B:${normalizePredictionMaterialValue(recentRates?.["B（バック）"] ?? metrics.b)} / S:${normalizePredictionMaterialValue(recentRates?.["S"] ?? metrics.s)}`,
+      `- 出走:${normalizePredictionMaterialValue(recentCounts?.["出走"] ?? metrics.totalStarts ?? context.rider.yearlyStats?.starts)} / 1着:${normalizePredictionMaterialValue(recentCounts?.["1着"] ?? metrics.wins ?? context.rider.yearlyStats?.wins)} / 2着:${normalizePredictionMaterialValue(recentCounts?.["2着"] ?? metrics.seconds ?? context.rider.yearlyStats?.seconds)} / 3着:${normalizePredictionMaterialValue(recentCounts?.["3着"] ?? metrics.thirds ?? context.rider.yearlyStats?.thirds)} / 着外:${normalizePredictionMaterialValue(recentCounts?.["着外"] ?? metrics.loses ?? context.rider.yearlyStats?.losses)}`,
+      `- 勝率:${normalizePredictionMaterialValue(recentRates?.["勝率"] ?? metrics.winRate)} / 2連対率:${normalizePredictionMaterialValue(recentRates?.["2連対率"] ?? metrics.quinellaRate)} / 3連対率:${normalizePredictionMaterialValue(recentRates?.["3連対率"] ?? metrics.trifectaRate)} / 競走得点:${normalizePredictionMaterialValue(recentRates?.["競走得点"] ?? getPredictionRiderScoreValue(context.rider) ?? context.rider.yearlyStats?.score)} / B:${normalizePredictionMaterialValue(recentRates?.["B（バック）"] ?? metrics.b)} / S:${normalizePredictionMaterialValue(recentRates?.["S"] ?? metrics.s)}`,
       ...(recentNotes.length > 0 ? [`- 補足: ${recentNotes.join(" / ")}`] : []),
       "",
       "[決まり手]",
       `- 逃げ:${normalizePredictionMaterialValue(kimariteRow?.["逃げ"] ?? metrics.nige)} / 捲り:${normalizePredictionMaterialValue(kimariteRow?.["捲り"] ?? metrics.makuri)} / 差し:${normalizePredictionMaterialValue(kimariteRow?.["差し"] ?? metrics.sashi)} / マーク:${normalizePredictionMaterialValue(kimariteRow?.["マーク"] ?? metrics.mark)}`,
       `- 連対内訳:${normalizePredictionMaterialValue(kimariteRow?.["連対内訳（割合）"], buildPredictionKimariteBreakdown(metrics))}`,
+      "",
+      "[年間勝利度数]",
+      `- 集計: ${yearlySummary}`,
+      ...(yearlyCategories ? [`- 内訳: ${yearlyCategories}`] : []),
     ].join("\n");
   }).join("\n\n");
 }
@@ -6792,6 +6888,7 @@ function buildPredictionRecentRaceExport(contexts: PredictionExportRiderContext[
   void venue;
   void gradeLabel;
   return contexts.map((context) => {
+    const riderResults = (context.rider.previousRaceResults ?? []).slice(0, 3).map((item, index) => buildPredictionHistoricalRaceLine(item, index));
     const recentRaceTable = getPredictionSectionTables(context.card, "14）直近レース")[0];
     const recentRaceRows = (recentRaceTable?.body ?? [])
       .slice(0, 3)
@@ -6806,7 +6903,9 @@ function buildPredictionRecentRaceExport(contexts: PredictionExportRiderContext[
       .filter(Boolean);
     return [
       `### ${context.rider.carNo}番 ${context.rider.name}`,
-      ...(recentRaceRows.length > 0 ? recentRaceRows : ["- 直近3走: 未取得"]),
+      ...(hasPredictionNarrativeSummary(context.rider.previousRaceSummary) ? [`- 前回出走要約: ${normalizePredictionMaterialValue(context.rider.previousRaceSummary)}`] : []),
+      ...(riderResults.length > 0 ? riderResults : recentRaceRows.length > 0 ? recentRaceRows : ["- 直近3走: 未取得"]),
+      ...(context.rider.kdreamsRiderNote ? [`- KDreams補足: ${normalizePredictionMaterialValue(context.rider.kdreamsRiderNote)}`] : []),
     ].join("\n");
   }).join("\n\n");
 }
@@ -6831,6 +6930,8 @@ function buildPredictionTrackAffinityExport(contexts: PredictionExportRiderConte
   return contexts.map((context) => {
     const profile = getPredictionContextProfile(context);
     const circumferenceSection = getPredictionCardSectionSubcontent(context.card, "24）条件別・位置別", "周長別成績");
+    const sameTrackSummary = buildPredictionStatsSummaryLine(context.rider.sameTrackYearlyStats);
+    const localFiveYearSummary = buildPredictionStatsSummaryLine(context.rider.localFiveYearStats);
     const venueMemo = profile.homeBank && profile.homeBank.includes(venue.venue)
       ? `ホームバンク一致: ${profile.homeBank}`
       : profile.homeBank
@@ -6838,10 +6939,12 @@ function buildPredictionTrackAffinityExport(contexts: PredictionExportRiderConte
         : "ホームバンク: 未取得";
     return [
       `### ${context.rider.carNo}番 ${context.rider.name}`,
-      `- 競輪場別: 未取得`,
+      `- 同走路年間勝利度数${context.rider.sameTrackYearlyStats?.trackLength ? `(${context.rider.sameTrackYearlyStats.trackLength})` : ""}: ${sameTrackSummary}`,
+      `- 当所5年: ${localFiveYearSummary}`,
       `- 会場相性メモ: ${venueMemo}`,
       `- ホームバンク: ${normalizePredictionMaterialValue(profile.homeBank)}`,
       `- 得意な周長: ${normalizePredictionMaterialValue(profile.preferredLength)}`,
+      ...(context.rider.kdreamsRiderNote ? [`- KDreams補足: ${normalizePredictionMaterialValue(context.rider.kdreamsRiderNote)}`] : []),
       normalizePredictionMaterialValue(sanitizePredictionTemplateNoise(circumferenceSection), "- 周長別成績: 未取得"),
     ].join("\n");
   }).join("\n\n");
