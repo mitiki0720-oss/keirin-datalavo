@@ -357,6 +357,13 @@ type RacePayoutLikeItem = {
   betType?: string | null;
   combination?: string | null;
   payout?: string | null;
+  amountYen?: number | string | null;
+  payoutYen?: number | string | null;
+  amount?: number | string | null;
+  refund?: number | string | null;
+  value?: number | string | null;
+  text?: string | null;
+  label?: string | null;
   popularity?: string | null;
 };
 
@@ -1076,13 +1083,50 @@ export const extractPredictionRaceResultOrder = (race: PredictionRaceItem | null
   return "";
 };
 
-export const parsePredictionPayoutAmount = (value?: string | null) => {
-  if (!value) return undefined;
-  const normalized = value.replace(/[^\d]/g, "");
-  if (!normalized) return undefined;
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : undefined;
+export const parsePayoutAmountYen = (value: unknown): number | undefined => {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : undefined;
+  }
+
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const candidates = [
+      record.amountYen,
+      record.payoutYen,
+      record.amount,
+      record.payout,
+      record.refund,
+      record.value,
+      record.text,
+      record.label,
+    ];
+
+    for (const candidate of candidates) {
+      const parsed = parsePayoutAmountYen(candidate);
+      if (parsed !== undefined) return parsed;
+    }
+  }
+
+  const text = String(value ?? "").trim();
+  if (!text) return undefined;
+
+  const yenMatch = text.match(/([\d,]+)\s*円/u);
+  if (yenMatch?.[1]) {
+    const amount = Number(yenMatch[1].replace(/,/g, ""));
+    return Number.isFinite(amount) ? amount : undefined;
+  }
+
+  const beforePopularity = text.split(/[（(]/u)[0] ?? text;
+  const amountMatch = beforePopularity.match(/([\d,]+)\s*$/u);
+  if (amountMatch?.[1]) {
+    const amount = Number(amountMatch[1].replace(/,/g, ""));
+    return Number.isFinite(amount) ? amount : undefined;
+  }
+
+  return undefined;
 };
+
+export const parsePredictionPayoutAmount = (value?: string | null) => parsePayoutAmountYen(value);
 
 export const resolvePredictionRaceGeneratedResult = (
   date: string,
@@ -1594,7 +1638,7 @@ export const resolvePredictionResultMetrics = ({
     : { status: "pending" as const };
   const hitBetType = sourceRecord.hitBetType ?? (derivedHitDetail.status === "hit" ? derivedHitDetail.hitBetType : undefined);
   const hitCombination = sourceRecord.hitCombination ?? (derivedHitDetail.status === "hit" ? derivedHitDetail.hitCombination : undefined);
-  const racePayout = parsePredictionPayoutAmount(resolveRacePayoutByBetType(race, hitBetType)?.payout);
+  const racePayout = parsePayoutAmountYen(resolveRacePayoutByBetType(race, hitBetType));
   const perTicketStake = ticketCount > 0 && investment !== undefined
     ? investment / ticketCount
     : undefined;
