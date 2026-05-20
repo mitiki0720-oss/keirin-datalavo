@@ -605,8 +605,191 @@ export type HitNotificationRecord = {
   hitCombination?: string;
   payout?: number;
   profitLoss?: number;
+  payoutAmountYen?: number;
+  payoutPopularity?: number;
+  payoutText?: string;
+  investmentYen?: number;
+  roiPercent?: number;
+  warningNote?: string;
   createdAt: string;
   read?: boolean;
+};
+
+type HitNotificationLookupItem = {
+  race?: PredictionRaceItem;
+  venue?: PredictionVenueItem;
+  predictionText?: string;
+  resultRecord?: PredictionResultRecord;
+};
+
+const normalizePredictionPayoutCombination = (value?: string | null) => {
+  return normalizePredictionTrifectaText(String(value ?? "").replace(/[=＝]/g, "-"));
+};
+
+const parsePayoutPopularity = (value: unknown): number | undefined => {
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value > 0 ? value : undefined;
+  }
+
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const candidates = [record.popularity, record.rank, record.text, record.label, record.payout, record.value];
+    for (const candidate of candidates) {
+      const parsed = parsePayoutPopularity(candidate);
+      if (parsed !== undefined) return parsed;
+    }
+  }
+
+  const text = String(value ?? "").trim();
+  if (!text) return undefined;
+
+  const parenMatch = text.match(/[（(]\s*(\d+)\s*[)）]/u);
+  if (parenMatch?.[1]) {
+    const parsed = Number(parenMatch[1]);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+  }
+
+  const exactMatch = text.match(/^\d+$/u);
+  if (!exactMatch) return undefined;
+  const parsed = Number(exactMatch[0]);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+};
+
+const findPayoutByBetTypeAndCombination = <T extends { betType?: string | null; combination?: string | null }>(
+  payouts: readonly T[] | null | undefined,
+  betType?: string | null,
+  combination?: string | null,
+): T | undefined => {
+  const normalizedBetType = normalizeBetTypeLabel(betType);
+  const normalizedCombination = normalizePredictionPayoutCombination(combination);
+  if (!normalizedBetType || !normalizedCombination || !Array.isArray(payouts)) return undefined;
+
+  return payouts.find((item) => {
+    return normalizeBetTypeLabel(item?.betType) === normalizedBetType
+      && normalizePredictionPayoutCombination(item?.combination) === normalizedCombination;
+  });
+};
+
+const resolveRacePayoutForHit = (
+  race?: {
+    payouts?: readonly RacePayoutLikeItem[] | null;
+    result?: RacePayoutLikeResult | null;
+  } | null,
+  betType?: string | null,
+  combination?: string | null,
+): RacePayoutLikeItem | undefined => {
+  if (!race || !betType) return undefined;
+
+  const exactPayout = findPayoutByBetTypeAndCombination(race.payouts, betType, combination);
+  if (exactPayout) return exactPayout;
+
+  const fallbackPayout = resolveRacePayoutByBetType(race, betType);
+  if (!fallbackPayout) return undefined;
+  if (!combination) return fallbackPayout;
+
+  const normalizedFallbackCombination = normalizePredictionPayoutCombination(fallbackPayout.combination);
+  const normalizedTargetCombination = normalizePredictionPayoutCombination(combination);
+  if (!normalizedFallbackCombination || normalizedFallbackCombination === normalizedTargetCombination) {
+    return fallbackPayout;
+  }
+
+  return undefined;
+};
+
+const buildHitNotificationLookup = (
+  feed: PredictionTodayFeed | null,
+  slotMap: PredictionSlotMap,
+  resultMap: PredictionResultMap,
+) => {
+  const lookup = new Map<string, HitNotificationLookupItem>();
+  if (!feed) return lookup;
+
+  feed.venues.forEach((venue) => {
+    venue.races.forEach((race) => {
+      const slotLookup = findPredictionSlotRecord(slotMap, feed.date, venue, race);
+      const resultLookup = findPredictionResultRecord(resultMap, feed.date, venue, race);
+      const item: HitNotificationLookupItem = {
+        race,
+        venue,
+        predictionText: slotLookup.record?.predictionText ?? "",
+        resultRecord: resultLookup.record,
+      };
+
+      getPredictionSlotKeysForLookup(feed.date, venue, race).forEach((key) => {
+        lookup.set(key, item);
+      });
+    });
+  });
+
+  return lookup;
+};
+
+const resolveHitNotificationRecord = (
+  notification: HitNotificationRecord,
+  lookupItem?: HitNotificationLookupItem,
+): HitNotificationRecord => {
+  const resultRecord = lookupItem?.resultRecord;
+  const race = lookupItem?.race;
+  const hitBetType = resultRecord?.hitBetType ?? notification.hitBetType;
+  const hitCombination = resultRecord?.hitCombination ?? notification.hitCombination;
+  const payoutItem = resolveRacePayoutForHit(race, hitBetType, hitCombination);
+  const canonicalPayout = parsePayoutAmountYen(payoutItem);
+  const savedPayoutFromText = parsePayoutAmountYen(notification.payoutText);
+  const savedPayout = notification.payoutAmountYen ?? notification.payout;
+  const fallbackPayout = canonicalPayout ?? savedPayoutFromText ?? savedPayout;
+
+  const baseRecord: Partial<PredictionResultRecord> = resultRecord ?? {
+    raceKey: notification.raceKey,
+    raceId: "",
+    venue: notification.venue,
+    date: notification.date,
+    raceNumber: notification.raceNumber,
+    resultOrder: race ? extractPredictionRaceResultOrder(race) : "",
+    autoHitStatus: "hit",
+    hitStatus: "hit",
+    hitBetType,
+    hitCombination,
+    investment: notification.investmentYen,
+    payout: fallbackPayout,
+    memo: "",
+    savedAt: notification.createdAt,
+  };
+
+  const resolvedMetrics = resolvePredictionResultMetrics({
+    record: {
+      ...baseRecord,
+      hitBetType,
+      hitCombination,
+      payout: fallbackPayout,
+    },
+    race,
+    predictionText: lookupItem?.predictionText ?? "",
+  });
+
+  const payout = resolvedMetrics.payout ?? fallbackPayout;
+  const savedProfitLoss = typeof notification.profitLoss === "number" && Number.isFinite(notification.profitLoss)
+    ? notification.profitLoss
+    : undefined;
+  const savedRoi = typeof notification.roiPercent === "number" && Number.isFinite(notification.roiPercent)
+    ? notification.roiPercent
+    : undefined;
+  const suspiciousSavedPayout = savedPayout !== undefined && savedPayoutFromText !== undefined && savedPayout !== savedPayoutFromText;
+
+  return {
+    ...notification,
+    hitBetType,
+    hitCombination,
+    payout,
+    profitLoss: resolvedMetrics.profitLoss ?? savedProfitLoss,
+    payoutAmountYen: payout,
+    payoutPopularity: parsePayoutPopularity(payoutItem?.popularity ?? payoutItem?.payout ?? notification.payoutPopularity),
+    payoutText: payoutItem?.payout ?? notification.payoutText,
+    investmentYen: resolvedMetrics.investment ?? notification.investmentYen,
+    roiPercent: resolvedMetrics.roi ?? savedRoi,
+    warningNote: canonicalPayout === undefined && suspiciousSavedPayout
+      ? "保存済み払戻を補正して表示中"
+      : undefined,
+  };
 };
 
 export type PredictionResultDailySummary = {
@@ -8431,6 +8614,10 @@ export function PredictionPage() {
   const [weatherByVenue, setWeatherByVenue] = useState<Record<string, PredictionWeatherData | null>>({});
   const [weatherStatusByVenue, setWeatherStatusByVenue] = useState<Record<string, string>>({});
   const [weatherLoadingVenue, setWeatherLoadingVenue] = useState("");
+  const hitNotificationLookup = useMemo(
+    () => buildHitNotificationLookup(predictionFeed, savedPredictionSlots, savedPredictionResults),
+    [predictionFeed, savedPredictionSlots, savedPredictionResults]
+  );
 
   useEffect(() => {
   if (typeof window === "undefined") return;
@@ -8446,8 +8633,8 @@ export function PredictionPage() {
 
   const notifiedKeySet = new Set(loadHitNotificationKeys());
   const currentNotifications = loadHitNotifications();
-  const currentNotificationIdSet = new Set(currentNotifications.map((item) => item.id));
   const nextNotifications = [...currentNotifications];
+  const currentNotificationIdSet = new Set(currentNotifications.map((item) => item.id));
 
   let hasChange = false;
 
@@ -8456,7 +8643,7 @@ export function PredictionPage() {
     if (!raceKey) return;
     if (notifiedKeySet.has(raceKey)) return;
 
-    const notification: HitNotificationRecord = {
+    const notification = resolveHitNotificationRecord({
       id: `hit:${raceKey}`,
       raceKey,
       date: record.date,
@@ -8465,18 +8652,40 @@ export function PredictionPage() {
       hitBetType: record.hitBetType,
       hitCombination: record.hitCombination,
       payout: record.payout,
+      payoutAmountYen: record.payout,
+      payoutText: resolveRacePayoutForHit(hitNotificationLookup.get(raceKey)?.race, record.hitBetType, record.hitCombination)?.payout ?? undefined,
+      payoutPopularity: parsePayoutPopularity(resolveRacePayoutForHit(hitNotificationLookup.get(raceKey)?.race, record.hitBetType, record.hitCombination)?.popularity),
+      investmentYen: record.investment,
       profitLoss: record.profitLoss,
+      roiPercent: record.roi,
       createdAt: new Date().toISOString(),
       read: false,
-    };
+    }, hitNotificationLookup.get(raceKey));
 
-    if (!currentNotificationIdSet.has(notification.id)) {
+    const existingIndex = nextNotifications.findIndex((item) => item.id === notification.id);
+
+    if (existingIndex >= 0) {
+      const currentNotification = nextNotifications[existingIndex];
+      const updatedNotification = resolveHitNotificationRecord({
+        ...currentNotification,
+        ...notification,
+        createdAt: currentNotification.createdAt,
+        read: currentNotification.read,
+      }, hitNotificationLookup.get(raceKey));
+
+      if (JSON.stringify(currentNotification) !== JSON.stringify(updatedNotification)) {
+        nextNotifications[existingIndex] = updatedNotification;
+        hasChange = true;
+      }
+    }
+
+    if (existingIndex < 0 && !currentNotificationIdSet.has(notification.id)) {
       nextNotifications.unshift(notification);
       currentNotificationIdSet.add(notification.id);
+      hasChange = true;
     }
 
     notifiedKeySet.add(raceKey);
-    hasChange = true;
   });
 
   if (!hasChange) return;
@@ -8485,7 +8694,7 @@ export function PredictionPage() {
   saveHitNotifications(storedNotifications);
   setHitNotifications(storedNotifications);
   saveHitNotificationKeys(Array.from(notifiedKeySet));
-}, [savedPredictionResults]);
+}, [hitNotificationLookup, savedPredictionResults]);
 
 useEffect(() => {
   if (typeof window === "undefined") return;
@@ -8512,6 +8721,11 @@ useEffect(() => {
 const todayHitNotifications = useMemo(
   () => hitNotifications.filter((item) => item.date === TODAY),
   [hitNotifications]
+);
+
+const resolvedTodayHitNotifications = useMemo(
+  () => todayHitNotifications.map((item) => resolveHitNotificationRecord(item, hitNotificationLookup.get(item.raceKey))),
+  [hitNotificationLookup, todayHitNotifications]
 );
 
 useEffect(() => {
@@ -9886,7 +10100,7 @@ const record = normalizePredictionResultRecord({
             ))}
           </section>
 
-          {todayHitNotifications.length > 0 && (
+          {resolvedTodayHitNotifications.length > 0 && (
             <section
               style={{
                 borderRadius: "30px",
@@ -9923,7 +10137,7 @@ const record = normalizePredictionResultRecord({
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {todayHitNotifications.length}件
+                  {resolvedTodayHitNotifications.length}件
                 </div>
               </div>
 
@@ -9973,7 +10187,7 @@ const record = normalizePredictionResultRecord({
         willChange: "transform",
       }}
     >
-      {[...todayHitNotifications.slice(0, 12), ...todayHitNotifications.slice(0, 12)].map((item, index) => {
+      {[...resolvedTodayHitNotifications.slice(0, 12), ...resolvedTodayHitNotifications.slice(0, 12)].map((item, index) => {
         const isProfitPlus = (item.profitLoss ?? 0) > 0;
         const isProfitMinus = (item.profitLoss ?? 0) < 0;
         const hitTone = getPredictionHitBadgeTone(item.hitBetType);
@@ -10101,6 +10315,22 @@ const record = normalizePredictionResultRecord({
                 </span>
               </div>
             </div>
+
+            {item.warningNote ? (
+              <div
+                style={{
+                  fontSize: "10px",
+                  color: "#8a5a00",
+                  lineHeight: 1.45,
+                  background: "rgba(255,247,214,0.75)",
+                  border: "1px solid #f4d99b",
+                  borderRadius: "10px",
+                  padding: "6px 8px",
+                }}
+              >
+                {item.warningNote}
+              </div>
+            ) : null}
           </article>
         );
       })}
