@@ -870,7 +870,7 @@ function mergeReviewRaceWithSnapshot(
     oddsTrifecta: pickReviewTrifectaOdds(feedRace, snapshotRace),
     resultStatus: feedRace.resultStatus || snapshotRace.resultStatus,
     resultTop3: feedRace.resultTop3?.length ? feedRace.resultTop3 : snapshotRace.resultTop3,
-    payouts: feedRace.payouts?.length ? feedRace.payouts : snapshotRace.payouts,
+    payouts: feedRace.payouts ?? snapshotRace.payouts,
     result: mergePredictionRaceResult(feedRace.result, snapshotRace.result),
     sourceNote: feedRace.sourceNote || snapshotRace.sourceNote,
     resultNote: feedRace.resultNote || snapshotRace.resultNote,

@@ -1907,10 +1907,10 @@ function extractOddsParkResultData(html) {
     sLeaderCarNo: rows.find((item) => item.sMark)?.carNo ?? "",
     hLeaderCarNo: "",
     bLeaderCarNo: rows.find((item) => item.bMark)?.carNo ?? "",
-    payout2tan: pickNetkeirinPayoutItem(payouts, ["2車単"]),
+    payout2tan: pickNetkeirinPayoutItem(payouts, ["2車単", "二車単"]),
     payout2fuku: pickNetkeirinPayoutItem(payouts, ["2車複", "二車複"], true),
-    payout3tan: pickNetkeirinPayoutItem(payouts, ["3連単"]),
-    payout3fuku: pickNetkeirinPayoutItem(payouts, ["3連複"]),
+    payout3tan: pickNetkeirinPayoutItem(payouts, ["3連単", "三連単"]),
+    payout3fuku: pickNetkeirinPayoutItem(payouts, ["3連複", "三連複"]),
     payoutWide: pickNetkeirinPayoutItem(payouts, ["ワイド"], true),
     finalizedAt: "",
   };
