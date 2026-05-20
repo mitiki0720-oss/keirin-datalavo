@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   SiteHeader,
+  buildPredictionExportText,
   findPredictionResultRecord,
   getDisplayRidersForKeirinRace,
   resolveRacePayoutByBetType,
@@ -8,6 +9,12 @@ import {
   PREDICTION_RESULT_STORAGE_KEY,
   useIsMobile,
   type PredictionResultMap,
+  type PredictionRaceItem,
+  type PredictionRiderHistoricalRaceItem,
+  type PredictionRiderStatsSummaryItem,
+  type PredictionVenueItem,
+  type PredictionVenueSummary,
+  type PredictionWeatherData,
 } from "./PageImplementations";
 import type { ReactNode } from "react";
 import { raceScheduleData } from "../data/raceScheduleData";
@@ -484,6 +491,12 @@ type LiveRaceRider = {
   quinellaRate?: string;
   trifectaRate?: string;
   gear?: string | number;
+  previousRaceSummary?: string;
+  previousRaceResults?: PredictionRiderHistoricalRaceItem[];
+  yearlyStats?: PredictionRiderStatsSummaryItem | null;
+  sameTrackYearlyStats?: PredictionRiderStatsSummaryItem | null;
+  localFiveYearStats?: PredictionRiderStatsSummaryItem | null;
+  kdreamsRiderNote?: string;
 };
 
 type LiveRaceOddsPreviewItem = {
@@ -1774,8 +1787,7 @@ export default function RacesPage() {
 
   const [selectedVenueId, setSelectedVenueId] = useState<string>(effectiveTodayRaces[0]?.id ?? "");
   const [selectedRaceNo, setSelectedRaceNo] = useState<number>(effectiveTodayRaces[0]?.races?.[0]?.raceNo ?? 1);
-  const [activeRaceInfoTab, setActiveRaceInfoTab] = useState<"card" | "recent" | "matchup" | "track" | "gpt">("card");
-  const [activeCardDataTab, setActiveCardDataTab] = useState("データ分析");
+  const [activeRaceInfoTab, setActiveRaceInfoTab] = useState<"card" | "recent" | "previous" | "yearly" | "sameTrack" | "local" | "gpt">("card");
   const [oddsSortMode, setOddsSortMode] = useState<"popularity" | "odds">("popularity");
   const [oddsDisplayLimit, setOddsDisplayLimit] = useState<50 | 100 | "all">("all");
   const [venueBankIndex, setVenueBankIndex] = useState<VenueBankIndexItem[]>([]);
@@ -2245,6 +2257,63 @@ const selectedRaceResultCards = [
     return "—";
   };
 
+  const normalizeRacesPageMaterialValue = (value: unknown, fallback = "未取得") => {
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      return trimmed || fallback;
+    }
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return String(value);
+    }
+    return fallback;
+  };
+
+  const buildRacesPageStatsSummaryLine = (stats?: PredictionRiderStatsSummaryItem | null) => {
+    if (!stats) return "未取得";
+    if (stats.summary?.trim()) return stats.summary.trim();
+    const starts = normalizeRacesPageMaterialValue(stats.starts, "");
+    const wins = normalizeRacesPageMaterialValue(stats.wins, "");
+    const seconds = normalizeRacesPageMaterialValue(stats.seconds, "");
+    const thirds = normalizeRacesPageMaterialValue(stats.thirds, "");
+    const losses = normalizeRacesPageMaterialValue(stats.losses, "");
+    const parts = [
+      starts ? `出走${starts}` : "",
+      wins ? `1着${wins}` : "",
+      seconds ? `2着${seconds}` : "",
+      thirds ? `3着${thirds}` : "",
+      losses ? `着外${losses}` : "",
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(" / ") : "未取得";
+  };
+
+  const buildRacesPageStatsCategoryLine = (stats?: PredictionRiderStatsSummaryItem | null) => {
+    const categories = stats?.categories;
+    if (!categories) return "";
+    return Object.entries(categories)
+      .map(([label, value]) => {
+        const wins = normalizeRacesPageMaterialValue(value?.wins, "");
+        const seconds = normalizeRacesPageMaterialValue(value?.seconds, "");
+        const thirds = normalizeRacesPageMaterialValue(value?.thirds, "");
+        const losses = normalizeRacesPageMaterialValue(value?.losses, "");
+        if (![wins, seconds, thirds, losses].some(Boolean)) return "";
+        return `${label}:${[wins, seconds, thirds, losses].map((item) => item || "-").join("-")}`;
+      })
+      .filter(Boolean)
+      .join(" / ");
+  };
+
+  const buildRacesPageHistoricalRaceLine = (item: PredictionRiderHistoricalRaceItem, index: number) => {
+    const pieces = [
+      item.date?.trim(),
+      item.venue?.trim(),
+      item.raceName?.trim(),
+      item.place ? `${item.place}着` : "",
+      item.agari?.trim() ? `上がり ${item.agari.trim()}` : "",
+      item.summary?.trim(),
+    ].filter(Boolean);
+    return pieces.length > 0 ? pieces.join(" / ") : `${index + 1}. 前回出走データ未取得`;
+  };
+
   const deriveRiderProfileLine = (rider: LiveRaceRider) => {
     const parts = [
       rider.prefecture?.trim(),
@@ -2631,7 +2700,7 @@ const selectedRaceResultCards = [
       metrics,
       markInfo,
       profileLine: deriveRiderProfileLine(rider),
-      commentLabel: rider.comment?.trim() || markInfo?.note || "コメント反映待ち",
+      commentLabel: rider.comment?.trim() || "コメント未掲載",
     };
   });
 
@@ -2659,224 +2728,98 @@ const selectedRaceResultCards = [
 【消しの芯】${coreFadeLabel}
 【展開メモ】${selectedRace?.sourceNote?.trim() || "整理中"}`;
 
-  const raceInfoTabs = [
-    { key: "card" as const, label: "出走表", sub: "基本データ" },
-    { key: "recent" as const, label: "近況成績", sub: "直近3走" },
-    { key: "matchup" as const, label: "対戦表", sub: "相性メモ" },
-    { key: "track" as const, label: "競輪場別", sub: "会場相性" },
-    { key: "gpt" as const, label: "GPT用素材", sub: "貼り付け用" },
-  ];
-
-  const recentPerformanceRows = selectedRiders.map((rider, index) => {
-    const scoreValue = parseScoreValue(rider.score) ?? 92;
-    const recent1 = Math.max(1, Math.min(9, Math.round(8 - (scoreValue - 90) / 2 + (index % 3))));
-    const recent2 = Math.max(1, Math.min(9, Math.round(7 - (scoreValue - 90) / 2 + ((index + 1) % 3))));
-    const recent3 = Math.max(1, Math.min(9, Math.round(6 - (scoreValue - 90) / 2 + ((index + 2) % 3))));
-    const kimarite = rider.style.includes("逃") ? "逃" : rider.style.includes("捲") ? "捲" : rider.style.includes("追") ? "差" : "両";
-    return {
-      carNo: rider.carNo,
-      name: rider.name,
-      score: rider.score || "—",
-      style: rider.style || "—",
-      recent1,
-      recent2,
-      recent3,
-      kimarite,
-      place: index === 0 ? "前橋" : index === 1 ? "平塚" : selectedVenue?.venue || "取手",
-      grade: selectedVenue?.grade || "F2",
-    };
-  });
-
-  const matchupMatrix = selectedRiders.map((rowRider, rowIndex) => ({
-    rider: rowRider,
-    cells: selectedRiders.map((colRider, colIndex) => {
-      if (rowRider.carNo === colRider.carNo) return "-";
-      const left = (rowIndex + colIndex + Number(rowRider.carNo)) % 4;
-      const right = (colIndex + rowIndex + Number(colRider.carNo)) % 3;
-      return `${left}-${right}`;
-    }),
-  }));
-
-  const trackConditionRows = selectedRiders.map((rider, index) => {
-    const scoreValue = parseScoreValue(rider.score) ?? 92;
-    const winRate = Math.max(0, Math.min(35, Number(((scoreValue - 88) * 2.2 - index).toFixed(1))));
-    const quinellaRate = Math.max(winRate + 6, Math.min(65, Number((winRate + 16 + (index % 3) * 2).toFixed(1))));
-    const trifectaRate = Math.max(quinellaRate + 4, Math.min(82, Number((quinellaRate + 11 + (index % 2) * 3).toFixed(1))));
-    return {
-      carNo: rider.carNo,
-      name: rider.name,
-      venue: selectedVenue?.venue || "会場待ち",
-      first: Math.max(0, Math.round(winRate / 8)),
-      second: Math.max(0, Math.round((quinellaRate - winRate) / 7)),
-      third: Math.max(0, Math.round((trifectaRate - quinellaRate) / 8)),
-      out: Math.max(1, 10 - Math.round(trifectaRate / 10)),
-      starts: Math.max(6, 8 + (index % 4) + Math.round(winRate / 10)),
-      winRate,
-      quinellaRate,
-      trifectaRate,
-    };
-  });
-
-  const cardAnalysisTabs = [
-    "データ分析",
-    "レース種目別",
-    "周長",
-    "見なし直線",
-    "競輪場別",
-    "位置別",
-    "時間帯別",
-    "日程別",
-    "グレード別",
-    "グレードレース種目",
-    "車番別",
-    "同県選手同乗時",
-    "同一ライン",
-  ];
-
-  const lineupGroups = parsedRaceLineup?.segments.map((segment, groupIndex) => ({
-    id: groupIndex + 1,
-    cars: flattenRacesPageLineupSegmentCars(segment),
-    label: formatRacesPageLineupSegment(segment),
-    hasBattle: segment.kind === "battle",
-  })) ?? [];
-
-  const extractPrefecture = (profileLine?: string) => {
-    const head = (profileLine ?? "").split("・")[0]?.trim() || "所属未反映";
-    return head.replace(/^府県[:：]?/, "").trim() || "所属未反映";
+  const predictionVenueSummary: PredictionVenueSummary = {
+    bankFeature: selectedVenueGuideSummary.bankCharacter,
+    target: selectedVenueGuideSummary.target,
+    caution: selectedVenueGuideSummary.caution,
+    volatility: selectedVenueGuideSummary.volatility.label,
+    bankLength: selectedVenueGuideSummary.bankLength,
+    bankMemo: selectedVenueGuideSummary.venueMemo,
+    source: selectedVenueGuideSummary.hasData ? "linked" : "missing",
   };
 
-  const analysisSummaryRows = enhancedRiderRows.map(({ rider, metrics, markInfo, profileLine }) => ({
-    carNo: rider.carNo,
-    name: rider.name,
+  const predictionWeather: PredictionWeatherData | null = venueWeather
+    ? {
+        weatherLabel: venueWeather.weatherLabel,
+        temperatureText: venueWeather.temperatureText,
+        windSpeedText: venueWeather.windSpeedText,
+        windDirectionText: venueWeather.windDirectionText,
+        precipitationText: venueWeather.precipitationText,
+        updatedAtText: venueWeather.updatedAtText,
+        referenceText: venueWeather.referenceText,
+      }
+    : null;
+
+  const gptMaterialText = selectedVenue && selectedRace
+    ? buildPredictionExportText({
+        date: TODAY,
+        venue: { ...selectedVenue, races: (selectedVenue.races ?? []) as PredictionRaceItem[] } as PredictionVenueItem,
+        race: selectedRace as PredictionRaceItem,
+        materialRace: selectedRace as PredictionRaceItem,
+        materialRiders: selectedRiders as never,
+        gradeLabel: formatRaceGradeLabel(selectedVenue.grade),
+        venueSummary: predictionVenueSummary,
+        weather: predictionWeather,
+        weatherFallbackText: weatherLoading ? "天気取得中" : weatherError || "天気未取得",
+        memo: "",
+        riderBasicText: "",
+        recentPerformanceText: "",
+        recentRaceText: "",
+        matchupText: "",
+        trackAffinityText: "",
+        dataAnalysisText: "",
+        oddsText: "",
+      })
+    : gptTemplate;
+
+  const raceInfoTabs = [
+    { key: "card" as const, label: "出走表", sub: "基本データ" },
+    { key: "recent" as const, label: "近況成績", sub: "コメント要約" },
+    { key: "previous" as const, label: "前回出走", sub: "レース成績" },
+    { key: "yearly" as const, label: "年間勝利度数", sub: "年間成績" },
+    { key: "sameTrack" as const, label: "同走路年間勝利度数", sub: "走路別成績" },
+    { key: "local" as const, label: "当所5年", sub: "会場実績" },
+    { key: "gpt" as const, label: "GPT素材", sub: "貼り付け用" },
+  ];
+
+  const riderCardTableRows = enhancedRiderRows.map(({ rider, metrics, markInfo, profileLine }) => ([
+    <span style={{ display: "inline-flex", minWidth: "30px", height: "30px", alignItems: "center", justifyContent: "center", borderRadius: "9999px", background: getKeirinNumberColor(rider.carNo), color: getContrastTextColor(getKeirinNumberColor(rider.carNo)), fontWeight: 900 }}>{rider.carNo}</span>,
+    rider.name,
     profileLine,
-    style: rider.style || "—",
-    score: rider.score || "—",
-    s: metrics.s,
-    b: metrics.b,
-    nige: metrics.nige,
-    makuri: metrics.makuri,
-    sashi: metrics.sashi,
-    mark: metrics.mark,
-    wins: metrics.wins,
-    seconds: metrics.seconds,
-    thirds: metrics.thirds,
-    loses: metrics.loses,
-    gear: metrics.gear,
-    winRate: metrics.winRate,
-    quinellaRate: metrics.quinellaRate,
-    trifectaRate: metrics.trifectaRate,
-    markInfo,
+    rider.score || "—",
+    rider.style || "—",
+    metrics.s,
+    metrics.b,
+    metrics.wins,
+    metrics.seconds,
+    metrics.thirds,
+    metrics.loses,
+    metrics.winRate,
+    metrics.quinellaRate,
+    metrics.trifectaRate,
+    markInfo?.symbol || "—",
+  ]));
+
+  const yearlyStatsRows = selectedRiders.map((rider) => ({
+    rider,
+    stats: rider.yearlyStats,
+    summary: buildRacesPageStatsSummaryLine(rider.yearlyStats),
+    categories: buildRacesPageStatsCategoryLine(rider.yearlyStats),
   }));
 
-  const raceTypeRows = enhancedRiderRows.map(({ rider, metrics, profileLine }, index) => ({
-    carNo: rider.carNo,
-    name: rider.name,
-    profileLine,
-    a: Math.max(0, metrics.wins - (index % 2)),
-    s: Math.max(0, metrics.seconds + (index % 2)),
-    raceType: selectedVenue?.hasGirls ? "混合開催" : "男子戦中心",
-    suited: rider.style.includes("逃") ? "先行寄り" : rider.style.includes("捲") ? "捲り寄り" : rider.style.includes("追") ? "差し寄り" : "自在寄り",
+  const sameTrackStatsRows = selectedRiders.map((rider) => ({
+    rider,
+    stats: rider.sameTrackYearlyStats,
+    summary: buildRacesPageStatsSummaryLine(rider.sameTrackYearlyStats),
+    categories: buildRacesPageStatsCategoryLine(rider.sameTrackYearlyStats),
   }));
 
-  const circumferenceRows = enhancedRiderRows.map(({ rider, metrics, profileLine }, index) => ({
-    carNo: rider.carNo,
-    name: rider.name,
-    profileLine,
-    bankLength: selectedVenueBankSummary?.bankLength || "400m",
-    starts: Math.max(5, 7 + index),
-    winRate: metrics.winRate,
-    note: (selectedVenueBankSummary?.feature || bankProfile.bankFeature || "バランス型").slice(0, 24),
+  const localFiveYearRows = selectedRiders.map((rider) => ({
+    rider,
+    stats: rider.localFiveYearStats,
+    summary: buildRacesPageStatsSummaryLine(rider.localFiveYearStats),
+    categories: buildRacesPageStatsCategoryLine(rider.localFiveYearStats),
   }));
-
-  const straightRows = enhancedRiderRows.map(({ rider, metrics }, index) => ({
-    carNo: rider.carNo,
-    name: rider.name,
-    straight: selectedVenueBankSummary?.feature?.includes("直線") ? selectedVenueBankSummary.feature : "見なし直線メモ整理中",
-    lateKick: Math.max(0, metrics.sashi + metrics.mark + index),
-    comment: metrics.sashi >= metrics.nige ? "差し届く" : "踏み直し優先",
-  }));
-
-  const positionRows = enhancedRiderRows.map(({ rider, metrics }, index) => ({
-    carNo: rider.carNo,
-    name: rider.name,
-    lead: Math.max(0, metrics.nige + (index % 2)),
-    second: Math.max(0, metrics.sashi + metrics.mark),
-    third: Math.max(0, metrics.makuri + (index % 3)),
-    solo: Math.max(0, (metrics.nige + metrics.makuri + index) % 5),
-    note: metrics.nige >= metrics.sashi ? "前受け候補" : "番手・差し候補",
-  }));
-
-  const timeRows = enhancedRiderRows.map(({ rider, metrics }, index) => ({
-    carNo: rider.carNo,
-    name: rider.name,
-    slot: getRacesPageVenueSessionLabel(selectedVenue),
-    starts: Math.max(4, 6 + index),
-    winRate: metrics.winRate,
-    trifectaRate: metrics.trifectaRate,
-  }));
-
-  const dateRows = enhancedRiderRows.map(({ rider, metrics }, index) => ({
-    carNo: rider.carNo,
-    name: rider.name,
-    period: `${selectedVenue?.startDate || "本日"}〜${selectedVenue?.endDate || "本日"}` ,
-    starts: Math.max(3, 5 + index),
-    note: index % 2 === 0 ? "初日向き" : "終盤向き",
-    quinellaRate: metrics.quinellaRate,
-  }));
-
-  const gradeRows = enhancedRiderRows.map(({ rider, metrics }, index) => ({
-    carNo: rider.carNo,
-    name: rider.name,
-    grade: selectedVenue?.grade || "F2",
-    starts: Math.max(4, 6 + index),
-    winRate: metrics.winRate,
-    note: metrics.b >= 3 ? "機動型" : "差し型",
-  }));
-
-  const gradeTypeRows = enhancedRiderRows.map(({ rider, metrics }) => ({
-    carNo: rider.carNo,
-    name: rider.name,
-    type: `${selectedVenue?.grade || "F2"}・${selectedRace?.title || `${selectedRace?.raceNo || "—"}R`}` ,
-    suited: metrics.nige + metrics.makuri >= metrics.sashi + metrics.mark ? "自力戦向き" : "差し戦向き",
-    trifectaRate: metrics.trifectaRate,
-  }));
-
-  const carNumberRows = enhancedRiderRows.map(({ rider, metrics }, index) => ({
-    carNo: rider.carNo,
-    name: rider.name,
-    starts: Math.max(5, 7 + index),
-    winRate: metrics.winRate,
-    quinellaRate: metrics.quinellaRate,
-    trifectaRate: metrics.trifectaRate,
-    note: Number(rider.carNo) <= 3 ? "内枠想定" : "外枠想定",
-  }));
-
-  const prefectureRows = enhancedRiderRows.map(({ rider, profileLine }, index) => {
-    const prefecture = extractPrefecture(profileLine);
-    const teammates = enhancedRiderRows.filter((entry) => extractPrefecture(entry.profileLine) === prefecture);
-    return {
-      carNo: rider.carNo,
-      name: rider.name,
-      prefecture,
-      count: teammates.length,
-      mates: teammates.map((entry) => `${entry.rider.carNo} ${entry.rider.name}`).join(" / ") || "—",
-      note: teammates.length >= 2 ? "同県連携あり" : "単独県",
-      starts: Math.max(2, 3 + index),
-    };
-  });
-
-  const sameLineRows = lineupGroups.map((group) => {
-    const members = group.cars
-      .map((carNo) => enhancedRiderRows.find((entry) => entry.rider.carNo === carNo))
-      .filter((entry): entry is (typeof enhancedRiderRows)[number] => Boolean(entry))
-      .map((entry) => entry.rider);
-    return {
-      line: group.label,
-      members: members.map((member) => `${member.carNo} ${member.name}`).join(" / ") || "未反映",
-      styles: members.map((member) => member.style || "—").join(" / ") || "—",
-      note: group.hasBattle ? "競り含み" : members.length >= 3 ? "主力ライン" : members.length === 2 ? "二車ライン" : "単騎",
-    };
-  });
 
 const renderMiniTable = (headers: string[], rows: ReactNode[][]) => (
   <div
@@ -2943,211 +2886,6 @@ const renderMiniTable = (headers: string[], rows: ReactNode[][]) => (
     </table>
   </div>
 );
-
-const activeCardAnalysisPanel = (() => {
-    if (activeCardDataTab === "データ分析") {
-      return renderMiniTable(
-        ["枠", "選手名", "府県・年齢・期別・級班", "競走得点", "脚質", "S", "B", "逃", "捲", "差", "マ", "1着", "2着", "3着", "着外", "勝率", "2連対率", "3連対率", "ギア", "印"],
-        analysisSummaryRows.map((row) => [
-          <span style={{ display: "inline-flex", minWidth: "30px", height: "30px", alignItems: "center", justifyContent: "center", borderRadius: "9999px", background: getKeirinNumberColor(row.carNo), color: getContrastTextColor(getKeirinNumberColor(row.carNo)), fontWeight: 900 }}>{row.carNo}</span>,
-          row.name,
-          row.profileLine,
-          row.score,
-          row.style,
-          row.s,
-          row.b,
-          row.nige,
-          row.makuri,
-          row.sashi,
-          row.mark,
-          row.wins,
-          row.seconds,
-          row.thirds,
-          row.loses,
-          `${row.winRate}%`,
-          `${row.quinellaRate}%`,
-          `${row.trifectaRate}%`,
-          row.gear,
-          row.markInfo?.symbol || "—",
-        ])
-      );
-    }
-
-    if (activeCardDataTab === "レース種目別") {
-      return renderMiniTable(
-        ["枠", "選手名", "プロフィール", "レース種目", "1着寄り", "2着寄り", "脚質相性"],
-        raceTypeRows.map((row) => [
-          <span style={{ display: "inline-flex", minWidth: "30px", height: "30px", alignItems: "center", justifyContent: "center", borderRadius: "9999px", background: getKeirinNumberColor(row.carNo), color: getContrastTextColor(getKeirinNumberColor(row.carNo)), fontWeight: 900 }}>{row.carNo}</span>,
-          row.name,
-          row.profileLine,
-          row.raceType,
-          row.a,
-          row.s,
-          row.suited,
-        ])
-      );
-    }
-
-    if (activeCardDataTab === "周長") {
-      return renderMiniTable(
-        ["枠", "選手名", "プロフィール", "バンク周長", "出走", "勝率", "メモ"],
-        circumferenceRows.map((row) => [
-          <span style={{ display: "inline-flex", minWidth: "30px", height: "30px", alignItems: "center", justifyContent: "center", borderRadius: "9999px", background: getKeirinNumberColor(row.carNo), color: getContrastTextColor(getKeirinNumberColor(row.carNo)), fontWeight: 900 }}>{row.carNo}</span>,
-          row.name,
-          row.profileLine,
-          row.bankLength,
-          row.starts,
-          `${row.winRate}%`,
-          row.note,
-        ])
-      );
-    }
-
-    if (activeCardDataTab === "見なし直線") {
-      return renderMiniTable(
-        ["枠", "選手名", "見なし直線メモ", "終い指数", "コメント"],
-        straightRows.map((row) => [
-          <span style={{ display: "inline-flex", minWidth: "30px", height: "30px", alignItems: "center", justifyContent: "center", borderRadius: "9999px", background: getKeirinNumberColor(row.carNo), color: getContrastTextColor(getKeirinNumberColor(row.carNo)), fontWeight: 900 }}>{row.carNo}</span>,
-          row.name,
-          row.straight,
-          row.lateKick,
-          row.comment,
-        ])
-      );
-    }
-
-    if (activeCardDataTab === "競輪場別") {
-      return renderMiniTable(
-        ["枠", "選手名", "競輪場", "1着", "2着", "3着", "着外", "出走", "勝率", "2連対率", "3連対率"],
-        trackConditionRows.map((row) => [
-          <span style={{ display: "inline-flex", minWidth: "30px", height: "30px", alignItems: "center", justifyContent: "center", borderRadius: "9999px", background: getKeirinNumberColor(row.carNo), color: getContrastTextColor(getKeirinNumberColor(row.carNo)), fontWeight: 900 }}>{row.carNo}</span>,
-          row.name,
-          row.venue,
-          row.first,
-          row.second,
-          row.third,
-          row.out,
-          row.starts,
-          `${row.winRate}%`,
-          `${row.quinellaRate}%`,
-          `${row.trifectaRate}%`,
-        ])
-      );
-    }
-
-    if (activeCardDataTab === "位置別") {
-      return renderMiniTable(
-        ["枠", "選手名", "ライン先頭", "番手", "3番手以降", "単騎", "メモ"],
-        positionRows.map((row) => [
-          <span style={{ display: "inline-flex", minWidth: "30px", height: "30px", alignItems: "center", justifyContent: "center", borderRadius: "9999px", background: getKeirinNumberColor(row.carNo), color: getContrastTextColor(getKeirinNumberColor(row.carNo)), fontWeight: 900 }}>{row.carNo}</span>,
-          row.name,
-          row.lead,
-          row.second,
-          row.third,
-          row.solo,
-          row.note,
-        ])
-      );
-    }
-
-    if (activeCardDataTab === "時間帯別") {
-      return renderMiniTable(
-        ["枠", "選手名", "時間帯", "出走", "勝率", "3連対率"],
-        timeRows.map((row) => [
-          <span style={{ display: "inline-flex", minWidth: "30px", height: "30px", alignItems: "center", justifyContent: "center", borderRadius: "9999px", background: getKeirinNumberColor(row.carNo), color: getContrastTextColor(getKeirinNumberColor(row.carNo)), fontWeight: 900 }}>{row.carNo}</span>,
-          row.name,
-          row.slot,
-          row.starts,
-          `${row.winRate}%`,
-          `${row.trifectaRate}%`,
-        ])
-      );
-    }
-
-    if (activeCardDataTab === "日程別") {
-      return renderMiniTable(
-        ["枠", "選手名", "日程", "出走", "2連対率", "メモ"],
-        dateRows.map((row) => [
-          <span style={{ display: "inline-flex", minWidth: "30px", height: "30px", alignItems: "center", justifyContent: "center", borderRadius: "9999px", background: getKeirinNumberColor(row.carNo), color: getContrastTextColor(getKeirinNumberColor(row.carNo)), fontWeight: 900 }}>{row.carNo}</span>,
-          row.name,
-          row.period,
-          row.starts,
-          `${row.quinellaRate}%`,
-          row.note,
-        ])
-      );
-    }
-
-    if (activeCardDataTab === "グレード別") {
-      return renderMiniTable(
-        ["枠", "選手名", "グレード", "出走", "勝率", "メモ"],
-        gradeRows.map((row) => [
-          <span style={{ display: "inline-flex", minWidth: "30px", height: "30px", alignItems: "center", justifyContent: "center", borderRadius: "9999px", background: getKeirinNumberColor(row.carNo), color: getContrastTextColor(getKeirinNumberColor(row.carNo)), fontWeight: 900 }}>{row.carNo}</span>,
-          row.name,
-          row.grade,
-          row.starts,
-          `${row.winRate}%`,
-          row.note,
-        ])
-      );
-    }
-
-    if (activeCardDataTab === "グレードレース種目") {
-      return renderMiniTable(
-        ["枠", "選手名", "レース種目", "適性", "3連対率"],
-        gradeTypeRows.map((row) => [
-          <span style={{ display: "inline-flex", minWidth: "30px", height: "30px", alignItems: "center", justifyContent: "center", borderRadius: "9999px", background: getKeirinNumberColor(row.carNo), color: getContrastTextColor(getKeirinNumberColor(row.carNo)), fontWeight: 900 }}>{row.carNo}</span>,
-          row.name,
-          row.type,
-          row.suited,
-          `${row.trifectaRate}%`,
-        ])
-      );
-    }
-
-    if (activeCardDataTab === "車番別") {
-      return renderMiniTable(
-        ["枠", "選手名", "出走", "勝率", "2連対率", "3連対率", "傾向"],
-        carNumberRows.map((row) => [
-          <span style={{ display: "inline-flex", minWidth: "30px", height: "30px", alignItems: "center", justifyContent: "center", borderRadius: "9999px", background: getKeirinNumberColor(row.carNo), color: getContrastTextColor(getKeirinNumberColor(row.carNo)), fontWeight: 900 }}>{row.carNo}</span>,
-          row.name,
-          row.starts,
-          `${row.winRate}%`,
-          `${row.quinellaRate}%`,
-          `${row.trifectaRate}%`,
-          row.note,
-        ])
-      );
-    }
-
-    if (activeCardDataTab === "同県選手同乗時") {
-      return renderMiniTable(
-        ["枠", "選手名", "所属", "同県人数", "同乗候補", "メモ", "出走"],
-        prefectureRows.map((row) => [
-          <span style={{ display: "inline-flex", minWidth: "30px", height: "30px", alignItems: "center", justifyContent: "center", borderRadius: "9999px", background: getKeirinNumberColor(row.carNo), color: getContrastTextColor(getKeirinNumberColor(row.carNo)), fontWeight: 900 }}>{row.carNo}</span>,
-          row.name,
-          row.prefecture,
-          row.count,
-          row.mates,
-          row.note,
-          row.starts,
-        ])
-      );
-    }
-
-    if (activeCardDataTab === "同一ライン") {
-      const rows = sameLineRows.length
-        ? sameLineRows
-        : [{ line: "未登録", members: "並び予想未登録", styles: "—", note: "当日反映予定" }];
-      return renderMiniTable(
-        ["ライン", "構成", "脚質", "メモ"],
-        rows.map((row) => [row.line, row.members, row.styles, row.note])
-      );
-    }
-
-    return null;
-  })();
-
 
   return (
     <>
@@ -3943,18 +3681,18 @@ gap: isMobile ? "10px" : "12px",
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", marginBottom: "14px" }}>
                 <div>
                   <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7", marginBottom: "6px" }}>RACE DATA TABS</div>
-                  <div style={{ fontSize: "13px", color: "#64748b", fontWeight: 700 }}>Netkeirinっぽく情報を段階的に増やすための土台。まずは切替枠から実装。</div>
+                  <div style={{ fontSize: "13px", color: "#64748b", fontWeight: 700 }}>KDreams で取得できている出走表・近況・成績系データだけを切り替えて確認できます。</div>
                 </div>
                 <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", borderRadius: "9999px", padding: "8px 12px", background: "#ffffff", border: "1px solid #ebe3f3" }}>
                   <span style={{ width: "7px", height: "7px", borderRadius: "9999px", background: "#7a67b8", display: "inline-block" }} />
-                  <span style={{ fontSize: "11px", fontWeight: 900, color: "#5f6f84" }}>今は切替枠 + たたき台表示</span>
+                  <span style={{ fontSize: "11px", fontWeight: 900, color: "#5f6f84" }}>KDreams取得データのみ表示</span>
                 </div>
               </div>
 
               <div
   style={{
     display: isMobile ? "flex" : "grid",
-    gridTemplateColumns: isMobile ? undefined : "repeat(5, minmax(0, 1fr))",
+    gridTemplateColumns: isMobile ? undefined : `repeat(${raceInfoTabs.length}, minmax(0, 1fr))`,
     gap: isMobile ? "8px" : "10px",
     marginBottom: "16px",
     overflowX: isMobile ? "auto" : "visible",
@@ -3991,34 +3729,6 @@ gap: isMobile ? "10px" : "12px",
 
               {activeRaceInfoTab === "card" && (
                 <div style={{ display: "grid", gap: "14px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", overflowX: "auto", paddingBottom: "2px" }}>
-                    {cardAnalysisTabs.map((item) => {
-                      const active = item === activeCardDataTab;
-                      return (
-                        <button
-                          key={item}
-                          type="button"
-                          onClick={() => setActiveCardDataTab(item)}
-                          style={{
-                            flexShrink: 0,
-                            borderRadius: "9999px",
-                            padding: "7px 12px",
-                            fontSize: "11px",
-                            fontWeight: 900,
-                            color: active ? "#ffffff" : "#5f6f84",
-                            background: active ? "linear-gradient(135deg, #5d4aa0 0%, #7b67ba 100%)" : "#ffffff",
-                            border: active ? "1px solid #6f5aa9" : "1px solid #ebe3f3",
-                            boxShadow: active ? "0 8px 18px rgba(122,103,184,0.18)" : "none",
-                            cursor: "pointer",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {item}
-                        </button>
-                      );
-                    })}
-                  </div>
-
                   <div
   style={{
     display: "grid",
@@ -4120,114 +3830,131 @@ gap: isMobile ? "10px" : "12px",
                   <div style={{ display: "grid", gap: "10px" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
                       <div>
-                        <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#8c63c7", marginBottom: "4px" }}>{activeCardDataTab}</div>
-                        <div style={{ fontSize: "13px", color: "#526072" }}>WINTICKET風の見た目を保ちつつ、netkeirin系の素材をしっかり表で切り替えて見られるようにしています。</div>
+                        <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#8c63c7", marginBottom: "4px" }}>出走表詳細</div>
+                        <div style={{ fontSize: "13px", color: "#526072" }}>KDreams の出走表から取得した選手基本情報と年間成績の基礎値です。</div>
                       </div>
                       <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", borderRadius: "9999px", padding: "8px 12px", background: "#ffffff", border: "1px solid #ebe3f3", fontSize: "11px", fontWeight: 800, color: "#64748b" }}>
-                        <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "9999px", background: "#7b67ba" }} /> クリックで切替
+                        <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "9999px", background: "#7b67ba" }} /> 選手データ一覧
                       </div>
                     </div>
-                    {activeCardAnalysisPanel}
+                    {renderMiniTable(
+                      ["車", "選手名", "府県・年齢・期別・級班", "競走得点", "脚質", "S", "B", "1着", "2着", "3着", "着外", "勝率", "2連対率", "3連対率", "印"],
+                      riderCardTableRows,
+                    )}
                   </div>
                 </div>
               )}
 
               {activeRaceInfoTab === "recent" && (
-                <div style={{ overflowX: "auto", borderRadius: isMobile ? "18px" : "22px", border: "1px solid #ebe3f3", background: "rgba(255,255,255,0.94)" }}>
-                  <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, minWidth: "860px" }}>
-                    <thead>
-                      <tr>
-                        {['車','選手名','得点','脚質','直近1','直近2','直近3','決まり手','開催場','種別'].map((label) => (
-                          <th key={label} style={{ textAlign: "left", padding: "12px 12px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b8a9d", background: "#f7f2fc", borderBottom: "1px solid #ebe3f3", whiteSpace: "nowrap" }}>{label}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {recentPerformanceRows.map((row, index) => (
-                        <tr key={`recent-${row.carNo}`}>
-                          <td style={{ padding: "12px", borderBottom: index === recentPerformanceRows.length - 1 ? "none" : "1px solid #f2edf8" }}><span style={{ display: "inline-flex", minWidth: "30px", height: "30px", alignItems: "center", justifyContent: "center", borderRadius: "9999px", background: getKeirinNumberColor(row.carNo), color: getContrastTextColor(getKeirinNumberColor(row.carNo)), fontWeight: 900 }}>{row.carNo}</span></td>
-                          <td style={{ padding: "12px", borderBottom: index === recentPerformanceRows.length - 1 ? "none" : "1px solid #f2edf8", fontSize: "14px", fontWeight: 900, color: "#081224" }}>{row.name}</td>
-                          <td style={{ padding: "12px", borderBottom: index === recentPerformanceRows.length - 1 ? "none" : "1px solid #f2edf8", fontSize: "13px", fontWeight: 800, color: "#081224" }}>{row.score}</td>
-                          <td style={{ padding: "12px", borderBottom: index === recentPerformanceRows.length - 1 ? "none" : "1px solid #f2edf8" }}>{row.style}</td>
-                          <td style={{ padding: "12px", borderBottom: index === recentPerformanceRows.length - 1 ? "none" : "1px solid #f2edf8" }}>{row.recent1}</td>
-                          <td style={{ padding: "12px", borderBottom: index === recentPerformanceRows.length - 1 ? "none" : "1px solid #f2edf8" }}>{row.recent2}</td>
-                          <td style={{ padding: "12px", borderBottom: index === recentPerformanceRows.length - 1 ? "none" : "1px solid #f2edf8" }}>{row.recent3}</td>
-                          <td style={{ padding: "12px", borderBottom: index === recentPerformanceRows.length - 1 ? "none" : "1px solid #f2edf8" }}>{row.kimarite}</td>
-                          <td style={{ padding: "12px", borderBottom: index === recentPerformanceRows.length - 1 ? "none" : "1px solid #f2edf8" }}>{row.place}</td>
-                          <td style={{ padding: "12px", borderBottom: index === recentPerformanceRows.length - 1 ? "none" : "1px solid #f2edf8" }}>{row.grade}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div style={{ display: "grid", gap: "12px", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))" }}>
+                  {enhancedRiderRows.map(({ rider, commentLabel }) => (
+                    <div key={`recent-${rider.carNo}`} style={{ borderRadius: "20px", border: "1px solid #ebe3f3", background: "rgba(255,255,255,0.94)", padding: "14px 16px", display: "grid", gap: "10px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                        <span style={{ display: "inline-flex", minWidth: "30px", height: "30px", alignItems: "center", justifyContent: "center", borderRadius: "9999px", background: getKeirinNumberColor(rider.carNo), color: getContrastTextColor(getKeirinNumberColor(rider.carNo)), fontWeight: 900 }}>{rider.carNo}</span>
+                        <div style={{ fontSize: "15px", fontWeight: 900, color: "#081224" }}>{rider.name}</div>
+                        <span style={{ fontSize: "11px", fontWeight: 800, color: "#64748b" }}>{rider.style || "脚質未掲載"}</span>
+                      </div>
+                      <div style={{ display: "grid", gap: "6px" }}>
+                        <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#8c63c7" }}>COMMENT</div>
+                        <div style={{ fontSize: "13px", lineHeight: 1.8, color: commentLabel === "コメント未掲載" ? "#94a3b8" : "#425266" }}>{commentLabel}</div>
+                      </div>
+                      <div style={{ display: "grid", gap: "6px" }}>
+                        <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#8c63c7" }}>前回出走要約</div>
+                        <div style={{ fontSize: "13px", lineHeight: 1.8, color: rider.previousRaceSummary?.trim() ? "#425266" : "#94a3b8" }}>{rider.previousRaceSummary?.trim() || "前回出走要約未掲載"}</div>
+                      </div>
+                      {rider.kdreamsRiderNote?.trim() ? (
+                        <div style={{ fontSize: "12px", lineHeight: 1.7, color: "#8b5e3c", background: "#fffaf2", border: "1px solid #f4dfb3", borderRadius: "12px", padding: "8px 10px" }}>{rider.kdreamsRiderNote.trim()}</div>
+                      ) : null}
+                    </div>
+                  ))}
                 </div>
               )}
 
-              {activeRaceInfoTab === "matchup" && (
-                <div style={{ overflowX: "auto", borderRadius: isMobile ? "18px" : "22px", border: "1px solid #ebe3f3", background: "rgba(255,255,255,0.94)" }}>
-                  <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, minWidth: "860px" }}>
-                    <thead>
-                      <tr>
-                        <th style={{ textAlign: "left", padding: "12px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b8a9d", background: "#f7f2fc", borderBottom: "1px solid #ebe3f3" }}>車</th>
-                        <th style={{ textAlign: "left", padding: "12px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b8a9d", background: "#f7f2fc", borderBottom: "1px solid #ebe3f3" }}>選手名</th>
-                        {selectedRiders.map((rider) => (
-                          <th key={`m-head-${rider.carNo}`} style={{ textAlign: "center", padding: "12px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b8a9d", background: "#f7f2fc", borderBottom: "1px solid #ebe3f3", minWidth: "72px" }}>{rider.name}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {matchupMatrix.map((row, rowIndex) => (
-                        <tr key={`match-${row.rider.carNo}`}>
-                          <td style={{ padding: "12px", borderBottom: rowIndex === matchupMatrix.length - 1 ? "none" : "1px solid #f2edf8" }}><span style={{ display: "inline-flex", minWidth: "30px", height: "30px", alignItems: "center", justifyContent: "center", borderRadius: "9999px", background: getKeirinNumberColor(row.rider.carNo), color: getContrastTextColor(getKeirinNumberColor(row.rider.carNo)), fontWeight: 900 }}>{row.rider.carNo}</span></td>
-                          <td style={{ padding: "12px", borderBottom: rowIndex === matchupMatrix.length - 1 ? "none" : "1px solid #f2edf8", fontWeight: 900, color: "#081224", whiteSpace: "nowrap" }}>{row.rider.name}</td>
-                          {row.cells.map((cell, cellIndex) => (
-                            <td key={`cell-${row.rider.carNo}-${cellIndex}`} style={{ padding: "12px", textAlign: "center", borderBottom: rowIndex === matchupMatrix.length - 1 ? "none" : "1px solid #f2edf8", fontSize: "13px", fontWeight: 800, color: cell === '-' ? '#94a3b8' : '#244b9a' }}>{cell}</td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              {activeRaceInfoTab === "previous" && (
+                <div style={{ display: "grid", gap: "12px", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))" }}>
+                  {selectedRiders.map((rider) => {
+                    const previousRaceLines = (rider.previousRaceResults ?? []).map((item, index) => buildRacesPageHistoricalRaceLine(item, index));
+                    return (
+                      <div key={`previous-${rider.carNo}`} style={{ borderRadius: "20px", border: "1px solid #ebe3f3", background: "rgba(255,255,255,0.94)", padding: "14px 16px", display: "grid", gap: "10px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                          <span style={{ display: "inline-flex", minWidth: "30px", height: "30px", alignItems: "center", justifyContent: "center", borderRadius: "9999px", background: getKeirinNumberColor(rider.carNo), color: getContrastTextColor(getKeirinNumberColor(rider.carNo)), fontWeight: 900 }}>{rider.carNo}</span>
+                          <div style={{ fontSize: "15px", fontWeight: 900, color: "#081224" }}>{rider.name}</div>
+                        </div>
+                        <div style={{ display: "grid", gap: "8px" }}>
+                          {previousRaceLines.length > 0 ? previousRaceLines.map((line, index) => (
+                            <div key={`previous-line-${rider.carNo}-${index}`} style={{ fontSize: "13px", lineHeight: 1.8, color: "#425266", padding: "8px 10px", borderRadius: "12px", background: "#faf8fd", border: "1px solid #f0e9f8" }}>{line}</div>
+                          )) : (
+                            <div style={{ fontSize: "13px", lineHeight: 1.8, color: "#94a3b8" }}>前回出走レース成績未掲載</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
-              {activeRaceInfoTab === "track" && (
-                <div style={{ overflowX: "auto", borderRadius: isMobile ? "18px" : "22px", border: "1px solid #ebe3f3", background: "rgba(255,255,255,0.94)" }}>
-                  <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, minWidth: "860px" }}>
-                    <thead>
-                      <tr>
-                        {['車','選手名','競輪場','1着','2着','3着','着外','出走','勝率','2連対率','3連対率'].map((label) => (
-                          <th key={label} style={{ textAlign: label === '選手名' || label === '競輪場' ? 'left' : 'center', padding: '12px', fontSize: '10px', fontWeight: 900, letterSpacing: '0.14em', color: '#7b8a9d', background: '#f7f2fc', borderBottom: '1px solid #ebe3f3', whiteSpace: 'nowrap' }}>{label}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {trackConditionRows.map((row, index) => (
-                        <tr key={`track-${row.carNo}`}>
-                          <td style={{ padding: '12px', textAlign: 'center', borderBottom: index === trackConditionRows.length - 1 ? 'none' : '1px solid #f2edf8' }}><span style={{ display: 'inline-flex', minWidth: '30px', height: '30px', alignItems: 'center', justifyContent: 'center', borderRadius: '9999px', background: getKeirinNumberColor(row.carNo), color: getContrastTextColor(getKeirinNumberColor(row.carNo)), fontWeight: 900 }}>{row.carNo}</span></td>
-                          <td style={{ padding: '12px', borderBottom: index === trackConditionRows.length - 1 ? 'none' : '1px solid #f2edf8', fontWeight: 900, color: '#081224', whiteSpace: 'nowrap' }}>{row.name}</td>
-                          <td style={{ padding: '12px', borderBottom: index === trackConditionRows.length - 1 ? 'none' : '1px solid #f2edf8', color: '#425266', whiteSpace: 'nowrap' }}>{row.venue}</td>
-                          <td style={{ padding: '12px', textAlign: 'center', borderBottom: index === trackConditionRows.length - 1 ? 'none' : '1px solid #f2edf8' }}>{row.first}</td>
-                          <td style={{ padding: '12px', textAlign: 'center', borderBottom: index === trackConditionRows.length - 1 ? 'none' : '1px solid #f2edf8' }}>{row.second}</td>
-                          <td style={{ padding: '12px', textAlign: 'center', borderBottom: index === trackConditionRows.length - 1 ? 'none' : '1px solid #f2edf8' }}>{row.third}</td>
-                          <td style={{ padding: '12px', textAlign: 'center', borderBottom: index === trackConditionRows.length - 1 ? 'none' : '1px solid #f2edf8' }}>{row.out}</td>
-                          <td style={{ padding: '12px', textAlign: 'center', borderBottom: index === trackConditionRows.length - 1 ? 'none' : '1px solid #f2edf8' }}>{row.starts}</td>
-                          <td style={{ padding: '12px', textAlign: 'center', borderBottom: index === trackConditionRows.length - 1 ? 'none' : '1px solid #f2edf8', color: '#244b9a', fontWeight: 800 }}>{row.winRate}%</td>
-                          <td style={{ padding: '12px', textAlign: 'center', borderBottom: index === trackConditionRows.length - 1 ? 'none' : '1px solid #f2edf8', color: '#244b9a', fontWeight: 800 }}>{row.quinellaRate}%</td>
-                          <td style={{ padding: '12px', textAlign: 'center', borderBottom: index === trackConditionRows.length - 1 ? 'none' : '1px solid #f2edf8', color: '#244b9a', fontWeight: 800 }}>{row.trifectaRate}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+              {activeRaceInfoTab === "yearly" && (
+                renderMiniTable(
+                  ["車", "選手名", "競走得点", "出走", "1着", "2着", "3着", "着外", "サマリー", "内訳"],
+                  yearlyStatsRows.map(({ rider, stats, summary, categories }) => [
+                    <span style={{ display: "inline-flex", minWidth: "30px", height: "30px", alignItems: "center", justifyContent: "center", borderRadius: "9999px", background: getKeirinNumberColor(rider.carNo), color: getContrastTextColor(getKeirinNumberColor(rider.carNo)), fontWeight: 900 }}>{rider.carNo}</span>,
+                    rider.name,
+                    normalizeRacesPageMaterialValue(stats?.score, rider.score || "—"),
+                    normalizeRacesPageMaterialValue(stats?.starts),
+                    normalizeRacesPageMaterialValue(stats?.wins),
+                    normalizeRacesPageMaterialValue(stats?.seconds),
+                    normalizeRacesPageMaterialValue(stats?.thirds),
+                    normalizeRacesPageMaterialValue(stats?.losses),
+                    summary,
+                    categories || "—",
+                  ])
+                )
+              )}
+
+              {activeRaceInfoTab === "sameTrack" && (
+                renderMiniTable(
+                  ["車", "選手名", "走路", "出走", "1着", "2着", "3着", "着外", "サマリー", "内訳"],
+                  sameTrackStatsRows.map(({ rider, stats, summary, categories }) => [
+                    <span style={{ display: "inline-flex", minWidth: "30px", height: "30px", alignItems: "center", justifyContent: "center", borderRadius: "9999px", background: getKeirinNumberColor(rider.carNo), color: getContrastTextColor(getKeirinNumberColor(rider.carNo)), fontWeight: 900 }}>{rider.carNo}</span>,
+                    rider.name,
+                    normalizeRacesPageMaterialValue(stats?.trackLength, selectedVenueGuideSummary.bankLength),
+                    normalizeRacesPageMaterialValue(stats?.starts),
+                    normalizeRacesPageMaterialValue(stats?.wins),
+                    normalizeRacesPageMaterialValue(stats?.seconds),
+                    normalizeRacesPageMaterialValue(stats?.thirds),
+                    normalizeRacesPageMaterialValue(stats?.losses),
+                    summary,
+                    categories || "—",
+                  ])
+                )
+              )}
+
+              {activeRaceInfoTab === "local" && (
+                renderMiniTable(
+                  ["車", "選手名", "会場", "出走", "1着", "2着", "3着", "着外", "サマリー", "内訳"],
+                  localFiveYearRows.map(({ rider, stats, summary, categories }) => [
+                    <span style={{ display: "inline-flex", minWidth: "30px", height: "30px", alignItems: "center", justifyContent: "center", borderRadius: "9999px", background: getKeirinNumberColor(rider.carNo), color: getContrastTextColor(getKeirinNumberColor(rider.carNo)), fontWeight: 900 }}>{rider.carNo}</span>,
+                    rider.name,
+                    selectedVenue?.venue || "会場未選択",
+                    normalizeRacesPageMaterialValue(stats?.starts),
+                    normalizeRacesPageMaterialValue(stats?.wins),
+                    normalizeRacesPageMaterialValue(stats?.seconds),
+                    normalizeRacesPageMaterialValue(stats?.thirds),
+                    normalizeRacesPageMaterialValue(stats?.losses),
+                    summary,
+                    categories || "—",
+                  ])
+                )
               )}
 
               {activeRaceInfoTab === "gpt" && (
                 <div style={{ display: "grid", gap: "12px" }}>
                   <div style={{ borderRadius: "20px", border: "1px solid #ebe3f3", background: "rgba(255,255,255,0.94)", padding: "14px 16px" }}>
                     <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#7b8a9d", marginBottom: "8px" }}>貼り付け用テンプレ</div>
-                    <pre style={{ margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "inherit", fontSize: "13px", lineHeight: 1.85, color: "#425266" }}>{gptTemplate}</pre>
+                    <pre style={{ margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "inherit", fontSize: "13px", lineHeight: 1.85, color: "#425266" }}>{gptMaterialText}</pre>
                   </div>
                   <div style={{ borderRadius: "20px", border: "1px solid #ebe3f3", background: "rgba(255,255,255,0.94)", padding: "14px 16px", fontSize: "13px", lineHeight: 1.85, color: "#526072" }}>
-                    次はここに「近況成績・対戦表・競輪場別」の実データをまとめて、GPTへそのまま渡せる形へ強化していく想定です。
+                    PredictionPage と同じ KDreams 基準の素材をそのまま確認できます。独自集計の旧分析タブはここから外しています。
                   </div>
                 </div>
               )}
