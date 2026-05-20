@@ -1001,10 +1001,9 @@ function parseKdreamsTodayVenues(html, todayIso, scheduleData) {
 
   for (const row of rowMatches) {
     const rowHtml = row[1];
-    payout2tan: pickNetkeirinPayoutItem(payouts, ["2車単", "二車単"]),
     if (!/racedetail/i.test(rowHtml)) continue;
-    payout3tan: pickNetkeirinPayoutItem(payouts, ["3連単", "三連単"]),
-    payout3fuku: pickNetkeirinPayoutItem(payouts, ["3連複", "三連複"]),
+
+    const cells = Array.from(rowHtml.matchAll(/<td>([\s\S]*?)<\/td>/gi)).map((m) => m[1]);
     if (cells.length < 4) continue;
 
     const venueCell = cells[0];
@@ -1013,10 +1012,9 @@ function parseKdreamsTodayVenues(html, todayIso, scheduleData) {
     const linksCell = cells[3];
 
     const venueText = stripTags(venueCell).replace(/競輪$/, "").trim();
-      payout2tan: pickNetkeirinPayoutItem(payouts, ["2車単", "二車単"]),
     const venueCodeFromLinks = linksCell.match(/\/racecard\/(\d{2})\d+\//i)?.[1] ?? "";
-      payout3tan: pickNetkeirinPayoutItem(payouts, ["3連単", "三連単"]),
-      payout3fuku: pickNetkeirinPayoutItem(payouts, ["3連複", "三連複"]),
+    const venueId = `live-${compactDate(todayIso)}${venueCodeFromLinks || venueText}`;
+    const grade = inferGradeFromGradeHtml(gradeCell, {
       venue: venueText,
       venueCode: venueCodeFromLinks,
       venueId,
