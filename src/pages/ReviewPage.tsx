@@ -3,6 +3,7 @@ import {
   SiteHeader,
   findPayoutByBetType,
   fetchPredictionVenueWeather,
+  getPredictionOddsUnavailableLabel,
   getPredictionVenueStageLabel,
   normalizeBetTypeLabel,
   resolvePredictionResultMetrics,
@@ -122,8 +123,11 @@ type PredictionRaceItem = {
   isGirls?: boolean;
   sourceNote?: string;
   resultNote?: string;
+  oddsNote?: string;
   oddsPreview?: PredictionOddsPreviewItem[];
   oddsTrifecta?: PredictionTrifectaItem[];
+  favoriteOdds?: number | null;
+  favoriteCombination?: string;
   resultStatus?: "pending" | "confirmed";
   resultTop3?: PredictionRaceResultEntry[];
   payouts?: PredictionRaceResultPayoutItem[];
@@ -749,8 +753,11 @@ function compactReviewRaceResultSnapshot(race: PredictionRaceItem): PredictionRa
     isGirls: race.isGirls,
     sourceNote: race.sourceNote,
     resultNote: race.resultNote,
+    oddsNote: race.oddsNote,
     oddsPreview: normalizeReviewOddsPreviewList(race.oddsPreview),
     oddsTrifecta: normalizeReviewTrifectaOddsList(race.oddsTrifecta),
+    favoriteOdds: race.favoriteOdds,
+    favoriteCombination: race.favoriteCombination,
     resultStatus: race.resultStatus,
     resultTop3: race.resultTop3,
     payouts: race.payouts,
@@ -868,12 +875,15 @@ function mergeReviewRaceWithSnapshot(
     isGirls: feedRace.isGirls ?? snapshotRace.isGirls,
     oddsPreview: pickReviewOddsPreview(feedRace, snapshotRace),
     oddsTrifecta: pickReviewTrifectaOdds(feedRace, snapshotRace),
+    favoriteOdds: feedRace.favoriteOdds ?? snapshotRace.favoriteOdds,
+    favoriteCombination: feedRace.favoriteCombination || snapshotRace.favoriteCombination,
     resultStatus: feedRace.resultStatus || snapshotRace.resultStatus,
     resultTop3: feedRace.resultTop3?.length ? feedRace.resultTop3 : snapshotRace.resultTop3,
     payouts: feedRace.payouts ?? snapshotRace.payouts,
     result: mergePredictionRaceResult(feedRace.result, snapshotRace.result),
     sourceNote: feedRace.sourceNote || snapshotRace.sourceNote,
     resultNote: feedRace.resultNote || snapshotRace.resultNote,
+    oddsNote: feedRace.oddsNote || snapshotRace.oddsNote,
   };
 }
 
@@ -1371,6 +1381,12 @@ function buildReviewWeatherLines(
 
 function buildReviewFinalOddsLines(feedRace?: PredictionRaceItem) {
   const trifectaOdds = normalizeReviewTrifectaOddsList(feedRace?.oddsTrifecta);
+  if (feedRace?.favoriteCombination && typeof feedRace.favoriteOdds === "number") {
+    return [
+      "最終オッズ参考",
+      `3連単人気1: ${feedRace.favoriteCombination} ${feedRace.favoriteOdds.toFixed(1)}倍`,
+    ];
+  }
 
   const trifectaFavorite = trifectaOdds.find((item) => item.popularity === 1);
 
@@ -1378,6 +1394,13 @@ function buildReviewFinalOddsLines(feedRace?: PredictionRaceItem) {
     return [
       "最終オッズ参考:",
       `3連単 1番人気: ${trifectaFavorite.combination}　${trifectaFavorite.odds.toFixed(1)}倍`,
+    ];
+  }
+
+  if (!trifectaOdds.length) {
+    return [
+      "最終オッズ参考",
+      getPredictionOddsUnavailableLabel(feedRace?.oddsNote),
     ];
   }
 
@@ -1926,7 +1949,6 @@ export default function ReviewPage() {
   }, [isLocalReviewSelected, reviewFileIndexItems, selectedDate]);
 
   useEffect(() => {
-    if (!isTodaySelected) return;
     if (venueGroups.length === 0) return;
 
     let cancelled = false;
@@ -2003,7 +2025,7 @@ export default function ReviewPage() {
     return () => {
       cancelled = true;
     };
-  }, [isTodaySelected, reviewWeatherActualMap, venueGroups]);
+  }, [reviewWeatherActualMap, venueGroups]);
 
   const filteredVenueGroups = useMemo(() => {
     const venueNeedle = venueQuery.trim();

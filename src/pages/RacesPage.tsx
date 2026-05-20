@@ -4,6 +4,7 @@ import {
   buildPredictionExportText,
   findPredictionResultRecord,
   getDisplayRidersForKeirinRace,
+  getPredictionOddsUnavailableLabel,
   resolveRacePayoutByBetType,
   loadStoredPredictionResults,
   PREDICTION_RESULT_STORAGE_KEY,
@@ -96,7 +97,17 @@ const VENUE_COORDINATE_MAP: Record<string, VenueCoordinate> = {
 
 const venueWeatherCache = new Map<string, VenueWeatherCacheEntry>();
 
-const normalizeVenueWeatherLookupName = (venue?: string | null) => (venue ?? "").trim();
+const normalizeVenueWeatherLookupName = (venue?: string | null) => {
+  const normalized = (venue ?? "").normalize("NFKC").replace(/競輪場|競輪/g, "").replace(/[\s　]/g, "").trim();
+  if (["伊東温泉", "ito", "ito-onsen", "itoonsen"].includes(normalized.toLowerCase())) return "伊東";
+  return normalized;
+};
+
+VENUE_COORDINATE_MAP["伊東"] = { latitude: 34.9662, longitude: 139.0928 };
+VENUE_COORDINATE_MAP["伊東温泉"] = VENUE_COORDINATE_MAP["伊東"];
+VENUE_COORDINATE_MAP["ito"] = VENUE_COORDINATE_MAP["伊東"];
+VENUE_COORDINATE_MAP["ito-onsen"] = VENUE_COORDINATE_MAP["伊東"];
+VENUE_COORDINATE_MAP["itoonsen"] = VENUE_COORDINATE_MAP["伊東"];
 
 const getWeatherLabelFromCode = (code?: number | null) => {
   switch (code) {
@@ -579,6 +590,8 @@ type LiveRaceDetail = {
   coreFade?: string;
   oddsPreview?: LiveRaceOddsPreviewItem[];
   oddsTrifecta?: LiveRaceTrifectaOddsItem[];
+  favoriteOdds?: number | null;
+  favoriteCombination?: string;
   oddsNote?: string;
   riders?: LiveRaceRider[];
   resultStatus?: "pending" | "confirmed";
@@ -1081,6 +1094,7 @@ type VenueBankIndexItem = {
   venueKey: string;
   venueName: string;
   file: string;
+  aliases?: string[];
 };
 
 type RacesPageVenueBankSummary = {
@@ -1131,6 +1145,12 @@ const normalizeVenueNameForBankLookup = (value?: string | null) =>
     .replace(/[\u3000\s]+/g, "")
     .replace(/[()（）]/g, "")
     .trim();
+
+const normalizeVenueBankAlias = (value?: string | null) => {
+  const normalized = normalizeVenueNameForBankLookup(value).replace(/競輪場|競輪/g, "");
+  if (["伊東温泉", "ito", "ito-onsen", "itoonsen"].includes(normalized.toLowerCase())) return "伊東";
+  return normalized;
+};
 
 const resolveRacesPageVenueBankFetchPath = (venueName?: string | null, file?: string | null) => {
   const normalizedVenueKey = normalizeVenueNameForBankLookup(venueName);
@@ -1851,11 +1871,14 @@ export default function RacesPage() {
   }, []);
 
   useEffect(() => {
-    const venueName = normalizeVenueNameForBankLookup(selectedVenueId ? (sortedTodayVenues.find((venue) => venue.id === selectedVenueId)?.venue ?? "") : "");
+    const venueName = normalizeVenueBankAlias(selectedVenueId ? (sortedTodayVenues.find((venue) => venue.id === selectedVenueId)?.venue ?? "") : "");
     if (!venueName || !venueBankIndex.length) return;
     if (venueBankSummaryMap[venueName]) return;
 
-    const target = venueBankIndex.find((item) => normalizeVenueNameForBankLookup(item.venueName) === venueName);
+    const target = venueBankIndex.find((item) =>
+      normalizeVenueBankAlias(item.venueName) === venueName ||
+      item.aliases?.some((alias) => normalizeVenueBankAlias(alias) === venueName)
+    );
     const fetchPath = resolveRacesPageVenueBankFetchPath(target?.venueName ?? venueName, target?.file ?? "");
     if (!target?.file) {
       console.debug("[BANK/PACE] venue feature lookup", {
@@ -2361,9 +2384,12 @@ const selectedRaceResultCards = [
   const darkHorseCandidate = predictionCandidates.ana;
   const bankProfile = predictionCandidates.profile;
   const ridersWithScore = predictionCandidates.ranked;
-  const selectedVenueBankLookupName = selectedVenue ? normalizeVenueNameForBankLookup(selectedVenue.venue) : "";
+  const selectedVenueBankLookupName = selectedVenue ? normalizeVenueBankAlias(selectedVenue.venue) : "";
   const selectedVenueBankIndexTarget = selectedVenueBankLookupName
-    ? venueBankIndex.find((item) => normalizeVenueNameForBankLookup(item.venueName) === selectedVenueBankLookupName) ?? null
+    ? venueBankIndex.find((item) =>
+        normalizeVenueBankAlias(item.venueName) === selectedVenueBankLookupName ||
+        item.aliases?.some((alias) => normalizeVenueBankAlias(alias) === selectedVenueBankLookupName)
+      ) ?? null
     : null;
   const selectedVenueBankFetchPath = resolveRacesPageVenueBankFetchPath(selectedVenue?.venue, selectedVenueBankIndexTarget?.file ?? "");
   const selectedVenueBankSummary = selectedVenue
@@ -3965,7 +3991,7 @@ gap: isMobile ? "10px" : "12px",
                 <div style={{ display: "grid", gap: "6px" }}>
                   <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7" }}>ODDS PREVIEW</div>
                   <div style={{ fontSize: "22px", fontWeight: 900, color: "#081224", lineHeight: 1.2 }}>買う前に見たい3連単オッズ一覧</div>
-                  <div style={{ fontSize: "13px", lineHeight: 1.8, color: "#64748b", maxWidth: "720px" }}>{oddsSummaryLabel}</div>
+                  <div style={{ fontSize: "13px", lineHeight: 1.8, color: "#64748b", maxWidth: "720px" }}>{trifectaOddsRows.length ? oddsSummaryLabel : getPredictionOddsUnavailableLabel(selectedRace?.oddsNote)}</div>
                 </div>
                 <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", borderRadius: "9999px", padding: "8px 12px", background: chaosTone.bg, border: `1px solid ${chaosTone.border}` }}>
                   <span style={{ width: "7px", height: "7px", borderRadius: "9999px", background: chaosTone.text, display: "inline-block" }} />

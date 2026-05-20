@@ -266,6 +266,10 @@ export type PredictionRaceItem = {
   riders?: PredictionRiderItem[];
   oddsPreview?: PredictionOddsPreviewItem[];
   oddsTrifecta?: PredictionTrifectaItem[];
+  topOdds?: number | null;
+  topTrifectaOdds?: number | null;
+  favoriteOdds?: number | null;
+  favoriteCombination?: string;
   resultStatus?: "pending" | "confirmed";
   resultTop3?: PredictionRaceResultEntry[];
   payouts?: PredictionRaceResultPayoutItem[];
@@ -1977,6 +1981,11 @@ export const PREDICTION_VENUE_COORDINATE_MAP: Record<string, PredictionVenueCoor
   "武雄": { latitude: 33.1946, longitude: 130.0212 },
   "防府": { latitude: 34.0519, longitude: 131.5628 },
   "いわき平": { latitude: 37.0561, longitude: 140.8877 },
+  "伊東": { latitude: 34.9662, longitude: 139.0928 },
+  "伊東温泉": { latitude: 34.9662, longitude: 139.0928 },
+  "ito": { latitude: 34.9662, longitude: 139.0928 },
+  "ito-onsen": { latitude: 34.9662, longitude: 139.0928 },
+  "itoonsen": { latitude: 34.9662, longitude: 139.0928 },
 };
 
 export const predictionWeatherCache = new Map<string, PredictionWeatherCacheEntry>();
@@ -1994,19 +2003,33 @@ export const normalizePredictionVenueName = (value?: string | null) =>
     .replace(/[()（）]/g, "")
     .trim();
 
+export const normalizePredictionVenueAlias = (value?: string | null) => {
+  const normalized = normalizePredictionVenueName(value);
+  if (["伊東温泉", "ito-onsen", "itoonsen", "ito"].includes(normalized)) return "伊東";
+  return normalized;
+};
+
+export const isPredictionOddsSkippedOutsideWindow = (oddsNote?: string | null) =>
+  /odds skipped outside/i.test(String(oddsNote ?? ""));
+
+export const getPredictionOddsUnavailableLabel = (oddsNote?: string | null) =>
+  isPredictionOddsSkippedOutsideWindow(oddsNote)
+    ? "KDreamsオッズ未取得（取得対象時間外でスキップ）"
+    : "KDreams未掲載";
+
 export const findPredictionVenueBankTarget = (
   bankIndex: PredictionVenueBankIndexItem[],
   venue?: Pick<PredictionVenueItem, "venue" | "slug"> | Pick<RaceScheduleItem, "venue">
 ) => {
   if (!venue) return null;
 
-  const normalizedVenueName = normalizePredictionVenueName(venue.venue);
+  const normalizedVenueName = normalizePredictionVenueAlias(venue.venue);
   const venueSlug = "slug" in venue ? venue.slug?.trim() : undefined;
 
   return bankIndex.find((item) => {
     if (item.venueKey === venueSlug) return true;
-    if (Array.isArray(item.aliases) && item.aliases.some((alias) => normalizePredictionVenueName(alias) === normalizedVenueName)) return true;
-    return normalizePredictionVenueName(item.venueName) === normalizedVenueName;
+    if (Array.isArray(item.aliases) && item.aliases.some((alias) => normalizePredictionVenueAlias(alias) === normalizedVenueName)) return true;
+    return normalizePredictionVenueAlias(item.venueName) === normalizedVenueName;
   }) ?? null;
 };
 
@@ -2056,7 +2079,8 @@ export const aggregatePredictionResultsByVenueForDate = (map: PredictionResultMa
     }, {});
 };
 
-export const normalizePredictionWeatherLookupName = (venue?: string | null) => (venue ?? "").trim();
+export const normalizePredictionWeatherLookupName = (venue?: string | null) =>
+  normalizePredictionVenueAlias(venue);
 
 export const compactPredictionGuideText = (value?: string | null) =>
   (value ?? "")
@@ -2500,7 +2524,9 @@ export async function fetchPredictionVenueWeather(venueName: string, options: Pr
     return cached.data;
   }
 
-  const coordinates = PREDICTION_VENUE_COORDINATE_MAP[normalizedVenueName] ?? await geocodePredictionVenue(normalizedVenueName);
+  const coordinates = PREDICTION_VENUE_COORDINATE_MAP[normalizedVenueName]
+    ?? PREDICTION_VENUE_COORDINATE_MAP[normalizePredictionVenueAlias(normalizedVenueName)]
+    ?? await geocodePredictionVenue(normalizedVenueName);
   if (!coordinates) throw new Error("prediction-coordinate-not-found");
 
   const url = new URL(PREDICTION_OPEN_METEO_FORECAST_URL);
@@ -7240,13 +7266,21 @@ function buildPredictionOddsExport(race: PredictionRaceItem) {
   const popularText = (race.oddsTrifecta ?? []).slice(0, 15)
     .map((item) => `- ${item.combination} ${item.odds.toFixed(1)}倍${item.popularity ? ` / ${item.popularity}人気` : ""}`)
     .join("\n");
+  const favoriteText =
+    race.favoriteCombination && typeof race.favoriteOdds === "number"
+      ? `- 一番人気オッズ: ${race.favoriteCombination} ${race.favoriteOdds.toFixed(1)}倍`
+      : "";
+  const hasOddsMaterial = Boolean(favoriteText || (race.oddsPreview ?? []).length > 0 || (race.oddsTrifecta ?? []).length > 0);
+  const missingStatusText = hasOddsMaterial ? "" : `- ${getPredictionOddsUnavailableLabel(race.oddsNote)}`;
   const blocks = [
     ...(normalizedOddsNote ? [`- オッズ注記: ${normalizedOddsNote}`] : []),
+    ...(missingStatusText ? [missingStatusText] : []),
+    ...(favoriteText ? [favoriteText] : []),
     ...((race.oddsPreview ?? []).length > 0 ? ["[オッズプレビュー]", previewText] : []),
     ...((race.oddsTrifecta ?? []).length > 0 ? ["[3連単上位15件]", popularText] : []),
   ].filter(Boolean);
 
-  return blocks.length > 0 ? blocks.join("\n\n") : "KDreams未掲載";
+  return blocks.length > 0 ? blocks.join("\n\n") : getPredictionOddsUnavailableLabel(race.oddsNote);
 }
 
 function buildPredictionMemoExport(race: PredictionRaceItem, memo: string) {

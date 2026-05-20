@@ -799,10 +799,11 @@ function isRaceResultComplete(race) {
 }
 
 function isRaceOddsComplete(race) {
+  const oddsNote = String(race?.oddsNote ?? "");
   return Boolean(
     (Array.isArray(race?.oddsTrifecta) && race.oddsTrifecta.length > 0)
-      || /unavailable|fetch failed|skipped/i.test(String(race?.oddsNote ?? ""))
-      || race?.resultStatus === "confirmed",
+      || (Array.isArray(race?.oddsPreview) && race.oddsPreview.length > 0)
+      || /unavailable|fetch failed|accepted/i.test(oddsNote),
   );
 }
 
@@ -947,9 +948,10 @@ function shouldFetchRiderDetailForRace(race, venue, updatePhase) {
 
 function shouldFetchOddsForRace(race, venue, updatePhase) {
   if (!isVenueInPhaseSession(venue, updatePhase)) return false;
-  if (!(["odds", "backfill"].includes(updatePhase.phase))) return false;
-  if (race?.resultStatus === "confirmed") return false;
-  return !isRaceOddsComplete(race);
+  if (isRaceOddsComplete(race)) return false;
+  if (["odds", "backfill", "final"].includes(updatePhase.phase)) return true;
+  if (updatePhase.phase === "result") return true;
+  return false;
 }
 
 function shouldFetchResultForRace(race, venue, updatePhase) {
@@ -1617,6 +1619,10 @@ function createEmptyRaceOddsData() {
   return {
     oddsPreview: [],
     oddsTrifecta: [],
+    topOdds: null,
+    topTrifectaOdds: null,
+    favoriteOdds: null,
+    favoriteCombination: "",
     oddsNote: "",
   };
 }
@@ -2860,9 +2866,15 @@ function extractKdreamsTrifectaOddsData(html) {
     tag: `3連単人気${item.popularity}`,
   }));
 
+  const favorite = mergedItems.find((item) => item.popularity === 1) ?? popularityRows[0] ?? mergedItems[0] ?? null;
+
   return {
     oddsTrifecta: mergedItems,
     oddsPreview,
+    topOdds: favorite?.odds ?? null,
+    topTrifectaOdds: favorite?.odds ?? null,
+    favoriteOdds: favorite?.odds ?? null,
+    favoriteCombination: favorite?.combination ?? "",
     reason: mergedItems.length ? "accepted" : popularityRows.length ? "popular-table-only" : "no trifecta table",
     matrixCount: matrixItems.length,
     popularityCount: popularityRows.length,
@@ -2906,9 +2918,13 @@ async function fetchKdreamsTrifectaOdds(slug, kdreamsRaceId) {
     return {
       oddsPreview: oddsData.oddsPreview,
       oddsTrifecta: oddsData.oddsTrifecta,
+      topOdds: oddsData.topOdds,
+      topTrifectaOdds: oddsData.topTrifectaOdds,
+      favoriteOdds: oddsData.favoriteOdds,
+      favoriteCombination: oddsData.favoriteCombination,
       oddsNote: oddsData.oddsTrifecta.length
         ? `kdreams odds accepted: count=${oddsData.oddsTrifecta.length} matrix=${oddsData.matrixCount} popular=${oddsData.popularityCount}`
-        : `kdreams odds pending: ${oddsData.reason} matrix=${oddsData.matrixCount} popular=${oddsData.popularityCount}`,
+        : `kdreams odds unavailable: ${oddsData.reason} matrix=${oddsData.matrixCount} popular=${oddsData.popularityCount}`,
       source: "kdreams",
       reason: oddsData.reason,
       matrixCount: oddsData.matrixCount,
@@ -2956,6 +2972,10 @@ function mergeRaceDetailWithFallback(primary, fallback) {
       Array.isArray(safePrimary.oddsTrifecta) && safePrimary.oddsTrifecta.length
         ? safePrimary.oddsTrifecta
         : safeFallback.oddsTrifecta,
+    topOdds: safePrimary.topOdds ?? safeFallback.topOdds ?? null,
+    topTrifectaOdds: safePrimary.topTrifectaOdds ?? safeFallback.topTrifectaOdds ?? null,
+    favoriteOdds: safePrimary.favoriteOdds ?? safeFallback.favoriteOdds ?? null,
+    favoriteCombination: safePrimary.favoriteCombination || safeFallback.favoriteCombination || "",
     oddsNote: safePrimary.oddsNote || safeFallback.oddsNote,
     resultNote: safePrimary.resultNote || safeFallback.resultNote || "",
     resultStatus: hasMeaningfulRaceResult(safePrimary) ? safePrimary.resultStatus : safeFallback.resultStatus,
@@ -3967,6 +3987,10 @@ async function main() {
           Array.isArray(detailRace.oddsTrifecta) && detailRace.oddsTrifecta.length
             ? detailRace.oddsTrifecta
             : oddsData.oddsTrifecta,
+        topOdds: detailRace.topOdds ?? oddsData.topOdds ?? null,
+        topTrifectaOdds: detailRace.topTrifectaOdds ?? oddsData.topTrifectaOdds ?? null,
+        favoriteOdds: detailRace.favoriteOdds ?? oddsData.favoriteOdds ?? null,
+        favoriteCombination: detailRace.favoriteCombination || oddsData.favoriteCombination || "",
         oddsNote: oddsData.oddsNote || detailRace.oddsNote || "",
         resultNote: resultData.resultNote || detailRace.resultNote || "",
         resultStatus: hasConfirmedRaceResult(resultData) ? resultData.resultStatus : detailRace.resultStatus,
