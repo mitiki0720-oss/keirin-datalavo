@@ -20,6 +20,7 @@ import {
 import type { ReactNode } from "react";
 import { raceScheduleData } from "../data/raceScheduleData";
 import type { RaceScheduleItem } from "../types/raceSchedule";
+import { getRaceEventDayLabel } from "../utils/raceEventDay";
 const PAGE_MAX_WIDTH = "2040px";
 const OPEN_METEO_GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search";
 const OPEN_METEO_FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
@@ -620,6 +621,14 @@ type GeneratedTodayRacesPayload = {
   venues?: LiveTodayVenueItem[];
 };
 
+const normalizeRacesPageStageVenueName = (value?: string | null) =>
+  (value ?? "")
+    .normalize("NFKC")
+    .replace(/競輪場|競輪/g, "")
+    .replace(/[\s　]/g, "")
+    .replace(/[()（）]/g, "")
+    .trim();
+
 const LOCAL_GENERATED_TODAY_RACES_URL = toPublicPath("/scripts/debug/today.generated.local.json");
 const GENERATED_TODAY_RACES_URL = toPublicPath("/data/races/today.generated.json");
 const GENERATED_TODAY_RACES_URL_CANDIDATES = import.meta.env.DEV
@@ -803,12 +812,21 @@ function formatRacesPageLeaderText(race: LiveRaceDetail | undefined) {
   return parts.length > 0 ? parts.join(" / ") : "S/H/B 未取得";
 }
 
-function findStaticRaceForLiveVenue(venue: string, startDate: string, session: RaceScheduleItem["session"]) {
-  return todayRaces.find((race) =>
-    race.venue === venue &&
-    race.startDate <= startDate &&
-    race.endDate >= startDate &&
-    race.session === session,
+function findStaticRaceForLiveVenue(
+  venue: string,
+  targetIsoDate: string,
+  session: RaceScheduleItem["session"],
+  grade?: string,
+) {
+  const normalizedVenue = normalizeRacesPageStageVenueName(venue);
+  const normalizedGrade = normalizeRaceGrade(grade);
+
+  return raceScheduleData.find((race) =>
+    normalizeRacesPageStageVenueName(race.venue) === normalizedVenue &&
+    race.startDate <= targetIsoDate &&
+    race.endDate >= targetIsoDate &&
+    race.session === session &&
+    (!normalizedGrade || normalizeRaceGrade(race.grade, race.title) === normalizedGrade),
   );
 }
 
@@ -830,6 +848,7 @@ function mapStaticRaceToLiveVenue(race: RaceScheduleItem): LiveTodayVenueItem {
 function useGeneratedTodayRaces() {
   const [generatedTodayRaces, setGeneratedTodayRaces] = useState<LiveTodayVenueItem[]>([]);
   const [generatedAt, setGeneratedAt] = useState<string>("");
+  const [generatedDate, setGeneratedDate] = useState<string>(TODAY);
 
   useEffect(() => {
     let isMounted = true;
@@ -840,17 +859,18 @@ function useGeneratedTodayRaces() {
     fetchGeneratedTodayRacesPayload(dateKey)
       .then((payload) => {
         if (!isMounted) return;
+        const feedDate = typeof payload.date === "string" && payload.date ? payload.date : dateKey;
         const venues = Array.isArray(payload.venues)
           ? payload.venues.map((item) => {
               const session = normalizeGeneratedSession(item.session);
-              const fallbackRace = findStaticRaceForLiveVenue(item.venue, item.startDate, session);
+              const fallbackRace = findStaticRaceForLiveVenue(item.venue, feedDate, session, item.grade);
               return {
                 ...item,
   session,
   title: item.title || fallbackRace?.title || item.venue,
   grade: normalizeRaceGrade(item.grade || fallbackRace?.grade, item.title || fallbackRace?.title),
-  startDate: item.startDate ?? fallbackRace?.startDate,
-  endDate: item.endDate ?? fallbackRace?.endDate,
+  startDate: item.startDate || fallbackRace?.startDate || "",
+  endDate: item.endDate || fallbackRace?.endDate || "",
   races: Array.isArray(item.races)
                   ? item.races.map((race) => ({
                       ...race,
@@ -942,11 +962,13 @@ function useGeneratedTodayRaces() {
           : [];
         setGeneratedTodayRaces(venues.map(normalizeRacesPageVenueWithLeaderMarks));
         setGeneratedAt(payload.generatedAt ?? "");
+        setGeneratedDate(feedDate);
       })
       .catch(() => {
         if (!isMounted) return;
         setGeneratedTodayRaces([]);
         setGeneratedAt("");
+        setGeneratedDate(TODAY);
       });
 
     return () => {
@@ -954,7 +976,7 @@ function useGeneratedTodayRaces() {
     };
   }, []);
 
-  return { generatedTodayRaces, generatedAt };
+  return { generatedTodayRaces, generatedAt, generatedDate };
 }
 
 
@@ -1017,28 +1039,12 @@ const getRacesPageCarTone = (carNo: string) => {
   return tones[carNo] ?? { bg: "#f3f4f6", text: "#111827", border: "#d1d5db" };
 };
 
-const getRacesPageStageLabel = (venue: LiveTodayVenueItem | null | undefined) => {
-  if (!venue?.startDate || !venue?.endDate) return "開催中";
-
-const start = new Date(`${venue.startDate}T00:00:00+09:00`);
-const end = new Date(`${venue.endDate}T00:00:00+09:00`);
-const now = new Date();
-const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || Number.isNaN(today.getTime())) {
-  return "日程確認中";
-}
-
-const totalDays = Math.max(1, Math.floor((end.getTime() - start.getTime()) / 86400000) + 1);
-const currentIndex = Math.floor((today.getTime() - start.getTime()) / 86400000) + 1;
-
-if (currentIndex < 1) return "開始前";
-if (currentIndex > totalDays) return "終了済み";
-
-if (currentIndex === 1) return "初日";
-if (currentIndex === totalDays) return totalDays === 1 ? "初日" : `${currentIndex}日目・最終日`;
-
-return `${currentIndex}日目`;
+const getRacesPageStageLabel = (venue: LiveTodayVenueItem | null | undefined, targetIsoDate = TODAY) => {
+  return getRaceEventDayLabel({
+    startDate: venue?.startDate,
+    endDate: venue?.endDate,
+    targetDate: targetIsoDate,
+  });
 };
 
 const parseRaceTimeToMinutes = (time?: string) => {
@@ -1788,7 +1794,7 @@ const buildRacesPagePredictionCandidates = (
 };
 
 export default function RacesPage() {
-  const { generatedTodayRaces, generatedAt } = useGeneratedTodayRaces();
+  const { generatedTodayRaces, generatedAt, generatedDate } = useGeneratedTodayRaces();
   const isMobile = useIsMobile();
 
   const effectiveTodayRaces = generatedTodayRaces.length > 0
@@ -3227,7 +3233,7 @@ gap: isMobile ? "10px" : "12px",
                 >
                   {row.map((venue: LiveTodayVenueItem) => {
             const active = venue.id === selectedVenue?.id;
-            const stage = getRacesPageStageLabel(venue);
+            const stage = getRacesPageStageLabel(venue, generatedDate);
             const venueBand = getVenueTimeBand(venue);
             const venueCardSessionLabel = normalizeRacesPageSessionLabel(venueBand);
             const venueCardSessionTone =
@@ -3288,7 +3294,9 @@ gap: isMobile ? "10px" : "12px",
 
                 <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                   <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "5px 9px", fontSize: "10px", fontWeight: 900, background: venueCardSessionTone.background, color: venueCardSessionTone.color, border: `1px solid ${venueCardSessionTone.border}` }}>{venueCardSessionLabel}</span>
-                  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "5px 9px", fontSize: "10px", fontWeight: 900, background: "#eef8ff", color: "#3d6b98", border: "1px solid #cfe6fb" }}>{stage}</span>
+                  {stage ? (
+                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "5px 9px", fontSize: "10px", fontWeight: 900, background: "#eef8ff", color: "#3d6b98", border: "1px solid #cfe6fb" }}>{stage}</span>
+                  ) : null}
                 </div>
 
 <div

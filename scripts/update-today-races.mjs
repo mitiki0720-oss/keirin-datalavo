@@ -970,7 +970,37 @@ function normalizeScheduleVenueName(value) {
     .trim();
 }
 
-function resolveVenueScheduleRange(scheduleData, venueName, todayIso) {
+const VENUE_SCHEDULE_RANGE_OVERRIDES = [
+  { targetDate: "2026-05-22", venue: "大宮", grade: "F2", startDate: "2026-05-22", endDate: "2026-05-24" },
+  { targetDate: "2026-05-22", venue: "宇都宮", grade: "F1", startDate: "2026-05-21", endDate: "2026-05-23" },
+  { targetDate: "2026-05-22", venue: "大垣", grade: "F1", startDate: "2026-05-20", endDate: "2026-05-22" },
+  { targetDate: "2026-05-22", venue: "奈良", grade: "F2", startDate: "2026-05-20", endDate: "2026-05-22" },
+  { targetDate: "2026-05-22", venue: "松山", grade: "F1", startDate: "2026-05-20", endDate: "2026-05-22" },
+  { targetDate: "2026-05-22", venue: "平塚", grade: "F2", startDate: "2026-05-22", endDate: "2026-05-24" },
+  { targetDate: "2026-05-22", venue: "岐阜", grade: "F2", startDate: "2026-05-22", endDate: "2026-05-24" },
+  { targetDate: "2026-05-22", venue: "広島", grade: "F2", startDate: "2026-05-22", endDate: "2026-05-24" },
+];
+
+function normalizeVenueScheduleGrade(value) {
+  const normalized = String(value ?? "").normalize("NFKC").replace(/\s+/g, "").toUpperCase();
+  if (normalized === "G1") return "GI";
+  if (normalized === "G2") return "GII";
+  if (normalized === "G3") return "GIII";
+  return normalized;
+}
+
+function resolveVenueScheduleRangeOverride(venueName, grade, todayIso) {
+  const normalizedVenue = normalizeScheduleVenueName(venueName);
+  const normalizedGrade = normalizeVenueScheduleGrade(grade);
+
+  return VENUE_SCHEDULE_RANGE_OVERRIDES.find((item) =>
+    item.targetDate === todayIso &&
+    normalizeScheduleVenueName(item.venue) === normalizedVenue &&
+    (!normalizedGrade || normalizeVenueScheduleGrade(item.grade) === normalizedGrade)
+  ) ?? null;
+}
+
+function resolveVenueScheduleRange(scheduleData, venueName, todayIso, grade = "") {
   const normalizedVenue = normalizeScheduleVenueName(venueName);
 
   const candidates = scheduleData
@@ -983,10 +1013,11 @@ function resolveVenueScheduleRange(scheduleData, venueName, todayIso) {
     });
 
   const matched = candidates[0] ?? null;
+  const override = matched ? null : resolveVenueScheduleRangeOverride(venueName, grade, todayIso);
 
   return {
-    startDate: matched?.startDate ?? todayIso,
-    endDate: matched?.endDate ?? todayIso,
+    startDate: matched?.startDate ?? override?.startDate ?? todayIso,
+    endDate: matched?.endDate ?? override?.endDate ?? todayIso,
   };
 }
 
@@ -1037,7 +1068,7 @@ function parseKdreamsTodayVenues(html, todayIso, scheduleData) {
     const cardId = listLink?.[2] ?? "";
     const venueCode = detailLinks[0]?.raceId?.slice(0, 2) ?? cardId.slice(0, 2) ?? venueCodeFromLinks;
     const { startDate: resolvedStartDate, endDate: resolvedEndDate } =
-      resolveVenueScheduleRange(scheduleData, venueText, todayIso);
+      resolveVenueScheduleRange(scheduleData, venueText, todayIso, grade);
 
     parseRows.push({
       venue: venueText,

@@ -2,6 +2,7 @@
 import { raceScheduleData } from "../data/raceScheduleData";
 import type { DailyMetricItem } from "../types/dailyMetrics";
 import type { RaceScheduleItem } from "../types/raceSchedule";
+import { getRaceEventDayLabel } from "../utils/raceEventDay";
 
 export type CalendarDay = {
   iso: string;
@@ -2971,37 +2972,11 @@ export const getPredictionVenueStageLabel = (
   targetIsoDate = TODAY,
 ) => {
   const schedule = resolvePredictionVenueStageSchedule(venue, targetIsoDate);
-
-  const startDate = venue?.startDate ?? schedule?.startDate;
-  const endDate = venue?.endDate ?? schedule?.endDate;
-
-  if (!startDate || !endDate || !targetIsoDate) {
-    return "日程確認中";
-  }
-
-  const start = getPredictionStageDateTime(startDate);
-  const end = getPredictionStageDateTime(endDate);
-  const target = getPredictionStageDateTime(targetIsoDate);
-
-  if (!start || !end || !target) {
-    return "日程確認中";
-  }
-
-  const totalDays = Math.max(1, getPredictionStageDayDiff(start, end) + 1);
-  const currentIndex = getPredictionStageDayDiff(start, target) + 1;
-
-  if (currentIndex < 1) return "開始前";
-  if (currentIndex > totalDays) return "終了済み";
-
-  if (currentIndex === 1) {
-    return totalDays === 1 ? "初日" : "初日";
-  }
-
-  if (currentIndex === totalDays) {
-    return `${currentIndex}日目・最終日`;
-  }
-
-  return `${currentIndex}日目`;
+  return getRaceEventDayLabel({
+    startDate: venue?.startDate || schedule?.startDate,
+    endDate: venue?.endDate || schedule?.endDate,
+    targetDate: targetIsoDate,
+  }) ?? "日目未取得";
 };
 
 export const comparePredictionVenues = (a: PredictionVenueItem, b: PredictionVenueItem) => {
