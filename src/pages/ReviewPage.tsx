@@ -254,6 +254,7 @@ const toPublicPath = (path: string) => {
 const PREDICTION_TODAY_DATA_URL = toPublicPath("/data/races/today.generated.json");
 const REVIEW_FILE_INDEX_URL = toPublicPath("/data/reviews/index.json");
 const REVIEW_CALENDAR_WEEKDAY_LABELS = ["月", "火", "水", "木", "金", "土", "日"];
+const REVIEW_PAGE_BACKGROUND_URL = toPublicPath("/review-page/backgrounds/review-page-bg-sky-water.png");
 
 
 const sessionLabelMap: Record<string, string> = {
@@ -2250,7 +2251,21 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #fffefe 0%, #fff6fb 46%, #f6fbff 100%)", color: "#111827" }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        color: "#111827",
+        backgroundColor: "#f6fbff",
+        backgroundImage: `
+          linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,246,251,0.30) 44%, rgba(246,251,255,0.54) 100%),
+          url("${REVIEW_PAGE_BACKGROUND_URL}")
+        `,
+        backgroundSize: "cover",
+        backgroundPosition: "center top",
+        backgroundRepeat: "no-repeat",
+        backgroundAttachment: "fixed",
+      }}
+    >
 <SiteHeader activeKey="review" />
 
 

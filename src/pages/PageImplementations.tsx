@@ -5863,11 +5863,52 @@ export function DashboardPage() {
     }
   };
 
-  return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #fffefe 0%, #fff6fb 48%, #f6fbff 100%)", color: "#111827" }}>
+    return (
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "linear-gradient(180deg, #f8fcff 0%, #fff8fd 48%, #f6fbff 100%)",
+        color: "#111827",
+        position: "relative",
+        isolation: "isolate",
+        overflowX: "hidden",
+      }}
+    >
+      <div
+        aria-hidden="true"
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            backgroundImage: `url("${toPublicPath("/dashboard-page/dashboard-bottom-bg-keirin-soft-light.png")}")`,
+            backgroundRepeat: "no-repeat",
+            backgroundSize: "cover",
+            backgroundPosition: isMobile ? "center top" : "center top",
+            opacity: 0.9,
+            transform: "scale(1.02)",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "linear-gradient(180deg, rgba(255,255,255,0.52) 0%, rgba(255,255,255,0.38) 42%, rgba(255,255,255,0.58) 100%)",
+          }}
+        />
+      </div>
+
       <SiteHeader activeKey="dashboard" />
 
-      <main style={{ scrollBehavior: "smooth" }}>
+      <main style={{ scrollBehavior: "smooth", position: "relative", zIndex: 1 }}>
         <section
   style={{
     maxWidth: PAGE_MAX_WIDTH,
@@ -8486,11 +8527,70 @@ function SubPageShell({
                 ? "analysis"
                 : "dashboard";
 
-  return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #fffefe 0%, #fff6fb 48%, #f6fbff 100%)", color: "#111827" }}>
-      <SiteHeader activeKey={subPageActiveKey} />
+    const isRacesSubPage = subPageActiveKey === "races";
 
-      <main style={{ maxWidth: PAGE_MAX_WIDTH, margin: "0 auto", padding: "56px 24px 120px", display: "grid", gap: "28px" }}>
+  return (
+  <div
+    style={{
+      minHeight: "100vh",
+      background: isRacesSubPage
+        ? "linear-gradient(180deg, #fffefe 0%, #f7fbff 42%, #fff8ff 100%)"
+        : "linear-gradient(180deg, #fffefe 0%, #fff6fb 48%, #f6fbff 100%)",
+      color: "#111827",
+      overflowX: "hidden",
+      position: "relative",
+      isolation: "isolate",
+    }}
+  >
+    <SiteHeader activeKey={subPageActiveKey} />
+
+    {isRacesSubPage && (
+      <div
+        aria-hidden="true"
+        style={{
+          position: "fixed",
+          left: 0,
+          right: 0,
+          top: "72px",
+          bottom: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            backgroundImage: `url("${toPublicPath("/races-page/races-page-bg-keirin-soft-light.png")}")`,
+            backgroundRepeat: "no-repeat",
+            backgroundSize:"cover",
+            backgroundPosition: "center top",
+            opacity: 0.95,
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+  "linear-gradient(180deg, rgba(255,255,255,0.00) 0%, rgba(255,255,255,0.03) 42%, rgba(255,255,255,0.08) 100%)",
+          }}
+        />
+      </div>
+    )}
+
+      <main
+  style={{
+    maxWidth: PAGE_MAX_WIDTH,
+    margin: "0 auto",
+    padding: "56px 24px 120px",
+    display: "grid",
+    gap: "28px",
+    position: "relative",
+    zIndex: 1,
+  }}
+>
         <section style={{ borderRadius: "40px", border: "1px solid #ebe3f3", background: "linear-gradient(135deg, rgba(244,239,252,0.96) 0%, rgba(250,248,253,1) 52%, rgba(255,255,255,1) 100%)", boxShadow: "0 24px 54px rgba(15, 23, 42, 0.07)", padding: "34px", position: "relative", ...heroCardStyle }}>
           {heroAccessory && (
             <div style={{ position: "absolute", top: "26px", right: "30px" }}>
@@ -10043,24 +10143,24 @@ const record = normalizePredictionResultRecord({
           overflow: "hidden",
         }}
       >
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            backgroundImage: `url("${toPublicPath("/prediction-page/prediction-page-editorial-bg-soft-lavender.png")}")`,
-            backgroundRepeat: "no-repeat",
-            backgroundSize: "cover",
-            backgroundPosition: isPredictionCompactLayout ? "center top" : "center top",
-            opacity: 0.36,
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: "linear-gradient(180deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.40) 34%, rgba(255,255,255,0.50) 100%)",
-          }}
-        />
+<div
+  style={{
+    position: "absolute",
+    inset: 0,
+    backgroundImage: `url("${toPublicPath("/prediction-page/prediction-page-editorial-bg-soft-lavender.png")}")`,
+    backgroundRepeat: "no-repeat",
+    backgroundSize: isPredictionCompactLayout ? "50% auto" : "100% auto",
+    backgroundPosition: isPredictionCompactLayout ? "center top" : "center top",
+    opacity: 0.66,
+  }}
+/>
+<div
+  style={{
+    position: "absolute",
+    inset: 0,
+    background: "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.08) 38%, rgba(255,255,255,0.18) 100%)",
+  }}
+/>
       </div>
  
       <div
