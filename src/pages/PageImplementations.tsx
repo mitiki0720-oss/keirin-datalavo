@@ -8367,130 +8367,217 @@ export type SiteHeaderActiveKey =
   | "review"
   | "analysis"
   | "races"
+  | "venues"
   | "players"
   | "calendar"
   | "mobile";
-  export type SiteHeaderProps = {
+
+export type SiteHeaderProps = {
   activeKey: SiteHeaderActiveKey;
-}; 
-  export function SiteHeader({ activeKey }: SiteHeaderProps) { 
-    const headerNow = useDashboardNow(); 
-    const isMobile = useIsMobile();
-    const getNavStyle = (key: SiteHeaderActiveKey): CSSProperties => { 
-      const isActive = activeKey === key; 
-      return { color: isActive ? "white" : "rgba(255,255,255,0.78)", 
-        textDecoration: "none", padding: isMobile ? "8px 11px" : "10px 16px", 
-        borderRadius: "9999px", fontSize: isMobile ? "11px" : "12px", 
-        fontWeight: 800, 
-        border: isActive ? "1px solid rgba(255,255,255,0.18)" : "1px solid rgba(255,255,255,0.10)", 
-        background: isActive ? "linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.08) 100%)" : "rgba(255,255,255,0.02)", 
-        boxShadow: isActive ? "inset 0 1px 0 rgba(255,255,255,0.18), 0 10px 20px rgba(8,18,36,0.14)" : "none", 
-        lineHeight: 1, display: "inline-flex", alignItems: "center", 
-        justifyContent: "center", minHeight: "36px", whiteSpace: "nowrap", }; }; 
-        const goHashTop = (hash: string) => (event: ReactMouseEvent<HTMLAnchorElement>) => 
-          { event.preventDefault(); window.location.hash = hash; window.requestAnimationFrame(() => 
-            { window.scrollTo({ top: 0, behavior: "auto" }); }); }; 
-            const goDashboardSection = (id: string) => (event: ReactMouseEvent<HTMLAnchorElement>) => 
-              { event.preventDefault(); window.location.hash = id; window.requestAnimationFrame(() => 
-                { const target = document.getElementById(id.replace("#", "")); if (target) 
-                  { target.scrollIntoView({ block: "start", behavior: "smooth" }); } 
-                  else { window.scrollTo({ top: 0, behavior: "auto" }); } }); }; 
-                  return ( <header style={{ background: "rgba(7, 17, 31, 0.82)", 
-                    color: "white", borderBottom: "1px solid rgba(255,255,255,0.08)", 
-                    position: "sticky", top: 0, zIndex: 20, backdropFilter: "blur(16px)", 
-                    boxShadow: "0 14px 34px rgba(8, 18, 36, 0.10)", }} > 
-                    <div
-  style={{
-    maxWidth: PAGE_MAX_WIDTH,
-    margin: "0 auto",
-    padding: isMobile ? "14px 14px" : "18px 24px",
-    display: "flex",
-    flexDirection: isMobile ? "column" : "row",
-    alignItems: isMobile ? "flex-start" : "center",
-    justifyContent: "space-between",
-    gap: isMobile ? "14px" : "20px",
-    width: "100%",
-    boxSizing: "border-box",
-    overflow: "hidden",
-  }}
-> 
-<div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    gap: isMobile ? "10px" : "14px",
-    width: isMobile ? "100%" : "auto",
-    minWidth: 0,
-  }}
-> 
-                      <div style={{ width: isMobile ? "10px" : "12px", height: isMobile ? "10px" : "12px", borderRadius: "9999px", 
-                      background: "linear-gradient(135deg, #c8b8f2 0%, #8b78cf 100%)", 
-                      boxShadow: "0 0 0 5px rgba(200,184,242,0.12)", flexShrink: 0, }} /> 
-                      <div> 
-                        <div
-  style={{
-    fontSize: isMobile ? "18px" : "22px",
-    fontWeight: 900,
-    letterSpacing: isMobile ? "0.05em" : "0.08em",
-    lineHeight: 1,
-    whiteSpace: "nowrap",
-  }}
->
-  KURARI DATA LAVO
-</div> 
-<div
-  style={{
-    marginTop: "5px",
-    fontSize: isMobile ? "9px" : "10px",
-    fontWeight: 800,
-    letterSpacing: isMobile ? "0.14em" : "0.22em",
-    color: "rgba(255,255,255,0.58)",
-    whiteSpace: "nowrap",
-  }}
->
-  RACE DATA &amp; ANALYSIS
-</div> 
-                        </div> 
-                        </div> 
-                        <div
-  style={{
-    display: "flex",
-    alignItems: isMobile ? "flex-start" : "center",
-    flexDirection: isMobile ? "column" : "row",
-    gap: isMobile ? "10px" : "14px",
-    width: isMobile ? "100%" : "auto",
-  }}
->
-<div
-  style={{
-    minWidth: isMobile ? "104px" : "112px",
-    borderRadius: "16px",
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.04)",
-    padding: isMobile ? "8px 10px" : "10px 12px",
-    textAlign: "center",
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
-  }}
-> 
-                          <div style={{ fontSize: isMobile ? "8px" : "9px", fontWeight: 900, 
-                          letterSpacing: "0.14em", color: "rgba(255,255,255,0.52)", lineHeight: 1.1, }} > LIVE JST 
-                          </div> 
-                          <div style={{ marginTop: "3px", fontSize: "10px", fontWeight: 800, color: "rgba(255,255,255,0.70)", 
-                          lineHeight: 1.1, }} > {formatDashboardDateInJst(headerNow)} 
-                          </div> 
-                          <div style={{ marginTop: "4px", fontSize: "18px", fontWeight: 900, 
-                          letterSpacing: "0.05em", color: "rgba(255,255,255,0.92)", lineHeight: 1, }} > 
-                          {formatDashboardTimeInJst(headerNow)} </div> </div> <nav
-  style={{
-    display: "flex",
-    gap: isMobile ? "8px" : "12px",
-    alignItems: "center",
-    flexWrap: "wrap",
-    width: isMobile ? "100%" : "auto",
-    justifyContent: isMobile ? "flex-start" : "flex-end",
-  }}
-> <a href="#top" onClick={goHashTop("#top")} 
-style={getNavStyle("dashboard")}> Dashboard </a> <a href="#prediction-page" onClick={goHashTop("#prediction-page")} style={getNavStyle("prediction")}> Prediction </a> <a href="#review-page" onClick={goHashTop("#review-page")} style={getNavStyle("review")}> Review </a> <a href="#featured-race" onClick={goDashboardSection("#featured-race")} style={getNavStyle("analysis")}> Analysis </a> <a href="#races-page" onClick={goHashTop("#races-page")} style={getNavStyle("races")}> Races </a> <a href="#players-page" onClick={goHashTop("#players-page")} style={getNavStyle("players")}> Players </a> <a href="#calendar" onClick={goDashboardSection("#calendar")} style={getNavStyle("calendar")}> Calendar </a> <a href="#mobile-dashboard" onClick={goHashTop("#mobile-dashboard")} style={getNavStyle("mobile")}> Mobile </a> </nav> </div> </div> </header> ); }
+};
+
+export function SiteHeader({ activeKey }: SiteHeaderProps) {
+  const headerNow = useDashboardNow();
+  const isMobile = useIsMobile();
+
+  const getNavStyle = (key: SiteHeaderActiveKey): CSSProperties => {
+    const isActive = activeKey === key;
+
+    return {
+      color: isActive ? "white" : "rgba(255,255,255,0.78)",
+      textDecoration: "none",
+      padding: isMobile ? "8px 11px" : "10px 16px",
+      borderRadius: "9999px",
+      fontSize: isMobile ? "11px" : "12px",
+      fontWeight: 800,
+      border: isActive
+        ? "1px solid rgba(255,255,255,0.18)"
+        : "1px solid rgba(255,255,255,0.10)",
+      background: isActive
+        ? "linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.08) 100%)"
+        : "rgba(255,255,255,0.02)",
+      boxShadow: isActive
+        ? "inset 0 1px 0 rgba(255,255,255,0.18), 0 10px 20px rgba(8,18,36,0.14)"
+        : "none",
+      lineHeight: 1,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      minHeight: "36px",
+      whiteSpace: "nowrap",
+    };
+  };
+
+  const goHashTop = (hash: string) => (event: ReactMouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    window.location.hash = hash;
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    });
+  };
+
+  return (
+    <header
+      style={{
+        background: "rgba(7, 17, 31, 0.82)",
+        color: "white",
+        borderBottom: "1px solid rgba(255,255,255,0.08)",
+        position: "sticky",
+        top: 0,
+        zIndex: 20,
+        backdropFilter: "blur(16px)",
+        boxShadow: "0 16px 40px rgba(8,18,36,0.12)",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: PAGE_MAX_WIDTH,
+          margin: "0 auto",
+          padding: isMobile ? "12px 16px" : "14px 24px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: isMobile ? "14px" : "24px",
+          flexWrap: "wrap",
+        }}
+      >
+        <a
+          href="#top"
+          onClick={goHashTop("#top")}
+          style={{
+            color: "white",
+            textDecoration: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "12px",
+            minWidth: isMobile ? "100%" : "auto",
+          }}
+        >
+          <span
+            aria-hidden="true"
+            style={{
+              width: "14px",
+              height: "14px",
+              borderRadius: "9999px",
+              background: "linear-gradient(135deg, #c4b5fd 0%, #7c3aed 100%)",
+              boxShadow: "0 0 0 3px rgba(196,181,253,0.22)",
+            }}
+          />
+          <span style={{ display: "grid", gap: "2px" }}>
+            <span
+              style={{
+                fontSize: isMobile ? "18px" : "22px",
+                fontWeight: 950,
+                letterSpacing: "0.04em",
+                lineHeight: 1,
+              }}
+            >
+              KURARI DATA LAVO
+            </span>
+            <span
+              style={{
+                fontSize: "10px",
+                fontWeight: 900,
+                letterSpacing: "0.18em",
+                color: "rgba(255,255,255,0.62)",
+                lineHeight: 1,
+              }}
+            >
+              RACE DATA & ANALYSIS
+            </span>
+          </span>
+        </a>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: isMobile ? "10px" : "16px",
+            flexWrap: "wrap",
+            justifyContent: isMobile ? "flex-start" : "flex-end",
+            width: isMobile ? "100%" : "auto",
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gap: "2px",
+              padding: isMobile ? "8px 12px" : "10px 16px",
+              borderRadius: "14px",
+              border: "1px solid rgba(255,255,255,0.14)",
+              background: "rgba(255,255,255,0.05)",
+              color: "rgba(255,255,255,0.86)",
+              minWidth: isMobile ? "auto" : "132px",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "9px",
+                fontWeight: 900,
+                letterSpacing: "0.16em",
+                color: "rgba(255,255,255,0.55)",
+                lineHeight: 1,
+              }}
+            >
+              LIVE JST
+            </span>
+            <span
+              style={{
+                fontSize: isMobile ? "11px" : "12px",
+                fontWeight: 800,
+                lineHeight: 1,
+              }}
+            >
+              {formatDashboardDateInJst(headerNow)}
+            </span>
+            <span
+              style={{
+                fontSize: isMobile ? "16px" : "20px",
+                fontWeight: 950,
+                lineHeight: 1,
+              }}
+            >
+              {formatDashboardTimeInJst(headerNow)}
+            </span>
+          </div>
+
+          <nav
+            style={{
+              display: "flex",
+              gap: isMobile ? "8px" : "12px",
+              alignItems: "center",
+              flexWrap: "wrap",
+              width: isMobile ? "100%" : "auto",
+              justifyContent: isMobile ? "flex-start" : "flex-end",
+            }}
+          >
+            <a href="#top" onClick={goHashTop("#top")} style={getNavStyle("dashboard")}>
+              Dashboard
+            </a>
+            <a href="#races-page" onClick={goHashTop("#races-page")} style={getNavStyle("races")}>
+              Today
+            </a>
+            <a href="#prediction-page" onClick={goHashTop("#prediction-page")} style={getNavStyle("prediction")}>
+              Prediction
+            </a>
+            <a href="#review-page" onClick={goHashTop("#review-page")} style={getNavStyle("review")}>
+              Review
+            </a>
+            <a href="#venue-features-page" onClick={goHashTop("#venue-features-page")} style={getNavStyle("venues")}>
+              Venues
+            </a>
+            <a href="#players-page" onClick={goHashTop("#players-page")} style={getNavStyle("players")}>
+              Players
+            </a>
+            <a href="#mobile-dashboard" onClick={goHashTop("#mobile-dashboard")} style={getNavStyle("mobile")}>
+              Mobile
+            </a>
+          </nav>
+        </div>
+      </div>
+    </header>
+  );
+}
 
 function SubPageShell({
   eyebrow,
@@ -8512,20 +8599,24 @@ function SubPageShell({
     ? "dashboard"
     : window.location.hash.replace(/^#/, "").trim() || "dashboard";
 
-  const subPageActiveKey: SiteHeaderActiveKey =
-    routePrefix === "prediction-page"
-      ? "prediction"
-      : routePrefix === "review-page"
-        ? "review"
-        : routePrefix === "races-page"
-          ? "races"
+const subPageActiveKey: SiteHeaderActiveKey =
+  routePrefix === "prediction-page"
+    ? "prediction"
+    : routePrefix === "review-page"
+      ? "review"
+      : routePrefix === "races-page"
+        ? "races"
+        : routePrefix === "venue-features-page"
+          ? "venues"
           : routePrefix === "players-page"
             ? "players"
-            : routePrefix === "calendar"
-              ? "calendar"
-              : routePrefix === "featured-race"
-                ? "analysis"
-                : "dashboard";
+            : routePrefix === "mobile-dashboard"
+              ? "mobile"
+              : routePrefix === "calendar"
+                ? "calendar"
+                : routePrefix === "featured-race"
+                  ? "analysis"
+                  : "dashboard";
 
     const isRacesSubPage = subPageActiveKey === "races";
 
