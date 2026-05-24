@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026/5/24 4:31:03",
+  "generatedAt": "2026/5/24 5:00:14",
   "source": {
     "racecard": "https://keirin.kdreams.jp/racecard/",
     "detailPrimary": "https://keirin.netkeiba.com/race/entry/?race_id=[YYYYMMDD][venueCode][raceNo]&rf=racetoplive",
@@ -72406,7 +72406,7 @@
           "netkeirinLineupRaw": "",
           "kdreamsLineupRaw": "6 1 2 3 4 7 5",
           "isGirls": true,
-          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/shizuoka/racedetail/3820260524010005/ / lineFallback: kdreams lineup accepted",
+          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/shizuoka/racedetail/3820260524010005/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/shizuoka/racedetail/3820260524010005/?pageType=result",
           "lead": "",
           "oddsPreview": [
             {
@@ -73532,23 +73532,212 @@
           "favoriteOdds": 2.3,
           "favoriteCombination": "3-1-2",
           "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / odds skipped outside backfill window / odds skipped outside lineup window / odds skipped outside odds window / odds skipped outside result window",
-          "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=0 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/shizuoka/racedetail/3820260524010005/?pageType=result / resultFallback: oddspark disabled by source policy",
-          "resultStatus": "pending",
-          "resultTop3": [],
-          "payouts": [],
+          "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/shizuoka/racedetail/3820260524010005/?pageType=result",
+          "resultStatus": "confirmed",
+          "resultTop3": [
+            {
+              "place": "1",
+              "carNo": "1",
+              "name": "平子 結菜",
+              "margin": "",
+              "agari": "12.7",
+              "kimarite": "逃",
+              "sMark": false,
+              "hMark": false,
+              "bMark": true
+            },
+            {
+              "place": "2",
+              "carNo": "3",
+              "name": "小林 優香",
+              "margin": "１/８車輪",
+              "agari": "12.1",
+              "kimarite": "差",
+              "sMark": false,
+              "hMark": false,
+              "bMark": false
+            },
+            {
+              "place": "3",
+              "carNo": "2",
+              "name": "細田 愛未",
+              "margin": "３/４車輪",
+              "agari": "12.2",
+              "kimarite": "",
+              "sMark": false,
+              "hMark": false,
+              "bMark": false
+            }
+          ],
+          "payouts": [
+            {
+              "betType": "2車複",
+              "combination": "1=3",
+              "payout": "960円 (4)",
+              "popularity": "4"
+            },
+            {
+              "betType": "3連複",
+              "combination": "1=2=3",
+              "payout": "440円 (2)",
+              "popularity": "2"
+            },
+            {
+              "betType": "ワイド",
+              "combination": "1=2",
+              "payout": "320円 (6)",
+              "popularity": "6"
+            },
+            {
+              "betType": "ワイド",
+              "combination": "1=3",
+              "payout": "230円 (4)",
+              "popularity": "4"
+            },
+            {
+              "betType": "ワイド",
+              "combination": "2=3",
+              "payout": "100円 (1)",
+              "popularity": "1"
+            },
+            {
+              "betType": "2車単",
+              "combination": "1-3",
+              "payout": "6,180円 (11)",
+              "popularity": "11"
+            },
+            {
+              "betType": "3連単",
+              "combination": "1-3-2",
+              "payout": "14,520円 (26)",
+              "popularity": "26"
+            }
+          ],
           "result": {
-            "status": "pending",
-            "finishOrder": [],
-            "kimarite": "",
-            "secondKimarite": "",
-            "sLeaderCarNo": "",
+            "status": "confirmed",
+            "finishOrder": [
+              {
+                "rank": "1",
+                "carNo": "1",
+                "name": "平子 結菜",
+                "agari": "12.7",
+                "gap": "",
+                "kimarite": "逃",
+                "mark": "B",
+                "status": ""
+              },
+              {
+                "rank": "2",
+                "carNo": "3",
+                "name": "小林 優香",
+                "agari": "12.1",
+                "gap": "１/８車輪",
+                "kimarite": "差",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "3",
+                "carNo": "2",
+                "name": "細田 愛未",
+                "agari": "12.2",
+                "gap": "３/４車輪",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "4",
+                "carNo": "7",
+                "name": "永禮 美瑠",
+                "agari": "12.0",
+                "gap": "１車輪",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "5",
+                "carNo": "6",
+                "name": "向井 円",
+                "agari": "12.7",
+                "gap": "１/２車身",
+                "kimarite": "",
+                "mark": "S",
+                "status": ""
+              },
+              {
+                "rank": "6",
+                "carNo": "4",
+                "name": "杉沢 毛伊子",
+                "agari": "12.3",
+                "gap": "４車身",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "7",
+                "carNo": "5",
+                "name": "齊藤 由紀",
+                "agari": "12.7",
+                "gap": "７車身",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              }
+            ],
+            "kimarite": "逃",
+            "secondKimarite": "差",
+            "sLeaderCarNo": "6",
             "hLeaderCarNo": "",
-            "bLeaderCarNo": "",
-            "payout2tan": null,
-            "payout2fuku": [],
-            "payout3tan": null,
-            "payout3fuku": null,
-            "payoutWide": [],
+            "bLeaderCarNo": "1",
+            "payout2tan": {
+              "betType": "2車単",
+              "combination": "1-3",
+              "payout": "6,180円 (11)",
+              "popularity": "11"
+            },
+            "payout2fuku": [
+              {
+                "betType": "2車複",
+                "combination": "1=3",
+                "payout": "960円 (4)",
+                "popularity": "4"
+              }
+            ],
+            "payout3tan": {
+              "betType": "3連単",
+              "combination": "1-3-2",
+              "payout": "14,520円 (26)",
+              "popularity": "26"
+            },
+            "payout3fuku": {
+              "betType": "3連複",
+              "combination": "1=2=3",
+              "payout": "440円 (2)",
+              "popularity": "2"
+            },
+            "payoutWide": [
+              {
+                "betType": "ワイド",
+                "combination": "1=2",
+                "payout": "320円 (6)",
+                "popularity": "6"
+              },
+              {
+                "betType": "ワイド",
+                "combination": "1=3",
+                "payout": "230円 (4)",
+                "popularity": "4"
+              },
+              {
+                "betType": "ワイド",
+                "combination": "2=3",
+                "payout": "100円 (1)",
+                "popularity": "1"
+              }
+            ],
             "finalizedAt": ""
           },
           "riders": [
@@ -74450,7 +74639,7 @@
           "netkeirinLineupRaw": "",
           "kdreamsLineupRaw": "7 1 2 3 4 5 6",
           "isGirls": true,
-          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/shizuoka/racedetail/3820260524010006/ / lineFallback: kdreams lineup accepted",
+          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/shizuoka/racedetail/3820260524010006/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/shizuoka/racedetail/3820260524010006/?pageType=result",
           "lead": "",
           "oddsPreview": [
             {
@@ -75576,23 +75765,212 @@
           "favoriteOdds": 4,
           "favoriteCombination": "2-4-6",
           "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / odds skipped outside backfill window / odds skipped outside lineup window / odds skipped outside odds window / odds skipped outside result window",
-          "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=0 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/shizuoka/racedetail/3820260524010006/?pageType=result / resultFallback: oddspark disabled by source policy",
-          "resultStatus": "pending",
-          "resultTop3": [],
-          "payouts": [],
+          "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/shizuoka/racedetail/3820260524010006/?pageType=result",
+          "resultStatus": "confirmed",
+          "resultTop3": [
+            {
+              "place": "1",
+              "carNo": "2",
+              "name": "吉川 美穂",
+              "margin": "",
+              "agari": "13.1",
+              "kimarite": "逃",
+              "sMark": false,
+              "hMark": false,
+              "bMark": true
+            },
+            {
+              "place": "2",
+              "carNo": "7",
+              "name": "岡本 二菜",
+              "margin": "３/４車身",
+              "agari": "13.1",
+              "kimarite": "ク",
+              "sMark": false,
+              "hMark": false,
+              "bMark": false
+            },
+            {
+              "place": "3",
+              "carNo": "6",
+              "name": "永塚 祐子",
+              "margin": "１/４車輪",
+              "agari": "13.1",
+              "kimarite": "",
+              "sMark": false,
+              "hMark": false,
+              "bMark": false
+            }
+          ],
+          "payouts": [
+            {
+              "betType": "2車複",
+              "combination": "2=7",
+              "payout": "200円 (1)",
+              "popularity": "1"
+            },
+            {
+              "betType": "3連複",
+              "combination": "2=6=7",
+              "payout": "330円 (2)",
+              "popularity": "2"
+            },
+            {
+              "betType": "ワイド",
+              "combination": "2=6",
+              "payout": "150円 (2)",
+              "popularity": "2"
+            },
+            {
+              "betType": "ワイド",
+              "combination": "2=7",
+              "payout": "110円 (1)",
+              "popularity": "1"
+            },
+            {
+              "betType": "ワイド",
+              "combination": "6=7",
+              "payout": "290円 (5)",
+              "popularity": "5"
+            },
+            {
+              "betType": "2車単",
+              "combination": "2-7",
+              "payout": "250円 (1)",
+              "popularity": "1"
+            },
+            {
+              "betType": "3連単",
+              "combination": "2-7-6",
+              "payout": "580円 (1)",
+              "popularity": "1"
+            }
+          ],
           "result": {
-            "status": "pending",
-            "finishOrder": [],
-            "kimarite": "",
-            "secondKimarite": "",
-            "sLeaderCarNo": "",
+            "status": "confirmed",
+            "finishOrder": [
+              {
+                "rank": "1",
+                "carNo": "2",
+                "name": "吉川 美穂",
+                "agari": "13.1",
+                "gap": "",
+                "kimarite": "逃",
+                "mark": "B",
+                "status": ""
+              },
+              {
+                "rank": "2",
+                "carNo": "7",
+                "name": "岡本 二菜",
+                "agari": "13.1",
+                "gap": "３/４車身",
+                "kimarite": "ク",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "3",
+                "carNo": "6",
+                "name": "永塚 祐子",
+                "agari": "13.1",
+                "gap": "１/４車輪",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "4",
+                "carNo": "1",
+                "name": "中村 由香里",
+                "agari": "13.1",
+                "gap": "１車身",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "5",
+                "carNo": "4",
+                "name": "野口 諭実可",
+                "agari": "13.1",
+                "gap": "微差",
+                "kimarite": "",
+                "mark": "S",
+                "status": ""
+              },
+              {
+                "rank": "6",
+                "carNo": "5",
+                "name": "田野口 佳奈",
+                "agari": "12.9",
+                "gap": "１車身１/２",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "7",
+                "carNo": "3",
+                "name": "佐藤 乃愛",
+                "agari": "13.2",
+                "gap": "１車身",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              }
+            ],
+            "kimarite": "逃",
+            "secondKimarite": "ク",
+            "sLeaderCarNo": "4",
             "hLeaderCarNo": "",
-            "bLeaderCarNo": "",
-            "payout2tan": null,
-            "payout2fuku": [],
-            "payout3tan": null,
-            "payout3fuku": null,
-            "payoutWide": [],
+            "bLeaderCarNo": "2",
+            "payout2tan": {
+              "betType": "2車単",
+              "combination": "2-7",
+              "payout": "250円 (1)",
+              "popularity": "1"
+            },
+            "payout2fuku": [
+              {
+                "betType": "2車複",
+                "combination": "2=7",
+                "payout": "200円 (1)",
+                "popularity": "1"
+              }
+            ],
+            "payout3tan": {
+              "betType": "3連単",
+              "combination": "2-7-6",
+              "payout": "580円 (1)",
+              "popularity": "1"
+            },
+            "payout3fuku": {
+              "betType": "3連複",
+              "combination": "2=6=7",
+              "payout": "330円 (2)",
+              "popularity": "2"
+            },
+            "payoutWide": [
+              {
+                "betType": "ワイド",
+                "combination": "2=6",
+                "payout": "150円 (2)",
+                "popularity": "2"
+              },
+              {
+                "betType": "ワイド",
+                "combination": "2=7",
+                "payout": "110円 (1)",
+                "popularity": "1"
+              },
+              {
+                "betType": "ワイド",
+                "combination": "6=7",
+                "payout": "290円 (5)",
+                "popularity": "5"
+              }
+            ],
             "finalizedAt": ""
           },
           "riders": [
@@ -77599,7 +77977,7 @@
           "favoriteOdds": 12.3,
           "favoriteCombination": "2-1-6",
           "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / odds skipped outside backfill window / odds skipped outside lineup window / odds skipped outside odds window / odds skipped outside result window",
-          "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=0 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/shizuoka/racedetail/3820260524010007/?pageType=result / resultFallback: oddspark disabled by source policy",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/shizuoka/racedetail/3820260524010007/?pageType=result / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -150134,7 +150512,7 @@
           "netkeirinLineupRaw": "",
           "kdreamsLineupRaw": "16 72 49 538",
           "isGirls": false,
-          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/takeo/racedetail/8420260523020005/ / lineFallback: kdreams lineup accepted",
+          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/takeo/racedetail/8420260523020005/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/takeo/racedetail/8420260523020005/?pageType=result",
           "lead": "",
           "oddsPreview": [
             {
@@ -152730,23 +153108,244 @@
           "favoriteOdds": 10.4,
           "favoriteCombination": "5-3-8",
           "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=504 matrix=504 popular=50 / odds skipped outside backfill window / odds skipped outside lineup window / odds skipped outside odds window / odds skipped outside result window",
-          "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=0 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/takeo/racedetail/8420260523020005/?pageType=result / resultFallback: oddspark disabled by source policy",
-          "resultStatus": "pending",
-          "resultTop3": [],
-          "payouts": [],
+          "resultNote": "kdreams result accepted: top3=3 payouts=9 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/takeo/racedetail/8420260523020005/?pageType=result",
+          "resultStatus": "confirmed",
+          "resultTop3": [
+            {
+              "place": "1",
+              "carNo": "3",
+              "name": "桑原 大志",
+              "margin": "",
+              "agari": "11.4",
+              "kimarite": "差",
+              "sMark": true,
+              "hMark": false,
+              "bMark": false
+            },
+            {
+              "place": "2",
+              "carNo": "5",
+              "name": "町田 太我",
+              "margin": "３/４車輪",
+              "agari": "11.5",
+              "kimarite": "逃",
+              "sMark": false,
+              "hMark": false,
+              "bMark": true
+            },
+            {
+              "place": "3",
+              "carNo": "8",
+              "name": "柏野 智典",
+              "margin": "１/４車輪",
+              "agari": "11.3",
+              "kimarite": "",
+              "sMark": false,
+              "hMark": false,
+              "bMark": false
+            }
+          ],
+          "payouts": [
+            {
+              "betType": "2枠複",
+              "combination": "3=4",
+              "payout": "270円 (1)",
+              "popularity": "1"
+            },
+            {
+              "betType": "2車複",
+              "combination": "3=5",
+              "payout": "250円 (1)",
+              "popularity": "1"
+            },
+            {
+              "betType": "3連複",
+              "combination": "3=5=8",
+              "payout": "400円 (1)",
+              "popularity": "1"
+            },
+            {
+              "betType": "ワイド",
+              "combination": "3=5",
+              "payout": "150円 (1)",
+              "popularity": "1"
+            },
+            {
+              "betType": "ワイド",
+              "combination": "3=8",
+              "payout": "370円 (5)",
+              "popularity": "5"
+            },
+            {
+              "betType": "ワイド",
+              "combination": "5=8",
+              "payout": "330円 (2)",
+              "popularity": "2"
+            },
+            {
+              "betType": "2枠単",
+              "combination": "3-4",
+              "payout": "620円 (2)",
+              "popularity": "2"
+            },
+            {
+              "betType": "2車単",
+              "combination": "3-5",
+              "payout": "660円 (2)",
+              "popularity": "2"
+            },
+            {
+              "betType": "3連単",
+              "combination": "3-5-8",
+              "payout": "1,470円 (2)",
+              "popularity": "2"
+            }
+          ],
           "result": {
-            "status": "pending",
-            "finishOrder": [],
-            "kimarite": "",
-            "secondKimarite": "",
-            "sLeaderCarNo": "",
+            "status": "confirmed",
+            "finishOrder": [
+              {
+                "rank": "1",
+                "carNo": "3",
+                "name": "桑原 大志",
+                "agari": "11.4",
+                "gap": "",
+                "kimarite": "差",
+                "mark": "S",
+                "status": ""
+              },
+              {
+                "rank": "2",
+                "carNo": "5",
+                "name": "町田 太我",
+                "agari": "11.5",
+                "gap": "３/４車輪",
+                "kimarite": "逃",
+                "mark": "B",
+                "status": ""
+              },
+              {
+                "rank": "3",
+                "carNo": "8",
+                "name": "柏野 智典",
+                "agari": "11.3",
+                "gap": "１/４車輪",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "4",
+                "carNo": "2",
+                "name": "守澤 太志",
+                "agari": "11.2",
+                "gap": "１/２車身",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "5",
+                "carNo": "6",
+                "name": "久米 良",
+                "agari": "11.1",
+                "gap": "１車身",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "6",
+                "carNo": "4",
+                "name": "三谷 竜生",
+                "agari": "11.6",
+                "gap": "３/４車身",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "7",
+                "carNo": "9",
+                "name": "東口 善朋",
+                "agari": "11.5",
+                "gap": "タイヤ差",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "8",
+                "carNo": "7",
+                "name": "佐藤 一伸",
+                "agari": "11.8",
+                "gap": "４車身",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "9",
+                "carNo": "1",
+                "name": "佐々木 豪",
+                "agari": "12.1",
+                "gap": "１車身",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              }
+            ],
+            "kimarite": "差",
+            "secondKimarite": "逃",
+            "sLeaderCarNo": "3",
             "hLeaderCarNo": "",
-            "bLeaderCarNo": "",
-            "payout2tan": null,
-            "payout2fuku": [],
-            "payout3tan": null,
-            "payout3fuku": null,
-            "payoutWide": [],
+            "bLeaderCarNo": "5",
+            "payout2tan": {
+              "betType": "2車単",
+              "combination": "3-5",
+              "payout": "660円 (2)",
+              "popularity": "2"
+            },
+            "payout2fuku": [
+              {
+                "betType": "2車複",
+                "combination": "3=5",
+                "payout": "250円 (1)",
+                "popularity": "1"
+              }
+            ],
+            "payout3tan": {
+              "betType": "3連単",
+              "combination": "3-5-8",
+              "payout": "1,470円 (2)",
+              "popularity": "2"
+            },
+            "payout3fuku": {
+              "betType": "3連複",
+              "combination": "3=5=8",
+              "payout": "400円 (1)",
+              "popularity": "1"
+            },
+            "payoutWide": [
+              {
+                "betType": "ワイド",
+                "combination": "3=5",
+                "payout": "150円 (1)",
+                "popularity": "1"
+              },
+              {
+                "betType": "ワイド",
+                "combination": "3=8",
+                "payout": "370円 (5)",
+                "popularity": "5"
+              },
+              {
+                "betType": "ワイド",
+                "combination": "5=8",
+                "payout": "330円 (2)",
+                "popularity": "2"
+              }
+            ],
             "finalizedAt": ""
           },
           "riders": [
@@ -153964,7 +154563,7 @@
           "netkeirinLineupRaw": "",
           "kdreamsLineupRaw": "35 81 742 69",
           "isGirls": false,
-          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/takeo/racedetail/8420260523020006/ / lineFallback: kdreams lineup accepted",
+          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/takeo/racedetail/8420260523020006/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/takeo/racedetail/8420260523020006/?pageType=result",
           "lead": "",
           "oddsPreview": [
             {
@@ -156560,23 +157159,244 @@
           "favoriteOdds": 28.4,
           "favoriteCombination": "7-5-4",
           "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=504 matrix=504 popular=50 / odds skipped outside backfill window / odds skipped outside lineup window / odds skipped outside odds window / odds skipped outside result window",
-          "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=0 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/takeo/racedetail/8420260523020006/?pageType=result / resultFallback: oddspark disabled by source policy",
-          "resultStatus": "pending",
-          "resultTop3": [],
-          "payouts": [],
+          "resultNote": "kdreams result accepted: top3=3 payouts=9 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/takeo/racedetail/8420260523020006/?pageType=result",
+          "resultStatus": "confirmed",
+          "resultTop3": [
+            {
+              "place": "1",
+              "carNo": "5",
+              "name": "佐々木 眞也",
+              "margin": "",
+              "agari": "11.5",
+              "kimarite": "差",
+              "sMark": false,
+              "hMark": false,
+              "bMark": false
+            },
+            {
+              "place": "2",
+              "carNo": "3",
+              "name": "菊池 岳仁",
+              "margin": "１/８車輪",
+              "agari": "11.6",
+              "kimarite": "逃",
+              "sMark": false,
+              "hMark": false,
+              "bMark": true
+            },
+            {
+              "place": "3",
+              "carNo": "1",
+              "name": "村上 博幸",
+              "margin": "１車身",
+              "agari": "11.5",
+              "kimarite": "",
+              "sMark": false,
+              "hMark": false,
+              "bMark": false
+            }
+          ],
+          "payouts": [
+            {
+              "betType": "2枠複",
+              "combination": "3=4",
+              "payout": "570円 (2)",
+              "popularity": "2"
+            },
+            {
+              "betType": "2車複",
+              "combination": "3=5",
+              "payout": "640円 (2)",
+              "popularity": "2"
+            },
+            {
+              "betType": "3連複",
+              "combination": "1=3=5",
+              "payout": "1,870円 (5)",
+              "popularity": "5"
+            },
+            {
+              "betType": "ワイド",
+              "combination": "1=3",
+              "payout": "1,210円 (16)",
+              "popularity": "16"
+            },
+            {
+              "betType": "ワイド",
+              "combination": "1=5",
+              "payout": "540円 (7)",
+              "popularity": "7"
+            },
+            {
+              "betType": "ワイド",
+              "combination": "3=5",
+              "payout": "410円 (4)",
+              "popularity": "4"
+            },
+            {
+              "betType": "2枠単",
+              "combination": "4-3",
+              "payout": "1,040円 (3)",
+              "popularity": "3"
+            },
+            {
+              "betType": "2車単",
+              "combination": "5-3",
+              "payout": "1,130円 (2)",
+              "popularity": "2"
+            },
+            {
+              "betType": "3連単",
+              "combination": "5-3-1",
+              "payout": "4,780円 (8)",
+              "popularity": "8"
+            }
+          ],
           "result": {
-            "status": "pending",
-            "finishOrder": [],
-            "kimarite": "",
-            "secondKimarite": "",
-            "sLeaderCarNo": "",
+            "status": "confirmed",
+            "finishOrder": [
+              {
+                "rank": "1",
+                "carNo": "5",
+                "name": "佐々木 眞也",
+                "agari": "11.5",
+                "gap": "",
+                "kimarite": "差",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "2",
+                "carNo": "3",
+                "name": "菊池 岳仁",
+                "agari": "11.6",
+                "gap": "１/８車輪",
+                "kimarite": "逃",
+                "mark": "B",
+                "status": ""
+              },
+              {
+                "rank": "3",
+                "carNo": "1",
+                "name": "村上 博幸",
+                "agari": "11.5",
+                "gap": "１車身",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "4",
+                "carNo": "9",
+                "name": "志智 俊夫",
+                "agari": "11.5",
+                "gap": "１車身１/２",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "5",
+                "carNo": "4",
+                "name": "橋本 強",
+                "agari": "11.5",
+                "gap": "３/４車身",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "6",
+                "carNo": "6",
+                "name": "川口 聖二",
+                "agari": "11.8",
+                "gap": "１車身",
+                "kimarite": "",
+                "mark": "S",
+                "status": ""
+              },
+              {
+                "rank": "7",
+                "carNo": "2",
+                "name": "小川 勇介",
+                "agari": "11.5",
+                "gap": "１/２車輪",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "8",
+                "carNo": "8",
+                "name": "脇本 勇希",
+                "agari": "12.1",
+                "gap": "２車身",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "9",
+                "carNo": "7",
+                "name": "石原 颯",
+                "agari": "11.8",
+                "gap": "３車身",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              }
+            ],
+            "kimarite": "差",
+            "secondKimarite": "逃",
+            "sLeaderCarNo": "6",
             "hLeaderCarNo": "",
-            "bLeaderCarNo": "",
-            "payout2tan": null,
-            "payout2fuku": [],
-            "payout3tan": null,
-            "payout3fuku": null,
-            "payoutWide": [],
+            "bLeaderCarNo": "3",
+            "payout2tan": {
+              "betType": "2車単",
+              "combination": "5-3",
+              "payout": "1,130円 (2)",
+              "popularity": "2"
+            },
+            "payout2fuku": [
+              {
+                "betType": "2車複",
+                "combination": "3=5",
+                "payout": "640円 (2)",
+                "popularity": "2"
+              }
+            ],
+            "payout3tan": {
+              "betType": "3連単",
+              "combination": "5-3-1",
+              "payout": "4,780円 (8)",
+              "popularity": "8"
+            },
+            "payout3fuku": {
+              "betType": "3連複",
+              "combination": "1=3=5",
+              "payout": "1,870円 (5)",
+              "popularity": "5"
+            },
+            "payoutWide": [
+              {
+                "betType": "ワイド",
+                "combination": "1=3",
+                "payout": "1,210円 (16)",
+                "popularity": "16"
+              },
+              {
+                "betType": "ワイド",
+                "combination": "1=5",
+                "payout": "540円 (7)",
+                "popularity": "7"
+              },
+              {
+                "betType": "ワイド",
+                "combination": "3=5",
+                "payout": "410円 (4)",
+                "popularity": "4"
+              }
+            ],
             "finalizedAt": ""
           },
           "riders": [
@@ -157752,7 +158572,7 @@
           "netkeirinLineupRaw": "",
           "kdreamsLineupRaw": "513 297 846",
           "isGirls": false,
-          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/takeo/racedetail/8420260523020007/ / lineFallback: kdreams lineup accepted",
+          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/takeo/racedetail/8420260523020007/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/takeo/racedetail/8420260523020007/?pageType=result",
           "lead": "",
           "oddsPreview": [
             {
@@ -160348,23 +161168,244 @@
           "favoriteOdds": 26.5,
           "favoriteCombination": "9-2-1",
           "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=504 matrix=504 popular=50 / odds skipped outside backfill window / odds skipped outside lineup window / odds skipped outside odds window / odds skipped outside result window",
-          "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=0 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/takeo/racedetail/8420260523020007/?pageType=result / resultFallback: oddspark disabled by source policy",
-          "resultStatus": "pending",
-          "resultTop3": [],
-          "payouts": [],
+          "resultNote": "kdreams result accepted: top3=3 payouts=9 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/takeo/racedetail/8420260523020007/?pageType=result",
+          "resultStatus": "confirmed",
+          "resultTop3": [
+            {
+              "place": "1",
+              "carNo": "4",
+              "name": "伊藤 旭",
+              "margin": "",
+              "agari": "11.3",
+              "kimarite": "差",
+              "sMark": false,
+              "hMark": false,
+              "bMark": false
+            },
+            {
+              "place": "2",
+              "carNo": "1",
+              "name": "武藤 龍生",
+              "margin": "３/４車輪",
+              "agari": "11.3",
+              "kimarite": "差",
+              "sMark": true,
+              "hMark": false,
+              "bMark": false
+            },
+            {
+              "place": "3",
+              "carNo": "8",
+              "name": "後藤 大輝",
+              "margin": "タイヤ差",
+              "agari": "11.5",
+              "kimarite": "",
+              "sMark": false,
+              "hMark": false,
+              "bMark": true
+            }
+          ],
+          "payouts": [
+            {
+              "betType": "2枠複",
+              "combination": "1=4",
+              "payout": "490円 (2)",
+              "popularity": "2"
+            },
+            {
+              "betType": "2車複",
+              "combination": "1=4",
+              "payout": "1,290円 (6)",
+              "popularity": "6"
+            },
+            {
+              "betType": "3連複",
+              "combination": "1=4=8",
+              "payout": "2,710円 (11)",
+              "popularity": "11"
+            },
+            {
+              "betType": "ワイド",
+              "combination": "1=4",
+              "payout": "370円 (1)",
+              "popularity": "1"
+            },
+            {
+              "betType": "ワイド",
+              "combination": "1=8",
+              "payout": "1,520円 (23)",
+              "popularity": "23"
+            },
+            {
+              "betType": "ワイド",
+              "combination": "4=8",
+              "payout": "530円 (10)",
+              "popularity": "10"
+            },
+            {
+              "betType": "2枠単",
+              "combination": "4-1",
+              "payout": "810円 (2)",
+              "popularity": "2"
+            },
+            {
+              "betType": "2車単",
+              "combination": "4-1",
+              "payout": "2,080円 (11)",
+              "popularity": "11"
+            },
+            {
+              "betType": "3連単",
+              "combination": "4-1-8",
+              "payout": "10,380円 (27)",
+              "popularity": "27"
+            }
+          ],
           "result": {
-            "status": "pending",
-            "finishOrder": [],
-            "kimarite": "",
-            "secondKimarite": "",
-            "sLeaderCarNo": "",
+            "status": "confirmed",
+            "finishOrder": [
+              {
+                "rank": "1",
+                "carNo": "4",
+                "name": "伊藤 旭",
+                "agari": "11.3",
+                "gap": "",
+                "kimarite": "差",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "2",
+                "carNo": "1",
+                "name": "武藤 龍生",
+                "agari": "11.3",
+                "gap": "３/４車輪",
+                "kimarite": "差",
+                "mark": "S",
+                "status": ""
+              },
+              {
+                "rank": "3",
+                "carNo": "8",
+                "name": "後藤 大輝",
+                "agari": "11.5",
+                "gap": "タイヤ差",
+                "kimarite": "",
+                "mark": "B",
+                "status": ""
+              },
+              {
+                "rank": "4",
+                "carNo": "7",
+                "name": "嶋津 拓弥",
+                "agari": "11.2",
+                "gap": "１/２車身",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "5",
+                "carNo": "2",
+                "name": "岩本 俊介",
+                "agari": "11.5",
+                "gap": "１車身１/２",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "6",
+                "carNo": "3",
+                "name": "和田 圭",
+                "agari": "11.4",
+                "gap": "１/２車輪",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "7",
+                "carNo": "9",
+                "name": "小原 太樹",
+                "agari": "11.3",
+                "gap": "タイヤ差",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "8",
+                "carNo": "5",
+                "name": "坂井 洋",
+                "agari": "11.7",
+                "gap": "１車身",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "9",
+                "carNo": "6",
+                "name": "中川 誠一郎",
+                "agari": "12.3",
+                "gap": "５車身",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              }
+            ],
+            "kimarite": "差",
+            "secondKimarite": "差",
+            "sLeaderCarNo": "1",
             "hLeaderCarNo": "",
-            "bLeaderCarNo": "",
-            "payout2tan": null,
-            "payout2fuku": [],
-            "payout3tan": null,
-            "payout3fuku": null,
-            "payoutWide": [],
+            "bLeaderCarNo": "8",
+            "payout2tan": {
+              "betType": "2車単",
+              "combination": "4-1",
+              "payout": "2,080円 (11)",
+              "popularity": "11"
+            },
+            "payout2fuku": [
+              {
+                "betType": "2車複",
+                "combination": "1=4",
+                "payout": "1,290円 (6)",
+                "popularity": "6"
+              }
+            ],
+            "payout3tan": {
+              "betType": "3連単",
+              "combination": "4-1-8",
+              "payout": "10,380円 (27)",
+              "popularity": "27"
+            },
+            "payout3fuku": {
+              "betType": "3連複",
+              "combination": "1=4=8",
+              "payout": "2,710円 (11)",
+              "popularity": "11"
+            },
+            "payoutWide": [
+              {
+                "betType": "ワイド",
+                "combination": "1=4",
+                "payout": "370円 (1)",
+                "popularity": "1"
+              },
+              {
+                "betType": "ワイド",
+                "combination": "1=8",
+                "payout": "1,520円 (23)",
+                "popularity": "23"
+              },
+              {
+                "betType": "ワイド",
+                "combination": "4=8",
+                "payout": "530円 (10)",
+                "popularity": "10"
+              }
+            ],
             "finalizedAt": ""
           },
           "riders": [
