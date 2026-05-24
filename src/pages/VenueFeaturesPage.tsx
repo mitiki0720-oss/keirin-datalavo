@@ -1,5 +1,6 @@
 ﻿import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { venueSpotlightData } from "../data/venueSpotlightData";
+import { SiteHeader } from "./PageImplementations";
 
 const toPublicPath = (path: string) => {
   const base = import.meta.env.BASE_URL || "/";
@@ -1376,29 +1377,11 @@ export default function VenueFeaturesPage() {
         fontFamily: ff,
       }}
     >
+
+      <SiteHeader activeKey="venues" />
+
       {/* ── 1. Hero ────────────────────────────────────────────────── */}
       <section style={{ padding: isMobile ? "44px 16px 36px" : "44px 40px 36px", background: "linear-gradient(180deg, #f3efff 0%, #f9f7ff 100%)" }}>
-        <div style={{ marginBottom: "20px" }}>
-          <a
-            href="#top"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              fontSize: "12px",
-              fontWeight: 800,
-              color: "#8c63c7",
-              textDecoration: "none",
-              borderRadius: "9999px",
-              padding: "6px 15px",
-              background: "rgba(242,236,251,0.75)",
-              border: "1px solid rgba(224,214,244,0.5)",
-              letterSpacing: "0.04em",
-            }}
-          >
-            ← トップに戻る
-          </a>
-        </div>
 
         <div
           style={{

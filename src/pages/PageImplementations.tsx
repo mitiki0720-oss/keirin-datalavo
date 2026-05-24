@@ -7798,37 +7798,14 @@ export function PlayersPage() {
         <div style={{ position: "absolute", right: "-120px", bottom: "90px", width: "500px", height: "500px", borderRadius: "50%", background: "radial-gradient(circle, rgba(255,167,205,0.28) 0%, rgba(255,167,205,0.12) 36%, rgba(255,188,211,0) 74%)" }} />
         <div style={{ position: "absolute", left: "30%", bottom: "-220px", width: "620px", height: "620px", borderRadius: "50%", background: "radial-gradient(circle, rgba(218,179,255,0.24) 0%, rgba(218,179,255,0.10) 34%, rgba(214,190,245,0) 76%)" }} />
       </div>
-      <header
-        style={{
-          background: "rgba(7, 17, 31, 0.82)",
-          color: "white",
-          borderBottom: "1px solid rgba(255,255,255,0.08)",
-          position: "sticky",
-          top: 0,
-          zIndex: 30,
-          backdropFilter: "blur(16px)",
-          boxShadow: "0 10px 30px rgba(8, 18, 36, 0.10)",
-        }}
-      >
-        <div style={{ maxWidth: PAGE_MAX_WIDTH, margin: "0 auto", padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "20px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-            <div style={{ width: "12px", height: "12px", borderRadius: "9999px", background: "#b9a7ea", boxShadow: "0 0 0 6px rgba(185,167,234,0.18)" }} />
-            <div>
-              <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "rgba(255,255,255,0.62)" }}>KURARI DATA LABO</div>
-              <div style={{ fontSize: "22px", fontWeight: 900, letterSpacing: "-0.02em" }}>Players Editorial Archive</div>
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-            <a href="#" style={{ color: "white", textDecoration: "none", padding: "10px 16px", borderRadius: "9999px", background: "linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.08) 100%)", border: "1px solid rgba(255,255,255,0.14)" }}>Dashboardへ戻る</a>
-          </div>
-        </div>
-      </header>
+      
+            <SiteHeader activeKey="players" />
 
       <div
         style={{
           position: "fixed",
           left: "18px",
-          top: "46px",
+          top: "96px",
           width: "150px",
           height: "150px",
           backgroundImage: `url("${toPublicPath("/kurari-charigon-float.png")}")`,
@@ -8379,6 +8356,9 @@ export type SiteHeaderProps = {
 export function SiteHeader({ activeKey }: SiteHeaderProps) {
   const headerNow = useDashboardNow();
   const isMobile = useIsMobile();
+  const headerFontFamily = '"KurariHeaderCraft", "Helvetica Neue", Arial, "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif';
+  const clockFontFamily =
+  '"KurariClockFont", "Helvetica Neue", Arial, "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif';
 
   const getNavStyle = (key: SiteHeaderActiveKey): CSSProperties => {
     const isActive = activeKey === key;
@@ -8390,6 +8370,7 @@ export function SiteHeader({ activeKey }: SiteHeaderProps) {
       borderRadius: "9999px",
       fontSize: isMobile ? "11px" : "12px",
       fontWeight: 800,
+      fontFamily: headerFontFamily,
       border: isActive
         ? "1px solid rgba(255,255,255,0.18)"
         : "1px solid rgba(255,255,255,0.10)",
@@ -8416,19 +8397,35 @@ export function SiteHeader({ activeKey }: SiteHeaderProps) {
     });
   };
 
-  return (
-    <header
-      style={{
-        background: "rgba(7, 17, 31, 0.82)",
-        color: "white",
-        borderBottom: "1px solid rgba(255,255,255,0.08)",
-        position: "sticky",
-        top: 0,
-        zIndex: 20,
-        backdropFilter: "blur(16px)",
-        boxShadow: "0 16px 40px rgba(8,18,36,0.12)",
-      }}
-    >
+return (
+  <header
+    style={{
+      background: "rgba(7, 17, 31, 0.82)",
+      color: "white",
+      borderBottom: "1px solid rgba(255,255,255,0.08)",
+      position: "sticky",
+      top: 0,
+      zIndex: 20,
+      backdropFilter: "blur(16px)",
+      boxShadow: "0 16px 40px rgba(8,18,36,0.12)",
+      fontFamily: '"Helvetica Neue", Arial, "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif',
+      WebkitFontSmoothing: "antialiased",
+    }}
+  >
+      <style>{`
+        @font-face {
+          font-family: "KurariHeaderCraft";
+          src: url("${toPublicPath("/fonts/kurari-header-craftmincho.otf")}") format("opentype");
+          font-display: swap;
+        }
+        
+        @font-face {
+          font-family: "KurariClockFont";
+          src: url("${toPublicPath("/fonts/kurari-clock-font.otf")}") format("opentype");
+          font-display: swap;
+        }
+      `}</style>
+
       <div
         style={{
           maxWidth: PAGE_MAX_WIDTH,
@@ -8456,20 +8453,23 @@ export function SiteHeader({ activeKey }: SiteHeaderProps) {
           <span
             aria-hidden="true"
             style={{
-              width: "14px",
-              height: "14px",
+              width: "30px",
+              height: "30px",
               borderRadius: "9999px",
               background: "linear-gradient(135deg, #c4b5fd 0%, #7c3aed 100%)",
-              boxShadow: "0 0 0 3px rgba(196,181,253,0.22)",
+              boxShadow: "0 0 0 5px rgba(196,181,253,0.22)",
+              transform: "translateX(-5px)",
+              flexShrink: 0,
             }}
           />
           <span style={{ display: "grid", gap: "2px" }}>
             <span
               style={{
-                fontSize: isMobile ? "18px" : "22px",
+                fontSize: isMobile ? "20px" : "24px",
                 fontWeight: 950,
                 letterSpacing: "0.04em",
-                lineHeight: 1,
+                lineHeight: 1.5,
+                fontFamily: headerFontFamily,
               }}
             >
               KURARI DATA LAVO
@@ -8481,6 +8481,7 @@ export function SiteHeader({ activeKey }: SiteHeaderProps) {
                 letterSpacing: "0.18em",
                 color: "rgba(255,255,255,0.62)",
                 lineHeight: 1,
+                fontFamily: headerFontFamily,
               }}
             >
               RACE DATA & ANALYSIS
@@ -8523,9 +8524,10 @@ export function SiteHeader({ activeKey }: SiteHeaderProps) {
             </span>
             <span
               style={{
-                fontSize: isMobile ? "11px" : "12px",
+                fontSize: isMobile ? "12px" : "13px",
                 fontWeight: 800,
                 lineHeight: 1,
+                fontFamily: clockFontFamily,
               }}
             >
               {formatDashboardDateInJst(headerNow)}
@@ -8535,6 +8537,7 @@ export function SiteHeader({ activeKey }: SiteHeaderProps) {
                 fontSize: isMobile ? "16px" : "20px",
                 fontWeight: 950,
                 lineHeight: 1,
+                fontFamily: clockFontFamily,
               }}
             >
               {formatDashboardTimeInJst(headerNow)}
