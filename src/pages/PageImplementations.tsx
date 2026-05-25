@@ -6209,19 +6209,18 @@ export function DashboardPage() {
                 </div>
 
                 <div
+                  aria-hidden="true"
                   style={{
                     position: "absolute",
-                    right: isMobile ? "8px" : "18px",
-                    bottom: isMobile ? "8px" : "14px",
-                    width: isMobile ? "176px" : "286px",
-                    height: isMobile ? "218px" : "338px",
-                    backgroundImage: `url("${toPublicPath("/kurari-hero-chibi.png")}")`,
-                    backgroundSize: "contain",
-                    backgroundRepeat: "no-repeat",
-                    backgroundPosition: "right bottom",
+                    right: isMobile ? "14px" : "24px",
+                    bottom: isMobile ? "12px" : "18px",
+                    width: isMobile ? "160px" : "260px",
+                    height: isMobile ? "160px" : "260px",
+                    borderRadius: "50%",
+                    background: "radial-gradient(circle, rgba(203,186,240,0.34) 0%, rgba(203,186,240,0.16) 38%, rgba(203,186,240,0) 72%)",
                     pointerEvents: "none",
-                    filter: "drop-shadow(0 16px 28px rgba(8, 18, 36, 0.16))",
-                    zIndex: 2,
+                    filter: "blur(2px)",
+                    zIndex: 1,
                   }}
                 />
               </div>
@@ -8504,7 +8503,7 @@ if (!nextSlots[currentKey] && nextSlots[legacyKey]) {
   }, [hydratedPredictionMaterialRace.hydratedRace, selectedRace, selectedSavedPredictionSlot]);
   const selectedPredictionMaterialVenue = hydratedPredictionMaterialRace.sourceVenue ?? selectedVenue;
   useEffect(() => {
-    if (!selectedPredictionMaterialRace) return;
+    if (!import.meta.env.DEV || !selectedPredictionMaterialRace) return;
     console.log("[GPT MATERIAL DEBUG]", {
       venue: selectedPredictionMaterialVenue?.venue,
       raceNo: selectedPredictionMaterialRace?.raceNo,
