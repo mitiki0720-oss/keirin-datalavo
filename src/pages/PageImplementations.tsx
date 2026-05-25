@@ -6831,97 +6831,6 @@ const buildPredictionExportContextsFromRiders = (riders: PredictionRiderItem[]):
   riders.map((rider) => ({ rider, indexItem: null, card: null }));
 
 
-type PlayerImageIndexArrayItem = {
-  id?: string;
-  name?: string;
-  grade?: string;
-  imageFile?: string;
-  src?: string;
-  alt?: string;
-};
-
-type PlayerImageIndexRecordItem = {
-  src?: string;
-  alt?: string;
-  name?: string;
-  grade?: string;
-  imageFile?: string;
-};
-
-type PlayerImageIndexFile = {
-  items?: PlayerImageIndexArrayItem[];
-  [key: string]: unknown;
-};
-
-const PLAYER_IMAGE_INDEX_URL = toPublicPath("/data/player-images/index.json");
-const PLAYER_IMAGE_BASE = toPublicPath("/data/player-images/");
-
-const resolvePlayerImageSrc = (value?: string) => {
-  if (!value) return "";
-
-  const trimmed = value.trim();
-  if (!trimmed) return "";
-
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-    return trimmed;
-  }
-
-  if (trimmed.startsWith("/")) {
-    return toPublicPath(trimmed);
-  }
-
-  return `${PLAYER_IMAGE_BASE}${trimmed.replace(/^\/+/, "")}`;
-};
-
-const getPlayerImageEntryFromIndex = (
-  json: PlayerImageIndexFile | null | undefined,
-  playerId?: string,
-  playerName?: string
-): { src: string; alt: string } | null => {
-  if (!json || typeof json !== "object") return null;
-
-  const normalizedName = (playerName ?? "").trim();
-
-  if (playerId && json[playerId] && typeof json[playerId] === "object" && !Array.isArray(json[playerId])) {
-    const entry = json[playerId] as PlayerImageIndexRecordItem;
-    const src = resolvePlayerImageSrc(entry.src ?? entry.imageFile);
-    if (src) {
-      return { src, alt: entry.alt?.trim() || `${normalizedName || playerId}の選手画像` };
-    }
-  }
-
-  if (Array.isArray(json.items)) {
-    const matched = json.items.find((item) => {
-      if (!item || typeof item !== "object") return false;
-      const byId = playerId && item.id && item.id === playerId;
-      const byName = normalizedName && item.name && item.name.trim() === normalizedName;
-      return Boolean(byId || byName);
-    });
-
-    if (matched) {
-      const src = resolvePlayerImageSrc(matched.src ?? matched.imageFile);
-      if (src) {
-        return { src, alt: matched.alt?.trim() || `${normalizedName || matched.name || playerId || "選手"}の選手画像` };
-      }
-    }
-  }
-
-  for (const [key, value] of Object.entries(json)) {
-    if (key === "items" || key === "meta" || key === "_meta") continue;
-    if (!value || typeof value !== "object" || Array.isArray(value)) continue;
-    const entry = value as PlayerImageIndexRecordItem;
-    if (normalizedName && entry.name && entry.name.trim() === normalizedName) {
-      const src = resolvePlayerImageSrc(entry.src ?? entry.imageFile);
-      if (src) {
-        return { src, alt: entry.alt?.trim() || `${normalizedName}の選手画像` };
-      }
-    }
-  }
-
-  return null;
-};
-
-
 const PLAYER_INDEX_URL = toPublicPath("/data/player-cards/index.json");
 const PLAYER_CARD_BASE = toPublicPath("/data/player-cards/");
 
@@ -7004,9 +6913,6 @@ const parsePlayerCard = (id: string, markdown: string): ParsedPlayerCard => ({
   summary: extractKeyValueSection(markdown, "## 3）1ページ要約（まずここだけ見ればOK）"),
   schedule: extractKeyValueSection(markdown, "## 2）更新スケジュール（4ヶ月ローテ前提）"),
 });
-
-const findSection = (card: ParsedPlayerCard | null, titlePrefix: string) =>
-  card?.sections.find((section) => section.title.startsWith(titlePrefix)) ?? null;
 
 function normalizePredictionPlayerName(value?: string | null) {
   return (value ?? "")
@@ -7304,491 +7210,73 @@ function buildPredictionMemoExport(race: PredictionRaceItem, memo: string) {
   return buildPredictionSourceSupplementExport(race);
 }
 
-const MarkdownTable = ({ table }: { table: { header: string[]; body: string[][] } }) => (
-  <div style={{ overflowX: "auto", borderRadius: "28px", border: "1px solid #e9e0f3", background: "linear-gradient(180deg, #fffdfd 0%, #f9f7ff 52%, #f6fbff 100%)", boxShadow: "0 16px 34px rgba(15, 23, 42, 0.05)" }}>
-    <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, minWidth: "620px" }}>
-      <thead>
-        <tr>
-          {table.header.map((cell, index) => (
-            <th
-              key={`${cell}-${index}`}
-              style={{
-                textAlign: "left",
-                padding: "16px 16px",
-                fontSize: "11px",
-                fontWeight: 900,
-                letterSpacing: "0.12em",
-                color: "#6b5ea8",
-                background: "linear-gradient(180deg, #f3edfc 0%, #faf7fe 100%)",
-                borderBottom: "1px solid #ebe2f4",
-                boxShadow: "inset 0 -1px 0 rgba(255,255,255,0.7)",
-                whiteSpace: "nowrap",
-                position: "sticky",
-                top: 0,
-                zIndex: 1,
-              }}
-            >
-              {cell}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {table.body.map((row, rowIndex) => (
-          <tr key={`row-${rowIndex}`}>
-            {row.map((cell, cellIndex) => (
-              <td
-                key={`${rowIndex}-${cellIndex}`}
-                style={{
-                  fontSize: "13px",
-                  color: cellIndex === 0 ? "#081224" : "#425266",
-                  fontWeight: cellIndex === 0 ? 800 : 600,
-                  borderBottom: rowIndex === table.body.length - 1 ? "none" : "1px solid #f3eef8",
-                  verticalAlign: "top",
-                  lineHeight: 1.8,
-                  background: cellIndex === 0 ? "rgba(247,241,253,0.96)" : rowIndex % 2 === 0 ? "rgba(255,255,255,0.99)" : "rgba(250,247,253,0.78)",
-                }}
-              >
-                {cellIndex === 0 ? (
-                  <span style={{ display: "inline-flex", alignItems: "center", minHeight: "28px", padding: "0 8px", borderRadius: "10px", background: "rgba(255,255,255,0.82)", border: "1px solid #ecdff5" }}>{cell}</span>
-                ) : cell}
-              </td>
-            ))}
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-);
-
-const MarkdownSectionContent = ({ content }: { content: string }) => {
-  const blocks = content
-    .split(/\n{2,}/)
-    .map((block) => block.trim())
-    .filter(Boolean);
-
-  return (
-    <div style={{ display: "grid", gap: "16px" }}>
-      {blocks.map((block, index) => {
-        const table = parseTableBlock(block);
-        if (table) {
-          return <MarkdownTable key={index} table={table} />;
-        }
-
-        const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
-        if (lines.every((line) => line.startsWith("- "))) {
-          return (
-            <ul key={index} style={{ margin: 0, paddingLeft: "22px", color: "#425266", lineHeight: 1.9, fontSize: "14px" }}>
-              {lines.map((line) => (
-                <li key={line}>{line.replace(/^-\s*/, "")}</li>
-              ))}
-            </ul>
-          );
-        }
-
-        if (lines.every((line) => line.startsWith("### "))) {
-          return (
-            <div key={index} style={{ display: "grid", gap: "10px" }}>
-              {lines.map((line) => (
-                <div key={line} style={{ fontSize: "16px", fontWeight: 900, color: "#081224" }}>{line.replace(/^###\s*/, "")}</div>
-              ))}
-            </div>
-          );
-        }
-
-        return (
-          <div key={index} style={{ color: "#425266", lineHeight: 1.9, fontSize: "14px" }}>
-            {lines.map((line, lineIndex) => {
-              if (line.startsWith("### ")) {
-                return <div key={lineIndex} style={{ fontSize: "16px", fontWeight: 900, color: "#081224", marginBottom: "8px" }}>{line.replace(/^###\s*/, "")}</div>;
-              }
-              if (line.startsWith(">")) {
-                return <div key={lineIndex} style={{ padding: "12px 14px", borderRadius: "16px", background: "linear-gradient(180deg, #fff3f9 0%, #f0f7ff 100%)", border: "1px solid #ecdff5", color: "#5b6880" }}>{line.replace(/^>\s*/, "")}</div>;
-              }
-              return <div key={lineIndex}>{line}</div>;
-            })}
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
-
-const REGION_ORDER = ["すべて", "北日本", "関東", "南関東", "中部", "近畿", "中国", "四国", "九州"] as const;
-type RegionFilter = (typeof REGION_ORDER)[number];
-type PlayerSortKey = "updated-desc" | "name-asc" | "id-asc" | "grade-desc";
-type PlayerQuickFilter = "all" | "ss" | "favorites" | "recent" | "sprinters";
-
-const normalizeText = (value?: string) => (value ?? "").toLowerCase();
-
-const gradeRank = (grade?: string) => {
-  const value = grade ?? "";
-  if (value.includes("S班")) return 0;
-  if (value.includes("S級1班")) return 1;
-  if (value.includes("S級2班")) return 2;
-  if (value.includes("A級1班")) return 3;
-  if (value.includes("A級2班")) return 4;
-  return 9;
-};
-
-const getPlayerQuickMeta = (item: PlayerIndexItem, card: ParsedPlayerCard | null) => ({
-  region: card?.profile["府県／地域"]?.split("／")[1] ?? item.region ?? "",
-  prefecture: card?.profile["府県／地域"]?.split("／")[0] ?? item.prefecture ?? "",
-  grade: card?.profile["現級班（所属日）"] ?? item.grade ?? "",
-  style: card?.profile["脚質（表記）"] ?? item.style ?? "",
-});
-
-const getSectionAccentCopy = (title: string) => {
-  if (title.includes("直近4ヶ月")) return "近況の流れと決まり手の偏りを、まず最初に確認するセクションです。";
-  if (title.includes("通算") || title.includes("グレード別")) return "格と得意レンジを見極めるための、通算ベースの確認用セクションです。";
-  if (title.includes("予想")) return "買いの芯・消しの芯へ落とし込むための、実戦向けメモをまとめています。";
-  if (title.includes("EX")) return "位置・周長・天候など、より深く比較するための補助データです。";
-  return "カルテ本文を読みやすく整理した詳細セクションです。";
-};
-
-
-const PLAYER_SUMMARY_SECTION_ID = "player-section-summary";
-const PLAYER_SECTION_SCROLL_OFFSET = 112;
 
 
 
 
 export function PlayersPage() {
-  const [playerIndex, setPlayerIndex] = useState<PlayerIndexItem[]>([]);
-  const [selectedId, setSelectedId] = useState<string>("");
-  const [selectedCard, setSelectedCard] = useState<ParsedPlayerCard | null>(null);
-  const [searchValue, setSearchValue] = useState("");
-  const [regionFilter, setRegionFilter] = useState<RegionFilter>("すべて");
-  const [gradeFilter, setGradeFilter] = useState("すべて");
-  const [styleFilter, setStyleFilter] = useState("すべて");
-  const [sortKey, setSortKey] = useState<PlayerSortKey>("updated-desc");
-  const [quickFilter, setQuickFilter] = useState<PlayerQuickFilter>("all");
-  const [recentPlayerIds, setRecentPlayerIds] = useState<string[]>(() => {
-    try {
-      const stored = window.localStorage.getItem(RECENT_PLAYER_IDS_STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  });
-  const [favoritePlayerIds, setFavoritePlayerIds] = useState<string[]>(() => {
-    try {
-      const stored = window.localStorage.getItem(FAVORITE_PLAYER_IDS_STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  });
-  const [comparePlayerIds, setComparePlayerIds] = useState<string[]>(() => {
-    try {
-      const stored = window.localStorage.getItem(COMPARE_PLAYER_IDS_STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  });
-  const [isLoadingIndex, setIsLoadingIndex] = useState(true);
-  const [isLoadingCard, setIsLoadingCard] = useState(false);
-
-  const [playerImageSrc, setPlayerImageSrc] = useState("");
-  const [playerImageAlt, setPlayerImageAlt] = useState("");
-  const [playerImageFailed, setPlayerImageFailed] = useState(false);
-  const [, setActivePlayerSectionId] = useState<string>(PLAYER_SUMMARY_SECTION_ID);
-
-  const handleOpenPlayer = (player: PlayerIndexItem) => {
-    setSelectedId(player.id);
-    requestAnimationFrame(() => {
-      const el = document.getElementById("players-page");
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  };
+  const isMobile = useIsMobile();
 
   useEffect(() => {
-    let isActive = true;
-
-    const loadIndex = async () => {
-      setIsLoadingIndex(true);
-      try {
-        const response = await fetch(`${PLAYER_INDEX_URL}?v=${Date.now()}`);
-        const data = (await response.json()) as PlayerIndexItem[];
-        if (!isActive) return;
-        setPlayerIndex(data);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        if (isActive) setIsLoadingIndex(false);
-      }
-    };
-
-    loadIndex();
-    return () => {
-      isActive = false;
-    };
+    try {
+      window.localStorage.removeItem("kq_players_v1");
+    } catch (error) {
+      console.warn("[PlayersPage] failed to remove legacy player cache", error);
+    }
   }, []);
 
-  useEffect(() => {
-    if (!selectedId) {
-      setSelectedCard(null);
-      return;
-    }
-    const target = playerIndex.find((item) => item.id === selectedId);
-    if (!target) return;
-
-    let isActive = true;
-    const loadCard = async () => {
-      setIsLoadingCard(true);
-      try {
-        const response = await fetch(`${resolvePlayerCardUrl(target.file)}?v=${Date.now()}`);
-        if (!response.ok) {
-          throw new Error(`Failed to load player card: ${target.file}`);
-        }
-        const markdown = await response.text();
-        if (!isActive) return;
-        setSelectedCard(parsePlayerCard(target.id, markdown));
-      } catch (error) {
-        console.error(error);
-        if (isActive) {
-          setSelectedCard(null);
-        }
-      } finally {
-        if (isActive) setIsLoadingCard(false);
-      }
-    };
-
-    loadCard();
-    return () => {
-      isActive = false;
-    };
-  }, [playerIndex, selectedId]);
-
-  useEffect(() => {
-    if (!selectedId) return;
-    setRecentPlayerIds((current) => {
-      const next = [selectedId, ...current.filter((id) => id !== selectedId)].slice(0, 6);
-      try {
-        window.localStorage.setItem(RECENT_PLAYER_IDS_STORAGE_KEY, JSON.stringify(next));
-      } catch {}
-      return next;
-    });
-  }, [selectedId]);
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(FAVORITE_PLAYER_IDS_STORAGE_KEY, JSON.stringify(favoritePlayerIds));
-    } catch {}
-  }, [favoritePlayerIds]);
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(COMPARE_PLAYER_IDS_STORAGE_KEY, JSON.stringify(comparePlayerIds));
-    } catch {}
-  }, [comparePlayerIds]);
-
-  const filterOptions = useMemo(() => {
-    const grades = new Set<string>();
-    const styles = new Set<string>();
-    playerIndex.forEach((item) => {
-      if (item.grade) grades.add(item.grade);
-      if (item.style) styles.add(item.style);
-    });
-    return {
-      grades: ["すべて", ...Array.from(grades).sort((a, b) => gradeRank(a) - gradeRank(b) || a.localeCompare(b, "ja"))],
-      styles: ["すべて", ...Array.from(styles).sort((a, b) => a.localeCompare(b, "ja"))],
-    };
-  }, [playerIndex]);
-
-  const hasFinderFilters =
-    searchValue.trim().length > 0 ||
-    regionFilter !== "すべて" ||
-    gradeFilter !== "すべて" ||
-    styleFilter !== "すべて" ||
-    quickFilter !== "all";
-
-  const matchedPlayers = useMemo(() => {
-    const keyword = normalizeText(searchValue.trim());
-
-    const rows = playerIndex.filter((item) => {
-      const haystacks = [
-        item.name,
-        item.kana,
-        item.prefecture,
-        item.region,
-        item.grade,
-        item.style,
-        ...(item.tags ?? []),
-      ]
-        .filter(Boolean)
-        .map((value) => normalizeText(value));
-
-      const matchesKeyword = !keyword || haystacks.some((value) => value.includes(keyword));
-      const matchesRegion = regionFilter === "すべて" || item.region === regionFilter;
-      const matchesGrade = gradeFilter === "すべて" || item.grade === gradeFilter;
-      const matchesStyle = styleFilter === "すべて" || item.style === styleFilter;
-      const isFavorite = favoritePlayerIds.includes(item.id);
-      const isRecent = recentPlayerIds.includes(item.id);
-      const isSS = (item.grade ?? "").includes("S班");
-      const isSprinter = (item.style ?? "") === "逃";
-      const matchesQuick =
-        quickFilter === "all" ||
-        (quickFilter === "favorites" && isFavorite) ||
-        (quickFilter === "recent" && isRecent) ||
-        (quickFilter === "ss" && isSS) ||
-        (quickFilter === "sprinters" && isSprinter);
-
-      return matchesKeyword && matchesRegion && matchesGrade && matchesStyle && matchesQuick;
-    });
-
-    const sorted = [...rows].sort((a, b) => {
-      if (sortKey === "name-asc") return a.name.localeCompare(b.name, "ja");
-      if (sortKey === "id-asc") return a.id.localeCompare(b.id);
-      if (sortKey === "grade-desc") return gradeRank(a.grade) - gradeRank(b.grade) || a.name.localeCompare(b.name, "ja");
-      return (b.updatedAt ?? "").localeCompare(a.updatedAt ?? "") || a.name.localeCompare(b.name, "ja");
-    });
-
-    return sorted;
-  }, [playerIndex, searchValue, regionFilter, gradeFilter, styleFilter, sortKey, quickFilter, favoritePlayerIds, recentPlayerIds]);
-
-  const recentPlayers = useMemo(() => {
-    return recentPlayerIds
-      .map((id) => playerIndex.find((item) => item.id === id))
-      .filter((item): item is PlayerIndexItem => Boolean(item));
-  }, [playerIndex, recentPlayerIds]);
-
-  const favoritePlayers = useMemo(() => {
-    return favoritePlayerIds
-      .map((id) => playerIndex.find((item) => item.id === id))
-      .filter((item): item is PlayerIndexItem => Boolean(item));
-  }, [playerIndex, favoritePlayerIds]);
-
-  const comparePlayers = useMemo(() => {
-    return comparePlayerIds
-      .map((id) => playerIndex.find((item) => item.id === id))
-      .filter((item): item is PlayerIndexItem => Boolean(item));
-  }, [playerIndex, comparePlayerIds]);
-
-  const activeIndexItem = selectedId ? playerIndex.find((item) => item.id === selectedId) ?? null : null;
-  const showDetailPanel = Boolean(activeIndexItem && selectedCard);
-  const hasPlayerPortrait = Boolean(playerImageSrc && !playerImageFailed);
-  const summaryEntries = Object.entries(selectedCard?.summary ?? {});
-  const recentSection = findSection(selectedCard, "10）直近4ヶ月");
-  const gradeSection = findSection(selectedCard, "11）通算・グレード別");
-  const predictionSection = findSection(selectedCard, "23）予想への落とし込み");
-  const exSection = findSection(selectedCard, "24）条件別・位置別");
-  const quickMeta = getPlayerQuickMeta(activeIndexItem ?? ({} as PlayerIndexItem), selectedCard);
-  const scoreBand = selectedCard?.profile["今期得点（KEIRIN.JP）"] ?? selectedCard?.profile["競走得点（参照日）"] ?? "-";
-  const spotlightItems = [
-    { label: "買いの芯", value: selectedCard?.summary?.["買いの芯"] ?? "-" },
-    { label: "消しの芯", value: selectedCard?.summary?.["消しの芯"] ?? "-" },
-    { label: "券種ロール", value: selectedCard?.summary?.["券種ロール（基準）"] ?? selectedCard?.summary?.["券種ロール"] ?? "-" },
-    { label: "主導権指標", value: selectedCard?.summary?.["主導権指標"] ?? "-" },
-  ];
-  const detailNavItems = [
-    recentSection ? { id: "player-section-recent", label: "直近4ヶ月" } : null,
-    gradeSection ? { id: "player-section-grade", label: "通算・グレード別" } : null,
-    predictionSection ? { id: "player-section-prediction", label: "予想への落とし込み" } : null,
-    exSection ? { id: "player-section-ex", label: "EXデータ" } : null,
-  ].filter(Boolean) as { id: string; label: string }[];
-
-  const quickFilterButtons: { key: PlayerQuickFilter; label: string; count: number }[] = [
-    { key: "all", label: "すべて", count: playerIndex.length },
-    { key: "ss", label: "S班", count: playerIndex.filter((item) => (item.grade ?? "").includes("S班")).length },
-    { key: "favorites", label: "お気に入り", count: favoritePlayers.length },
-    { key: "recent", label: "最近見た", count: recentPlayers.length },
-    { key: "sprinters", label: "逃げ型", count: playerIndex.filter((item) => item.style === "逃").length },
-  ];
-
-  const toggleFavorite = (id: string) => {
-    setFavoritePlayerIds((current) =>
-      current.includes(id) ? current.filter((item) => item !== id) : [id, ...current].slice(0, 18)
-    );
-  };
-
-  const toggleCompare = (id: string) => {
-    setComparePlayerIds((current) => {
-      if (current.includes(id)) return current.filter((item) => item !== id);
-      return [...current, id].slice(-2);
+  const navigateToHash = (hash: string) => (event: ReactMouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    window.location.hash = hash;
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "auto" });
     });
   };
 
-  const compareSummaryRows = comparePlayers.map((player) => {
-    const meta = getPlayerQuickMeta(player, null);
-    return {
-      id: player.id,
-      name: player.name,
-      grade: player.grade ?? meta.grade ?? "-",
-      style: player.style ?? meta.style ?? "-",
-      prefecture: player.prefecture ?? meta.prefecture ?? "-",
-      updatedAt: player.updatedAt ?? "-",
-      summary: player.summary ?? "カルテ要約を確認",
-    };
-  });
+  const hubCards = [
+    {
+      label: "Today",
+      title: "今日の出走表・並び・オッズを見る",
+      body: "当日の開催とレース単位データを優先表示。選手情報も必要な粒度だけ都度参照します。",
+      href: "#races-page",
+      accent: "linear-gradient(135deg, #fff5fb 0%, #eef7ff 100%)",
+      border: "#e8dff3",
+      badge: "RACES",
+    },
+    {
+      label: "Prediction",
+      title: "GPT貼り付け用素材を作る",
+      body: "予想組み立てに必要な並び、メモ、入力素材を軽量なレース基準で扱います。",
+      href: "#prediction-page",
+      accent: "linear-gradient(135deg, #f8efff 0%, #eef6ff 100%)",
+      border: "#e2daf6",
+      badge: "PROMPT",
+    },
+    {
+      label: "Venues",
+      title: "会場特徴・バンク傾向を見る",
+      body: "脚質相性や風・周長の読みは会場軸で確認。選手一覧を持たずに予想精度へつなげます。",
+      href: "#venue-features-page",
+      accent: "linear-gradient(135deg, #fff7f8 0%, #f0f7ff 100%)",
+      border: "#e7e3f4",
+      badge: "BANK DATA",
+    },
+    {
+      label: "Review",
+      title: "当日・昨日の結果照合を見る",
+      body: "過去レビューと結果照合は localStorage に溜め込まず、必要時に保存ファイルから読み込みます。",
+      href: "#review-page",
+      accent: "linear-gradient(135deg, #fff4fa 0%, #f5f3ff 48%, #eef8ff 100%)",
+      border: "#eadcf3",
+      badge: "VERIFY",
+    },
+  ] as const;
 
-
-  const scrollToPlayerSection = (sectionId: string) => {
-    const target = document.getElementById(sectionId);
-    if (!target) return;
-
-    setActivePlayerSectionId(sectionId);
-    const top = target.getBoundingClientRect().top + window.scrollY - PLAYER_SECTION_SCROLL_OFFSET;
-    window.scrollTo({ top, behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    if (showDetailPanel) {
-      setActivePlayerSectionId(summaryEntries.length > 0 ? PLAYER_SUMMARY_SECTION_ID : detailNavItems[0]?.id ?? PLAYER_SUMMARY_SECTION_ID);
-    }
-  }, [showDetailPanel, selectedId, summaryEntries.length, detailNavItems]);
-
-  useEffect(() => {
-    if (!activeIndexItem?.name) {
-      setPlayerImageSrc("");
-      setPlayerImageAlt("");
-      setPlayerImageFailed(false);
-      return;
-    }
-
-    let isActive = true;
-
-    const applyFallback = () => {
-      if (!isActive) return;
-      setPlayerImageSrc(`${PLAYER_IMAGE_BASE}${activeIndexItem.name}.webp`);
-      setPlayerImageAlt(`${activeIndexItem.name}の選手画像`);
-      setPlayerImageFailed(false);
-    };
-
-    const loadPlayerImage = async () => {
-      try {
-        const response = await fetch(`${PLAYER_IMAGE_INDEX_URL}?v=${Date.now()}`, { cache: "no-store" });
-        if (!response.ok) {
-          applyFallback();
-          return;
-        }
-
-        const json = (await response.json()) as PlayerImageIndexFile;
-        const matched = getPlayerImageEntryFromIndex(json, activeIndexItem.id, activeIndexItem.name);
-
-        if (!isActive) return;
-
-        if (matched) {
-          setPlayerImageSrc(matched.src);
-          setPlayerImageAlt(matched.alt);
-          setPlayerImageFailed(false);
-          return;
-        }
-
-        applyFallback();
-      } catch {
-        applyFallback();
-      }
-    };
-
-    loadPlayerImage();
-
-    return () => {
-      isActive = false;
-    };
-  }, [activeIndexItem?.id, activeIndexItem?.name]);
+  const statusCards = [
+    { label: "localStorage", value: "heavy player cache disabled", tone: "#7a67b8" },
+    { label: "primary data path", value: "Today / Prediction / Review", tone: "#5c86c8" },
+    { label: "storage policy", value: "public/data を必要時に読む", tone: "#b04a78" },
+  ] as const;
 
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #fff9fe 0%, #f6efff 24%, #eff6ff 58%, #fff3f8 100%)", color: "#111827", position: "relative", overflow: "hidden" }}>
@@ -7798,537 +7286,155 @@ export function PlayersPage() {
         <div style={{ position: "absolute", right: "-120px", bottom: "90px", width: "500px", height: "500px", borderRadius: "50%", background: "radial-gradient(circle, rgba(255,167,205,0.28) 0%, rgba(255,167,205,0.12) 36%, rgba(255,188,211,0) 74%)" }} />
         <div style={{ position: "absolute", left: "30%", bottom: "-220px", width: "620px", height: "620px", borderRadius: "50%", background: "radial-gradient(circle, rgba(218,179,255,0.24) 0%, rgba(218,179,255,0.10) 34%, rgba(214,190,245,0) 76%)" }} />
       </div>
-      
-            <SiteHeader activeKey="players" />
+
+      <SiteHeader activeKey="players" />
 
       <div
+        aria-hidden="true"
         style={{
           position: "fixed",
-          left: "18px",
-          top: "96px",
-          width: "150px",
-          height: "150px",
+          left: isMobile ? "8px" : "18px",
+          top: isMobile ? "96px" : "92px",
+          width: isMobile ? "92px" : "150px",
+          height: isMobile ? "92px" : "150px",
           backgroundImage: `url("${toPublicPath("/kurari-charigon-float.png")}")`,
           backgroundSize: "contain",
           backgroundRepeat: "no-repeat",
           backgroundPosition: "left top",
           pointerEvents: "none",
           filter: "drop-shadow(0 16px 26px rgba(130, 93, 193, 0.22))",
-          animation: "playersFloat 4.6s ease-in-out infinite",
-          zIndex: 80,
+          animation: "playersHubFloat 4.8s ease-in-out infinite",
+          zIndex: 1,
+          opacity: isMobile ? 0.78 : 1,
         }}
       />
-      <main style={{ maxWidth: PAGE_MAX_WIDTH, margin: "0 auto", padding: "32px 24px 84px", display: "grid", gap: "26px" }}>
-        <section style={{ position: "relative", overflow: "visible", borderRadius: "42px", border: "1px solid #ebe4f5", background: "linear-gradient(118deg, #fffafd 0%, #f1e7ff 34%, #e9f4ff 66%, #fff0f6 100%)", boxShadow: "0 34px 78px rgba(121, 99, 189, 0.16), 0 12px 28px rgba(80, 136, 214, 0.10)", padding: "38px" }}>
+
+      <main style={{ position: "relative", zIndex: 1, maxWidth: PAGE_MAX_WIDTH, margin: "0 auto", padding: isMobile ? "20px 16px 72px" : "32px 24px 84px", display: "grid", gap: "24px" }}>
+        <section style={{ position: "relative", overflow: "hidden", borderRadius: isMobile ? "30px" : "42px", border: "1px solid #ebe4f5", background: "linear-gradient(118deg, #fffafd 0%, #f1e7ff 34%, #e9f4ff 66%, #fff0f6 100%)", boxShadow: "0 34px 78px rgba(121, 99, 189, 0.16), 0 12px 28px rgba(80, 136, 214, 0.10)", padding: isMobile ? "24px 20px" : "38px" }}>
           <div style={{ position: "absolute", right: "-60px", top: "-70px", width: "220px", height: "220px", borderRadius: "9999px", background: "radial-gradient(circle, rgba(191,164,255,0.42) 0%, rgba(191,164,255,0.16) 38%, rgba(191,164,255,0) 76%)", pointerEvents: "none" }} />
           <div style={{ position: "absolute", left: "-40px", bottom: "-70px", width: "180px", height: "180px", borderRadius: "9999px", background: "radial-gradient(circle, rgba(255,191,220,0.34) 0%, rgba(255,191,220,0.14) 38%, rgba(255,191,220,0) 76%)", pointerEvents: "none" }} />
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(176,146,246,0.10) 0%, rgba(126,196,255,0.10) 52%, rgba(255,167,205,0.10) 100%)", pointerEvents: "none" }} />
-          <div style={{ position: "absolute", right: "18%", top: "18px", width: "320px", height: "320px", borderRadius: "9999px", background: "radial-gradient(circle, rgba(255,255,255,0.64) 0%, rgba(255,255,255,0.16) 28%, rgba(255,255,255,0) 72%)", pointerEvents: "none", mixBlendMode: "screen" }} />
-          <div style={{ position: "absolute", left: "0", right: "0", bottom: "0", height: "4px", background: "linear-gradient(90deg, rgba(176,146,246,0.0) 0%, rgba(176,146,246,0.8) 20%, rgba(126,196,255,0.85) 52%, rgba(255,167,205,0.8) 82%, rgba(255,167,205,0.0) 100%)", pointerEvents: "none" }} />
 
-          <div style={{ display: "grid", gridTemplateColumns: "1.08fr 0.92fr", gap: "28px", alignItems: "center", position: "relative" }}>
-            <div style={{ position: "relative", paddingLeft: "0px", minHeight: "240px" }}>
-              <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7", marginBottom: "12px" }}>PLAYERS ARCHIVE</div>
-              <h1 style={{ margin: 0, fontSize: "56px", lineHeight: 1.02, fontWeight: 900, letterSpacing: "-0.04em", color: "#081224" }}>
-                選手カルテを、<br />
-                もっと美しく読む。
+          <div style={{ position: "relative", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.2fr) minmax(320px, 0.8fr)", gap: isMobile ? "20px" : "28px", alignItems: "center" }}>
+            <div>
+              <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7", marginBottom: "12px" }}>PLAYERS HUB</div>
+              <h1 style={{ margin: 0, fontSize: isMobile ? "42px" : "64px", lineHeight: 1.02, fontWeight: 900, letterSpacing: "-0.05em", color: "#081224" }}>
+                Players Hub
               </h1>
-              <p style={{ margin: "18px 0 0", maxWidth: "760px", fontSize: "15px", lineHeight: 2, color: "#526072" }}>
-                検索・絞り込み・お気に入り・比較の入口をまとめて、右側は“選手プロフィール面”として読みやすく整理。競輪データを、資料ではなく完成した競輪メディアとして見せる構成に寄せています。
+              <div style={{ marginTop: "14px", fontSize: isMobile ? "18px" : "24px", fontWeight: 800, lineHeight: 1.4, color: "#4f5f77" }}>
+                選手データは軽量版へ再設計中
+              </div>
+              <p style={{ margin: "18px 0 0", maxWidth: "760px", fontSize: "15px", lineHeight: 1.95, color: "#526072" }}>
+                これまでの選手一覧キャッシュは localStorage 容量を大きく使うため、現在は保存方式を見直しています。
+                予想に必要な選手情報は Today / Prediction / Review の各ページで、レース単位のデータとして扱う構成へ寄せています。
               </p>
               <div style={{ marginTop: "20px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                {quickFilterButtons.map((button) => {
-                  const active = quickFilter === button.key;
-                  return (
-                    <button
-                      key={button.key}
-                      type="button"
-                      onClick={() => setQuickFilter(button.key)}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        borderRadius: "9999px",
-                        padding: "9px 14px",
-                        border: active ? "1.5px solid #cbbaf0" : "1px solid #e7def3",
-                        background: active ? "linear-gradient(180deg, #f5eefc 0%, #ffffff 100%)" : "rgba(255,255,255,0.94)",
-                        color: active ? "#6c58aa" : "#5c6b82",
-                        fontSize: "12px",
-                        fontWeight: 900,
-                        cursor: "pointer",
-                        boxShadow: active ? "0 10px 20px rgba(122,103,184,0.08)" : "0 6px 12px rgba(15, 23, 42, 0.03)",
-                      }}
-                    >
-                      <span>{button.label}</span>
-                      <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: "24px", height: "24px", borderRadius: "9999px", background: active ? "#ede3fb" : "#f8f5fc", border: "1px solid #e7def3", fontSize: "11px" }}>{button.count}</span>
-                    </button>
-                  );
-                })}
+                {[
+                  "重い選手一覧キャッシュは停止",
+                  "public/data は必要時のみ読込",
+                  "同一 origin の容量圧迫を回避",
+                ].map((item) => (
+                  <span key={item} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "8px 12px", fontSize: "11px", fontWeight: 900, color: "#5f6f84", background: "rgba(255,255,255,0.86)", border: "1px solid #e8e2f0", boxShadow: "0 6px 14px rgba(15, 23, 42, 0.03)" }}>
+                    {item}
+                  </span>
+                ))}
               </div>
             </div>
 
-            <div style={{ borderRadius: "30px", border: "1px solid #e7def3", background: "linear-gradient(180deg, rgba(255,251,254,0.98) 0%, rgba(245,239,255,0.98) 54%, rgba(241,248,255,0.98) 100%)", boxShadow: "0 18px 40px rgba(123, 102, 193, 0.12), 0 10px 24px rgba(73, 151, 224, 0.08)", padding: "22px" }}>
-<div
-  style={{
-    display: "grid",
-    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-gap: "12px",
-  }}
->
-                {[
-                  { label: "登録人数", value: `${playerIndex.length}人` },
-                  { label: "検索結果", value: hasFinderFilters ? `${matchedPlayers.length}人` : "待機中" },
-                  { label: "お気に入り", value: `${favoritePlayers.length}人` },
-                ].map((item) => (
-                  <div key={item.label} style={{ borderRadius: "22px", border: "1px solid #ecdff5", background: "linear-gradient(180deg, #fffefe 0%, #f8f0ff 56%, #f3f9ff 100%)", padding: "18px 16px", boxShadow: "0 8px 20px rgba(15, 23, 42, 0.04)" }}>
-                    <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#6b7280", marginBottom: "8px" }}>{item.label}</div>
-                    <div style={{ fontSize: "24px", fontWeight: 900, color: "#081224" }}>{item.value}</div>
+            <aside style={{ borderRadius: "30px", border: "1px solid #e7def3", background: "linear-gradient(180deg, rgba(255,251,254,0.98) 0%, rgba(245,239,255,0.98) 54%, rgba(241,248,255,0.98) 100%)", boxShadow: "0 18px 40px rgba(123, 102, 193, 0.12), 0 10px 24px rgba(73, 151, 224, 0.08)", padding: isMobile ? "18px" : "22px" }}>
+              <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#7a67b8", marginBottom: "12px" }}>STORAGE STATUS</div>
+              <div style={{ display: "grid", gap: "12px" }}>
+                {statusCards.map((item) => (
+                  <div key={item.label} style={{ borderRadius: "22px", border: "1px solid #ecdff5", background: "linear-gradient(180deg, #fffefe 0%, #f8f0ff 56%, #f3f9ff 100%)", padding: "16px", boxShadow: "0 8px 20px rgba(15, 23, 42, 0.04)" }}>
+                    <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: item.tone, marginBottom: "8px" }}>{item.label}</div>
+                    <div style={{ fontSize: isMobile ? "16px" : "18px", fontWeight: 900, lineHeight: 1.45, color: "#081224" }}>{item.value}</div>
                   </div>
                 ))}
               </div>
-              <div style={{ marginTop: "14px", borderRadius: "20px", border: "1px solid #ebe4f5", background: "rgba(248,245,252,0.9)", padding: "14px 16px", fontSize: "12px", lineHeight: 1.8, color: "#5b6880" }}>
-                保存場所：<strong>public/data/player-cards/</strong><br />
-                更新方法：同じファイル名の <strong>.md</strong> を上書き ／ index は一覧の設計図
+              <div style={{ marginTop: "14px", borderRadius: "20px", border: "1px solid #ebe4f5", background: "rgba(248,245,252,0.9)", padding: "14px 16px", fontSize: "12px", lineHeight: 1.85, color: "#5b6880" }}>
+                過去レビュー・過去結果は localStorage に貯めず、public/data 配下の保存ファイルから必要時に読み込みます。
               </div>
-            </div>
+            </aside>
           </div>
         </section>
 
-        {comparePlayers.length > 0 && (
-          <section style={{ borderRadius: "30px", border: "1px solid #ebe4f5", background: "linear-gradient(180deg, #fffefe 0%, #faf1ff 40%, #edf8ff 78%, #fff5fb 100%)", boxShadow: "0 18px 38px rgba(15, 23, 42, 0.05)", padding: "22px 24px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "14px", flexWrap: "wrap", marginBottom: "16px" }}>
-              <div>
-                <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#8c63c7", marginBottom: "6px" }}>COMPARE BOARD</div>
-                <div style={{ fontSize: "20px", fontWeight: 900, color: "#081224" }}>気になる選手を並べて比較</div>
+        <section style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4, minmax(0, 1fr))", gap: "16px" }}>
+          {hubCards.map((card) => (
+            <a
+              key={card.label}
+              href={card.href}
+              onClick={navigateToHash(card.href)}
+              style={{
+                textDecoration: "none",
+                color: "inherit",
+                display: "grid",
+                gap: "12px",
+                borderRadius: "28px",
+                border: `1px solid ${card.border}`,
+                background: card.accent,
+                boxShadow: "0 18px 40px rgba(15, 23, 42, 0.06)",
+                padding: isMobile ? "20px" : "22px",
+                minHeight: isMobile ? "unset" : "250px",
+                transition: "transform 0.18s ease, box-shadow 0.18s ease",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 10px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#6b5aa8", background: "rgba(255,255,255,0.8)", border: "1px solid rgba(224,214,244,0.9)" }}>
+                  {card.badge}
+                </span>
+                <span style={{ fontSize: "20px", color: "#8c63c7" }}>→</span>
               </div>
-              <button type="button" onClick={() => setComparePlayerIds([])} style={{ borderRadius: "9999px", padding: "9px 14px", border: "1px solid #eadff6", background: "linear-gradient(180deg, #fffefe 0%, #fff6fb 48%, #f6fbff 100%)", color: "#6b7280", fontSize: "12px", fontWeight: 800, cursor: "pointer" }}>比較をクリア</button>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(compareSummaryRows.length,1)}, minmax(0, 1fr))`, gap: "14px" }}>
-              {compareSummaryRows.map((item) => (
-                <article key={`compare-${item.id}`} style={{ borderRadius: "24px", border: "1px solid #ecdff5", background: "linear-gradient(180deg, #fffafd 0%, #f7f5ff 34%, #f6fbff 68%, #fff8fb 100%)", padding: "18px", boxShadow: "0 10px 22px rgba(15, 23, 42, 0.04)" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", marginBottom: "12px" }}>
-                    <div style={{ fontSize: "18px", fontWeight: 900, color: "#081224" }}>{item.name}</div>
-                    <button type="button" onClick={() => setSelectedId(item.id)} style={{ borderRadius: "9999px", padding: "6px 10px", border: "1px solid #e7def3", background: "linear-gradient(180deg, #fffefe 0%, #fff6fb 48%, #f6fbff 100%)", color: "#6c58aa", fontSize: "11px", fontWeight: 900, cursor: "pointer" }}>開く</button>
-                  </div>
-                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "12px" }}>
-                    {[item.grade, item.style, item.prefecture].map((chip) => (
-                      <span key={`${item.id}-${chip}`} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "5px 9px", fontSize: "11px", fontWeight: 800, color: "#526072", background: "linear-gradient(180deg, #fffefe 0%, #fff6fb 48%, #f6fbff 100%)", border: "1px solid #e7def3" }}>{chip}</span>
-                    ))}
-                  </div>
-                  <div style={{ fontSize: "13px", lineHeight: 1.8, color: "#526072" }}>{item.summary}</div>
-                </article>
+              <div style={{ fontSize: "24px", lineHeight: 1.2, fontWeight: 900, letterSpacing: "-0.03em", color: "#081224" }}>{card.label}</div>
+              <div style={{ fontSize: "15px", lineHeight: 1.65, fontWeight: 800, color: "#3f4d63" }}>{card.title}</div>
+              <div style={{ fontSize: "13px", lineHeight: 1.85, color: "#5c6b82" }}>{card.body}</div>
+            </a>
+          ))}
+        </section>
+
+        <section style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.1fr) minmax(320px, 0.9fr)", gap: "18px" }}>
+          <article style={{ position: "relative", overflow: "hidden", borderRadius: "32px", border: "1px solid #eadff6", background: "linear-gradient(135deg, rgba(255,248,252,0.98) 0%, rgba(246,241,255,0.98) 52%, rgba(239,248,255,0.98) 100%)", boxShadow: "0 22px 48px rgba(15, 23, 42, 0.06)", padding: isMobile ? "22px 20px" : "28px" }}>
+            <div style={{ position: "absolute", right: "-34px", top: "-34px", width: "140px", height: "140px", borderRadius: "50%", background: "radial-gradient(circle, rgba(176,146,246,0.22), rgba(176,146,246,0))" }} />
+            <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#8c63c7", marginBottom: "10px" }}>REDESIGN NOTE</div>
+            <h2 style={{ margin: 0, fontSize: isMobile ? "28px" : "34px", lineHeight: 1.15, fontWeight: 900, letterSpacing: "-0.03em", color: "#081224" }}>
+              重い選手一覧より、レース単位の判断材料を優先します。
+            </h2>
+            <p style={{ margin: "16px 0 0", fontSize: "14px", lineHeight: 1.9, color: "#526072" }}>
+              このページでは大規模な一覧検索や詳細キャッシュを持たず、導線と運用方針だけをまとめます。
+              実際の判断材料は各ページで必要な分だけ読み込むため、同じ GitHub Pages origin を共有する他サイトへの影響も抑えます。
+            </p>
+            <div style={{ marginTop: "18px", display: "grid", gap: "10px" }}>
+              {[
+                "PlayersPage では重い選手一覧 index.json を読まない",
+                "PlayersPage では選手詳細 markdown を事前 fetch しない",
+                "PlayersPage では localStorage に選手一覧や詳細を保存しない",
+              ].map((item) => (
+                <div key={item} style={{ borderRadius: "18px", border: "1px solid #eadff6", background: "rgba(255,255,255,0.82)", padding: "12px 14px", fontSize: "13px", lineHeight: 1.8, color: "#445267", fontWeight: 700 }}>
+                  {item}
+                </div>
               ))}
             </div>
-          </section>
-        )}
+          </article>
 
-        <section style={{ display: "grid", gridTemplateColumns: "500px minmax(0, 1fr)", gap: "24px", alignItems: "start" }}>
-          <aside style={{ position: "sticky", top: "80px", alignSelf: "start" }}>
-            <div style={{ borderRadius: "34px", border: "1px solid #ecdff5", background: "linear-gradient(180deg, #fffdfd 0%, #f9f7ff 52%, #f6fbff 100%)", boxShadow: "0 22px 44px rgba(15, 23, 42, 0.07)", overflow: "hidden", height: "calc(100vh - 24px)", display: "grid", gridTemplateRows: hasFinderFilters ? "auto minmax(0, 1fr)" : "auto minmax(0, 1fr) auto auto" }}>
-              <div style={{ padding: hasFinderFilters ? "8px 10px 8px" : "18px 18px 14px", borderBottom: "1px solid #efe8f7", background: "linear-gradient(180deg, rgba(250,243,255,0.98) 0%, rgba(245,250,255,0.98) 100%)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
-                  <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7" }}>✦ CURATED FINDER</div>
-                  {searchValue && (
-                    <button type="button" onClick={() => { setSearchValue(""); setRegionFilter("すべて"); setGradeFilter("すべて"); setStyleFilter("すべて"); setQuickFilter("all"); setSelectedId(""); setSelectedCard(null); }} style={{ border: "none", background: "transparent", color: "#8c63c7", fontSize: "11px", fontWeight: 900, cursor: "pointer" }}>クリア</button>
-                  )}
+          <article style={{ borderRadius: "32px", border: "1px solid #e7def3", background: "linear-gradient(180deg, rgba(255,251,254,0.98) 0%, rgba(245,239,255,0.98) 54%, rgba(241,248,255,0.98) 100%)", boxShadow: "0 18px 40px rgba(123, 102, 193, 0.10)", padding: isMobile ? "20px" : "24px" }}>
+            <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#5c86c8", marginBottom: "10px" }}>WHAT CHANGED</div>
+            <div style={{ display: "grid", gap: "12px" }}>
+              {[
+                { title: "Legacy cleanup", body: "旧キー kq_players_v1 は mount 時に removeItem だけ実行し、他キーには触れません。" },
+                { title: "Shared origin safe", body: "keirin-datalavo と boatrace-datalavo が同一 origin でも、Players 起因の大容量キャッシュを残しません。" },
+                { title: "UI focus", body: "検索 UI の代わりに、Today / Prediction / Venues / Review への導線をエディトリアル寄りに再構成しました。" },
+              ].map((item) => (
+                <div key={item.title} style={{ borderRadius: "20px", border: "1px solid #ecdff5", background: "linear-gradient(180deg, #fffefe 0%, #f8f0ff 56%, #f3f9ff 100%)", padding: "16px" }}>
+                  <div style={{ fontSize: "13px", fontWeight: 900, color: "#081224", marginBottom: "8px" }}>{item.title}</div>
+                  <div style={{ fontSize: "13px", lineHeight: 1.8, color: "#56657c" }}>{item.body}</div>
                 </div>
-
-                {!hasFinderFilters && recentPlayers.length > 0 && (
-                  <div style={{ display: "grid", gap: "8px", marginTop: "14px" }}>
-                    <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b889b" }}>RECENTLY VIEWED</div>
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                      {recentPlayers.map((player) => (
-                        <button key={player.id} type="button" onClick={() => handleOpenPlayer(player)} style={{ borderRadius: "9999px", padding: "7px 11px", border: "1px solid #e7dff1", background: "linear-gradient(180deg, #fffefe 0%, #fff6fb 48%, #f6fbff 100%)", color: "#526072", fontSize: "11px", fontWeight: 800, cursor: "pointer" }}>
-                          {player.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div style={{ display: "grid", gap: hasFinderFilters ? "6px" : "10px", marginTop: hasFinderFilters ? "4px" : "12px" }}>
-                  <div style={{ position: "relative" }}>
-                    <input
-                      value={searchValue}
-                      onChange={(event) => { setSearchValue(event.target.value); setSelectedId(""); setSelectedCard(null); }}
-                      placeholder="選手名・カナ・府県・地区で検索"
-                      style={{ width: "100%", height: hasFinderFilters ? "38px" : "50px", borderRadius: "18px", border: "1px solid #e4dcf0", background: "linear-gradient(180deg, #fffefe 0%, #f8f0ff 56%, #f3f9ff 100%)", padding: hasFinderFilters ? "0 34px 0 12px" : "0 44px 0 16px", fontSize: "14px", color: "#081224", outline: "none", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.7)" }}
-                    />
-                    <span style={{ position: "absolute", right: hasFinderFilters ? "12px" : "14px", top: "50%", transform: "translateY(-50%)", color: "#8e7cc7", fontSize: "14px", fontWeight: 900 }}>⌕</span>
-                  </div>
-
-                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                    {REGION_ORDER.map((region) => {
-                      const active = regionFilter === region;
-                      return (
-                        <button
-                          key={region}
-                          type="button"
-                          onClick={() => { setRegionFilter(region); setSelectedId(""); setSelectedCard(null); }}
-                          style={{
-                            borderRadius: "9999px",
-                            padding: hasFinderFilters ? "6px 10px" : "8px 12px",
-                            border: active ? "1.5px solid #c9b6eb" : "1px solid #e7dff1",
-                            background: active ? "linear-gradient(180deg, #f5eefc 0%, #ffffff 100%)" : "#ffffff",
-                            color: active ? "#6e58b0" : "#607086",
-                            fontSize: "11px",
-                            fontWeight: 900,
-                            letterSpacing: "0.04em",
-                            cursor: "pointer",
-                          }}
-                        >
-                          {region}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                    <select value={gradeFilter} onChange={(event) => { setGradeFilter(event.target.value); setSelectedId(""); setSelectedCard(null); }} style={{ height: "46px", borderRadius: "14px", border: "1px solid #e4dcf0", background: "#fbf9fe", padding: "0 14px", fontSize: "13px", color: "#081224", outline: "none" }}>
-                      {filterOptions.grades.map((grade) => <option key={grade} value={grade}>{grade}</option>)}
-                    </select>
-
-                    <select value={styleFilter} onChange={(event) => { setStyleFilter(event.target.value); setSelectedId(""); setSelectedCard(null); }} style={{ height: "46px", borderRadius: "14px", border: "1px solid #e4dcf0", background: "#fbf9fe", padding: "0 14px", fontSize: "13px", color: "#081224", outline: "none" }}>
-                      {filterOptions.styles.map((style) => <option key={style} value={style}>{style}</option>)}
-                    </select>
-                  </div>
-
-                  <select value={sortKey} onChange={(event) => setSortKey(event.target.value as PlayerSortKey)} style={{ height: "46px", borderRadius: "14px", border: "1px solid #e4dcf0", background: "#fbf9fe", padding: "0 14px", fontSize: "13px", color: "#081224", outline: "none" }}>
-                    <option value="updated-desc">新しい更新順</option>
-                    <option value="name-asc">名前順</option>
-                    <option value="id-asc">登録番号順</option>
-                    <option value="grade-desc">級班優先</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ minHeight: 0, display: "grid", gridTemplateRows: "auto minmax(0, 1fr)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: hasFinderFilters ? "6px 8px 6px" : "12px 12px 10px", borderRadius: "16px", background: "linear-gradient(180deg, #fff3f9 0%, #f0f7ff 100%)", border: "1px solid #ecdff5", padding: "10px 12px" }}>
-                  <div style={{ fontSize: "12px", color: "#64748b", fontWeight: 800 }}>候補一覧</div>
-                  <div style={{ fontSize: "13px", color: "#081224", fontWeight: 900 }}>{hasFinderFilters ? `${matchedPlayers.length} / ${playerIndex.length}` : "待機中"}</div>
-                </div>
-
-                <div style={{ overflowY: "auto", padding: hasFinderFilters ? "0 8px 10px" : "0 12px 12px", display: "grid", gridTemplateColumns: hasFinderFilters ? "repeat(2, minmax(0, 1fr))" : "1fr", gap: hasFinderFilters ? "8px" : "8px", alignContent: "start" }}>
-                  {isLoadingIndex ? (
-                    <div style={{ padding: "18px", color: "#64748b", fontSize: "14px" }}>選手一覧を読み込み中...</div>
-                  ) : !hasFinderFilters ? (
-                    <div style={{ display: "grid", gap: "14px" }}>
-                      <div style={{ padding: "24px 18px", borderRadius: "24px", border: "1px dashed #ddd2ef", background: "linear-gradient(180deg, rgba(251,248,255,0.98) 0%, rgba(247,242,252,0.95) 100%)", color: "#64748b", fontSize: "13px", lineHeight: 1.9, boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)" }}>
-                        左一覧は検索時だけ展開する形。選手名や地区で絞ると候補がここに出ます。お気に入りや最近見た選手からもすぐ開けるよ。
-                      </div>
-                      {favoritePlayers.length > 0 && (
-                        <div style={{ borderRadius: "22px", border: "1px solid #ecdff5", background: "linear-gradient(180deg, #fffefe 0%, #fff6fb 48%, #f6fbff 100%)", padding: "14px" }}>
-                          <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#b04a78", marginBottom: "10px" }}>FAVORITES</div>
-                          <div style={{ display: "grid", gap: "8px" }}>
-                            {favoritePlayers.slice(0, 4).map((player) => (
-                              <button key={`favorite-${player.id}`} type="button" onClick={() => handleOpenPlayer(player)} style={{ textAlign: "left", borderRadius: "14px", border: "1px solid #f0d7e6", background: "#fff7fb", padding: "10px 12px", cursor: "pointer", color: "#7b214f", fontWeight: 800, fontSize: "12px" }}>
-                                ❤ {player.name}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : matchedPlayers.length === 0 ? (
-                    <div style={{ padding: "22px", color: "#64748b", fontSize: "14px", lineHeight: 1.8 }}>条件に合う選手がいません。検索語か絞り込み条件を変えてみてください。</div>
-                  ) : (
-                    matchedPlayers.map((item) => {
-                      const isActive = item.id === activeIndexItem?.id;
-                      const isFavorite = favoritePlayerIds.includes(item.id);
-                      const isCompared = comparePlayerIds.includes(item.id);
-                      return (
-                        <div key={item.id} style={{ borderRadius: "18px", border: isActive ? "1.5px solid #d3c2f0" : "1px solid #ebe4f5", background: isActive ? "linear-gradient(180deg, #f9efff 0%, #ffffff 58%, #f2f9ff 100%)" : "linear-gradient(180deg, #fffefe 0%, #fff7fb 44%, #f5fbff 100%)", boxShadow: isActive ? "0 14px 28px rgba(123,102,193,0.18), 0 8px 18px rgba(80,136,214,0.10)" : "0 8px 18px rgba(123,102,193,0.08), 0 4px 10px rgba(80,136,214,0.05)", transition: "transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease", padding: hasFinderFilters ? "12px 12px" : "11px 12px", minHeight: hasFinderFilters ? "84px" : "92px" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                            <button type="button" onClick={() => handleOpenPlayer(item)} style={{ flex: 1, minWidth: 0, textAlign: "left", border: "none", background: "transparent", padding: 0, cursor: "pointer" }}>
-                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                                <div style={{ minWidth: 0, display: "grid", gap: hasFinderFilters ? "3px" : "4px" }}>
-                                  <div style={{ fontSize: hasFinderFilters ? "15px" : "15px", fontWeight: 900, color: "#081224", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.2 }}>{item.name}</div>
-                                  <div style={{ fontSize: hasFinderFilters ? "10px" : "10px", color: "#64748b", fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.2 }}>{item.kana ?? ""}</div>
-                                </div>
-                                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "3px 7px", fontSize: "9px", fontWeight: 900, color: "#8c63c7", background: "#f3ecfd", border: "1px solid #e0d6f4", whiteSpace: "nowrap", flexShrink: 0 }}>
-                                  {item.grade ?? "カルテ"}
-                                </span>
-                              </div>
-
-                              <div style={{ marginTop: hasFinderFilters ? "8px" : "8px", display: "flex", gap: "5px", flexWrap: "wrap", overflow: "hidden" }}>
-                                {[item.region, item.prefecture, item.style].filter(Boolean).slice(0, hasFinderFilters ? 2 : 3).map((chip) => (
-                                  <span key={chip} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: hasFinderFilters ? "3px 8px" : "3px 6px", fontSize: hasFinderFilters ? "9px" : "9px", fontWeight: 800, color: "#526072", background: "linear-gradient(180deg, #fffefe 0%, #fff6fb 48%, #f6fbff 100%)", border: "1px solid #e7e2ef", whiteSpace: "nowrap", maxWidth: "100%" }}>{chip}</span>
-                                ))}
-                              </div>
-                            </button>
-                            <div style={{ display: "grid", gap: "6px", flexShrink: 0 }}>
-                              <button type="button" onClick={() => toggleFavorite(item.id)} style={{ width: hasFinderFilters ? "30px" : "32px", height: hasFinderFilters ? "30px" : "32px", borderRadius: "9999px", border: isFavorite ? "1px solid #f4d0de" : "1px solid #ece4f5", background: isFavorite ? "#fff3f8" : "#ffffff", color: isFavorite ? "#c04b79" : "#91a0b2", cursor: "pointer", fontWeight: 900 }}>★</button>
-                              <button type="button" title={isCompared ? "比較から外す" : "2人比較に追加"} onClick={() => toggleCompare(item.id)} style={{ minWidth: hasFinderFilters ? "34px" : "40px", height: hasFinderFilters ? "30px" : "32px", borderRadius: "9999px", border: isCompared ? "1px solid #d5c2f5" : "1px solid #eadcf7", background: isCompared ? "linear-gradient(180deg, #f5eefe 0%, #fff6fb 100%)" : "linear-gradient(180deg, #ffffff 0%, #f8f5ff 100%)", color: isCompared ? "#8b4f8c" : "#8b78cf", cursor: "pointer", fontWeight: 900, fontSize: "11px", boxShadow: "0 6px 14px rgba(139,120,207,0.10)" }}>比</button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
+              ))}
             </div>
-            {!hasFinderFilters && (<div style={{ borderRadius: "28px", border: "1px solid #e8e3f2", background: "linear-gradient(135deg, rgba(255,255,255,0.94) 0%, rgba(244,238,252,0.94) 100%)", boxShadow: "0 16px 34px rgba(122, 103, 184, 0.08)", padding: "18px 18px 16px", position: "relative", overflow: "hidden" }}>
-              <div style={{ position: "absolute", right: "-28px", top: "-28px", width: "96px", height: "96px", borderRadius: "50%", background: "radial-gradient(circle, rgba(186,167,236,0.20), rgba(186,167,236,0))" }} />
-              <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#7a67b8", marginBottom: "8px", position: "relative" }}>✦ CURATOR'S NOTE</div>
-              <div style={{ fontSize: "13px", lineHeight: 1.85, color: "#526072", position: "relative" }}>
-                まずは <strong>名前検索</strong> か <strong>地区</strong> で絞って、右側で <strong>ONE PAGE SUMMARY</strong> を読むのがいちばん早い見方です。
-              </div>
-            </div>)}
-            {!hasFinderFilters && (<div style={{ borderRadius: "28px", border: "1px solid #e6edf7", background: "linear-gradient(135deg, rgba(255,255,255,0.94) 0%, rgba(239,247,255,0.96) 100%)", boxShadow: "0 16px 34px rgba(102, 157, 218, 0.08)", padding: "18px 18px 16px", position: "relative", overflow: "hidden" }}>
-              <div style={{ position: "absolute", left: "-26px", bottom: "-26px", width: "90px", height: "90px", borderRadius: "50%", background: "radial-gradient(circle, rgba(164,206,255,0.24), rgba(164,206,255,0))" }} />
-              <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#5c86c8", marginBottom: "10px", position: "relative" }}>✦ QUICK GUIDE</div>
-              <div style={{ display: "grid", gap: "7px", position: "relative" }}>
-                {[
-                  "S班を見る → 上位の軸候補を確認",
-                  "最近見た選手 → 比較の入口に便利",
-                  "逃げ型 → 主導権想定を先に確認",
-                ].map((item) => (
-                  <div key={item} style={{ fontSize: "12px", color: "#516070", lineHeight: 1.8 }}>{item}</div>
-                ))}
-              </div>
-            </div>)}
-          </aside>
-
-          <div style={{ display: "grid", gap: "22px" }}>
-            {!showDetailPanel && (
-              <section style={{ position: "relative", overflow: "hidden", borderRadius: "40px", border: "1px solid #ecdff5", background: "linear-gradient(135deg, #fffdfd 0%, #fcf7ff 40%, #f6f9ff 72%, #fff9fb 100%)", boxShadow: "0 28px 60px rgba(15, 23, 42, 0.07)", padding: "40px" }}>
-                <div style={{ position: "absolute", right: "-48px", top: "-48px", width: "180px", height: "180px", borderRadius: "50%", background: "radial-gradient(circle, rgba(176,146,246,0.16), rgba(176,146,246,0))" }} />
-                <div style={{ position: "absolute", left: "-30px", bottom: "-36px", width: "150px", height: "150px", borderRadius: "50%", background: "radial-gradient(circle, rgba(126,196,255,0.16), rgba(126,196,255,0))" }} />
-                <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7", marginBottom: "16px", position: "relative" }}>✦ PLAYERS LIBRARY</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1.08fr 0.92fr", gap: "18px", alignItems: "stretch", position: "relative" }}>
-                  <div>
-                    <h2 style={{ margin: 0, fontSize: "34px", lineHeight: 1.15, fontWeight: 900, letterSpacing: "-0.03em", color: "#081224" }}>選手を開くと、ここがプロフィール面になります。</h2>
-                    <p style={{ margin: "16px 0 0", maxWidth: "760px", fontSize: "15px", lineHeight: 1.9, color: "#526072" }}>
-                      左の検索欄に選手名・カナを入れるか、地区・級班・脚質で絞ると候補が表示されます。候補を選ぶと、要約・直近4ヶ月・通算・予想への落とし込み・EXデータまで、右側でひと続きに読めます。
-                    </p>
-                    <div style={{ marginTop: "18px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                      {[
-                        "要約 → 直近4ヶ月 → 通算 → 予想 → EX",
-                        "一覧は絞り込み状態を保ったまま切替",
-                        "★ お気に入り / 比 で比較"
-                      ].map((item) => (
-                        <span key={item} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "8px 12px", fontSize: "11px", fontWeight: 800, color: "#5f6f84", background: "rgba(255,255,255,0.86)", border: "1px solid #e8e2f0", boxShadow: "0 6px 14px rgba(15, 23, 42, 0.03)" }}>{item}</span>
-                      ))}
-                    </div>
-                  </div>
-                  <div style={{ display: "grid", gap: "14px" }}>
-                    {[
-                      { label: "最近追加を確認", value: playerIndex.slice(0, 3).map((item) => item.name).join(" / ") || "カルテ追加待ち" },
-                      { label: "よく使う導線", value: "S班・お気に入り・最近見た を上から切替" },
-                      { label: "比較機能", value: "左一覧の「比」で2人まで並べて比較" },
-                    ].map((item) => (
-                      <div key={item.label} style={{ borderRadius: "22px", border: "1px solid #ecdff5", background: "linear-gradient(180deg, #fffefe 0%, #fff6fb 48%, #f6fbff 100%)", padding: "18px", boxShadow: "0 10px 22px rgba(15, 23, 42, 0.04)" }}>
-                        <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#8c63c7", marginBottom: "8px" }}>{item.label}</div>
-                        <div style={{ fontSize: "13px", lineHeight: 1.8, color: "#526072", fontWeight: 700 }}>{item.value}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {showDetailPanel && (
-              <section style={{ position: "relative", overflow: "hidden", borderRadius: "40px", border: "1px solid #ecdff5", background: "linear-gradient(135deg, #fffdfd 0%, #fcf7ff 42%, #f7f9ff 74%, #fff7fa 100%)", boxShadow: "0 28px 62px rgba(124, 102, 194, 0.14), 0 14px 28px rgba(76, 143, 218, 0.08)", padding: "34px" }}>
-                <div style={{ position: "absolute", right: "-50px", top: "-50px", width: "180px", height: "180px", borderRadius: "50%", background: "radial-gradient(circle, rgba(122,103,184,0.10), rgba(122,103,184,0))" }} />
-                <div style={{ display: "grid", gridTemplateColumns: hasPlayerPortrait ? "minmax(0, 1fr) 300px" : "minmax(0, 1fr) 280px", gap: "24px", marginBottom: "24px", alignItems: "start", position: "relative" }}>
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", marginBottom: "12px" }}>
-                      <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7" }}>EDITORIAL PROFILE</div>
-                      <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "7px 12px", fontSize: "11px", fontWeight: 900, color: "#6c58aa", background: "#f6ecff", border: "1px solid #e0d6f4" }}>{quickMeta.grade || activeIndexItem?.grade || "S級"}</span>
-                      {favoritePlayerIds.includes(activeIndexItem!.id) && <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "7px 12px", fontSize: "11px", fontWeight: 900, color: "#b04a78", background: "#fff2f7", border: "1px solid #f4d0de" }}>❤ FAVORITE</span>}
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: hasPlayerPortrait ? "minmax(0, 1fr) 280px" : "minmax(0, 1fr)", gap: "22px", alignItems: "start" }}>
-                      <div>
-                        <h2 style={{ margin: 0, fontSize: "44px", lineHeight: 1.04, fontWeight: 900, letterSpacing: "-0.03em", color: "#081224" }}>{activeIndexItem!.name}</h2>
-                        <div style={{ marginTop: "10px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                          {[selectedCard?.profile["カナ"], quickMeta.prefecture, quickMeta.region, quickMeta.style, selectedCard?.profile["期別"]].filter(Boolean).map((item) => (
-                            <span key={String(item)} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 10px", fontSize: "11px", fontWeight: 800, color: "#526072", background: "rgba(255,255,255,0.88)", border: "1px solid #e8e2f0" }}>{item}</span>
-                          ))}
-                        </div>
-                        <p style={{ margin: "14px 0 0", color: "#526072", fontSize: "15px", lineHeight: 1.9, maxWidth: "760px" }}>{activeIndexItem?.summary || "カルテの要約をここに表示します。"}</p><div style={{ marginTop: "14px", display: "flex", gap: "10px", flexWrap: "wrap" }}>{[{ label: "RIDER SCORE", value: scoreBand }, { label: "主脚質", value: quickMeta.style || "-" }, { label: "地区", value: quickMeta.region || "-" }].map((item) => (<div key={item.label} style={{ minWidth: "120px", borderRadius: "16px", border: "1px solid #e8e2f0", background: "rgba(255,255,255,0.86)", padding: "10px 12px", boxShadow: "0 8px 18px rgba(15, 23, 42, 0.03)" }}><div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#8c63c7", marginBottom: "6px" }}>{item.label}</div><div style={{ fontSize: "14px", fontWeight: 900, color: "#081224", lineHeight: 1.4 }}>{item.value}</div></div>))}</div>
-                        {detailNavItems.length > 0 && (
-                          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "18px" }}>
-                            {detailNavItems.map((item) => (
-                              <button
-                                key={item.id}
-                                type="button"
-                                onClick={() => scrollToPlayerSection(item.id)}
-                                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "9px 13px", fontSize: "11px", fontWeight: 900, color: "#617089", textDecoration: "none", background: "linear-gradient(180deg, rgba(255,244,250,0.98) 0%, rgba(246,239,255,0.98) 54%, rgba(240,249,255,0.98) 100%)", border: "1px solid #e7dff1", cursor: "pointer" }}
-                              >
-                                {item.label}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {hasPlayerPortrait ? (
-                        <div style={{ borderRadius: "30px", border: "1px solid #e7def3", background: "linear-gradient(180deg, rgba(255,251,254,0.98) 0%, rgba(245,239,255,0.98) 54%, rgba(241,248,255,0.98) 100%)", boxShadow: "0 16px 34px rgba(15, 23, 42, 0.05)", padding: "16px", minHeight: "280px", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", position: "relative" }}>
-                          <div style={{ position: "absolute", inset: "0 0 auto 0", height: "4px", background: "linear-gradient(90deg, rgba(176,146,246,0.0) 0%, rgba(176,146,246,0.8) 18%, rgba(126,196,255,0.82) 54%, rgba(255,167,205,0.74) 84%, rgba(255,167,205,0.0) 100%)" }} />
-                          <img
-                            src={playerImageSrc}
-                            alt={playerImageAlt}
-                            style={{ width: "100%", height: "100%", maxHeight: "320px", objectFit: "contain", objectPosition: "center bottom", filter: "drop-shadow(0 18px 26px rgba(8, 18, 36, 0.14))" }}
-                            onError={() => setPlayerImageFailed(true)}
-                          />
-                        </div>
-                      ) : (
-                        <div style={{ borderRadius: "30px", border: "1px solid #e7def3", background: "linear-gradient(180deg, rgba(255,251,254,0.98) 0%, rgba(245,239,255,0.98) 54%, rgba(241,248,255,0.98) 100%)", boxShadow: "0 16px 34px rgba(15, 23, 42, 0.05)", padding: "18px", minHeight: "280px", display: "grid", alignContent: "space-between", position: "relative", overflow: "hidden" }}>
-                          <div style={{ position: "absolute", right: "-30px", top: "-30px", width: "120px", height: "120px", borderRadius: "50%", background: "radial-gradient(circle, rgba(176,146,246,0.18), rgba(176,146,246,0))" }} />
-                          <div>
-                            <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#8c63c7", marginBottom: "10px" }}>PORTRAIT READY</div>
-                            <div style={{ width: "86px", height: "86px", borderRadius: "28px", background: "linear-gradient(135deg, #f4ebff 0%, #eef6ff 100%)", border: "1px solid #e7def3", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "30px", fontWeight: 900, color: "#6c58aa", boxShadow: "0 10px 22px rgba(122,103,184,0.10)" }}>{(activeIndexItem?.name ?? "選手").slice(0, 1)}</div>
-                            <div style={{ marginTop: "14px", fontSize: "13px", lineHeight: 1.8, color: "#526072" }}>画像がある選手は、ここに顔写真が表示されます。画像なしでも情報面が間延びしないように、要点カードとして整えています。</div>
-                          </div>
-                          <div style={{ display: "grid", gap: "8px" }}>
-                            {[{ label: "登録番号", value: activeIndexItem?.id || "-" }, { label: "府県", value: quickMeta.prefecture || "-" }, { label: "級班", value: quickMeta.grade || "-" }].map((item) => (
-                              <div key={item.label} style={{ borderRadius: "16px", border: "1px solid #ecdff5", background: "rgba(255,255,255,0.86)", padding: "10px 12px" }}>
-                                <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b889b", marginBottom: "4px" }}>{item.label}</div>
-                                <div style={{ fontSize: "14px", fontWeight: 900, color: "#081224", lineHeight: 1.45 }}>{item.value}</div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div style={{ display: "grid", gap: "16px" }}>
-                    <div style={{ borderRadius: "30px", border: "1px solid #e7def3", background: "linear-gradient(180deg, rgba(255,251,254,0.98) 0%, rgba(245,239,255,0.98) 54%, rgba(241,248,255,0.98) 100%)", boxShadow: "0 16px 34px rgba(15, 23, 42, 0.05)", padding: "18px" }}>
-                      <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#8c63c7", marginBottom: "12px" }}>PROFILE SCOREBOARD</div>
-                      <div style={{ display: "grid", gap: "10px" }}>
-                        {[
-                          { label: "登録番号", value: activeIndexItem?.id || "-" },
-                          { label: "今期 / 競走得点", value: scoreBand },
-                          { label: "ホームバンク", value: selectedCard?.profile["ホームバンク"] ?? "-" },
-                          { label: "師匠", value: selectedCard?.profile["師匠"] ?? "-" },
-                          { label: "ニックネーム", value: selectedCard?.profile["ニックネーム"] ?? "-" },
-                          { label: "得意な周長", value: selectedCard?.profile["得意な周長"] ?? "-" },
-                        ].map((item) => (
-                          <div key={item.label} style={{ borderRadius: "18px", border: "1px solid #ecdff5", background: "linear-gradient(180deg, #fff3f9 0%, #f0f7ff 100%)", padding: "12px 14px" }}>
-                            <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b889b", marginBottom: "6px" }}>{item.label}</div>
-                            <div style={{ fontSize: "14px", fontWeight: 900, color: "#081224", lineHeight: 1.5 }}>{item.value}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "14px", marginBottom: "18px" }}>
-                  {[
-                    { label: "府県 / 地域", value: `${quickMeta.prefecture || "-"} / ${quickMeta.region || "-"}` },
-                    { label: "期別 / 級班", value: `${selectedCard?.profile["期別"] ?? "-"} / ${quickMeta.grade || "-"}` },
-                    { label: "脚質", value: quickMeta.style || "-" },
-                    { label: "ギヤ倍率", value: selectedCard?.profile["ギヤ倍率（参照日）"] ?? selectedCard?.profile["ギヤ倍率"] ?? "-" },
-                  ].map((item) => (
-                    <div key={item.label} style={{ borderRadius: "22px", border: "1px solid #ecdff5", background: "linear-gradient(180deg, #fffefe 0%, #f8f0ff 56%, #f3f9ff 100%)", padding: "18px 18px 16px", boxShadow: "0 8px 20px rgba(15, 23, 42, 0.04)" }}>
-                      <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#6b7280", marginBottom: "10px" }}>{item.label}</div>
-                      <div style={{ fontSize: "22px", fontWeight: 900, color: "#081224", lineHeight: 1.2 }}>{item.value}</div>
-                    </div>
-                  ))}
-                </div>
-
-                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "18px" }}>
-                  {[...(activeIndexItem?.tags ?? []), quickMeta.region, quickMeta.style].filter(Boolean).slice(0, 8).map((tag) => (
-                    <span key={tag} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "8px 12px", fontSize: "11px", fontWeight: 800, color: "#526072", background: "linear-gradient(180deg, #fffefe 0%, #fff6fb 48%, #f6fbff 100%)", border: "1px solid #e8e2f0" }}>{tag}</span>
-                  ))}
-                </div>
-
-                <div style={{ marginBottom: "18px", borderRadius: "24px", border: "1px solid #eadff6", background: "linear-gradient(135deg, rgba(250,239,248,0.96) 0%, rgba(246,249,255,0.98) 100%)", padding: "18px 20px", boxShadow: "0 10px 24px rgba(122,103,184,0.06)", borderTop: "4px solid #d78fff" }}>
-                  <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#8c63c7", marginBottom: "8px" }}>EDITOR'S NOTE</div>
-                  <div style={{ fontSize: "13px", lineHeight: 1.85, color: "#526072" }}>
-                    このページは <strong>要約 → 直近4ヶ月 → 通算 → 予想 → EXデータ</strong> の順で読むと、型と買い方の芯がつかみやすい構成です。比較したい時は左の <strong>比</strong> ボタンで2人まで並べられます。お気に入りは <strong>★</strong> で固定できます。
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "14px" }}>
-                  {spotlightItems.map((item, index) => (
-                    <article key={item.label} style={{ borderRadius: "24px", border: index < 2 ? "1px solid #ead8ef" : "1px solid #eadff6", background: index < 2 ? "linear-gradient(180deg, rgba(255,236,246,0.96) 0%, rgba(255,251,253,1) 100%)" : "linear-gradient(180deg, rgba(239,234,255,0.96) 0%, rgba(241,249,255,1) 100%)", padding: "18px 18px 16px", boxShadow: "0 10px 22px rgba(122,103,184,0.06)" }}>
-                      <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: index < 2 ? "#b04a78" : "#7a67b8", marginBottom: "10px" }}>{item.label}</div>
-                      <div style={{ color: "#081224", fontWeight: 800, lineHeight: 1.8, fontSize: "13px" }}>{item.value}</div>
-                    </article>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {showDetailPanel && detailNavItems.length > 0 && (
-              <section style={{ position: "sticky", top: "92px", zIndex: 8, borderRadius: "24px", border: "1px solid #ecdff5", background: "linear-gradient(180deg, rgba(255,249,253,0.96) 0%, rgba(245,239,255,0.96) 54%, rgba(239,248,255,0.96) 100%)", backdropFilter: "blur(14px)", boxShadow: "0 16px 34px rgba(15, 23, 42, 0.06)", padding: "14px 16px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "10px" }}>
-                  <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#8c63c7" }}>QUICK JUMP</div>
-                  <div style={{ fontSize: "11px", color: "#7b889b", fontWeight: 700 }}>必要な章へすぐ移動</div>
-                </div>
-                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                  {detailNavItems.map((item) => (
-                    <button
-                      key={`sticky-${item.id}`}
-                      type="button"
-                      onClick={() => {
-                        const target = document.getElementById(item.id);
-                        if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
-                      }}
-                      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: hasFinderFilters ? "6px 10px" : "8px 12px", fontSize: "11px", fontWeight: 900, color: "#5f4ea0", background: "linear-gradient(180deg, #f8efff 0%, #eef6ff 100%)", border: "1px solid #e2d8f5", cursor: "pointer" }}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {showDetailPanel && summaryEntries.length > 0 && (
-              <section id="player-section-summary" style={{ borderRadius: "36px", border: "1px solid #eadff6", background: "linear-gradient(180deg, #fff8fb 0%, #faf4ff 50%, #f3f9ff 100%)", boxShadow: "0 22px 46px rgba(122,103,184,0.08)", padding: "30px", borderTop: "4px solid #dcb2ff" }}>
-                <div style={{ display: "flex", alignItems: "end", justifyContent: "space-between", gap: "16px", marginBottom: "16px" }}>
-                  <div>
-                    <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7", marginBottom: "8px" }}>✦ ONE PAGE SUMMARY</div>
-                    <div style={{ fontSize: "13px", color: "#64748b", lineHeight: 1.8 }}>まずはここだけ見れば、選手の型と買い方の芯がつかめるように整理しています。</div>
-                  </div>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "14px" }}>
-                  {summaryEntries.map(([label, value], index) => (
-                    <article key={label} style={{ borderRadius: "24px", border: "1px solid #ebe4f5", background: index < 2 ? "linear-gradient(135deg, #fff4fb 0%, #ffffff 55%, #f4f9ff 100%)" : "#ffffff", padding: "20px 20px 18px", boxShadow: "0 10px 24px rgba(15, 23, 42, 0.04)" }}>
-                      <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.16em", color: index < 2 ? "#b04a78" : "#6b7280", marginBottom: "10px" }}>{label}</div>
-                      <div style={{ color: "#081224", fontWeight: 800, lineHeight: 1.85, fontSize: "14px" }}>{value}</div>
-                    </article>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {showDetailPanel && [recentSection, gradeSection, predictionSection, exSection].filter(Boolean).map((section) => {
-              const sectionId = section?.title.includes("直近4ヶ月")
-                ? "player-section-recent"
-                : section?.title.includes("通算")
-                  ? "player-section-grade"
-                  : section?.title.includes("予想")
-                    ? "player-section-prediction"
-                    : "player-section-ex";
-              const isRecent = section!.title.includes("直近4ヶ月");
-              const isPrediction = section!.title.includes("予想");
-              const isEx = section!.title.includes("EX");
-              return (
-                <section id={sectionId} key={section!.title} style={{ borderRadius: "36px", border: "1px solid #ecdff5", background: isRecent ? "linear-gradient(180deg, #fff9fb 0%, #ffffff 100%)" : isPrediction ? "linear-gradient(180deg, #f8f2fd 0%, #ffffff 100%)" : isEx ? "linear-gradient(180deg, #fbfbff 0%, #ffffff 100%)" : "linear-gradient(180deg, #ffffff 0%, #fcfafe 100%)", boxShadow: "0 18px 42px rgba(15, 23, 42, 0.05)", padding: "28px" }}>
-                  <div style={{ display: "flex", alignItems: "start", justifyContent: "space-between", gap: "12px", marginBottom: "16px" }}>
-                    <div>
-                      <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.18em", color: isRecent ? "#b04a78" : "#7a67b8", marginBottom: "8px" }}>{section!.title}</div>
-                      <div style={{ fontSize: "13px", color: "#6b7280", lineHeight: 1.8 }}>{getSectionAccentCopy(section!.title)}</div>
-                    </div>
-                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 10px", fontSize: "10px", fontWeight: 900, color: isRecent ? "#b04a78" : "#6c5ca8", background: isRecent ? "#fff3f8" : "#f4eefc", border: `1px solid ${isRecent ? "#f2d4df" : "#e0d6f4"}`, whiteSpace: "nowrap" }}>詳細セクション</span>
-                  </div>
-                  {isLoadingCard ? (
-                    <div style={{ color: "#64748b", fontSize: "14px" }}>カルテを読み込み中...</div>
-                  ) : (
-                    <MarkdownSectionContent content={section!.content} />
-                  )}
-                </section>
-              );
-            })}
-          </div>
+          </article>
         </section>
       </main>
+
       <style>{`
-        @keyframes playersFloat {
+        @keyframes playersHubFloat {
           0% { transform: translateY(0px); }
           50% { transform: translateY(-10px); }
           100% { transform: translateY(0px); }
