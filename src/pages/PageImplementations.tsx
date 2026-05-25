@@ -1055,7 +1055,7 @@ export const loadHitNotifications = (): HitNotificationRecord[] => {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
 
-    return parsed.filter((item: unknown): item is HitNotificationRecord => {
+    const validItems = parsed.filter((item: unknown): item is HitNotificationRecord => {
       if (!item || typeof item !== "object") return false;
 
       const record = item as Partial<HitNotificationRecord>;
@@ -1069,6 +1069,18 @@ export const loadHitNotifications = (): HitNotificationRecord[] => {
         typeof record.createdAt === "string"
       );
     });
+
+    const records = validItems.filter((item) => shouldKeepPredictionReviewDate(item.date)).slice(0, 200);
+
+    if (records.length !== validItems.length) {
+      try {
+        window.localStorage.setItem(HIT_NOTIFICATION_STORAGE_KEY, JSON.stringify(records));
+      } catch {
+        // localStorage write failure is non-fatal
+      }
+    }
+
+    return records;
   } catch {
     return [];
   }
@@ -1076,7 +1088,12 @@ export const loadHitNotifications = (): HitNotificationRecord[] => {
 
 export const saveHitNotifications = (items: HitNotificationRecord[]) => {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(HIT_NOTIFICATION_STORAGE_KEY, JSON.stringify(items));
+  const records = items.filter((item) => shouldKeepPredictionReviewDate(item.date)).slice(0, 200);
+  try {
+    window.localStorage.setItem(HIT_NOTIFICATION_STORAGE_KEY, JSON.stringify(records));
+  } catch (error) {
+    console.warn("[HitNotificationStorage] save failed", error);
+  }
 };
 
 export const loadHitNotificationKeys = (): string[] => {
@@ -1089,7 +1106,19 @@ export const loadHitNotificationKeys = (): string[] => {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
 
-    return parsed.filter((item: unknown): item is string => typeof item === "string");
+    const activeKeySet = new Set(loadHitNotifications().map((item) => item.raceKey));
+    const normalized = parsed.filter((item: unknown): item is string => typeof item === "string");
+    const keys = normalized.filter((key) => activeKeySet.has(key));
+
+    if (keys.length !== normalized.length) {
+      try {
+        window.localStorage.setItem(HIT_NOTIFICATION_NOTIFIED_KEYS_STORAGE_KEY, JSON.stringify(keys));
+      } catch {
+        // localStorage write failure is non-fatal
+      }
+    }
+
+    return keys;
   } catch {
     return [];
   }
@@ -1097,7 +1126,13 @@ export const loadHitNotificationKeys = (): string[] => {
 
 export const saveHitNotificationKeys = (keys: string[]) => {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(HIT_NOTIFICATION_NOTIFIED_KEYS_STORAGE_KEY, JSON.stringify(keys));
+  const activeKeySet = new Set(loadHitNotifications().map((item) => item.raceKey));
+  const records = Array.from(new Set(keys.filter((key) => activeKeySet.has(key))));
+  try {
+    window.localStorage.setItem(HIT_NOTIFICATION_NOTIFIED_KEYS_STORAGE_KEY, JSON.stringify(records));
+  } catch (error) {
+    console.warn("[HitNotificationStorage] key save failed", error);
+  }
 };
 
 export const resolvePredictionEffectivePayout = (hitStatus: PredictionResultHitStatus, payout?: number) => {
@@ -3567,7 +3602,11 @@ export const loadStoredDailyMetrics = (): DailyMetricsMap => {
 
 export const saveStoredDailyMetrics = (map: DailyMetricsMap) => {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(DAILY_METRICS_STORAGE_KEY, JSON.stringify(map));
+  try {
+    window.localStorage.setItem(DAILY_METRICS_STORAGE_KEY, JSON.stringify(map));
+  } catch (error) {
+    console.warn("[DailyMetricsStorage] save failed", error);
+  }
 };
 
 export const loadStoredFavoriteRiders = (): FavoriteRiderMap => {
@@ -3597,7 +3636,11 @@ export const loadStoredFavoriteRiders = (): FavoriteRiderMap => {
 
 export const saveStoredFavoriteRiders = (map: FavoriteRiderMap) => {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(FAVORITE_RIDERS_STORAGE_KEY, JSON.stringify(map));
+  try {
+    window.localStorage.setItem(FAVORITE_RIDERS_STORAGE_KEY, JSON.stringify(map));
+  } catch (error) {
+    console.warn("[FavoriteRiderStorage] save failed", error);
+  }
 };
 
 export const isFavoriteRidersEmpty = (names?: string[]) => !names || names.length === 0;
@@ -7463,8 +7506,7 @@ export function SiteHeader({ activeKey }: SiteHeaderProps) {
   const headerNow = useDashboardNow();
   const isMobile = useIsMobile();
   const headerFontFamily = '"KurariHeaderCraft", "Helvetica Neue", Arial, "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif';
-  const clockFontFamily =
-  '"KurariClockFont", "Helvetica Neue", Arial, "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif';
+  const clockFontFamily = headerFontFamily;
 
   const getNavStyle = (key: SiteHeaderActiveKey): CSSProperties => {
     const isActive = activeKey === key;
@@ -7522,12 +7564,6 @@ return (
         @font-face {
           font-family: "KurariHeaderCraft";
           src: url("${toPublicPath("/fonts/kurari-header-craftmincho.otf")}") format("opentype");
-          font-display: swap;
-        }
-        
-        @font-face {
-          font-family: "KurariClockFont";
-          src: url("${toPublicPath("/fonts/kurari-clock-font.otf")}") format("opentype");
           font-display: swap;
         }
       `}</style>
