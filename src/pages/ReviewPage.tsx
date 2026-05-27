@@ -134,6 +134,12 @@ type PredictionRaceItem = {
   result?: PredictionRaceResult;
 };
 
+type ReviewFinalTrifectaFavoriteOdds = {
+  combination: string;
+  oddsText: string;
+  source: string;
+};
+
 type PredictionVenueItem = {
   venue: string;
   grade?: string;
@@ -1161,10 +1167,8 @@ function normalizeReviewTrifectaOddsList(
 
       const combination = cleanReviewOddsText(item.combination).replace(/[>＞→]/g, "-");
 
-      const odds =
-        typeof item.odds === "number"
-          ? item.odds
-          : Number(String(item.odds ?? "").replace(/[^\d.]/g, ""));
+      const oddsText = parseOddsText(item.odds);
+      const odds = oddsText ? Number(oddsText.replace("倍", "")) : Number.NaN;
 
       const popularity = normalizeReviewPopularity(item.popularity);
 
@@ -1204,6 +1208,142 @@ function normalizeReviewTrifectaOddsList(
       return a.odds - b.odds;
     })
     .slice(0, 120);
+}
+
+function normalizeTrifectaCombination(value: unknown): string | null {
+  if (typeof value !== "string" && typeof value !== "number") return null;
+
+  const text = String(value)
+    .replace(/[０-９]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xfee0))
+    .trim();
+
+  const separated = text.match(/(?:^|[^\d])([1-9])\s*[-‐‑‒–—―ー=－>＞]\s*([1-9])\s*[-‐‑‒–—―ー=－>＞]\s*([1-9])(?:[^\d]|$)/);
+  if (separated) return `${separated[1]}-${separated[2]}-${separated[3]}`;
+
+  const compact = text.match(/(?:^|[^\d])([1-9]{3})(?:[^\d]|$)/);
+  if (compact) return compact[1].split("").join("-");
+
+  return null;
+}
+
+function parseOddsText(value: unknown): string | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return `${value.toFixed(1)}倍`;
+  }
+
+  if (typeof value !== "string") return null;
+  if (value.includes("円")) return null;
+
+  const match = value.match(/(\d+(?:\.\d+)?)\s*倍/);
+  if (match) return `${match[1]}倍`;
+
+  const numeric = value.trim().match(/^(\d+(?:\.\d+)?)$/);
+  if (numeric) return `${numeric[1]}倍`;
+
+  return null;
+}
+
+function normalizeReviewStructuredTrifectaCandidate(
+  item: unknown,
+  source: string,
+): ReviewFinalTrifectaFavoriteOdds | null {
+  if (!item || typeof item !== "object") return null;
+  const record = item as Record<string, unknown>;
+  const popularity = normalizeReviewPopularity(record.popularity ?? record.rank ?? record.popularRank ?? record.ninki);
+  const labelText = String(record.tag ?? record.label ?? record.name ?? "");
+  const isFavorite = popularity === 1 || /(?:人気|rank|Rank|RANK)\s*1|1\s*(?:人気|番人気)/.test(labelText);
+  if (!isFavorite) return null;
+
+  const combination = normalizeTrifectaCombination(
+    record.combination ?? record.combo ?? record.line ?? record.numbers ?? record.ticket,
+  );
+  const oddsText = parseOddsText(record.odds ?? record.oddsText ?? record.value ?? record.payout);
+
+  if (!combination || !oddsText) return null;
+
+  return { combination, oddsText, source };
+}
+
+function resolveFinalTrifectaFavoriteOdds(
+  race?: PredictionRaceItem,
+): ReviewFinalTrifectaFavoriteOdds | null {
+  if (!race) return null;
+
+  const raceRecord = race as PredictionRaceItem & Record<string, unknown>;
+  const nestedOdds = raceRecord.odds && typeof raceRecord.odds === "object"
+    ? raceRecord.odds as Record<string, unknown>
+    : {};
+  const structuredSources: Array<[string, unknown]> = [
+    ["oddsTrifecta", raceRecord.oddsTrifecta],
+    ["oddsTrifectaPopular", raceRecord.oddsTrifectaPopular],
+    ["trifectaOdds", raceRecord.trifectaOdds],
+    ["odds.trifecta", nestedOdds.trifecta],
+  ];
+
+  for (const [source, value] of structuredSources) {
+    if (!Array.isArray(value)) continue;
+    for (const item of value) {
+      const candidate = normalizeReviewStructuredTrifectaCandidate(item, source);
+      if (candidate) return candidate;
+    }
+  }
+
+  const favoriteCombination = normalizeTrifectaCombination(raceRecord.favoriteCombination);
+  const favoriteOdds = parseOddsText(raceRecord.favoriteOdds);
+  if (favoriteCombination && favoriteOdds) {
+    return {
+      combination: favoriteCombination,
+      oddsText: favoriteOdds,
+      source: "favoriteCombination/favoriteOdds",
+    };
+  }
+
+  const topTrifecta = parseReviewLooseFavoriteOdds(raceRecord.topTrifectaOdds, "topTrifectaOdds");
+  if (topTrifecta) return topTrifecta;
+
+  const topOdds = parseReviewLooseFavoriteOdds(raceRecord.topOdds, "topOdds");
+  if (topOdds) return topOdds;
+
+  const oddsPreview = raceRecord.oddsPreview;
+  if (Array.isArray(oddsPreview)) {
+    for (const item of oddsPreview) {
+      if (!item || typeof item !== "object") continue;
+      const record = item as Record<string, unknown>;
+      const combinedText = `${String(record.tag ?? "")} ${String(record.combo ?? "")} ${String(record.odds ?? "")}`;
+      if (!/3\s*連\s*単/.test(combinedText) || !/(人気\s*1|1\s*(?:人気|番人気))/.test(combinedText)) continue;
+
+      const combination = normalizeTrifectaCombination(record.combo ?? combinedText);
+      const oddsText = parseOddsText(record.odds ?? combinedText);
+      if (combination && oddsText) {
+        return { combination, oddsText, source: "oddsPreview" };
+      }
+    }
+  }
+
+  return null;
+}
+
+function parseReviewLooseFavoriteOdds(
+  value: unknown,
+  source: string,
+): ReviewFinalTrifectaFavoriteOdds | null {
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const combination = normalizeTrifectaCombination(
+      record.combination ?? record.combo ?? record.line ?? record.numbers ?? record.ticket,
+    );
+    const oddsText = parseOddsText(record.odds ?? record.oddsText ?? record.value);
+    if (combination && oddsText) return { combination, oddsText, source };
+    return null;
+  }
+
+  if (typeof value !== "string") return null;
+
+  const combination = normalizeTrifectaCombination(value);
+  const oddsText = parseOddsText(value);
+  if (!combination || !oddsText) return null;
+
+  return { combination, oddsText, source };
 }
 
 function pickReviewOddsPreview(
@@ -1381,43 +1521,15 @@ function buildReviewWeatherLines(
 }
 
 function buildReviewFinalOddsLines(feedRace?: PredictionRaceItem) {
-  const trifectaOdds = normalizeReviewTrifectaOddsList(feedRace?.oddsTrifecta);
-  if (feedRace?.favoriteCombination && typeof feedRace.favoriteOdds === "number") {
-    return [
-      "最終オッズ参考",
-      `3連単人気1: ${feedRace.favoriteCombination} ${feedRace.favoriteOdds.toFixed(1)}倍`,
-    ];
-  }
+  const favoriteTrifecta = resolveFinalTrifectaFavoriteOdds(feedRace);
 
-  const trifectaFavorite = trifectaOdds.find((item) => item.popularity === 1);
-
-  if (trifectaFavorite) {
-    return [
-      "最終オッズ参考:",
-      `3連単 1番人気: ${trifectaFavorite.combination}　${trifectaFavorite.odds.toFixed(1)}倍`,
-    ];
-  }
-
-  if (!trifectaOdds.length) {
-    return [
-      "最終オッズ参考",
-      getPredictionOddsUnavailableLabel(feedRace?.oddsNote),
-    ];
-  }
-
-  const lowestOdds = [...trifectaOdds].sort((a, b) => a.odds - b.odds)[0];
-
-  if (lowestOdds) {
-    return [
-      "最終オッズ参考:",
-      "3連単 1番人気: 人気順位未取得",
-      `参考（最低オッズ）: ${lowestOdds.combination}　${lowestOdds.odds.toFixed(1)}倍`,
-    ];
+  if (favoriteTrifecta) {
+    return [`最終1番人気オッズ: ${favoriteTrifecta.combination} ${favoriteTrifecta.oddsText}`];
   }
 
   return [
-    "最終オッズ参考:",
-    "3連単 1番人気: 保存なし",
+    "最終1番人気オッズ: 未取得",
+    getPredictionOddsUnavailableLabel(feedRace?.oddsNote),
   ];
 }
 
@@ -1597,6 +1709,15 @@ function buildResultCopy(group: VenueReviewGroup, reviewWeatherActualMap: Review
       race.resultRecord?.weatherActual ??
       race.feedRace?.result?.weatherActual ??
       reviewWeatherActualMap[raceWeatherKey];    
+    const favoriteTrifecta = resolveFinalTrifectaFavoriteOdds(race.feedRace);
+
+    if (import.meta.env.DEV) {
+      console.log("[review favorite trifecta odds]", {
+        raceKey: race.raceKey,
+        selected: favoriteTrifecta,
+        source: favoriteTrifecta?.source,
+      });
+    }
 
     lines.push(`■ ${group.venue} ${race.raceNumber}R`);
     lines.push(`レース名: ${race.feedRace?.title ?? group.title ?? "レース名未取得"}`);
