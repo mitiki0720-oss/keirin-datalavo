@@ -2920,7 +2920,38 @@ const renderMiniTable = (headers: string[], rows: ReactNode[][]) => (
 );
 
   return (
-    <>
+    <div
+      style={{
+        minHeight: "100vh",
+        position: "relative",
+        overflowX: "hidden",
+        isolation: "isolate",
+        background: "transparent",
+        color: "#111827",
+      }}
+    >
+      <div
+        aria-hidden="true"
+        data-races-bg-layer="true"
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+          backgroundColor: "#dff5ff",
+          backgroundImage: [
+            "linear-gradient(180deg, rgba(255,255,255,0.00) 0%, rgba(255,255,255,0.04) 42%, rgba(255,255,255,0.10) 100%)",
+            `url("${toPublicPath("/races-page/races-page-bg-keirin-soft-light.png")}")`,
+          ].join(", "),
+          backgroundRepeat: "no-repeat, no-repeat",
+          backgroundSize: "cover, cover",
+          backgroundPosition: "center top, center top",
+          opacity: 1,
+          filter: "saturate(1.2) contrast(1.08)",
+        }}
+      />
+
+      <div style={{ position: "relative", zIndex: 1 }}>
     <SiteHeader activeKey="races" />
 
     <section
@@ -4682,7 +4713,8 @@ style={{
 </article>
 </aside>
 </section>
-</section>
-</>
-);
+      </section>
+      </div>
+    </div>
+  );
 }

@@ -7764,12 +7764,20 @@ const subPageActiveKey: SiteHeaderActiveKey =
 
     const isRacesSubPage = subPageActiveKey === "races";
 
+    if (import.meta.env.DEV) {
+      console.log("[SubPageShell background debug]", {
+        routePrefix,
+        subPageActiveKey,
+        isRacesSubPage,
+      });
+    }
+
   return (
   <div
     style={{
       minHeight: "100vh",
       background: isRacesSubPage
-        ? "linear-gradient(180deg, #fffefe 0%, #f7fbff 42%, #fff8ff 100%)"
+        ? "transparent"
         : "linear-gradient(180deg, #fffefe 0%, #fff6fb 48%, #f6fbff 100%)",
       color: "#111827",
       overflowX: "hidden",
@@ -7782,37 +7790,24 @@ const subPageActiveKey: SiteHeaderActiveKey =
     {isRacesSubPage && (
       <div
         aria-hidden="true"
+        data-races-bg-layer="true"
         style={{
           position: "fixed",
-          left: 0,
-          right: 0,
-          top: "72px",
-          bottom: 0,
+          inset: 0,
           zIndex: 0,
           pointerEvents: "none",
-          overflow: "hidden",
+          backgroundColor: "#dff5ff",
+          backgroundImage: [
+            "linear-gradient(180deg, rgba(255,255,255,0.00) 0%, rgba(255,255,255,0.04) 42%, rgba(255,255,255,0.10) 100%)",
+            `url("${toPublicPath("/races-page/races-page-bg-keirin-soft-light.png")}")`,
+          ].join(", "),
+          backgroundRepeat: "no-repeat, no-repeat",
+          backgroundSize: "cover, cover",
+          backgroundPosition: "center top, center top",
+          opacity: 1,
+          filter: "saturate(1.2) contrast(1.08)",
         }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            backgroundImage: `url("${toPublicPath("/races-page/races-page-bg-keirin-soft-light.png")}")`,
-            backgroundRepeat: "no-repeat",
-            backgroundSize:"cover",
-            backgroundPosition: "center top",
-            opacity: 0.95,
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-  "linear-gradient(180deg, rgba(255,255,255,0.00) 0%, rgba(255,255,255,0.03) 42%, rgba(255,255,255,0.08) 100%)",
-          }}
-        />
-      </div>
+      />
     )}
 
       <main
