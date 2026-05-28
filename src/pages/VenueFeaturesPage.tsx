@@ -52,7 +52,7 @@ type DetailTabId = (typeof tabOptions)[number]["id"];
 
 const pageFont = "'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif";
 const headingFont = "'Noto Serif JP', 'Hiragino Mincho ProN', serif";
-const VENUE_FEATURES_BG_PATH = "/venue-features-page/venue-features-bg-bank-intelligence.png";
+const VENUE_FEATURES_BG_PATH = "/venue-features/venue-features-bg-bank-intelligence.png";
 const brandRadiusPanel = "30px";
 const brandRadiusCard = "20px";
 const panelBorder = "1px solid rgba(160, 140, 220, 0.24)";
