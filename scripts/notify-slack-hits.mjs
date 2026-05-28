@@ -22,6 +22,7 @@ const TODAY_RACES_FILE = path.join(
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
 const SITE_URL = "https://mitiki0720-oss.github.io/keirin-datalavo/#mobile-dashboard";
 const DRY_RUN = process.argv.includes("--dry-run");
+const SELF_TEST_PAYOUT_PARSER = process.argv.includes("--self-test-payout-parser");
 const LOG_PREFIX = "[notify-slack-results]";
 
 function normalizeText(value) {
@@ -52,10 +53,17 @@ function normalizeVenueName(value) {
 function getBetTypeKind(betType) {
   const text = String(betType ?? "");
 
-  if (text.includes("3連単")) return "3tan";
-  if (text.includes("2車単") || text.includes("2連単")) return "2tan";
+  if (text.includes("3連単") || text.includes("三連単")) return "3tan";
+  if (text.includes("2車単") || text.includes("2連単") || text.includes("二車単")) return "2tan";
 
   return "other";
+}
+
+function normalizeBetTypeLabel(value) {
+  const kind = getBetTypeKind(value);
+  if (kind === "3tan") return "3連単";
+  if (kind === "2tan") return "2車単";
+  return String(value ?? "").normalize("NFKC").trim();
 }
 
 function getCarNo(value) {
@@ -74,12 +82,54 @@ function getResultOrder(race) {
   return "";
 }
 
-function parsePayoutAmount(value) {
-  const normalized = String(value ?? "").replace(/[^\d]/g, "");
-  if (!normalized) return undefined;
+function normalizePayoutDigits(value) {
+  return String(value)
+    .replace(/[０-９]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xfee0))
+    .replace(/[，,]/g, "");
+}
 
-  const amount = Number(normalized);
-  return Number.isFinite(amount) ? amount : undefined;
+function parsePayoutAmountYen(value) {
+  if (value == null) return null;
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.round(value);
+  }
+
+  if (typeof value === "object") {
+    const candidates = [
+      value.amountYen,
+      value.payoutYen,
+      value.yen,
+      value.amount,
+      value.payout,
+      value.value,
+      value.text,
+      value.label,
+    ];
+
+    for (const candidate of candidates) {
+      const parsed = parsePayoutAmountYen(candidate);
+      if (parsed != null) return parsed;
+    }
+
+    return null;
+  }
+
+  const text = String(value).trim();
+  if (!text) return null;
+
+  const yenMatch = text.match(/([0-9０-９][0-9０-９,，]*)\s*円/);
+  if (yenMatch) {
+    const amount = Number(normalizePayoutDigits(yenMatch[1]));
+    return Number.isFinite(amount) ? amount : null;
+  }
+
+  if (/^[0-9０-９,，]+$/.test(text)) {
+    const amount = Number(normalizePayoutDigits(text));
+    return Number.isFinite(amount) ? amount : null;
+  }
+
+  return null;
 }
 
 function formatYen(value) {
@@ -189,6 +239,68 @@ function isRaceResultConfirmed(race) {
     (Array.isArray(race?.payouts) && race.payouts.length > 0);
 
   return statusConfirmed || hasPayouts;
+}
+
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function normalizePayoutItem(payout, betType) {
+  if (!payout) return null;
+  if (typeof payout === "string" || typeof payout === "number") {
+    return { betType, payout };
+  }
+  if (typeof payout !== "object") return null;
+  return { ...payout, betType: payout.betType ?? payout.type ?? payout.ticketType ?? payout.kind ?? payout.name ?? payout.label ?? betType };
+}
+
+function collectRacePayoutItems(race) {
+  const result = race?.result ?? {};
+  const items = [
+    normalizePayoutItem(result.payout2tan, "2車単"),
+    normalizePayoutItem(result.payout3tan, "3連単"),
+    normalizePayoutItem(result.payout3fuku, "3連複"),
+    ...asArray(result.payouts),
+    ...asArray(race?.payouts),
+    ...asArray(result.payoffs),
+    ...asArray(race?.payoffs),
+    ...asArray(result.refunds),
+    ...asArray(race?.refunds),
+  ];
+
+  return items.filter(Boolean);
+}
+
+function getPayoutItemBetType(item) {
+  if (!item || typeof item !== "object") return "";
+  return normalizeBetTypeLabel(item.betType ?? item.type ?? item.ticketType ?? item.kind ?? item.name ?? item.label);
+}
+
+function getPayoutItemCombination(item) {
+  if (!item || typeof item !== "object") return "";
+  return normalizePredictionCombination(
+    item.combination ?? item.numbers ?? item.result ?? item.combo ?? item.line ?? item.ticket,
+  );
+}
+
+function findRacePayoutForHit(race, betType, combination) {
+  const targetBetType = normalizeBetTypeLabel(betType);
+  const targetCombination = normalizePredictionCombination(combination);
+  if (!race || !targetBetType || !targetCombination) return null;
+
+  const sameBetTypeItems = collectRacePayoutItems(race)
+    .map((item) => normalizePayoutItem(item, ""))
+    .filter((item) => item && getPayoutItemBetType(item) === targetBetType);
+
+  const exactItem = sameBetTypeItems.find((item) => getPayoutItemCombination(item) === targetCombination);
+  if (exactItem) return exactItem;
+
+  const fallbackItem = sameBetTypeItems.find((item) => {
+    const itemCombination = getPayoutItemCombination(item);
+    return !itemCombination || itemCombination === targetCombination;
+  });
+
+  return fallbackItem ?? null;
 }
 
 function normalizePredictionCombination(value) {
@@ -301,12 +413,9 @@ function resolveSettledResult(slot, raceInfo) {
   });
 
   const hitKind = getBetTypeKind(hitTicket?.betType);
-  const payout =
-    hitKind === "2tan"
-      ? parsePayoutAmount(raceInfo.race?.result?.payout2tan?.payout)
-      : hitKind === "3tan"
-        ? parsePayoutAmount(raceInfo.race?.result?.payout3tan?.payout)
-        : 0;
+  const hitBetType = hitKind === "2tan" ? "2車単" : hitKind === "3tan" ? "3連単" : "";
+  const payoutItem = hitTicket ? findRacePayoutForHit(raceInfo.race, hitBetType, hitTicket.combination) : null;
+  const payout = hitTicket ? parsePayoutAmountYen(payoutItem) : 0;
   const investment = tickets.length > 0 ? tickets.length * 100 : undefined;
   const resolvedPayout = hitTicket ? (payout ?? 0) : 0;
   const profitLoss =
@@ -325,7 +434,7 @@ function resolveSettledResult(slot, raceInfo) {
     date: raceInfo.date,
     raceId: raceInfo.raceId,
     resultOrder: resultTop3,
-    betType: hitTicket ? (hitKind === "2tan" ? "2車単" : "3連単") : "",
+    betType: hitTicket ? hitBetType : "",
     combination: hitTicket?.combination ?? "",
     ticketSummary: summarizeTickets(tickets),
     ticketCount: tickets.length,
@@ -445,7 +554,36 @@ async function postToSlack(results) {
   console.log(`${LOG_PREFIX} Sent ${results.length} result(s) to Slack.`);
 }
 
+function runPayoutParserSelfTest() {
+  const cases = [
+    ["5,920円（22人気）", 5920],
+    ["5,920円 (22)", 5920],
+    ["18,000円 / 4人気", 18000],
+    ["1,110円（3人気）", 1110],
+    ["1,730円（2人気）", 1730],
+    ["960円（4人気）", 960],
+    ["2,120円 (6)", 2120],
+  ];
+
+  let failed = 0;
+  for (const [input, expected] of cases) {
+    const actual = parsePayoutAmountYen(input);
+    const ok = actual === expected;
+    if (!ok) failed += 1;
+    console.log(`${LOG_PREFIX} payout parser ${ok ? "ok" : "ng"}: ${input} => ${actual}`);
+  }
+
+  if (failed > 0) {
+    throw new Error(`payout parser self-test failed: ${failed}`);
+  }
+}
+
 async function main() {
+  if (SELF_TEST_PAYOUT_PARSER) {
+    runPayoutParserSelfTest();
+    return;
+  }
+
   const predictionsPayload = await loadJson(PREDICTIONS_FILE, {});
   const todayFeed = await loadJson(TODAY_RACES_FILE, null);
   const todayDate = todayFeed?.date ?? "";
