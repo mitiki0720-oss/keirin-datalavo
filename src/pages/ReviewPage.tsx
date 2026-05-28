@@ -115,6 +115,16 @@ type PredictionTrifectaItem = {
   source?: string;
 };
 
+type PredictionFinalTrifectaFavorite = {
+  combination?: string;
+  odds?: number | string;
+  oddsText?: string;
+  popularity?: number;
+  source?: string;
+  sort?: string;
+  capturedAt?: string;
+};
+
 type PredictionRaceItem = {
   raceNo: number;
   time?: string;
@@ -126,6 +136,7 @@ type PredictionRaceItem = {
   oddsNote?: string;
   oddsPreview?: PredictionOddsPreviewItem[];
   oddsTrifecta?: PredictionTrifectaItem[];
+  finalTrifectaFavorite?: PredictionFinalTrifectaFavorite | null;
   topOdds?: number | null;
   topTrifectaOdds?: number | null;
   favoriteOdds?: number | null;
@@ -778,6 +789,7 @@ function compactReviewRaceResultSnapshot(race: PredictionRaceItem): PredictionRa
     oddsNote: race.oddsNote,
     oddsPreview: normalizeReviewOddsPreviewList(race.oddsPreview),
     oddsTrifecta: normalizeReviewTrifectaOddsList(race.oddsTrifecta),
+    finalTrifectaFavorite: race.finalTrifectaFavorite ?? null,
     topOdds: race.topOdds,
     topTrifectaOdds: race.topTrifectaOdds,
     favoriteOdds: race.favoriteOdds,
@@ -899,6 +911,7 @@ function mergeReviewRaceWithSnapshot(
     isGirls: feedRace.isGirls ?? snapshotRace.isGirls,
     oddsPreview: pickReviewOddsPreview(feedRace, snapshotRace),
     oddsTrifecta: pickReviewTrifectaOdds(feedRace, snapshotRace),
+    finalTrifectaFavorite: feedRace.finalTrifectaFavorite ?? snapshotRace.finalTrifectaFavorite ?? null,
     topOdds: feedRace.topOdds ?? snapshotRace.topOdds ?? null,
     topTrifectaOdds: feedRace.topTrifectaOdds ?? snapshotRace.topTrifectaOdds ?? null,
     favoriteOdds: feedRace.favoriteOdds ?? snapshotRace.favoriteOdds,
@@ -1289,6 +1302,12 @@ function resolveFinalTrifectaFavoriteOdds(
   if (!race) return null;
 
   const raceRecord = race as PredictionRaceItem & Record<string, unknown>;
+  const finalFavorite = normalizeReviewStructuredTrifectaCandidate(
+    raceRecord.finalTrifectaFavorite,
+    "finalTrifectaFavorite",
+  );
+  if (finalFavorite) return finalFavorite;
+
   const nestedOdds = raceRecord.odds && typeof raceRecord.odds === "object"
     ? raceRecord.odds as Record<string, unknown>
     : {};
@@ -1571,14 +1590,14 @@ function resolveReviewFinalOddsReference(
 function buildReviewFinalOddsLines(reference: ReviewFinalOddsReference) {
   if (reference.source === "feed" && reference.favorite) {
     return [
-      "※結果確定後に保持しているKDreams 3連単人気1オッズです。",
+      "※結果確定後に取得したKDreams 3連単人気順1位です。",
       `最終1番人気オッズ: ${reference.favorite.combination} ${reference.favorite.oddsText}`,
     ];
   }
 
   if (reference.source === "snapshot" && reference.favorite) {
     return [
-      "※最終オッズ未取得のため、保存済みスナップショットを参考表示しています。",
+      "※KDreams最終人気順を取得できなかったため、保存済みスナップショットを参考表示しています。",
       `最終1番人気オッズ: ${reference.favorite.combination} ${reference.favorite.oddsText}`,
     ];
   }

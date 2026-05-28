@@ -23,9 +23,16 @@ const phaseArgValue = phaseArgIndex >= 0 ? args[phaseArgIndex + 1] : "";
 const inlinePhaseArgValue = args.find((arg) => arg.startsWith("--phase="))?.split("=")[1] ?? "";
 const requestedPhase = String(phaseArgValue || inlinePhaseArgValue || "auto").trim().toLowerCase();
 const probeSources = args.includes("--probe-sources");
+const debugKdreamsOdds = args.includes("--debug-kdreams-odds");
 const shouldWritePublic =
   process.env.GITHUB_ACTIONS === "true" ||
   args.includes("--write-public");
+
+function getArgValue(name, fallback = "") {
+  const index = args.findIndex((arg) => arg === name);
+  if (index >= 0) return args[index + 1] ?? fallback;
+  return args.find((arg) => arg.startsWith(`${name}=`))?.split("=").slice(1).join("=") ?? fallback;
+}
 
 function resolveSourcePolicy(argv) {
   const policy = {
@@ -1654,6 +1661,7 @@ function createEmptyRaceOddsData() {
   return {
     oddsPreview: [],
     oddsTrifecta: [],
+    finalTrifectaFavorite: null,
     topOdds: null,
     topTrifectaOdds: null,
     favoriteOdds: null,
@@ -2812,7 +2820,16 @@ function buildKdreamsRaceOddsDetailUrl(slug, kdreamsRaceId) {
 }
 
 function extractKdreamsTrifectaOddsSection(html) {
-  return html.match(/<div class="odds_contents none" id="JS_ODDSCONTENTS_3rentan">([\s\S]*?)<!-- 3連単 End -->/i)?.[1] ?? "";
+  const start = html.search(/<div class="odds_contents none" id="JS_ODDSCONTENTS_3rentan">/i);
+  if (start < 0) return "";
+
+  const nextSection = html.slice(start + 1).search(/<div class="odds_contents none" id="JS_ODDSCONTENTS_/i);
+  if (nextSection >= 0) {
+    return html.slice(start, start + 1 + nextSection);
+  }
+
+  const end = html.indexOf("<!-- 3連複 Start -->", start);
+  return end >= 0 ? html.slice(start, end) : html.slice(start);
 }
 
 function extractKdreamsTrifectaPopularityRows(sectionHtml) {
@@ -2883,7 +2900,7 @@ function extractKdreamsTrifectaOddsData(html) {
   const popularityRows = extractKdreamsTrifectaPopularityRows(sectionHtml);
   const popularityMap = new Map(popularityRows.map((item) => [item.combination, item.popularity]));
   const matrixItems = extractKdreamsTrifectaOddsFromMatrix(sectionHtml);
-  const mergedItems = (matrixItems.length ? matrixItems : popularityRows.map((item) => ({
+  const matrixMergedItems = (matrixItems.length ? matrixItems : popularityRows.map((item) => ({
     combination: item.combination,
     odds: item.odds,
     source: "kdreams",
@@ -2892,8 +2909,17 @@ function extractKdreamsTrifectaOddsData(html) {
       ...item,
       popularity: popularityMap.get(item.combination),
     }))
-    .filter((item, index, array) => array.findIndex((candidate) => candidate.combination === item.combination) === index)
     .sort((a, b) => (a.popularity ?? Number.MAX_SAFE_INTEGER) - (b.popularity ?? Number.MAX_SAFE_INTEGER) || a.odds - b.odds);
+  const popularItems = popularityRows
+    .map((item) => ({
+      combination: item.combination,
+      odds: item.odds,
+      popularity: item.popularity,
+      source: "kdreams",
+    }))
+    .sort((a, b) => a.popularity - b.popularity || a.odds - b.odds);
+  const mergedItems = [...popularItems, ...matrixMergedItems]
+    .filter((item, index, array) => array.findIndex((candidate) => candidate.combination === item.combination) === index);
 
   const oddsPreview = popularityRows.slice(0, 3).map((item) => ({
     combo: item.combination,
@@ -2902,10 +2928,23 @@ function extractKdreamsTrifectaOddsData(html) {
   }));
 
   const favorite = mergedItems.find((item) => item.popularity === 1) ?? null;
+  const capturedAt = getJstNowParts().isoDateTime;
+  const finalTrifectaFavorite = favorite
+    ? {
+        combination: favorite.combination,
+        odds: favorite.odds,
+        oddsText: `${favorite.odds.toFixed(1)}倍`,
+        popularity: 1,
+        source: "kdreams",
+        sort: "popular",
+        capturedAt,
+      }
+    : null;
 
   return {
     oddsTrifecta: mergedItems,
     oddsPreview,
+    finalTrifectaFavorite,
     topOdds: favorite?.odds ?? null,
     topTrifectaOdds: favorite?.odds ?? null,
     favoriteOdds: favorite?.odds ?? null,
@@ -2953,6 +2992,7 @@ async function fetchKdreamsTrifectaOdds(slug, kdreamsRaceId) {
     return {
       oddsPreview: oddsData.oddsPreview,
       oddsTrifecta: oddsData.oddsTrifecta,
+      finalTrifectaFavorite: oddsData.finalTrifectaFavorite,
       topOdds: oddsData.topOdds,
       topTrifectaOdds: oddsData.topTrifectaOdds,
       favoriteOdds: oddsData.favoriteOdds,
@@ -3727,6 +3767,19 @@ async function fetchRaceOddsWithFallback({ raceId, venue, raceNo, detailLink }) 
   };
 }
 
+async function runKdreamsOddsDebug() {
+  const slug = getArgValue("--slug", "matsuyama");
+  const raceId = getArgValue("--race-id", "7520260526030001");
+  const venueName = getArgValue("--venue", "松山");
+  const raceNo = getArgValue("--race-no", "1");
+  const oddsData = await fetchKdreamsTrifectaOdds(slug, raceId);
+  console.log(`[odds-debug] ${venueName} ${raceNo}R 3連単 人気順 top15`);
+  oddsData.oddsTrifecta.slice(0, 15).forEach((item, index) => {
+    console.log(`${item.popularity ?? index + 1} ${item.combination} ${Number(item.odds).toFixed(1)}`);
+  });
+  console.log("[odds-debug] finalTrifectaFavorite", JSON.stringify(oddsData.finalTrifectaFavorite, null, 2));
+}
+
 async function fetchRaceResultWithFallback({ raceId, date, venue, raceNo, detailLink, riders }) {
   const kdreamsResult = SOURCE_POLICY.kdreams
     ? await fetchKdreamsRaceResult(detailLink?.slug ?? venue.slug, detailLink?.raceId, raceNo, riders)
@@ -3865,7 +3918,7 @@ async function main() {
       const effectiveCachedRace = cachedRaceRefreshReason && !canUseStaleRaceAsFallback ? null : cachedRace;
       const incompleteCacheReason = getReusableFinalRaceSkipReason(cachedRace);
 
-      if (!cachedRaceRefreshReason && isReusableFinalRace(cachedRace)) {
+      if (!cachedRaceRefreshReason && isReusableFinalRace(cachedRace) && !shouldFetchOddsForRace(cachedRace, venue, updatePhase)) {
         const reusableRace = prepareCachedRaceForReuse(cachedRace, raceNo);
         fetchedRaces.push({
           ...reusableRace,
@@ -4012,7 +4065,10 @@ async function main() {
       } else if (effectiveCachedRace && (effectiveCachedRace.resultStatus !== "confirmed" || effectiveCachedRace.result?.status !== "confirmed")) {
         console.log(`[fetch] ${venue.venue} ${raceNo}R pending; result only`);
       }
-      const hasFreshOdds = Array.isArray(oddsData.oddsTrifecta) && oddsData.oddsTrifecta.length > 0;
+      const hasFreshOdds =
+        Boolean(oddsData.finalTrifectaFavorite) &&
+        Array.isArray(oddsData.oddsTrifecta) &&
+        oddsData.oddsTrifecta.length > 0;
       const race = sanitizeRaceForCurrentPolicy({
         ...detailRace,
         oddsPreview:
@@ -4031,6 +4087,7 @@ async function main() {
         topTrifectaOdds: hasFreshOdds ? oddsData.topTrifectaOdds ?? null : detailRace.topTrifectaOdds ?? oddsData.topTrifectaOdds ?? null,
         favoriteOdds: hasFreshOdds ? oddsData.favoriteOdds ?? null : detailRace.favoriteOdds ?? oddsData.favoriteOdds ?? null,
         favoriteCombination: hasFreshOdds ? oddsData.favoriteCombination || "" : detailRace.favoriteCombination || oddsData.favoriteCombination || "",
+        finalTrifectaFavorite: hasFreshOdds ? oddsData.finalTrifectaFavorite : detailRace.finalTrifectaFavorite ?? oddsData.finalTrifectaFavorite ?? null,
         oddsNote: oddsData.oddsNote || detailRace.oddsNote || "",
         resultNote: resultData.resultNote || detailRace.resultNote || "",
         resultStatus: hasConfirmedRaceResult(resultData) ? resultData.resultStatus : detailRace.resultStatus,
@@ -4185,7 +4242,9 @@ async function main() {
   console.log(`kdreams sample html -> ${KDREAMS_SAMPLE_DETAIL_HTML_PATH}`);
 }
 
-main().catch((error) => {
+const entrypoint = debugKdreamsOdds ? runKdreamsOddsDebug : main;
+
+entrypoint().catch((error) => {
   console.error(error);
   process.exit(1);
 });
