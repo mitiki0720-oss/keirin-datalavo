@@ -4,6 +4,11 @@ import type { DailyMetricItem } from "../types/dailyMetrics";
 import type { RaceScheduleItem } from "../types/raceSchedule";
 import { getRaceEventDayLabel } from "../utils/raceEventDay";
 import {
+  loadPlayerCardIndex,
+  loadPlayerCardMarkdown,
+  type PlayerCardIndexItem as PublicPlayerCardIndexItem,
+} from "../lib/playerCards";
+import {
   findVenueInsightGroup,
   formatVenueInsightMemo,
   groupVenueInsightEntries,
@@ -7353,7 +7358,7 @@ function buildPredictionMemoExport(race: PredictionRaceItem, memo: string) {
 
 
 
-export function PlayersPage() {
+export function PlayersPageLegacy() {
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -7579,6 +7584,432 @@ export function PlayersPage() {
           100% { transform: translateY(0px); }
         }
       `}</style>
+    </div>
+  );
+}
+
+type PlayerCardClassFilter = "all" | "SS" | "S1" | "unclassified";
+
+const playerPagePanelStyle: CSSProperties = {
+  borderRadius: "30px",
+  border: "1px solid rgba(160, 140, 220, 0.24)",
+  background: "rgba(255,255,255,0.84)",
+  boxShadow: "0 24px 70px rgba(80, 72, 140, 0.12)",
+  backdropFilter: "blur(18px)",
+};
+
+function PlayerCardStat({
+  label,
+  value,
+  helper,
+}: {
+  label: string;
+  value: string;
+  helper: string;
+}) {
+  return (
+    <div style={{ borderRadius: "22px", background: "rgba(255,255,255,0.76)", border: "1px solid rgba(214,220,235,0.86)", padding: "16px", minWidth: 0 }}>
+      <div style={{ fontSize: "11px", fontWeight: 900, color: "#728097", marginBottom: "8px" }}>{label}</div>
+      <div style={{ fontSize: "20px", lineHeight: 1.25, fontWeight: 950, color: "#142033", overflowWrap: "anywhere" }}>{value}</div>
+      <div style={{ marginTop: "6px", fontSize: "11px", color: "#78879d", overflowWrap: "anywhere" }}>{helper}</div>
+    </div>
+  );
+}
+
+function getPlayerClassLabel(item?: PublicPlayerCardIndexItem | null) {
+  return item?.class || item?.grade || "未分類";
+}
+
+function getPlayerClassFilterValue(item: PublicPlayerCardIndexItem): PlayerCardClassFilter {
+  const label = getPlayerClassLabel(item).toUpperCase();
+  if (label.includes("SS")) return "SS";
+  if (label.includes("S1") || label.includes("S級1班")) return "S1";
+  return "unclassified";
+}
+
+function getPlayerUpdatedAt(item?: PublicPlayerCardIndexItem | null) {
+  return item?.updatedAt || "未取得";
+}
+
+function getPlayerInputMap(markdown: string) {
+  return extractKeyValueSection(markdown, "## 1）入力欄（ここだけ埋めれば骨格が完成）");
+}
+
+function getPlayerFeatureValue(card: ParsedPlayerCard | null, input: Record<string, string>, keys: string[], fallback = "未記載") {
+  for (const key of keys) {
+    const value = input[key] || card?.summary[key] || card?.profile[key] || card?.schedule[key];
+    if (value && value !== "-") return value;
+  }
+  return fallback;
+}
+
+function buildPlayerGptMaterial(item: PublicPlayerCardIndexItem | null, card: ParsedPlayerCard | null) {
+  const input = card ? getPlayerInputMap(card.markdown) : {};
+  const name = item?.name || input["選手名"] || "未取得";
+  const classLabel = getPlayerClassLabel(item) || input["現級班"] || "未分類";
+  const feature = getPlayerFeatureValue(card, input, ["格・軸", "直近4ヶ月の型", "券種ロール（基準）"], item?.summary || "未読込");
+  const target = getPlayerFeatureValue(card, input, ["買いの芯", "狙い", "買い"], "未記載");
+  const caution = getPlayerFeatureValue(card, input, ["消しの芯", "警戒", "注意点"], "未記載");
+  const summary = card
+    ? [feature, target !== "未記載" ? `狙い: ${target}` : "", caution !== "未記載" ? `警戒: ${caution}` : ""].filter(Boolean).join("\n")
+    : "選手カード未読込";
+
+  return [
+    "【選手特徴メモ】",
+    `登録番号: ${item?.registrationNo ?? "未選択"}`,
+    `選手名: ${name}`,
+    `級班: ${classLabel}`,
+    `府県: ${item?.prefecture || input["府県"] || "未取得"}`,
+    `特徴: ${feature}`,
+    `狙い: ${target}`,
+    `警戒: ${caution}`,
+    "GPT素材用まとめ:",
+    summary,
+  ].join("\n");
+}
+
+function renderPlayerMarkdown(markdown: string) {
+  const lines = markdown.replace(/\r\n/g, "\n").split("\n");
+  const nodes: ReactNode[] = [];
+  let tableLines: string[] = [];
+  let paragraphLines: string[] = [];
+
+  const flushParagraph = () => {
+    if (!paragraphLines.length) return;
+    nodes.push(
+      <p key={`p-${nodes.length}`} style={{ margin: 0, fontSize: "13.5px", lineHeight: 1.95, color: "#3f4f66", whiteSpace: "pre-wrap" }}>
+        {paragraphLines.join("\n")}
+      </p>
+    );
+    paragraphLines = [];
+  };
+
+  const flushTable = () => {
+    if (tableLines.length < 2) {
+      tableLines = [];
+      return;
+    }
+    const rows = tableLines
+      .filter((line) => !/^\|\s*-+/.test(line))
+      .map((line) => line.slice(1, -1).split("|").map((cell) => cell.trim()));
+    const [header, ...body] = rows;
+    nodes.push(
+      <div key={`table-${nodes.length}`} style={{ overflowX: "auto", borderRadius: "18px", border: "1px solid rgba(214,220,235,0.8)" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12.5px", lineHeight: 1.75 }}>
+          <thead>
+            <tr>
+              {header.map((cell, index) => (
+                <th key={`${cell}-${index}`} style={{ textAlign: "left", padding: "10px 12px", background: "rgba(238,243,255,0.92)", color: "#44546b", borderBottom: "1px solid rgba(214,220,235,0.8)" }}>{cell}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {body.map((row, rowIndex) => (
+              <tr key={rowIndex}>
+                {row.map((cell, cellIndex) => (
+                  <td key={`${rowIndex}-${cellIndex}`} style={{ padding: "10px 12px", color: "#344358", borderTop: rowIndex ? "1px solid rgba(226,231,242,0.78)" : "none", verticalAlign: "top" }}>{cell}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+    tableLines = [];
+  };
+
+  lines.forEach((line) => {
+    if (line.trim().startsWith("|") && line.trim().endsWith("|")) {
+      flushParagraph();
+      tableLines.push(line.trim());
+      return;
+    }
+    flushTable();
+    const heading = line.match(/^(#{1,4})\s+(.+)$/);
+    if (heading) {
+      flushParagraph();
+      const level = heading[1].length;
+      nodes.push(
+        <div key={`h-${nodes.length}`} style={{ marginTop: level <= 2 ? "10px" : "4px", fontSize: level <= 2 ? "22px" : "16px", fontWeight: 900, lineHeight: 1.35, color: "#142033" }}>
+          {heading[2]}
+        </div>
+      );
+      return;
+    }
+    if (!line.trim()) {
+      flushParagraph();
+      return;
+    }
+    paragraphLines.push(line);
+  });
+  flushParagraph();
+  flushTable();
+  return nodes;
+}
+
+export function PlayersPage() {
+  const isMobile = useIsMobile();
+  const [indexItems, setIndexItems] = useState<PublicPlayerCardIndexItem[]>([]);
+  const [indexStatus, setIndexStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [selectedRegistrationNo, setSelectedRegistrationNo] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [classFilter, setClassFilter] = useState<PlayerCardClassFilter>("all");
+  const [selectedMarkdown, setSelectedMarkdown] = useState("");
+  const [markdownStatus, setMarkdownStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [copyStatus, setCopyStatus] = useState("");
+  const [activeDetailTab, setActiveDetailTab] = useState<"readable" | "raw">("readable");
+
+  useEffect(() => {
+    try {
+      window.localStorage.removeItem("kq_players_v1");
+    } catch {
+      // Legacy cleanup is best-effort only.
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIndexStatus("loading");
+    loadPlayerCardIndex()
+      .then((items) => {
+        if (cancelled) return;
+        setIndexItems(items);
+        setIndexStatus("ready");
+        setSelectedRegistrationNo((current) => current || items[0]?.registrationNo || "");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setIndexItems([]);
+        setIndexStatus("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const selectedItem = useMemo(
+    () => indexItems.find((item) => item.registrationNo === selectedRegistrationNo) ?? null,
+    [indexItems, selectedRegistrationNo],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    setSelectedMarkdown("");
+    if (!selectedItem?.file) {
+      setMarkdownStatus("idle");
+      return;
+    }
+    setMarkdownStatus("loading");
+    loadPlayerCardMarkdown(selectedItem.file)
+      .then((markdown) => {
+        if (cancelled) return;
+        setSelectedMarkdown(markdown);
+        setMarkdownStatus("ready");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSelectedMarkdown("");
+        setMarkdownStatus("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedItem?.file]);
+
+  useEffect(() => {
+    if (!copyStatus) return;
+    const timer = window.setTimeout(() => setCopyStatus(""), 1800);
+    return () => window.clearTimeout(timer);
+  }, [copyStatus]);
+
+  const filteredItems = useMemo(() => {
+    const query = searchQuery.normalize("NFKC").trim().toLowerCase();
+    return indexItems.filter((item) => {
+      if (classFilter !== "all" && getPlayerClassFilterValue(item) !== classFilter) return false;
+      if (!query) return true;
+      const haystack = [
+        item.registrationNo,
+        item.name,
+        item.kana,
+        item.prefecture,
+        getPlayerClassLabel(item),
+        item.region,
+        item.style,
+      ].filter(Boolean).join(" ").normalize("NFKC").toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [classFilter, indexItems, searchQuery]);
+
+  const selectedParsedCard = useMemo(
+    () => selectedItem && selectedMarkdown ? parsePlayerCard(selectedItem.registrationNo, selectedMarkdown) : null,
+    [selectedItem, selectedMarkdown],
+  );
+  const selectedInput = useMemo(
+    () => selectedMarkdown ? getPlayerInputMap(selectedMarkdown) : {},
+    [selectedMarkdown],
+  );
+  const selectedName = selectedItem?.name || selectedInput["選手名"] || "未選択";
+  const selectedClass = getPlayerClassLabel(selectedItem);
+  const selectedUpdatedAt = getPlayerUpdatedAt(selectedItem);
+  const gptMaterial = useMemo(
+    () => buildPlayerGptMaterial(selectedItem, selectedParsedCard),
+    [selectedItem, selectedParsedCard],
+  );
+  const classCounts = useMemo(() => ({
+    SS: indexItems.filter((item) => getPlayerClassFilterValue(item) === "SS").length,
+    S1: indexItems.filter((item) => getPlayerClassFilterValue(item) === "S1").length,
+    unclassified: indexItems.filter((item) => getPlayerClassFilterValue(item) === "unclassified").length,
+  }), [indexItems]);
+
+  const copyText = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyStatus(`${label}をコピーしました`);
+    } catch {
+      setCopyStatus("コピーに失敗しました");
+    }
+  };
+
+  const filterChips: Array<{ id: PlayerCardClassFilter; label: string }> = [
+    { id: "all", label: "すべて" },
+    { id: "SS", label: "SS" },
+    { id: "S1", label: "S1" },
+    { id: "unclassified", label: "未分類" },
+  ];
+
+  return (
+    <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #f2f4ff 0%, #f7f2ff 42%, #eef7ff 100%)", color: "#111827", fontFamily: "'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif" }}>
+      <SiteHeader activeKey="players" />
+
+      <main style={{ width: isMobile ? "min(100%, calc(100vw - 28px))" : "min(1760px, calc(100vw - 48px))", margin: "0 auto", padding: isMobile ? "28px 0 64px" : "42px 0 88px", display: "grid", gap: "24px" }}>
+        <section style={{ ...playerPagePanelStyle, padding: isMobile ? "24px 20px" : "34px 32px", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.3fr) minmax(380px, 0.7fr)", gap: "24px", alignItems: "center" }}>
+          <div style={{ display: "grid", gap: "13px" }}>
+            <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.24em", color: "rgba(120,96,180,0.78)" }}>PLAYER CARD LIBRARY</div>
+            <h1 style={{ margin: 0, fontSize: isMobile ? "38px" : "62px", lineHeight: 1.02, letterSpacing: 0, color: "#101a2c" }}>Players Intelligence</h1>
+            <div style={{ fontSize: isMobile ? "17px" : "21px", lineHeight: 1.65, color: "#405066", fontWeight: 800 }}>SS・S1選手の特徴メモを、予想素材へつなぐ。</div>
+            <div style={{ fontSize: "14px", lineHeight: 1.9, color: "#657389", maxWidth: "72ch" }}>登録番号ベースのMarkdownカードを読み込み、脚質・勝負パターン・警戒点を確認します。</div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px" }}>
+            <PlayerCardStat label="登録カード数" value={`${indexItems.length}`} helper={indexStatus === "error" ? "index未取得" : "index.json"} />
+            <PlayerCardStat label="選択中選手" value={selectedName} helper={selectedItem?.registrationNo || "未選択"} />
+            <PlayerCardStat label="分類" value={selectedClass} helper={`SS ${classCounts.SS} / S1 ${classCounts.S1}`} />
+            <PlayerCardStat label="最終更新" value={selectedUpdatedAt} helper="player-card markdown" />
+          </div>
+        </section>
+
+        <section style={{ ...playerPagePanelStyle, padding: isMobile ? "18px 16px" : "24px", display: "grid", gap: "16px" }}>
+          <div style={{ display: "grid", gap: "8px" }}>
+            <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.2em", color: "rgba(120,96,180,0.72)" }}>SEARCH / FILTER</div>
+            <input
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="登録番号 / 選手名 / 府県 / 級班で検索"
+              style={{ width: "100%", boxSizing: "border-box", borderRadius: "16px", border: "1px solid rgba(214,220,235,0.94)", background: "rgba(255,255,255,0.92)", padding: "14px 16px", color: "#182338", outline: "none", fontSize: "14px" }}
+            />
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+            {filterChips.map((chip) => {
+              const active = classFilter === chip.id;
+              return (
+                <button key={chip.id} type="button" onClick={() => setClassFilter(chip.id)} style={{ cursor: "pointer", borderRadius: "9999px", border: active ? "1px solid rgba(122,96,194,0.46)" : "1px solid rgba(214,220,235,0.84)", background: active ? "rgba(240,232,255,0.92)" : "rgba(255,255,255,0.82)", color: active ? "#6849b8" : "#627086", padding: "9px 14px", fontSize: "12px", fontWeight: 900 }}>
+                  {chip.label}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "390px minmax(0, 1fr)", gap: isMobile ? "18px" : "28px", alignItems: "start" }}>
+          <aside style={{ ...playerPagePanelStyle, padding: isMobile ? "18px 16px" : "20px 18px", display: "grid", gap: "14px", position: isMobile ? "static" : "sticky", top: "92px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "12px" }}>
+              <div>
+                <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "rgba(120,96,180,0.72)" }}>PLAYER CARD LIST</div>
+                <div style={{ fontSize: "24px", fontWeight: 900, color: "#142033" }}>選手カード</div>
+              </div>
+              <div style={{ fontSize: "12px", color: "#7c8aa0", fontWeight: 900 }}>{filteredItems.length} 件</div>
+            </div>
+            {indexStatus === "loading" ? (
+              <div style={{ fontSize: "13px", color: "#6b7890" }}>index.json を読み込み中です。</div>
+            ) : indexStatus === "error" ? (
+              <div style={{ fontSize: "13px", color: "#855662", lineHeight: 1.8 }}>player-cards/index.json を読み込めませんでした。</div>
+            ) : filteredItems.length === 0 ? (
+              <div style={{ fontSize: "13px", color: "#6b7890" }}>条件に一致する選手カードはありません。</div>
+            ) : (
+              <div style={{ display: "grid", gap: "10px", maxHeight: isMobile ? "none" : "calc(100vh - 170px)", overflowY: isMobile ? "visible" : "auto", paddingRight: isMobile ? 0 : "4px" }}>
+                {filteredItems.map((item) => {
+                  const selected = item.registrationNo === selectedRegistrationNo;
+                  return (
+                    <button key={item.registrationNo} type="button" onClick={() => setSelectedRegistrationNo(item.registrationNo)} style={{ textAlign: "left", cursor: "pointer", borderRadius: "22px", border: selected ? "1px solid rgba(122,96,194,0.46)" : "1px solid rgba(214,220,235,0.78)", background: selected ? "rgba(245,239,255,0.94)" : "rgba(255,255,255,0.82)", boxShadow: selected ? "0 12px 26px rgba(122,96,194,0.1)" : "none", padding: "15px", display: "grid", gap: "8px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: "12px" }}>
+                        <div style={{ fontSize: "10px", letterSpacing: "0.16em", color: "#8390a5", fontWeight: 900 }}>{item.registrationNo}</div>
+                        <div style={{ fontSize: "11px", color: "#6c58a8", fontWeight: 900 }}>{getPlayerClassLabel(item)}</div>
+                      </div>
+                      <div style={{ fontSize: "21px", lineHeight: 1.15, color: "#142033", fontWeight: 900 }}>{item.name || "選手名未取得"}</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                        {[item.prefecture || "府県未取得", item.style || "脚質未取得", item.status === "ready" ? "file ready" : "file pending"].map((label) => (
+                          <span key={label} style={{ borderRadius: "9999px", background: "rgba(86,112,143,0.08)", color: "#596a82", padding: "4px 8px", fontSize: "10.5px", fontWeight: 800 }}>{label}</span>
+                        ))}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </aside>
+
+          <div style={{ display: "grid", gap: "18px" }}>
+            <section style={{ ...playerPagePanelStyle, padding: isMobile ? "20px 16px" : "24px", display: "grid", gap: "16px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: "16px", flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.2em", color: "rgba(120,96,180,0.72)", marginBottom: "8px" }}>SELECTED PLAYER DETAIL</div>
+                  <div style={{ fontSize: isMobile ? "30px" : "42px", lineHeight: 1.1, fontWeight: 900, color: "#142033" }}>{selectedName}</div>
+                  <div style={{ marginTop: "8px", display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                    {[selectedItem?.registrationNo || "未選択", selectedClass, selectedItem?.prefecture || selectedInput["府県"] || "府県未取得"].map((label) => (
+                      <span key={label} style={{ borderRadius: "9999px", background: "rgba(140,99,199,0.08)", color: "#654cb1", padding: "5px 10px", fontSize: "11px", fontWeight: 900 }}>{label}</span>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  {(["readable", "raw"] as const).map((tab) => (
+                    <button key={tab} type="button" onClick={() => setActiveDetailTab(tab)} style={{ cursor: "pointer", borderRadius: "9999px", border: activeDetailTab === tab ? "1px solid rgba(122,96,194,0.48)" : "1px solid rgba(214,220,235,0.84)", background: activeDetailTab === tab ? "rgba(240,232,255,0.94)" : "rgba(255,255,255,0.86)", color: activeDetailTab === tab ? "#6849b8" : "#627086", padding: "9px 13px", fontSize: "12px", fontWeight: 900 }}>
+                      {tab === "readable" ? "Readable" : "Raw Markdown"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {markdownStatus === "loading" ? (
+                <div style={{ borderRadius: "20px", background: "rgba(255,255,255,0.72)", padding: "18px", color: "#6b7890" }}>選手カードを読み込み中です。</div>
+              ) : markdownStatus === "error" ? (
+                <div style={{ borderRadius: "20px", background: "rgba(255,250,251,0.88)", border: "1px solid rgba(229, 215, 219, 0.9)", padding: "18px", color: "#855662" }}>選手カードを読み込めませんでした。</div>
+              ) : !selectedMarkdown ? (
+                <div style={{ borderRadius: "20px", background: "rgba(255,255,255,0.72)", padding: "18px", color: "#6b7890" }}>選手カード未読込</div>
+              ) : activeDetailTab === "raw" ? (
+                <pre style={{ margin: 0, borderRadius: "22px", border: "1px solid rgba(214,220,235,0.78)", background: "rgba(249,251,255,0.88)", padding: "18px", whiteSpace: "pre-wrap", wordBreak: "break-word", color: "#344358", fontSize: "12.5px", lineHeight: 1.85, maxHeight: "680px", overflow: "auto" }}>{selectedMarkdown}</pre>
+              ) : (
+                <div style={{ display: "grid", gap: "14px", maxHeight: isMobile ? "none" : "720px", overflow: isMobile ? "visible" : "auto", paddingRight: isMobile ? 0 : "4px" }}>
+                  {renderPlayerMarkdown(selectedMarkdown)}
+                </div>
+              )}
+            </section>
+
+            <section style={{ ...playerPagePanelStyle, padding: isMobile ? "20px 16px" : "24px", display: "grid", gap: "14px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.2em", color: "rgba(120,96,180,0.72)", marginBottom: "8px" }}>GPT MATERIAL PREVIEW</div>
+                  <div style={{ fontSize: "24px", fontWeight: 900, color: "#142033" }}>予想素材用メモ</div>
+                </div>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  <button type="button" onClick={() => copyText(gptMaterial, "選手素材")} style={{ cursor: "pointer", borderRadius: "9999px", border: "1px solid rgba(122,96,194,0.48)", background: "rgba(240,232,255,0.94)", color: "#6849b8", padding: "10px 15px", fontSize: "12px", fontWeight: 900 }}>選手素材をコピー</button>
+                  <button type="button" onClick={() => copyText(selectedMarkdown, "Markdown")} disabled={!selectedMarkdown} style={{ cursor: selectedMarkdown ? "pointer" : "default", borderRadius: "9999px", border: "1px solid rgba(214,220,235,0.84)", background: selectedMarkdown ? "rgba(255,255,255,0.88)" : "rgba(244,246,250,0.88)", color: selectedMarkdown ? "#627086" : "#9aa6b8", padding: "10px 15px", fontSize: "12px", fontWeight: 900 }}>Markdownをコピー</button>
+                </div>
+              </div>
+              {copyStatus ? <div style={{ fontSize: "12px", color: copyStatus.includes("失敗") ? "#855662" : "#6849b8", fontWeight: 800 }}>{copyStatus}</div> : null}
+              <pre style={{ margin: 0, borderRadius: "22px", border: "1px solid rgba(214,220,235,0.78)", background: "rgba(249,251,255,0.88)", padding: "18px", whiteSpace: "pre-wrap", wordBreak: "break-word", color: "#344358", fontSize: "13px", lineHeight: 1.9 }}>{gptMaterial}</pre>
+            </section>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }
