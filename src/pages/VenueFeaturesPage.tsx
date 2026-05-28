@@ -52,11 +52,12 @@ type DetailTabId = (typeof tabOptions)[number]["id"];
 
 const pageFont = "'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif";
 const headingFont = "'Noto Serif JP', 'Hiragino Mincho ProN', serif";
+const VENUE_FEATURES_BG_PATH = "/venue-features-page/venue-features-bg-bank-intelligence.png";
 const brandRadiusPanel = "30px";
 const brandRadiusCard = "20px";
-const panelBorder = "1px solid rgba(219, 223, 238, 0.68)";
-const panelBackground = "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(248,250,255,0.9) 100%)";
-const panelShadow = "0 16px 42px rgba(31, 41, 55, 0.05)";
+const panelBorder = "1px solid rgba(160, 140, 220, 0.24)";
+const panelBackground = "rgba(255,255,255,0.84)";
+const panelShadow = "0 24px 70px rgba(80, 72, 140, 0.12)";
 
 function normalizeVenueBodyText(value: string): string {
   return value
@@ -689,22 +690,59 @@ export default function VenueFeaturesPage() {
 
   return (
     <div
+      className="venue-features-page-root"
       style={{
+        position: "relative",
+        isolation: "isolate",
         minHeight: "100vh",
-        background: "linear-gradient(180deg, #f3efff 0%, #f8fbff 44%, #ffffff 100%)",
+        overflowX: "hidden",
+        background: "#eef3ff",
         fontFamily: pageFont,
       }}
     >
-      <SiteHeader activeKey="venues" />
+      <div
+        aria-hidden="true"
+        data-venue-bg-layer="true"
+        style={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+          backgroundColor: "#eef3ff",
+          backgroundImage: [
+            "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 40%, rgba(255,255,255,0.14) 100%)",
+            `url("${toPublicPath(VENUE_FEATURES_BG_PATH)}")`,
+          ].join(", "),
+          backgroundRepeat: "no-repeat, no-repeat",
+          backgroundSize: "100% auto, 100% auto",
+          backgroundPosition: "center top, center top",
+          filter: "saturate(1.14) contrast(1.06)",
+        }}
+      />
 
-      <section style={{ padding: isMobile ? "32px 16px 20px" : "44px 40px 24px" }}>
+      <div style={{ position: "relative", zIndex: 2 }}>
+        <SiteHeader activeKey="venues" />
+      </div>
+
+      <main
+        style={{
+          position: "relative",
+          zIndex: 1,
+          width: isMobile ? "min(1760px, calc(100vw - 32px))" : "min(1760px, calc(100vw - 48px))",
+          maxWidth: "1760px",
+          margin: "0 auto",
+          padding: isMobile ? "32px 0 54px" : "44px 0 88px",
+          boxSizing: "border-box",
+        }}
+      >
+
+      <section style={{ padding: isMobile ? "0 0 20px" : "0 0 24px" }}>
         <div
           style={{
-            maxWidth: "1440px",
-            margin: "0 auto",
             borderRadius: "32px",
-            border: "1px solid rgba(214, 208, 235, 0.72)",
-            background: "linear-gradient(135deg, rgba(255,255,255,0.92) 0%, rgba(247,241,255,0.88) 48%, rgba(239,247,255,0.86) 100%)",
+            border: panelBorder,
+            background: panelBackground,
+            backdropFilter: "blur(18px)",
             boxShadow: panelShadow,
             padding: isMobile ? "24px 20px" : "34px 32px",
             display: "grid",
@@ -734,14 +772,13 @@ export default function VenueFeaturesPage() {
         </div>
       </section>
 
-      <section style={{ padding: isMobile ? "0 16px 18px" : "0 40px 24px" }}>
+      <section style={{ padding: isMobile ? "0 0 18px" : "0 0 24px" }}>
         <div
           style={{
-            maxWidth: "1440px",
-            margin: "0 auto",
             borderRadius: brandRadiusPanel,
             border: panelBorder,
             background: panelBackground,
+            backdropFilter: "blur(18px)",
             boxShadow: panelShadow,
             padding: isMobile ? "18px 16px" : "24px 24px 22px",
             display: "grid",
@@ -789,14 +826,12 @@ export default function VenueFeaturesPage() {
         </div>
       </section>
 
-      <section style={{ padding: isMobile ? "0 16px 54px" : "0 40px 60px" }}>
+      <section style={{ padding: 0 }}>
         <div
           style={{
-            maxWidth: "1440px",
-            margin: "0 auto",
             display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "340px minmax(0, 1fr)",
-            gap: isMobile ? "18px" : "22px",
+            gridTemplateColumns: isMobile ? "1fr" : "380px minmax(0, 1fr)",
+            gap: isMobile ? "18px" : "28px",
             alignItems: "start",
           }}
         >
@@ -805,6 +840,7 @@ export default function VenueFeaturesPage() {
               borderRadius: brandRadiusPanel,
               border: panelBorder,
               background: panelBackground,
+              backdropFilter: "blur(18px)",
               boxShadow: panelShadow,
               padding: isMobile ? "18px 16px" : "20px 18px",
               display: "grid",
@@ -889,6 +925,7 @@ export default function VenueFeaturesPage() {
                 borderRadius: brandRadiusPanel,
                 border: panelBorder,
                 background: panelBackground,
+                backdropFilter: "blur(18px)",
                 boxShadow: panelShadow,
                 padding: isMobile ? "20px 16px" : "24px 24px 26px",
                 display: "grid",
@@ -1123,7 +1160,7 @@ export default function VenueFeaturesPage() {
                         {copyStatus ? <span style={{ alignSelf: "center", fontSize: "12px", color: copyStatus.includes("失敗") ? "#875e64" : "#6d52a7" }}>{copyStatus}</span> : null}
                       </div>
 
-                      <div style={{ borderRadius: "22px", border: "1px solid rgba(220,225,238,0.82)", background: "#f9fbff", padding: "18px 18px" }}>
+                      <div style={{ borderRadius: "22px", border: "1px solid rgba(160, 140, 220, 0.2)", background: "rgba(255,255,255,0.84)", backdropFilter: "blur(18px)", padding: "18px 18px" }}>
                         <pre style={{ margin: 0, fontSize: "13px", lineHeight: 1.9, color: "#304055", fontFamily: "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{gptMaterialPreview}</pre>
                       </div>
                     </div>
@@ -1131,15 +1168,15 @@ export default function VenueFeaturesPage() {
 
                   {activeTab === "raw" ? (
                     <div style={{ display: "grid", gap: "14px" }}>
-                      <div style={{ borderRadius: "22px", border: "1px solid rgba(220,225,238,0.82)", background: "#f9fbff", padding: "18px 18px", display: "grid", gap: "10px" }}>
+                      <div style={{ borderRadius: "22px", border: "1px solid rgba(160, 140, 220, 0.2)", background: "rgba(255,255,255,0.84)", backdropFilter: "blur(18px)", padding: "18px 18px", display: "grid", gap: "10px" }}>
                         <div style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "0.18em", color: "rgba(120,96,180,0.68)" }}>EXISTING MARKDOWN</div>
                         <pre style={{ margin: 0, fontSize: "12.5px", lineHeight: 1.85, color: "#3a4b5f", fontFamily: "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{selectedVenueMarkdown || "既存Markdownなし"}</pre>
                       </div>
-                      <div style={{ borderRadius: "22px", border: "1px solid rgba(220,225,238,0.82)", background: "#f9fbff", padding: "18px 18px", display: "grid", gap: "10px" }}>
+                      <div style={{ borderRadius: "22px", border: "1px solid rgba(160, 140, 220, 0.2)", background: "rgba(255,255,255,0.84)", backdropFilter: "blur(18px)", padding: "18px 18px", display: "grid", gap: "10px" }}>
                         <div style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "0.18em", color: "rgba(86,112,143,0.72)" }}>BANK MASTER MARKDOWN</div>
                         <pre style={{ margin: 0, fontSize: "12.5px", lineHeight: 1.85, color: "#3a4b5f", fontFamily: "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{selectedVenueMasterMarkdown || "会場別マスター分析なし"}</pre>
                       </div>
-                      <div style={{ borderRadius: "22px", border: "1px solid rgba(220,225,238,0.82)", background: "#f9fbff", padding: "18px 18px", display: "grid", gap: "10px" }}>
+                      <div style={{ borderRadius: "22px", border: "1px solid rgba(160, 140, 220, 0.2)", background: "rgba(255,255,255,0.84)", backdropFilter: "blur(18px)", padding: "18px 18px", display: "grid", gap: "10px" }}>
                         <div style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "0.18em", color: "rgba(120,96,180,0.68)" }}>SUMMARY INSIGHT MARKDOWN</div>
                         <pre style={{ margin: 0, fontSize: "12.5px", lineHeight: 1.85, color: "#3a4b5f", fontFamily: "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{selectedVenueInsightMarkdown || "Summary学習メモは未作成"}</pre>
                       </div>
@@ -1151,6 +1188,7 @@ export default function VenueFeaturesPage() {
           </div>
         </div>
       </section>
+      </main>
     </div>
   );
 }
