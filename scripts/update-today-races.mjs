@@ -948,9 +948,9 @@ function shouldFetchRiderDetailForRace(race, venue, updatePhase) {
 
 function shouldFetchOddsForRace(race, venue, updatePhase) {
   if (!isVenueInPhaseSession(venue, updatePhase)) return false;
+  if (["result", "backfill", "final"].includes(updatePhase.phase)) return true;
   if (isRaceOddsComplete(race)) return false;
-  if (["odds", "backfill", "final"].includes(updatePhase.phase)) return true;
-  if (updatePhase.phase === "result") return true;
+  if (updatePhase.phase === "odds") return true;
   return false;
 }
 
@@ -1370,6 +1370,10 @@ function normalizeNetkeirinOddsCombination(rawCombination) {
   const numberParts = normalized.match(/\d+/g);
   if (!numberParts || numberParts.length < 3) return "";
   return numberParts.slice(0, 3).map((part) => String(Number(part))).join("-");
+}
+
+function isStrictTrifectaCombination(combination) {
+  return /^[1-9]-[1-9]-[1-9]$/.test(String(combination ?? ""));
 }
 
 function getNetkeirinNumberValue(value) {
@@ -2821,7 +2825,7 @@ function extractKdreamsTrifectaPopularityRows(sectionHtml) {
       combination: normalizeNetkeirinOddsCombination(match[2]),
       odds: getNetkeirinNumberValue(match[3]),
     }))
-    .filter((item) => item.combination && Number.isFinite(item.odds) && item.odds > 0);
+    .filter((item) => isStrictTrifectaCombination(item.combination) && Number.isFinite(item.odds) && item.odds > 0);
 }
 
 function extractKdreamsTrifectaOddsFromMatrix(sectionHtml) {
@@ -2861,7 +2865,7 @@ function extractKdreamsTrifectaOddsFromMatrix(sectionHtml) {
     }
   }
 
-  return items;
+  return items.filter((item) => isStrictTrifectaCombination(item.combination));
 }
 
 function extractKdreamsTrifectaOddsData(html) {
@@ -2897,7 +2901,7 @@ function extractKdreamsTrifectaOddsData(html) {
     tag: `3連単人気${item.popularity}`,
   }));
 
-  const favorite = mergedItems.find((item) => item.popularity === 1) ?? popularityRows[0] ?? mergedItems[0] ?? null;
+  const favorite = mergedItems.find((item) => item.popularity === 1) ?? null;
 
   return {
     oddsTrifecta: mergedItems,
@@ -4008,20 +4012,25 @@ async function main() {
       } else if (effectiveCachedRace && (effectiveCachedRace.resultStatus !== "confirmed" || effectiveCachedRace.result?.status !== "confirmed")) {
         console.log(`[fetch] ${venue.venue} ${raceNo}R pending; result only`);
       }
+      const hasFreshOdds = Array.isArray(oddsData.oddsTrifecta) && oddsData.oddsTrifecta.length > 0;
       const race = sanitizeRaceForCurrentPolicy({
         ...detailRace,
         oddsPreview:
-          Array.isArray(detailRace.oddsPreview) && detailRace.oddsPreview.length
-            ? detailRace.oddsPreview
-            : oddsData.oddsPreview,
+          hasFreshOdds
+            ? oddsData.oddsPreview
+            : Array.isArray(detailRace.oddsPreview) && detailRace.oddsPreview.length
+              ? detailRace.oddsPreview
+              : oddsData.oddsPreview,
         oddsTrifecta:
-          Array.isArray(detailRace.oddsTrifecta) && detailRace.oddsTrifecta.length
-            ? detailRace.oddsTrifecta
-            : oddsData.oddsTrifecta,
-        topOdds: detailRace.topOdds ?? oddsData.topOdds ?? null,
-        topTrifectaOdds: detailRace.topTrifectaOdds ?? oddsData.topTrifectaOdds ?? null,
-        favoriteOdds: detailRace.favoriteOdds ?? oddsData.favoriteOdds ?? null,
-        favoriteCombination: detailRace.favoriteCombination || oddsData.favoriteCombination || "",
+          hasFreshOdds
+            ? oddsData.oddsTrifecta
+            : Array.isArray(detailRace.oddsTrifecta) && detailRace.oddsTrifecta.length
+              ? detailRace.oddsTrifecta
+              : oddsData.oddsTrifecta,
+        topOdds: hasFreshOdds ? oddsData.topOdds ?? null : detailRace.topOdds ?? oddsData.topOdds ?? null,
+        topTrifectaOdds: hasFreshOdds ? oddsData.topTrifectaOdds ?? null : detailRace.topTrifectaOdds ?? oddsData.topTrifectaOdds ?? null,
+        favoriteOdds: hasFreshOdds ? oddsData.favoriteOdds ?? null : detailRace.favoriteOdds ?? oddsData.favoriteOdds ?? null,
+        favoriteCombination: hasFreshOdds ? oddsData.favoriteCombination || "" : detailRace.favoriteCombination || oddsData.favoriteCombination || "",
         oddsNote: oddsData.oddsNote || detailRace.oddsNote || "",
         resultNote: resultData.resultNote || detailRace.resultNote || "",
         resultStatus: hasConfirmedRaceResult(resultData) ? resultData.resultStatus : detailRace.resultStatus,

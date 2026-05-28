@@ -126,6 +126,8 @@ type PredictionRaceItem = {
   oddsNote?: string;
   oddsPreview?: PredictionOddsPreviewItem[];
   oddsTrifecta?: PredictionTrifectaItem[];
+  topOdds?: number | null;
+  topTrifectaOdds?: number | null;
   favoriteOdds?: number | null;
   favoriteCombination?: string;
   resultStatus?: "pending" | "confirmed";
@@ -138,6 +140,12 @@ type ReviewFinalTrifectaFavoriteOdds = {
   combination: string;
   oddsText: string;
   source: string;
+};
+
+type ReviewFinalOddsReference = {
+  favorite: ReviewFinalTrifectaFavoriteOdds | null;
+  source: "feed" | "snapshot" | "none";
+  oddsNote?: string;
 };
 
 type PredictionVenueItem = {
@@ -261,6 +269,13 @@ const PREDICTION_TODAY_DATA_URL = toPublicPath("/data/races/today.generated.json
 const REVIEW_FILE_INDEX_URL = toPublicPath("/data/reviews/index.json");
 const REVIEW_CALENDAR_WEEKDAY_LABELS = ["月", "火", "水", "木", "金", "土", "日"];
 const REVIEW_PAGE_BACKGROUND_URL = toPublicPath("/review-page/backgrounds/review-page-bg-sky-water.png");
+
+async function fetchReviewTodayFeed(cacheMode: RequestCache = "no-cache") {
+  const suffix = cacheMode === "no-store" ? `?v=${Date.now()}` : "";
+  const response = await fetch(`${PREDICTION_TODAY_DATA_URL}${suffix}`, { cache: cacheMode });
+  if (!response.ok) throw new Error(`review-feed-${response.status}`);
+  return response.json() as Promise<PredictionTodayFeed>;
+}
 
 
 const sessionLabelMap: Record<string, string> = {
@@ -763,6 +778,8 @@ function compactReviewRaceResultSnapshot(race: PredictionRaceItem): PredictionRa
     oddsNote: race.oddsNote,
     oddsPreview: normalizeReviewOddsPreviewList(race.oddsPreview),
     oddsTrifecta: normalizeReviewTrifectaOddsList(race.oddsTrifecta),
+    topOdds: race.topOdds,
+    topTrifectaOdds: race.topTrifectaOdds,
     favoriteOdds: race.favoriteOdds,
     favoriteCombination: race.favoriteCombination,
     resultStatus: race.resultStatus,
@@ -882,6 +899,8 @@ function mergeReviewRaceWithSnapshot(
     isGirls: feedRace.isGirls ?? snapshotRace.isGirls,
     oddsPreview: pickReviewOddsPreview(feedRace, snapshotRace),
     oddsTrifecta: pickReviewTrifectaOdds(feedRace, snapshotRace),
+    topOdds: feedRace.topOdds ?? snapshotRace.topOdds ?? null,
+    topTrifectaOdds: feedRace.topTrifectaOdds ?? snapshotRace.topTrifectaOdds ?? null,
     favoriteOdds: feedRace.favoriteOdds ?? snapshotRace.favoriteOdds,
     favoriteCombination: feedRace.favoriteCombination || snapshotRace.favoriteCombination,
     resultStatus: feedRace.resultStatus || snapshotRace.resultStatus,
@@ -1520,16 +1539,54 @@ function buildReviewWeatherLines(
   return ["実天気/実風: 結果待ち / 天気取得待ち"];
 }
 
-function buildReviewFinalOddsLines(feedRace?: PredictionRaceItem) {
-  const favoriteTrifecta = resolveFinalTrifectaFavoriteOdds(feedRace);
+function resolveReviewFinalOddsReference(
+  latestFeedRace?: PredictionRaceItem,
+  snapshotRace?: PredictionRaceItem,
+): ReviewFinalOddsReference {
+  const latestFavorite = resolveFinalTrifectaFavoriteOdds(latestFeedRace);
+  if (latestFavorite) {
+    return {
+      favorite: latestFavorite,
+      source: "feed",
+      oddsNote: latestFeedRace?.oddsNote,
+    };
+  }
 
-  if (favoriteTrifecta) {
-    return [`最終1番人気オッズ: ${favoriteTrifecta.combination} ${favoriteTrifecta.oddsText}`];
+  const snapshotFavorite = resolveFinalTrifectaFavoriteOdds(snapshotRace);
+  if (snapshotFavorite) {
+    return {
+      favorite: snapshotFavorite,
+      source: "snapshot",
+      oddsNote: snapshotRace?.oddsNote,
+    };
+  }
+
+  return {
+    favorite: null,
+    source: "none",
+    oddsNote: latestFeedRace?.oddsNote ?? snapshotRace?.oddsNote,
+  };
+}
+
+function buildReviewFinalOddsLines(reference: ReviewFinalOddsReference) {
+  if (reference.source === "feed" && reference.favorite) {
+    return [
+      "※結果確定後に保持しているKDreams 3連単人気1オッズです。",
+      `最終1番人気オッズ: ${reference.favorite.combination} ${reference.favorite.oddsText}`,
+    ];
+  }
+
+  if (reference.source === "snapshot" && reference.favorite) {
+    return [
+      "※最終オッズ未取得のため、保存済みスナップショットを参考表示しています。",
+      `最終1番人気オッズ: ${reference.favorite.combination} ${reference.favorite.oddsText}`,
+    ];
   }
 
   return [
+    "※KDreams最終3連単オッズは未取得です。",
     "最終1番人気オッズ: 未取得",
-    getPredictionOddsUnavailableLabel(feedRace?.oddsNote),
+    getPredictionOddsUnavailableLabel(reference.oddsNote),
   ];
 }
 
@@ -1673,7 +1730,21 @@ function buildPredictionCopy(group: VenueReviewGroup) {
   return lines.join("\n").trim();
 }
 
-function buildResultCopy(group: VenueReviewGroup, reviewWeatherActualMap: ReviewWeatherActualMap = {}) {
+function findReviewFeedRace(
+  feed: PredictionTodayFeed | null | undefined,
+  race: VenueReviewRace,
+): PredictionRaceItem | undefined {
+  if (!feed || feed.date !== race.date) return undefined;
+
+  const venue = (feed.venues ?? []).find((item) => normalizeVenueName(item.venue) === normalizeVenueName(race.venue));
+  return venue?.races?.find((item) => item.raceNo === race.raceNumber);
+}
+
+function buildResultCopy(
+  group: VenueReviewGroup,
+  reviewWeatherActualMap: ReviewWeatherActualMap = {},
+  latestFeed?: PredictionTodayFeed | null,
+) {
   const lines = [`${group.venue}｜${formatDateLabel(group.date)}｜結果照合用`];
   lines.push("");
 
@@ -1709,15 +1780,8 @@ function buildResultCopy(group: VenueReviewGroup, reviewWeatherActualMap: Review
       race.resultRecord?.weatherActual ??
       race.feedRace?.result?.weatherActual ??
       reviewWeatherActualMap[raceWeatherKey];    
-    const favoriteTrifecta = resolveFinalTrifectaFavoriteOdds(race.feedRace);
-
-    if (import.meta.env.DEV) {
-      console.log("[review favorite trifecta odds]", {
-        raceKey: race.raceKey,
-        selected: favoriteTrifecta,
-        source: favoriteTrifecta?.source,
-      });
-    }
+    const latestFeedRace = findReviewFeedRace(latestFeed, race);
+    const finalOddsReference = resolveReviewFinalOddsReference(latestFeedRace, race.feedRace);
 
     lines.push(`■ ${group.venue} ${race.raceNumber}R`);
     lines.push(`レース名: ${race.feedRace?.title ?? group.title ?? "レース名未取得"}`);
@@ -1758,8 +1822,7 @@ function buildResultCopy(group: VenueReviewGroup, reviewWeatherActualMap: Review
     lines.push("");
 
     lines.push("【最終オッズ参考】");
-    lines.push("※レビュー保存時点で保持している3連単オッズスナップショットです。");
-    buildReviewFinalOddsLines(race.feedRace).forEach((line) => lines.push(line));
+    buildReviewFinalOddsLines(finalOddsReference).forEach((line) => lines.push(line));
     lines.push("");
 
     if (race.resultRecord?.memo?.trim()) {
@@ -1915,11 +1978,7 @@ export default function ReviewPage() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(PREDICTION_TODAY_DATA_URL, { cache: "no-cache" })
-      .then((response) => {
-        if (!response.ok) throw new Error(`review-feed-${response.status}`);
-        return response.json() as Promise<PredictionTodayFeed>;
-      })
+    fetchReviewTodayFeed("no-cache")
       .then((feed) => {
         if (!cancelled) setTodayFeed(feed);
       })
@@ -2219,10 +2278,10 @@ export default function ReviewPage() {
   );
   const selectedResultCopy = useMemo(
     () => {
-      if (isLocalReviewSelected) return selectedVenueGroup ? buildResultCopy(selectedVenueGroup, reviewWeatherActualMap) : "";
+      if (isLocalReviewSelected) return selectedVenueGroup ? buildResultCopy(selectedVenueGroup, reviewWeatherActualMap, todayFeed) : "";
       return selectedReviewFileGroup?.resultText ?? "";
     },
-    [isLocalReviewSelected, reviewWeatherActualMap, selectedReviewFileGroup, selectedVenueGroup],
+    [isLocalReviewSelected, reviewWeatherActualMap, selectedReviewFileGroup, selectedVenueGroup, todayFeed],
   );
 
   const selectedReportRecord = useMemo(() => {
@@ -2997,11 +3056,20 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
   <button
-    onClick={() =>
-      copyText(selectedResultCopy)
-        .then(() => setCopyStatus("結果まとめをコピーしました"))
-        .catch(() => setCopyStatus("コピーできませんでした"))
-    }
+    onClick={async () => {
+      try {
+        let copyValue = selectedResultCopy;
+        if (isLocalReviewSelected && selectedVenueGroup) {
+          const latestFeed = isTodaySelected ? await fetchReviewTodayFeed("no-store").catch(() => null) : null;
+          if (latestFeed) setTodayFeed(latestFeed);
+          copyValue = buildResultCopy(selectedVenueGroup, reviewWeatherActualMap, latestFeed ?? todayFeed);
+        }
+        await copyText(copyValue);
+        setCopyStatus("結果まとめをコピーしました");
+      } catch {
+        setCopyStatus("コピーできませんでした");
+      }
+    }}
     style={{
       border: "1px solid rgba(122,96,194,0.24)",
       cursor: "pointer",
