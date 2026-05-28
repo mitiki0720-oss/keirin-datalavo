@@ -4,11 +4,14 @@ import type { DailyMetricItem } from "../types/dailyMetrics";
 import type { RaceScheduleItem } from "../types/raceSchedule";
 import { getRaceEventDayLabel } from "../utils/raceEventDay";
 import {
-  findVenueInsightTarget,
+  findVenueInsightGroup,
   formatVenueInsightMemo,
+  groupVenueInsightEntries,
+  isVenueInsightEntryReady,
   parseVenueInsightMarkdown,
+  parseVenueMasterSummary,
 } from "./venueFeatures/venueFeatureParsers";
-import type { VenueInsightIndexItem } from "./venueFeatures/venueFeatureTypes";
+import type { VenueInsightGroup, VenueInsightIndexItem } from "./venueFeatures/venueFeatureTypes";
 
 export type CalendarDay = {
   iso: string;
@@ -515,6 +518,7 @@ export type PredictionVenueSummary = {
   volatility: string;
   bankLength: string;
   bankMemo: string;
+  masterAnalysis?: string;
   learnedFeature?: string;
   learnedTarget?: string;
   learnedCaution?: string;
@@ -858,6 +862,7 @@ export const DEFAULT_PREDICTION_VENUE_SUMMARY: PredictionVenueSummary = {
   volatility: "",
   bankLength: "",
   bankMemo: "",
+  masterAnalysis: "",
   learnedFeature: "",
   learnedTarget: "",
   learnedCaution: "",
@@ -875,6 +880,7 @@ export const MISSING_PREDICTION_VENUE_SUMMARY: PredictionVenueSummary = {
   volatility: "",
   bankLength: "",
   bankMemo: "",
+  masterAnalysis: "",
   learnedFeature: "",
   learnedTarget: "",
   learnedCaution: "",
@@ -2322,6 +2328,26 @@ const mergePredictionVenueSummaryWithInsight = (
   };
 };
 
+const mergePredictionVenueSummaryWithMaster = (
+  summary: PredictionVenueSummary,
+  masterMarkdown: string,
+  masterMeta?: Pick<VenueInsightIndexItem, "updatedAt"> | null,
+): PredictionVenueSummary => {
+  if (!masterMarkdown.trim()) return summary;
+
+  const masterSummary = parseVenueMasterSummary(masterMarkdown, {
+    updatedAt: masterMeta?.updatedAt,
+  });
+
+  if (!masterSummary.hasContent) return summary;
+
+  return {
+    ...summary,
+    masterAnalysis: masterSummary.gptMaterial,
+    source: "linked",
+  };
+};
+
 const PREDICTION_LINEUP_SEPARATOR_PATTERN = /[\s/・-]+/;
 
 const getPredictionLineupCandidates = (race?: PredictionRaceItem | null) => [
@@ -3433,6 +3459,9 @@ export const buildPredictionExportText = ({
     `荒れそう度: ${normalizePredictionMaterialValue(venueSummary.volatility, venueFallbackLabel)}`,
     `バンク長: ${normalizePredictionMaterialValue(venueSummary.bankLength, venueFallbackLabel)}`,
     `会場メモ: ${normalizePredictionMaterialValue(venueSummary.bankMemo, venueFallbackLabel)}`,
+    ...(venueSummary.masterAnalysis
+      ? [`会場別マスター分析: ${normalizePredictionMaterialValue(venueSummary.masterAnalysis, "")}`]
+      : []),
     ...(venueSummary.learnedFeature || venueSummary.learnedTarget || venueSummary.learnedCaution || venueSummary.learnedPeriod
       ? [
           "Summary学習メモ:",
@@ -8015,7 +8044,7 @@ export function PredictionPage() {
   const [savedPredictionResults, setSavedPredictionResults] = useState<PredictionResultMap>(() => loadStoredPredictionResults());
   const [hitNotifications, setHitNotifications] = useState<HitNotificationRecord[]>(() => loadHitNotifications());
   const [predictionBankIndex, setPredictionBankIndex] = useState<PredictionVenueBankIndexItem[]>([]);
-  const [predictionInsightIndex, setPredictionInsightIndex] = useState<VenueInsightIndexItem[]>([]);
+  const [predictionInsightGroups, setPredictionInsightGroups] = useState<VenueInsightGroup[]>([]);
   const [predictionPlayerIndex, setPredictionPlayerIndex] = useState<PlayerIndexItem[]>([]);
   const [predictionPlayerCards, setPredictionPlayerCards] = useState<Record<string, ParsedPlayerCard | null>>({});
   const [venueSummaryMap, setVenueSummaryMap] = useState<Record<string, PredictionVenueSummary>>({});
@@ -8188,7 +8217,7 @@ useEffect(() => {
 
         setPredictionFeed({ ...feed, venues: sortedVenues });
         setPredictionBankIndex(bankIndex);
-        setPredictionInsightIndex(insightIndex);
+        setPredictionInsightGroups(groupVenueInsightEntries(insightIndex));
         setSelectedVenueId((current) => current || sortedVenues[0]?.id || "");
         setPredictionError(null);
       } catch {
@@ -8400,18 +8429,23 @@ if (!nextSlots[currentKey] && nextSlots[legacyKey]) {
 
     const loadVenueSummary = async () => {
       const target = findPredictionVenueBankTarget(predictionBankIndex, selectedVenue);
-      const insightTarget = findVenueInsightTarget(predictionInsightIndex, selectedVenue.venue, selectedVenue.slug);
+      const insightGroup = findVenueInsightGroup(predictionInsightGroups, selectedVenue.venue, selectedVenue.slug);
+      const bankMasterTarget = insightGroup?.bankMasterEntry;
+      const reviewSummaryTarget = insightGroup?.reviewSummaryEntry;
 
       try {
-        const [bankMarkdown, insightMarkdown] = await Promise.all([
+        const [bankMarkdown, masterMarkdown, insightMarkdown] = await Promise.all([
           target
             ? fetch(toPublicPath(target.file), { cache: "force-cache" }).then(async (response) => {
                 if (!response.ok) throw new Error(`prediction-bank-${response.status}`);
                 return response.text();
               })
             : Promise.resolve(""),
-          insightTarget
-            ? fetch(toPublicPath(insightTarget.file), { cache: "force-cache" }).then(async (response) => (response.ok ? response.text() : ""))
+          bankMasterTarget && isVenueInsightEntryReady(bankMasterTarget)
+            ? fetch(toPublicPath(bankMasterTarget.file), { cache: "force-cache" }).then(async (response) => (response.ok ? response.text() : ""))
+            : Promise.resolve(""),
+          reviewSummaryTarget && isVenueInsightEntryReady(reviewSummaryTarget)
+            ? fetch(toPublicPath(reviewSummaryTarget.file), { cache: "force-cache" }).then(async (response) => (response.ok ? response.text() : ""))
             : Promise.resolve(""),
         ]);
         if (!isActive) return;
@@ -8419,7 +8453,11 @@ if (!nextSlots[currentKey] && nextSlots[legacyKey]) {
         const baseSummary = bankMarkdown
           ? parsePredictionVenueSummary(bankMarkdown)
           : { ...MISSING_PREDICTION_VENUE_SUMMARY };
-        const mergedSummary = mergePredictionVenueSummaryWithInsight(baseSummary, insightMarkdown, insightTarget);
+        const mergedSummary = mergePredictionVenueSummaryWithInsight(
+          mergePredictionVenueSummaryWithMaster(baseSummary, masterMarkdown, bankMasterTarget),
+          insightMarkdown,
+          reviewSummaryTarget,
+        );
 
         setVenueSummaryMap((current) => ({ ...current, [summaryKey]: mergedSummary }));
       } catch {
@@ -8433,7 +8471,7 @@ if (!nextSlots[currentKey] && nextSlots[legacyKey]) {
     return () => {
       isActive = false;
     };
-  }, [predictionBankIndex, predictionInsightIndex, selectedVenue, venueSummaryMap]);
+  }, [predictionBankIndex, predictionInsightGroups, selectedVenue, venueSummaryMap]);
 
   useEffect(() => {
     if (!selectedVenue) return;

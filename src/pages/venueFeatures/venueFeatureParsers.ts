@@ -5,9 +5,12 @@ import {
   type VenueChecklistItem,
   type VenueDetailBlock,
   type VenueDetailSection,
+  type VenueInsightGroup,
   type VenueDetailTable,
   type VenueInsightIndexItem,
+  type VenueInsightSource,
   type VenueInsightSummary,
+  type VenueMasterSummary,
   type VenueMarkdownDocument,
   type VenueMetaEntry,
 } from "./venueFeatureTypes";
@@ -25,8 +28,46 @@ export function normalizeVenueLookupName(value?: string | null) {
   return normalized;
 }
 
-export function findVenueInsightTarget(
-  insights: VenueInsightIndexItem[],
+export function normalizeVenueInsightStatus(status?: string | null) {
+  return status === "planned" ? "planned" : "ready";
+}
+
+export function isVenueInsightSource(value?: string | null): value is VenueInsightSource {
+  return value === "bank-master" || value === "review-summary";
+}
+
+export function isVenueInsightEntryReady(entry?: Pick<VenueInsightIndexItem, "status"> | null) {
+  return normalizeVenueInsightStatus(entry?.status) === "ready";
+}
+
+export function groupVenueInsightEntries(insights: VenueInsightIndexItem[]): VenueInsightGroup[] {
+  const groups = new Map<string, VenueInsightGroup>();
+
+  insights.forEach((item) => {
+    if (!isVenueInsightSource(item.source)) return;
+
+    const groupKey = normalizeVenueLookupName(item.venueName || item.venueKey);
+    const current = groups.get(groupKey) ?? {
+      venueKey: item.venueKey,
+      venueName: item.venueName,
+      aliases: item.aliases,
+    };
+
+    if (item.source === "bank-master") {
+      current.bankMasterEntry = item;
+    }
+    if (item.source === "review-summary") {
+      current.reviewSummaryEntry = item;
+    }
+
+    groups.set(groupKey, current);
+  });
+
+  return Array.from(groups.values());
+}
+
+export function findVenueInsightGroup(
+  insights: VenueInsightGroup[],
   venueName: string,
   venueKey?: string,
 ) {
@@ -40,6 +81,14 @@ export function findVenueInsightTarget(
         : false;
     }) ?? null
   );
+}
+
+export function findVenueInsightTarget(
+  insights: VenueInsightIndexItem[],
+  venueName: string,
+  venueKey?: string,
+) {
+  return findVenueInsightGroup(groupVenueInsightEntries(insights), venueName, venueKey);
 }
 
 export function toCompactSingleLine(value?: string | null): string {
@@ -200,6 +249,51 @@ function extractVenueMeta(markdown: string): VenueMetaEntry[] {
     .filter((entry): entry is VenueMetaEntry => !!entry && !!entry.value);
 }
 
+function getDocumentMetaValue(meta: VenueMetaEntry[], labels: string[]) {
+  for (const label of labels) {
+    const match = meta.find((entry) => entry.label === label);
+    if (match?.value) return match.value;
+  }
+  return "";
+}
+
+function getSectionPlainText(section: VenueDetailSection): string {
+  const lines: string[] = [];
+  section.blocks.forEach((block) => {
+    if (block.type === "paragraph" || block.type === "quote") {
+      block.text
+        .split(/\n+/)
+        .map((line) => normalizeVenueMarkdownText(line))
+        .filter(Boolean)
+        .forEach((line) => lines.push(line));
+      return;
+    }
+    if (block.type === "list") {
+      block.items
+        .map((item) => normalizeVenueMarkdownText(item))
+        .filter(Boolean)
+        .forEach((item) => lines.push(item));
+      return;
+    }
+    if (block.type === "checklist") {
+      block.items
+        .map((item) => normalizeVenueMarkdownText(item.text))
+        .filter(Boolean)
+        .forEach((item) => lines.push(item));
+    }
+  });
+  return lines.join(" ");
+}
+
+function getDocumentSectionSnippet(document: VenueMarkdownDocument, keywords: string[], fallback = "", max = 116) {
+  const hit = document.sections.find((section) =>
+    keywords.some((keyword) => section.title.includes(keyword) || getSectionPlainText(section).includes(keyword)),
+  );
+  if (!hit) return fallback;
+  const text = getSectionPlainText(hit).replace(/\s+/g, " ").trim();
+  return clipVenueBankText(text || fallback, max);
+}
+
 export function parseVenueMarkdownDocument(markdown: string): VenueMarkdownDocument {
   const sections: VenueDetailSection[] = [];
   const meta = extractVenueMeta(markdown);
@@ -348,6 +442,41 @@ export function parseVenueMarkdownDocument(markdown: string): VenueMarkdownDocum
   flushSection();
 
   return { title: documentTitle, meta, sections };
+}
+
+export function parseVenueMasterSummary(
+  markdown: string,
+  fallback: Partial<Pick<VenueMasterSummary, "updatedAt">> = {},
+): VenueMasterSummary {
+  const document = parseVenueMarkdownDocument(markdown);
+  const bankLength = getDocumentMetaValue(document.meta, ["周長", "バンク長"]);
+  const cant = getDocumentMetaValue(document.meta, ["カント"]);
+  const straight = getDocumentMetaValue(document.meta, ["みなし直線"]);
+  const overview = getDocumentSectionSnippet(document, ["傾向まとめ", "バンク仕様", "決まり手"], "会場別マスター分析を整備中です。");
+  const wind = getDocumentSectionSnippet(document, ["風", "向かい風", "追い風"], "風向きの癖はマスター分析に記載されています。", 96);
+  const strategy = getDocumentSectionSnippet(document, ["ライン", "戦術", "運用", "チェックリスト", "グレード"], "戦術メモはマスター分析の本文側を参照してください。", 108);
+
+  const parts = [
+    bankLength ? `周長 ${bankLength}` : "",
+    cant ? `カント ${cant}` : "",
+    straight ? `みなし直線 ${straight}` : "",
+    overview ? `傾向: ${overview}` : "",
+    wind ? `風: ${wind}` : "",
+    strategy ? `戦術: ${strategy}` : "",
+  ].filter(Boolean);
+
+  return {
+    title: document.title,
+    updatedAt: fallback.updatedAt || getDocumentMetaValue(document.meta, ["最終更新日", "更新日"]),
+    bankLength,
+    cant,
+    straight,
+    overview,
+    wind,
+    strategy,
+    gptMaterial: parts.join(" / "),
+    hasContent: parts.length > 0,
+  };
 }
 
 export function deriveVenueTags(summary: VenueBankSummary): string[] {

@@ -48,13 +48,25 @@ export type VenueMarkdownDocument = {
   sections: VenueDetailSection[];
 };
 
+export type VenueInsightSource = "bank-master" | "review-summary";
+export type VenueInsightStatus = "ready" | "planned";
+
 export type VenueInsightIndexItem = {
   venueKey: string;
   venueName: string;
   file: string;
   updatedAt?: string;
-  source?: string;
+  source?: VenueInsightSource | string;
+  status?: VenueInsightStatus;
   aliases?: string[];
+};
+
+export type VenueInsightGroup = {
+  venueKey: string;
+  venueName: string;
+  aliases?: string[];
+  bankMasterEntry?: VenueInsightIndexItem;
+  reviewSummaryEntry?: VenueInsightIndexItem;
 };
 
 export type VenueInsightSummary = {
@@ -66,6 +78,19 @@ export type VenueInsightSummary = {
   gptMaterial: string;
   updatedAt: string;
   source: string;
+  hasContent: boolean;
+};
+
+export type VenueMasterSummary = {
+  title: string;
+  updatedAt: string;
+  bankLength: string;
+  cant: string;
+  straight: string;
+  overview: string;
+  wind: string;
+  strategy: string;
+  gptMaterial: string;
   hasContent: boolean;
 };
 
@@ -154,5 +179,18 @@ export const EMPTY_VENUE_INSIGHT_SUMMARY: VenueInsightSummary = {
   gptMaterial: "",
   updatedAt: "",
   source: "missing",
+  hasContent: false,
+};
+
+export const EMPTY_VENUE_MASTER_SUMMARY: VenueMasterSummary = {
+  title: "",
+  updatedAt: "",
+  bankLength: "",
+  cant: "",
+  straight: "",
+  overview: "",
+  wind: "",
+  strategy: "",
+  gptMaterial: "",
   hasContent: false,
 };

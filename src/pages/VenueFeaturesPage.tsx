@@ -3,15 +3,19 @@ import { SiteHeader } from "./PageImplementations";
 import {
   DEFAULT_VENUE_BANK_SUMMARY,
   EMPTY_VENUE_INSIGHT_SUMMARY,
+  findVenueInsightGroup,
   deriveVenueTags,
-  findVenueInsightTarget,
   formatVenueInsightMemo,
+  groupVenueInsightEntries,
+  isVenueInsightEntryReady,
   normalizeVenueMarkdownText,
   parseVenueBankSummary,
   parseVenueInsightMarkdown,
+  parseVenueMasterSummary,
   parseVenueMarkdownDocument,
 } from "./venueFeatures/venueFeatureParsers";
 import {
+  EMPTY_VENUE_MASTER_SUMMARY,
   REGIONS,
   VENUE_REGION_MAP,
   VENUE_TAG_OPTIONS,
@@ -20,8 +24,10 @@ import {
   type VenueBankSummary,
   type VenueDetailBlock,
   type VenueDetailSection,
+  type VenueInsightGroup,
   type VenueInsightIndexItem,
   type VenueInsightSummary,
+  type VenueMasterSummary,
   type VenueMarkdownDocument,
   type VenueMetaEntry,
   type VenueTag,
@@ -435,11 +441,13 @@ export default function VenueFeaturesPage() {
   const [activeTag, setActiveTag] = useState<VenueTag | null>(null);
   const [activeTab, setActiveTab] = useState<DetailTabId>("overview");
   const [venueIndex, setVenueIndex] = useState<VenueBankIndexItem[]>([]);
-  const [insightIndex, setInsightIndex] = useState<VenueInsightIndexItem[]>([]);
+  const [insightGroups, setInsightGroups] = useState<VenueInsightGroup[]>([]);
   const [summaryMap, setSummaryMap] = useState<Record<string, VenueBankSummary>>({});
   const [selectedVenueName, setSelectedVenueName] = useState("");
   const [selectedVenueMarkdown, setSelectedVenueMarkdown] = useState("");
   const [selectedVenueDocument, setSelectedVenueDocument] = useState<VenueMarkdownDocument>({ title: "", meta: [], sections: [] });
+  const [selectedVenueMasterMarkdown, setSelectedVenueMasterMarkdown] = useState("");
+  const [selectedVenueMasterSummary, setSelectedVenueMasterSummary] = useState<VenueMasterSummary>(EMPTY_VENUE_MASTER_SUMMARY);
   const [selectedVenueInsightMarkdown, setSelectedVenueInsightMarkdown] = useState("");
   const [selectedVenueInsightSummary, setSelectedVenueInsightSummary] = useState<VenueInsightSummary>(EMPTY_VENUE_INSIGHT_SUMMARY);
   const [indexLoading, setIndexLoading] = useState(true);
@@ -476,7 +484,7 @@ export default function VenueFeaturesPage() {
         if (!active) return;
 
         setVenueIndex(bankData);
-        setInsightIndex(insightData);
+        setInsightGroups(groupVenueInsightEntries(insightData));
         setSelectedVenueName((current) => current || bankData[0]?.venueName || "");
 
         const summaryEntries = await Promise.all(
@@ -528,15 +536,19 @@ export default function VenueFeaturesPage() {
     () => venueIndex.find((item) => item.venueName === selectedVenueName) ?? null,
     [selectedVenueName, venueIndex],
   );
-  const selectedInsightItem = useMemo(
-    () => findVenueInsightTarget(insightIndex, selectedVenueName, selectedVenueItem?.venueKey),
-    [insightIndex, selectedVenueItem?.venueKey, selectedVenueName],
+  const selectedInsightGroup = useMemo(
+    () => findVenueInsightGroup(insightGroups, selectedVenueName, selectedVenueItem?.venueKey),
+    [insightGroups, selectedVenueItem?.venueKey, selectedVenueName],
   );
+  const selectedBankMasterEntry = selectedInsightGroup?.bankMasterEntry;
+  const selectedReviewSummaryEntry = selectedInsightGroup?.reviewSummaryEntry;
 
   useEffect(() => {
     if (!selectedVenueItem) {
       setSelectedVenueMarkdown("");
       setSelectedVenueDocument({ title: "", meta: [], sections: [] });
+      setSelectedVenueMasterMarkdown("");
+      setSelectedVenueMasterSummary(EMPTY_VENUE_MASTER_SUMMARY);
       setSelectedVenueInsightMarkdown("");
       setSelectedVenueInsightSummary(EMPTY_VENUE_INSIGHT_SUMMARY);
       setDetailLoading(false);
@@ -556,24 +568,36 @@ export default function VenueFeaturesPage() {
         return response.text();
       });
 
-      const insightPromise = selectedInsightItem
-        ? fetch(toPublicPath(selectedInsightItem.file), { cache: "force-cache" })
+      const masterPromise = selectedBankMasterEntry && isVenueInsightEntryReady(selectedBankMasterEntry)
+        ? fetch(toPublicPath(selectedBankMasterEntry.file), { cache: "force-cache" })
+            .then(async (response) => (response.ok ? response.text() : ""))
+            .catch(() => "")
+        : Promise.resolve("");
+
+      const insightPromise = selectedReviewSummaryEntry && isVenueInsightEntryReady(selectedReviewSummaryEntry)
+        ? fetch(toPublicPath(selectedReviewSummaryEntry.file), { cache: "force-cache" })
             .then(async (response) => (response.ok ? response.text() : ""))
             .catch(() => "")
         : Promise.resolve("");
 
       try {
-        const [bankMarkdown, insightMarkdown] = await Promise.all([bankPromise, insightPromise]);
+        const [bankMarkdown, masterMarkdown, insightMarkdown] = await Promise.all([bankPromise, masterPromise, insightPromise]);
         if (!active) return;
 
         setSelectedVenueMarkdown(bankMarkdown);
         setSelectedVenueDocument(parseVenueMarkdownDocument(bankMarkdown));
+        setSelectedVenueMasterMarkdown(masterMarkdown);
+        setSelectedVenueMasterSummary(
+          masterMarkdown
+            ? parseVenueMasterSummary(masterMarkdown, { updatedAt: selectedBankMasterEntry?.updatedAt })
+            : EMPTY_VENUE_MASTER_SUMMARY,
+        );
         setSelectedVenueInsightMarkdown(insightMarkdown);
         setSelectedVenueInsightSummary(
           insightMarkdown
             ? parseVenueInsightMarkdown(insightMarkdown, {
-                updatedAt: selectedInsightItem?.updatedAt,
-                source: selectedInsightItem?.source,
+                updatedAt: selectedReviewSummaryEntry?.updatedAt,
+                source: selectedReviewSummaryEntry?.source,
               })
             : EMPTY_VENUE_INSIGHT_SUMMARY,
         );
@@ -581,6 +605,8 @@ export default function VenueFeaturesPage() {
         if (!active) return;
         setSelectedVenueMarkdown("");
         setSelectedVenueDocument({ title: selectedVenueName, meta: [], sections: [] });
+        setSelectedVenueMasterMarkdown("");
+        setSelectedVenueMasterSummary(EMPTY_VENUE_MASTER_SUMMARY);
         setSelectedVenueInsightMarkdown("");
         setSelectedVenueInsightSummary(EMPTY_VENUE_INSIGHT_SUMMARY);
         setDetailError("既存バンク特徴を読み込めませんでした。会場カードから別の会場を選んで再確認してください。");
@@ -594,7 +620,7 @@ export default function VenueFeaturesPage() {
     return () => {
       active = false;
     };
-  }, [selectedInsightItem, selectedVenueItem, selectedVenueName]);
+  }, [selectedBankMasterEntry, selectedReviewSummaryEntry, selectedVenueItem, selectedVenueName]);
 
   const isMobile = windowWidth < 960;
   const selectedSummary = summaryMap[selectedVenueName] ?? DEFAULT_VENUE_BANK_SUMMARY;
@@ -608,8 +634,8 @@ export default function VenueFeaturesPage() {
   const selectedStraight = getDocumentMetaValue(selectedMeta, ["みなし直線"]) || "記載なし";
   const selectedUpdatedAt = useMemo(() => {
     const bankUpdated = getDocumentMetaValue(selectedMeta, ["最終更新日", "更新日"]);
-    return [selectedVenueInsightSummary.updatedAt, bankUpdated].filter(Boolean).sort().at(-1) ?? "未記載";
-  }, [selectedMeta, selectedVenueInsightSummary.updatedAt]);
+    return [selectedVenueInsightSummary.updatedAt, selectedVenueMasterSummary.updatedAt, bankUpdated].filter(Boolean).sort().at(-1) ?? "未記載";
+  }, [selectedMeta, selectedVenueInsightSummary.updatedAt, selectedVenueMasterSummary.updatedAt]);
 
   const windSnippet = getSectionSnippet(selectedVenueDocument.sections, ["風", "追い風", "向かい風"], "風向きの癖は本文内で整理中です。");
   const timeSnippet = getSectionSnippet(selectedVenueDocument.sections, ["時間帯", "ナイター", "ミッド", "カテゴリ"], "時間帯別の傾向は本文側のノートで確認できます。");
@@ -625,6 +651,14 @@ export default function VenueFeaturesPage() {
       "",
     ];
 
+    if (selectedVenueMasterSummary.hasContent) {
+      lines.push(
+        "[会場別マスター分析]",
+        `要点: ${selectedVenueMasterSummary.gptMaterial || ""}`,
+        "",
+      );
+    }
+
     if (selectedVenueInsightSummary.hasContent) {
       lines.push(
         "[Summary学習メモ]",
@@ -637,7 +671,7 @@ export default function VenueFeaturesPage() {
     }
 
     return lines.join("\n");
-  }, [selectedSummary.caution, selectedSummary.feature, selectedSummary.target, selectedVenueInsightSummary, selectedVenueName]);
+  }, [selectedSummary.caution, selectedSummary.feature, selectedSummary.target, selectedVenueInsightSummary, selectedVenueMasterSummary, selectedVenueName]);
 
   const handleCopyMaterial = async () => {
     try {
@@ -693,7 +727,7 @@ export default function VenueFeaturesPage() {
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px" }}>
             <StatCard label="登録会場数" value={`${venueIndex.length}`} helper="既存バンク特徴Markdown" />
-            <StatCard label="学習メモあり会場数" value={`${insightIndex.length}`} helper="review summary 由来" />
+            <StatCard label="学習メモあり会場数" value={`${insightGroups.filter((group) => group.reviewSummaryEntry && isVenueInsightEntryReady(group.reviewSummaryEntry)).length}`} helper="review summary ready 件数" />
             <StatCard label="選択中会場" value={selectedVenueName || "未選択"} helper={selectedRegion !== "すべて" ? selectedRegion : "会場を選択してください"} />
             <StatCard label="最終更新" value={selectedUpdatedAt} helper="既存ノートと学習メモの新しい方" />
           </div>
@@ -796,7 +830,8 @@ export default function VenueFeaturesPage() {
                 {filteredVenues.map((venue) => {
                   const summary = summaryMap[venue.venueName] ?? DEFAULT_VENUE_BANK_SUMMARY;
                   const tags = deriveVenueTags(summary);
-                  const insightItem = findVenueInsightTarget(insightIndex, venue.venueName, venue.venueKey);
+                  const insightGroup = findVenueInsightGroup(insightGroups, venue.venueName, venue.venueKey);
+                  const reviewSummaryReady = !!(insightGroup?.reviewSummaryEntry && isVenueInsightEntryReady(insightGroup.reviewSummaryEntry));
                   const isSelected = venue.venueName === selectedVenueName;
                   return (
                     <button
@@ -836,8 +871,8 @@ export default function VenueFeaturesPage() {
                         <div style={{ fontSize: "12px", color: "#516175", lineHeight: 1.75 }}>{clipText(summary.feature, 72)}</div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                           <span style={{ fontSize: "11px", fontWeight: 700, color: "#4f6278", background: "rgba(82,96,114,0.07)", borderRadius: "9999px", padding: "4px 9px" }}>既存データあり</span>
-                          <span style={{ fontSize: "11px", fontWeight: 700, color: insightItem ? "#6f5ba0" : "#8a98aa", background: insightItem ? "rgba(140,99,199,0.08)" : "rgba(148,160,178,0.12)", borderRadius: "9999px", padding: "4px 9px" }}>
-                            {insightItem ? "Summary学習メモあり" : "Summary学習メモ未作成"}
+                          <span style={{ fontSize: "11px", fontWeight: 700, color: reviewSummaryReady ? "#6f5ba0" : "#8a98aa", background: reviewSummaryReady ? "rgba(140,99,199,0.08)" : "rgba(148,160,178,0.12)", borderRadius: "9999px", padding: "4px 9px" }}>
+                            {reviewSummaryReady ? "Summary学習メモあり" : "Summary学習メモ未作成"}
                           </span>
                         </div>
                       </div>
@@ -871,6 +906,9 @@ export default function VenueFeaturesPage() {
                     ))}
                     <span style={{ fontSize: "11px", fontWeight: 700, color: selectedVenueInsightSummary.hasContent ? "#6f5ba0" : "#8a98aa", background: selectedVenueInsightSummary.hasContent ? "rgba(140,99,199,0.08)" : "rgba(148,160,178,0.12)", borderRadius: "9999px", padding: "5px 10px" }}>
                       {selectedVenueInsightSummary.hasContent ? "Summary学習メモあり" : "Summary学習メモ未作成"}
+                    </span>
+                    <span style={{ fontSize: "11px", fontWeight: 700, color: selectedVenueMasterSummary.hasContent ? "#4b677f" : "#8a98aa", background: selectedVenueMasterSummary.hasContent ? "rgba(86,112,143,0.08)" : "rgba(148,160,178,0.12)", borderRadius: "9999px", padding: "5px 10px" }}>
+                      {selectedVenueMasterSummary.hasContent ? "会場別マスター分析あり" : "会場別マスター分析なし"}
                     </span>
                   </div>
                 </div>
@@ -920,7 +958,30 @@ export default function VenueFeaturesPage() {
                       </div>
                     </div>
 
-                    <div style={{ borderRadius: "24px", border: "1px solid rgba(212, 218, 235, 0.82)", background: "linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(246,248,255,0.9) 100%)", padding: "18px 18px 20px", display: "grid", gap: "12px" }}>
+                    <div style={{ display: "grid", gap: "12px" }}>
+                      <div style={{ borderRadius: "24px", border: "1px solid rgba(212, 218, 235, 0.82)", background: "linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(246,248,255,0.9) 100%)", padding: "18px 18px 20px", display: "grid", gap: "12px" }}>
+                        <div style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "0.18em", color: "rgba(86,112,143,0.72)" }}>BANK MASTER</div>
+                        {selectedVenueMasterSummary.hasContent ? (
+                          <>
+                            <div style={{ display: "grid", gap: "5px" }}>
+                              <div style={{ fontSize: "11px", fontWeight: 800, color: "#7e8ca4", letterSpacing: "0.08em" }}>会場別マスター分析</div>
+                              <div style={{ fontSize: "13.5px", lineHeight: 1.85, color: "#344358" }}>{selectedVenueMasterSummary.overview}</div>
+                            </div>
+                            <div style={{ display: "grid", gap: "5px" }}>
+                              <div style={{ fontSize: "11px", fontWeight: 800, color: "#7e8ca4", letterSpacing: "0.08em" }}>風と時間帯</div>
+                              <div style={{ fontSize: "13.5px", lineHeight: 1.85, color: "#344358" }}>{selectedVenueMasterSummary.wind}</div>
+                            </div>
+                            <div style={{ display: "grid", gap: "5px" }}>
+                              <div style={{ fontSize: "11px", fontWeight: 800, color: "#7e8ca4", letterSpacing: "0.08em" }}>戦術メモ</div>
+                              <div style={{ fontSize: "13.5px", lineHeight: 1.85, color: "#344358" }}>{selectedVenueMasterSummary.strategy}</div>
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{ fontSize: "13.5px", lineHeight: 1.9, color: "#738297" }}>会場別マスター分析は未登録です。</div>
+                        )}
+                      </div>
+
+                      <div style={{ borderRadius: "24px", border: "1px solid rgba(212, 218, 235, 0.82)", background: "linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(246,248,255,0.9) 100%)", padding: "18px 18px 20px", display: "grid", gap: "12px" }}>
                       <div style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "0.18em", color: "rgba(120,96,180,0.68)" }}>LEARNED SUMMARY INSIGHT</div>
                       {selectedVenueInsightSummary.hasContent ? (
                         <>
@@ -945,6 +1006,7 @@ export default function VenueFeaturesPage() {
                       ) : (
                         <div style={{ fontSize: "13.5px", lineHeight: 1.9, color: "#738297" }}>Summary学習メモは未作成です。bank-insights に追加すると、この欄と GPT 素材プレビューへ自動反映されます。</div>
                       )}
+                    </div>
                     </div>
                   </div>
 
@@ -985,6 +1047,13 @@ export default function VenueFeaturesPage() {
                             <div style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "0.12em", color: "#8a7a73" }}>注意して見る点</div>
                             <div style={{ fontSize: "13.5px", lineHeight: 1.8, color: "#344358" }}>{selectedSummary.caution}</div>
                           </div>
+                        </div>
+                      </div>
+
+                      <div style={{ borderRadius: "22px", border: "1px solid rgba(220,225,238,0.78)", background: "rgba(255,255,255,0.9)", padding: "18px 18px", display: "grid", gap: "10px" }}>
+                        <div style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "0.18em", color: "rgba(86,112,143,0.72)" }}>会場別マスター分析</div>
+                        <div style={{ fontSize: "13.5px", lineHeight: 1.95, color: "#425267" }}>
+                          {selectedVenueMasterSummary.hasContent ? selectedVenueMasterSummary.gptMaterial : "会場別マスター分析は未登録です。"}
                         </div>
                       </div>
 
@@ -1049,7 +1118,8 @@ export default function VenueFeaturesPage() {
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                         <button type="button" onClick={handleCopyMaterial} style={{ cursor: "pointer", borderRadius: "9999px", border: "1px solid rgba(151, 120, 214, 0.54)", background: "linear-gradient(180deg, rgba(245,238,255,0.96) 0%, rgba(233,243,255,0.9) 100%)", color: "#6d52a7", fontSize: "12.5px", fontWeight: 700, padding: "10px 16px" }}>GPT素材をコピー</button>
                         <button type="button" onClick={() => handleOpenMarkdown(selectedVenueItem?.file)} style={{ cursor: "pointer", borderRadius: "9999px", border: "1px solid rgba(214, 220, 235, 0.84)", background: "rgba(255,255,255,0.9)", color: "#58667a", fontSize: "12.5px", fontWeight: 700, padding: "10px 16px" }}>Markdownを開く</button>
-                        <button type="button" disabled={!selectedInsightItem} onClick={() => handleOpenMarkdown(selectedInsightItem?.file)} style={{ cursor: selectedInsightItem ? "pointer" : "default", borderRadius: "9999px", border: "1px solid rgba(214, 220, 235, 0.84)", background: selectedInsightItem ? "rgba(255,255,255,0.9)" : "rgba(244,246,250,0.9)", color: selectedInsightItem ? "#58667a" : "#98a5b7", fontSize: "12.5px", fontWeight: 700, padding: "10px 16px" }}>Summary学習メモを開く</button>
+                        <button type="button" disabled={!selectedBankMasterEntry || !isVenueInsightEntryReady(selectedBankMasterEntry)} onClick={() => handleOpenMarkdown(selectedBankMasterEntry?.file)} style={{ cursor: selectedBankMasterEntry && isVenueInsightEntryReady(selectedBankMasterEntry) ? "pointer" : "default", borderRadius: "9999px", border: "1px solid rgba(214, 220, 235, 0.84)", background: selectedBankMasterEntry && isVenueInsightEntryReady(selectedBankMasterEntry) ? "rgba(255,255,255,0.9)" : "rgba(244,246,250,0.9)", color: selectedBankMasterEntry && isVenueInsightEntryReady(selectedBankMasterEntry) ? "#58667a" : "#98a5b7", fontSize: "12.5px", fontWeight: 700, padding: "10px 16px" }}>会場別マスター分析を開く</button>
+                        <button type="button" disabled={!selectedReviewSummaryEntry || !isVenueInsightEntryReady(selectedReviewSummaryEntry)} onClick={() => handleOpenMarkdown(selectedReviewSummaryEntry?.file)} style={{ cursor: selectedReviewSummaryEntry && isVenueInsightEntryReady(selectedReviewSummaryEntry) ? "pointer" : "default", borderRadius: "9999px", border: "1px solid rgba(214, 220, 235, 0.84)", background: selectedReviewSummaryEntry && isVenueInsightEntryReady(selectedReviewSummaryEntry) ? "rgba(255,255,255,0.9)" : "rgba(244,246,250,0.9)", color: selectedReviewSummaryEntry && isVenueInsightEntryReady(selectedReviewSummaryEntry) ? "#58667a" : "#98a5b7", fontSize: "12.5px", fontWeight: 700, padding: "10px 16px" }}>Summary学習メモを開く</button>
                         {copyStatus ? <span style={{ alignSelf: "center", fontSize: "12px", color: copyStatus.includes("失敗") ? "#875e64" : "#6d52a7" }}>{copyStatus}</span> : null}
                       </div>
 
@@ -1064,6 +1134,10 @@ export default function VenueFeaturesPage() {
                       <div style={{ borderRadius: "22px", border: "1px solid rgba(220,225,238,0.82)", background: "#f9fbff", padding: "18px 18px", display: "grid", gap: "10px" }}>
                         <div style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "0.18em", color: "rgba(120,96,180,0.68)" }}>EXISTING MARKDOWN</div>
                         <pre style={{ margin: 0, fontSize: "12.5px", lineHeight: 1.85, color: "#3a4b5f", fontFamily: "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{selectedVenueMarkdown || "既存Markdownなし"}</pre>
+                      </div>
+                      <div style={{ borderRadius: "22px", border: "1px solid rgba(220,225,238,0.82)", background: "#f9fbff", padding: "18px 18px", display: "grid", gap: "10px" }}>
+                        <div style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "0.18em", color: "rgba(86,112,143,0.72)" }}>BANK MASTER MARKDOWN</div>
+                        <pre style={{ margin: 0, fontSize: "12.5px", lineHeight: 1.85, color: "#3a4b5f", fontFamily: "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{selectedVenueMasterMarkdown || "会場別マスター分析なし"}</pre>
                       </div>
                       <div style={{ borderRadius: "22px", border: "1px solid rgba(220,225,238,0.82)", background: "#f9fbff", padding: "18px 18px", display: "grid", gap: "10px" }}>
                         <div style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "0.18em", color: "rgba(120,96,180,0.68)" }}>SUMMARY INSIGHT MARKDOWN</div>
