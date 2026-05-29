@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import { raceScheduleData } from "../data/raceScheduleData";
 import type { DailyMetricItem } from "../types/dailyMetrics";
-import type { RaceScheduleItem } from "../types/raceSchedule";
+import type { RaceGrade, RaceScheduleItem, RaceScheduleSource, RaceSession } from "../types/raceSchedule";
 import { getRaceEventDayLabel } from "../utils/raceEventDay";
 import {
   loadPlayerCardIndex,
@@ -854,6 +854,7 @@ export const LOCAL_PREDICTION_TODAY_DATA_URL = toPublicPath("/scripts/debug/toda
 export const PREDICTION_TODAY_DATA_URL_CANDIDATES = import.meta.env.DEV
   ? [LOCAL_PREDICTION_TODAY_DATA_URL, PREDICTION_TODAY_DATA_URL]
   : [PREDICTION_TODAY_DATA_URL];
+export const UPCOMING_SCHEDULE_DATA_URL = toPublicPath("/data/races/upcoming-schedule.generated.json");
 export const PREDICTION_VENUE_BANK_INDEX_URL = toPublicPath("/data/venues/banks/index.json");
 export const PREDICTION_VENUE_INSIGHT_INDEX_URL = toPublicPath("/data/venues/bank-insights/index.json");
 export const PREDICTION_OPEN_METEO_GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search";
@@ -4656,6 +4657,141 @@ export const todayRaces = raceScheduleData
   .filter((item) => item.startDate <= TODAY && item.endDate >= TODAY)
   .sort(compareTodayRacesBySession);
 
+export type UpcomingScheduleFeed = {
+  generatedAt?: string;
+  range?: {
+    from?: string;
+    to?: string;
+    days?: number;
+  };
+  items?: unknown[];
+};
+
+export type UpcomingScheduleState = {
+  items: RaceScheduleItem[];
+  generatedAt?: string;
+  rangeFrom?: string;
+  rangeTo?: string;
+  status: "fallback" | "loaded" | "error";
+};
+
+const UPCOMING_SCHEDULE_RANGE_DAYS = 60;
+const UPCOMING_SCHEDULE_FEATURED_COUNT = 10;
+const UPCOMING_SCHEDULE_HIGHLIGHT_DAYS = 7;
+
+const addDaysToIso = (isoDate: string, days: number) => {
+  const date = new Date(`${isoDate}T00:00:00+09:00`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return toIsoDateString(date);
+};
+
+export const UPCOMING_SCHEDULE_TO = addDaysToIso(TODAY, UPCOMING_SCHEDULE_RANGE_DAYS);
+
+export const compareUpcomingScheduleRaces = (a: RaceScheduleItem, b: RaceScheduleItem) => {
+  if (a.startDate !== b.startDate) return a.startDate.localeCompare(b.startDate);
+  const gradeDiff = compareRaces(a, b);
+  if (gradeDiff !== 0) return gradeDiff;
+  return a.venue.localeCompare(b.venue, "ja");
+};
+
+export const fallbackUpcomingScheduleRaces = raceScheduleData
+  .filter((item) => item.endDate >= TODAY && item.startDate <= UPCOMING_SCHEDULE_TO)
+  .sort(compareUpcomingScheduleRaces);
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const readString = (value: unknown) => typeof value === "string" ? value : "";
+
+const normalizeScheduleGrade = (value: unknown): RaceGrade => {
+  const text = readString(value).replace("Ⅰ", "I").replace("Ⅱ", "II").replace("Ⅲ", "III");
+  if (text === "GP" || text === "GI" || text === "GII" || text === "GIII" || text === "F1" || text === "F2") return text;
+  return "F2";
+};
+
+const normalizeScheduleSession = (value: unknown, note = ""): RaceSession => {
+  const text = readString(value);
+  if (text === "midnight" || note.includes("ミッドナイト")) return "midnight";
+  if (text === "night" || note.includes("ナイター")) return "night";
+  return "day";
+};
+
+const normalizeScheduleSource = (value: unknown): RaceScheduleSource =>
+  readString(value) === "manual" ? "manual" : "ctc";
+
+const normalizeUpcomingScheduleItem = (value: unknown): RaceScheduleItem | null => {
+  if (!isRecord(value)) return null;
+
+  const startDate = readString(value.startDate);
+  const endDate = readString(value.endDate);
+  const venue = readString(value.venue) || readString(value.venueName);
+  if (!startDate || !endDate || !venue) return null;
+
+  const note = readString(value.note);
+  const grade = normalizeScheduleGrade(value.grade);
+  const title = readString(value.title) || `${venue}開催`;
+
+  return {
+    id: readString(value.id) || `${startDate}-${venue}-${grade}-${title}`,
+    venue,
+    title,
+    grade,
+    startDate,
+    endDate,
+    session: normalizeScheduleSession(value.session, note),
+    hasGirls: value.hasGirls === true || note.includes("ガールズ"),
+    source: normalizeScheduleSource(value.source),
+    ...(note ? { note } : {}),
+  };
+};
+
+const normalizeUpcomingScheduleFeed = (feed: UpcomingScheduleFeed) =>
+  (feed.items ?? [])
+    .map(normalizeUpcomingScheduleItem)
+    .filter((item): item is RaceScheduleItem => Boolean(item))
+    .filter((item) => item.endDate >= TODAY && item.startDate <= UPCOMING_SCHEDULE_TO)
+    .sort(compareUpcomingScheduleRaces);
+
+const getScheduleDisplaySessionLabel = (race: RaceScheduleItem) =>
+  race.note?.includes("モーニング") ? "モーニング" : getSessionLabel(race.session);
+
+const getScheduleSupplementNote = (race: RaceScheduleItem) =>
+  race.note
+    ?.split("・")
+    .filter((part) => part !== "デイ" && part !== "ナイター" && part !== "ミッドナイト" && part !== "モーニング")
+    .join("・") || "";
+
+const getScheduleTargetDate = (race: RaceScheduleItem) => {
+  if (TODAY < race.startDate) return race.startDate;
+  if (TODAY > race.endDate) return race.startDate;
+  return TODAY;
+};
+
+const getDaysBetweenIso = (from: string, to: string) => {
+  const fromDate = new Date(`${from}T00:00:00+09:00`);
+  const toDate = new Date(`${to}T00:00:00+09:00`);
+  return Math.floor((toDate.getTime() - fromDate.getTime()) / (24 * 60 * 60 * 1000));
+};
+
+const getUpcomingScheduleDayLabel = (race: RaceScheduleItem) => {
+  const targetDate = getScheduleTargetDate(race);
+  const currentDay = getDaysBetweenIso(race.startDate, targetDate) + 1;
+  const totalDays = getDaysBetweenIso(race.startDate, race.endDate) + 1;
+  if (currentDay <= 1) return "初日";
+  if (currentDay >= totalDays) return `${totalDays}日目・最終日`;
+  return `${currentDay}日目`;
+};
+
+const isWithinUpcomingHighlight = (race: RaceScheduleItem) =>
+  race.startDate <= addDaysToIso(TODAY, UPCOMING_SCHEDULE_HIGHLIGHT_DAYS) && race.endDate >= TODAY;
+
+const formatUpcomingScheduleGeneratedAt = (generatedAt?: string) => {
+  if (!generatedAt) return "更新待ち";
+  const date = new Date(generatedAt);
+  if (Number.isNaN(date.getTime())) return "更新待ち";
+  return `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}更新`;
+};
+
 
 export const getTodayRacesGridTemplateColumns = (count: number) => {
   if (count <= 1) return "repeat(1, minmax(0, 1fr))";
@@ -5720,6 +5856,12 @@ export function DashboardPage() {
   const [dashboardPredictionBankIndex, setDashboardPredictionBankIndex] = useState<PredictionVenueBankIndexItem[]>([]);
   const [dashboardVenueSummaryMap, setDashboardVenueSummaryMap] = useState<Record<string, PredictionVenueSummary>>({});
   const [predictionResultMap, setPredictionResultMap] = useState<PredictionResultMap>(() => loadStoredPredictionResults());
+  const [upcomingScheduleState, setUpcomingScheduleState] = useState<UpcomingScheduleState>({
+    items: fallbackUpcomingScheduleRaces,
+    rangeFrom: TODAY,
+    rangeTo: UPCOMING_SCHEDULE_TO,
+    status: "fallback",
+  });
   const dashboardNow = useDashboardNow();
   const isMobile = useIsMobile();
 
@@ -5762,6 +5904,41 @@ export function DashboardPage() {
   }, []);
 
   useEffect(() => {
+    let isActive = true;
+
+    const loadUpcomingSchedule = async () => {
+      try {
+        const response = await fetch(`${UPCOMING_SCHEDULE_DATA_URL}?v=${Date.now()}`, { cache: "no-store" });
+        if (!response.ok) throw new Error(`upcoming-schedule-${response.status}`);
+        const feed = await response.json() as UpcomingScheduleFeed;
+        const items = normalizeUpcomingScheduleFeed(feed);
+        if (!isActive) return;
+        setUpcomingScheduleState({
+          items: items.length > 0 ? items : fallbackUpcomingScheduleRaces,
+          generatedAt: feed.generatedAt,
+          rangeFrom: feed.range?.from ?? TODAY,
+          rangeTo: feed.range?.to ?? UPCOMING_SCHEDULE_TO,
+          status: items.length > 0 ? "loaded" : "fallback",
+        });
+      } catch {
+        if (!isActive) return;
+        setUpcomingScheduleState({
+          items: fallbackUpcomingScheduleRaces,
+          rangeFrom: TODAY,
+          rangeTo: UPCOMING_SCHEDULE_TO,
+          status: "error",
+        });
+      }
+    };
+
+    loadUpcomingSchedule();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
     const handleStorage = (event: StorageEvent) => {
       if (!event.key || event.key === PREDICTION_RESULT_STORAGE_KEY) {
         setPredictionResultMap(loadStoredPredictionResults());
@@ -5782,6 +5959,18 @@ export function DashboardPage() {
   const dashboardTodayRaces = useMemo(
     () => mergeTodayRaceCardItems(todayRaces, todayPredictionFeed?.venues ?? []),
     [todayPredictionFeed]
+  );
+  const upcomingScheduleRaces = useMemo(
+    () => upcomingScheduleState.items,
+    [upcomingScheduleState.items]
+  );
+  const featuredUpcomingScheduleRaces = useMemo(
+    () => upcomingScheduleRaces.slice(0, UPCOMING_SCHEDULE_FEATURED_COUNT),
+    [upcomingScheduleRaces]
+  );
+  const highlightedUpcomingScheduleRaces = useMemo(
+    () => upcomingScheduleRaces.filter(isWithinUpcomingHighlight),
+    [upcomingScheduleRaces]
   );
   const dashboardPredictionAggregate = useMemo(() => getPredictionResultAggregate(predictionResultMap, TODAY), [predictionResultMap]);
   const todayVenuePredictionSummaryMap = dashboardPredictionAggregate.venueSummaryMap ?? {};
@@ -5891,8 +6080,8 @@ export function DashboardPage() {
   }, [activeVenueKeys, activeVenueNames.length, dashboardPredictionBankIndex, dashboardTodayRaces, todayPredictionVenueMap]);
 
   const featuredScheduleFavoriteRaceMap = useMemo(
-    () => new Map(featuredScheduleRaces.map((race) => [race.id, getFavoriteDisplayItemsForScheduleRace(race, favoriteRiderFeed)])),
-    [favoriteRiderFeed]
+    () => new Map(featuredUpcomingScheduleRaces.map((race) => [race.id, getFavoriteDisplayItemsForScheduleRace(race, favoriteRiderFeed)])),
+    [favoriteRiderFeed, featuredUpcomingScheduleRaces]
   );
   const todayFavoriteRaceMap = useMemo(
     () => new Map(dashboardTodayRaces.map((race) => [race.id, getFavoriteDisplayItemsForRace(race, TODAY, favoriteRiderFeed)])),
@@ -5991,7 +6180,7 @@ export function DashboardPage() {
 
   const overviewStats = [
     { label: "本日開催", value: `${todayRaces.length}開催`, sub: "当日開催中のシリーズ数" },
-    { label: "直近注目", value: `${featuredScheduleRaces.length}件`, sub: "1か月以内のG・F1対象" },
+    { label: "2か月予定", value: `${upcomingScheduleRaces.length}件`, sub: "公開JSONから取得した開催予定" },
     {
       label: "本日の主役",
       value: featuredTodayRace ? featuredTodayRace.venue : "—",
@@ -6108,16 +6297,26 @@ export function DashboardPage() {
                 </p>
               </div>
               <div style={{ padding: "12px 16px", borderRadius: "20px", background: "linear-gradient(180deg, #ffffff 0%, #f9f6fd 100%)", border: "1px solid #ece4f6", minWidth: "230px", boxShadow: "0 8px 20px rgba(15, 23, 42, 0.035)" }}>
-                <div style={{ fontSize: "11px", fontWeight: 800, letterSpacing: "0.16em", color: "#8c63c7", marginBottom: "6px" }}>UPCOMING PICKUP</div>
-                <div style={{ fontSize: "22px", fontWeight: 900, color: "#081224", lineHeight: 1.1 }}>{featuredScheduleRaces.length}開催</div>
-                <div style={{ marginTop: "6px", fontSize: "12px", lineHeight: 1.7, color: "#64748b" }}>1か月以内のG・F1対象を上品に一覧表示・下部パーツも統一調整</div>
+                <div style={{ fontSize: "11px", fontWeight: 800, letterSpacing: "0.16em", color: "#8c63c7", marginBottom: "6px" }}>UPCOMING 60 DAYS</div>
+                <div style={{ fontSize: "22px", fontWeight: 900, color: "#081224", lineHeight: 1.1 }}>{upcomingScheduleRaces.length}開催</div>
+                <div style={{ marginTop: "6px", fontSize: "12px", lineHeight: 1.7, color: "#64748b" }}>
+                  {upcomingScheduleState.rangeFrom ?? TODAY} - {upcomingScheduleState.rangeTo ?? UPCOMING_SCHEDULE_TO} / {formatUpcomingScheduleGeneratedAt(upcomingScheduleState.generatedAt)}
+                </div>
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: "20px" }}>
-            {featuredScheduleRaces.map((item) => {
+            {upcomingScheduleState.status === "error" && (
+              <div style={{ marginBottom: "16px", borderRadius: "18px", padding: "12px 14px", background: "#fff7ed", border: "1px solid #fed7aa", color: "#9a3412", fontSize: "12px", fontWeight: 800 }}>
+                開催スケジュールを取得できませんでした。保存済みデータで表示しています。
+              </div>
+            )}
+
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(5, minmax(0, 1fr))", gap: "20px" }}>
+            {featuredUpcomingScheduleRaces.map((item) => {
               const scheduleFavoriteItems = featuredScheduleFavoriteRaceMap.get(item.id) ?? [];
               const hasScheduleFavorite = scheduleFavoriteItems.length > 0;
+              const dayLabel = getUpcomingScheduleDayLabel(item);
+              const supplementNote = getScheduleSupplementNote(item);
 
               return (
               <article key={item.id} style={{ background: hasScheduleFavorite ? "linear-gradient(180deg, #fffdfd 0%, #ffffff 100%)" : "linear-gradient(180deg, #ffffff 0%, #fcfbfe 100%)", border: hasScheduleFavorite ? "1px solid #f1cada" : "1px solid #ece6f5", borderRadius: "32px", padding: "24px", boxShadow: hasScheduleFavorite ? "0 18px 38px rgba(176, 74, 120, 0.08)" : "0 16px 34px rgba(15, 23, 42, 0.05)", minHeight: "188px", position: "relative", overflow: "hidden" }}>
@@ -6133,7 +6332,12 @@ export function DashboardPage() {
                   {formatShortDateRange(item.startDate, item.endDate)}
                 </div>
 
-                {item.note && <div style={{ marginTop: "10px", fontSize: "12px", color: "#475569", lineHeight: 1.7 }}>{item.note}</div>}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "10px" }}>
+                  <span style={{ borderRadius: "9999px", padding: "5px 8px", fontSize: "10px", fontWeight: 900, color: "#475569", background: "#f8fafc", border: "1px solid #e2e8f0" }}>{dayLabel}</span>
+                  <span style={{ borderRadius: "9999px", padding: "5px 8px", fontSize: "10px", fontWeight: 900, color: "#475569", background: "#f8fafc", border: "1px solid #e2e8f0" }}>{getScheduleDisplaySessionLabel(item)}</span>
+                </div>
+
+                {supplementNote && <div style={{ marginTop: "10px", fontSize: "12px", color: "#475569", lineHeight: 1.7 }}>{supplementNote}</div>}
 
                 {hasScheduleFavorite && (
                   <div style={{ marginTop: hasFinderFilters ? "8px" : "14px", borderRadius: "18px", padding: "12px 13px", background: "linear-gradient(180deg, #fff5f8 0%, #ffffff 100%)", border: "1px solid #f6cfde" }}>
@@ -6156,6 +6360,49 @@ export function DashboardPage() {
               </article>
               );
             })}
+            </div>
+
+            <div style={{ marginTop: "22px", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(280px, 0.42fr) minmax(0, 1fr)", gap: "18px", alignItems: "start" }}>
+              <div style={{ borderRadius: "24px", padding: "18px", background: "linear-gradient(180deg, #ffffff 0%, #fbf8fe 100%)", border: "1px solid #ece4f6", boxShadow: "0 10px 22px rgba(15, 23, 42, 0.035)" }}>
+                <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.16em", color: "#8c63c7", marginBottom: "10px" }}>NEXT 7 DAYS</div>
+                <div style={{ display: "grid", gap: "8px" }}>
+                  {(highlightedUpcomingScheduleRaces.length > 0 ? highlightedUpcomingScheduleRaces : featuredUpcomingScheduleRaces.slice(0, 3)).map((race) => (
+                    <div key={`highlight-${race.id}`} style={{ display: "grid", gridTemplateColumns: "76px minmax(0, 1fr) auto", alignItems: "center", gap: "10px", padding: "10px 0", borderTop: "1px solid #f0e8f7" }}>
+                      <div style={{ fontSize: "12px", fontWeight: 900, color: "#334155" }}>{formatShortDateRange(race.startDate, race.endDate)}</div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: "13px", fontWeight: 900, color: "#081224", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{race.venue}</div>
+                        <div style={{ marginTop: "3px", fontSize: "11px", fontWeight: 800, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getUpcomingScheduleDayLabel(race)} / {getScheduleDisplaySessionLabel(race)}</div>
+                      </div>
+                      <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "4px 8px", fontSize: "10px", fontWeight: 900, background: getGradeBadgeTone(race.grade).background, color: getGradeBadgeTone(race.grade).text, border: `1px solid ${getGradeBadgeTone(race.grade).border}` }}>{race.grade}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ borderRadius: "24px", padding: "18px", background: "rgba(255, 255, 255, 0.92)", border: "1px solid #ece4f6", boxShadow: "0 10px 22px rgba(15, 23, 42, 0.035)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "10px" }}>
+                  <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.16em", color: "#8c63c7" }}>2か月スケジュール一覧</div>
+                  <div style={{ fontSize: "11px", fontWeight: 800, color: "#64748b" }}>{upcomingScheduleRaces.length}件</div>
+                </div>
+                <div style={{ maxHeight: isMobile ? "360px" : "420px", overflowY: "auto", display: "grid", gap: "8px", paddingRight: "4px" }}>
+                  {upcomingScheduleRaces.length === 0 ? (
+                    <div style={{ borderRadius: "16px", padding: "14px", background: "#f8fafc", border: "1px solid #e2e8f0", color: "#64748b", fontSize: "12px", fontWeight: 800 }}>
+                      スケジュール更新待ち
+                    </div>
+                  ) : upcomingScheduleRaces.map((race) => (
+                    <div key={`list-${race.id}`} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr auto" : "92px 92px minmax(0, 1fr) 78px 96px", gap: "10px", alignItems: "center", borderRadius: "16px", padding: "11px 12px", background: "#ffffff", border: "1px solid #efe7f6" }}>
+                      <div style={{ fontSize: "12px", fontWeight: 900, color: "#334155" }}>{formatShortDateRange(race.startDate, race.endDate)}</div>
+                      <div style={{ fontSize: "12px", fontWeight: 900, color: "#081224", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{race.venue}</div>
+                      {!isMobile && <div style={{ fontSize: "12px", fontWeight: 700, color: "#64748b", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{race.title}</div>}
+                      {!isMobile && <div style={{ fontSize: "11px", fontWeight: 900, color: "#475569" }}>{getUpcomingScheduleDayLabel(race)}</div>}
+                      <div style={{ display: "flex", justifyContent: "flex-end", gap: "6px", flexWrap: "wrap" }}>
+                        <span style={{ borderRadius: "9999px", padding: "4px 8px", fontSize: "10px", fontWeight: 900, background: getGradeBadgeTone(race.grade).background, color: getGradeBadgeTone(race.grade).text, border: `1px solid ${getGradeBadgeTone(race.grade).border}` }}>{race.grade}</span>
+                        <span style={{ borderRadius: "9999px", padding: "4px 8px", fontSize: "10px", fontWeight: 900, color: "#475569", background: "#f8fafc", border: "1px solid #e2e8f0" }}>{getScheduleDisplaySessionLabel(race)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </section>
