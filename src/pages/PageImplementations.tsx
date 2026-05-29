@@ -4694,17 +4694,56 @@ export const compareUpcomingScheduleRaces = (a: RaceScheduleItem, b: RaceSchedul
   return a.venue.localeCompare(b.venue, "ja");
 };
 
-export const fallbackUpcomingScheduleRaces = raceScheduleData
-  .filter((item) => item.endDate >= TODAY && item.startDate <= UPCOMING_SCHEDULE_TO)
-  .sort(compareUpcomingScheduleRaces);
-
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
 const readString = (value: unknown) => typeof value === "string" ? value : "";
 
+const normalizeGradedRaceText = (value: string) =>
+  value
+    .normalize("NFKC")
+    .toUpperCase()
+    .replace(/Ⅰ/g, "I")
+    .replace(/Ⅱ/g, "II")
+    .replace(/Ⅲ/g, "III");
+
+export function isGradedRaceScheduleItem(item: unknown): boolean {
+  if (!isRecord(item)) return false;
+
+  const raw = [
+    item.grade,
+    item.gradeLabel,
+    item.title,
+    item.name,
+    item.seriesName,
+  ]
+    .map(readString)
+    .filter(Boolean)
+    .join(" ");
+  const normalized = normalizeGradedRaceText(raw);
+
+  return (
+    /\bGP\b/.test(normalized) ||
+    /\bG1\b/.test(normalized) ||
+    /\bGI\b/.test(normalized) ||
+    /\bG2\b/.test(normalized) ||
+    /\bGII\b/.test(normalized) ||
+    /\bG3\b/.test(normalized) ||
+    /\bGIII\b/.test(normalized) ||
+    normalized.includes("グランプリ")
+  );
+}
+
+export const fallbackUpcomingScheduleRaces = raceScheduleData
+  .filter((item) => item.endDate >= TODAY && item.startDate <= UPCOMING_SCHEDULE_TO)
+  .filter(isGradedRaceScheduleItem)
+  .sort(compareUpcomingScheduleRaces);
+
 const normalizeScheduleGrade = (value: unknown): RaceGrade => {
-  const text = readString(value).replace("Ⅰ", "I").replace("Ⅱ", "II").replace("Ⅲ", "III");
+  const text = normalizeGradedRaceText(readString(value));
+  if (text === "G1") return "GI";
+  if (text === "G2") return "GII";
+  if (text === "G3") return "GIII";
   if (text === "GP" || text === "GI" || text === "GII" || text === "GIII" || text === "F1" || text === "F2") return text;
   return "F2";
 };
@@ -5961,7 +6000,7 @@ export function DashboardPage() {
     [todayPredictionFeed]
   );
   const upcomingScheduleRaces = useMemo(
-    () => upcomingScheduleState.items,
+    () => upcomingScheduleState.items.filter(isGradedRaceScheduleItem),
     [upcomingScheduleState.items]
   );
   const featuredUpcomingScheduleRaces = useMemo(
@@ -6180,7 +6219,7 @@ export function DashboardPage() {
 
   const overviewStats = [
     { label: "本日開催", value: `${todayRaces.length}開催`, sub: "当日開催中のシリーズ数" },
-    { label: "2か月予定", value: `${upcomingScheduleRaces.length}件`, sub: "公開JSONから取得した開催予定" },
+    { label: "Gレース予定", value: `${upcomingScheduleRaces.length}件`, sub: "直近60日のGレース開催" },
     {
       label: "本日の主役",
       value: featuredTodayRace ? featuredTodayRace.venue : "—",
@@ -6297,8 +6336,8 @@ export function DashboardPage() {
                 </p>
               </div>
               <div style={{ padding: "12px 16px", borderRadius: "20px", background: "linear-gradient(180deg, #ffffff 0%, #f9f6fd 100%)", border: "1px solid #ece4f6", minWidth: "230px", boxShadow: "0 8px 20px rgba(15, 23, 42, 0.035)" }}>
-                <div style={{ fontSize: "11px", fontWeight: 800, letterSpacing: "0.16em", color: "#8c63c7", marginBottom: "6px" }}>UPCOMING 60 DAYS</div>
-                <div style={{ fontSize: "22px", fontWeight: 900, color: "#081224", lineHeight: 1.1 }}>{upcomingScheduleRaces.length}開催</div>
+                <div style={{ fontSize: "11px", fontWeight: 800, letterSpacing: "0.16em", color: "#8c63c7", marginBottom: "6px" }}>UPCOMING GRADED RACES</div>
+                <div style={{ fontSize: "22px", fontWeight: 900, color: "#081224", lineHeight: 1.1 }}>直近60日 Gレース {upcomingScheduleRaces.length}開催</div>
                 <div style={{ marginTop: "6px", fontSize: "12px", lineHeight: 1.7, color: "#64748b" }}>
                   {upcomingScheduleState.rangeFrom ?? TODAY} - {upcomingScheduleState.rangeTo ?? UPCOMING_SCHEDULE_TO} / {formatUpcomingScheduleGeneratedAt(upcomingScheduleState.generatedAt)}
                 </div>
@@ -6381,13 +6420,13 @@ export function DashboardPage() {
 
               <div style={{ borderRadius: "24px", padding: "18px", background: "rgba(255, 255, 255, 0.92)", border: "1px solid #ece4f6", boxShadow: "0 10px 22px rgba(15, 23, 42, 0.035)" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "10px" }}>
-                  <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.16em", color: "#8c63c7" }}>2か月スケジュール一覧</div>
+                  <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.16em", color: "#8c63c7" }}>Gレーススケジュール一覧</div>
                   <div style={{ fontSize: "11px", fontWeight: 800, color: "#64748b" }}>{upcomingScheduleRaces.length}件</div>
                 </div>
                 <div style={{ maxHeight: isMobile ? "360px" : "420px", overflowY: "auto", display: "grid", gap: "8px", paddingRight: "4px" }}>
                   {upcomingScheduleRaces.length === 0 ? (
                     <div style={{ borderRadius: "16px", padding: "14px", background: "#f8fafc", border: "1px solid #e2e8f0", color: "#64748b", fontSize: "12px", fontWeight: 800 }}>
-                      スケジュール更新待ち
+                      直近60日以内のGレース予定はまだ取得されていません
                     </div>
                   ) : upcomingScheduleRaces.map((race) => (
                     <div key={`list-${race.id}`} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr auto" : "92px 92px minmax(0, 1fr) 78px 96px", gap: "10px", alignItems: "center", borderRadius: "16px", padding: "11px 12px", background: "#ffffff", border: "1px solid #efe7f6" }}>
