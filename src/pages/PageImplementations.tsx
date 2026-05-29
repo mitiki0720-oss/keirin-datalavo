@@ -4677,7 +4677,6 @@ export type UpcomingScheduleState = {
 
 const UPCOMING_SCHEDULE_RANGE_DAYS = 60;
 const UPCOMING_SCHEDULE_FEATURED_COUNT = 10;
-const UPCOMING_SCHEDULE_HIGHLIGHT_DAYS = 7;
 
 const addDaysToIso = (isoDate: string, days: number) => {
   const date = new Date(`${isoDate}T00:00:00+09:00`);
@@ -4820,9 +4819,6 @@ const getUpcomingScheduleDayLabel = (race: RaceScheduleItem) => {
   if (currentDay >= totalDays) return `${totalDays}日目・最終日`;
   return `${currentDay}日目`;
 };
-
-const isWithinUpcomingHighlight = (race: RaceScheduleItem) =>
-  race.startDate <= addDaysToIso(TODAY, UPCOMING_SCHEDULE_HIGHLIGHT_DAYS) && race.endDate >= TODAY;
 
 const formatUpcomingScheduleGeneratedAt = (generatedAt?: string) => {
   if (!generatedAt) return "更新待ち";
@@ -6007,10 +6003,6 @@ export function DashboardPage() {
     () => upcomingScheduleRaces.slice(0, UPCOMING_SCHEDULE_FEATURED_COUNT),
     [upcomingScheduleRaces]
   );
-  const highlightedUpcomingScheduleRaces = useMemo(
-    () => upcomingScheduleRaces.filter(isWithinUpcomingHighlight),
-    [upcomingScheduleRaces]
-  );
   const dashboardPredictionAggregate = useMemo(() => getPredictionResultAggregate(predictionResultMap, TODAY), [predictionResultMap]);
   const todayVenuePredictionSummaryMap = dashboardPredictionAggregate.venueSummaryMap ?? {};
   const activeVenueNames = useMemo(
@@ -6399,49 +6391,6 @@ export function DashboardPage() {
               </article>
               );
             })}
-            </div>
-
-            <div style={{ marginTop: "22px", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(280px, 0.42fr) minmax(0, 1fr)", gap: "18px", alignItems: "start" }}>
-              <div style={{ borderRadius: "24px", padding: "18px", background: "linear-gradient(180deg, #ffffff 0%, #fbf8fe 100%)", border: "1px solid #ece4f6", boxShadow: "0 10px 22px rgba(15, 23, 42, 0.035)" }}>
-                <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.16em", color: "#8c63c7", marginBottom: "10px" }}>NEXT 7 DAYS</div>
-                <div style={{ display: "grid", gap: "8px" }}>
-                  {(highlightedUpcomingScheduleRaces.length > 0 ? highlightedUpcomingScheduleRaces : featuredUpcomingScheduleRaces.slice(0, 3)).map((race) => (
-                    <div key={`highlight-${race.id}`} style={{ display: "grid", gridTemplateColumns: "76px minmax(0, 1fr) auto", alignItems: "center", gap: "10px", padding: "10px 0", borderTop: "1px solid #f0e8f7" }}>
-                      <div style={{ fontSize: "12px", fontWeight: 900, color: "#334155" }}>{formatShortDateRange(race.startDate, race.endDate)}</div>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: "13px", fontWeight: 900, color: "#081224", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{race.venue}</div>
-                        <div style={{ marginTop: "3px", fontSize: "11px", fontWeight: 800, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getUpcomingScheduleDayLabel(race)} / {getScheduleDisplaySessionLabel(race)}</div>
-                      </div>
-                      <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "4px 8px", fontSize: "10px", fontWeight: 900, background: getGradeBadgeTone(race.grade).background, color: getGradeBadgeTone(race.grade).text, border: `1px solid ${getGradeBadgeTone(race.grade).border}` }}>{race.grade}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ borderRadius: "24px", padding: "18px", background: "rgba(255, 255, 255, 0.92)", border: "1px solid #ece4f6", boxShadow: "0 10px 22px rgba(15, 23, 42, 0.035)" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "10px" }}>
-                  <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.16em", color: "#8c63c7" }}>Gレーススケジュール一覧</div>
-                  <div style={{ fontSize: "11px", fontWeight: 800, color: "#64748b" }}>{upcomingScheduleRaces.length}件</div>
-                </div>
-                <div style={{ maxHeight: isMobile ? "360px" : "420px", overflowY: "auto", display: "grid", gap: "8px", paddingRight: "4px" }}>
-                  {upcomingScheduleRaces.length === 0 ? (
-                    <div style={{ borderRadius: "16px", padding: "14px", background: "#f8fafc", border: "1px solid #e2e8f0", color: "#64748b", fontSize: "12px", fontWeight: 800 }}>
-                      直近60日以内のGレース予定はまだ取得されていません
-                    </div>
-                  ) : upcomingScheduleRaces.map((race) => (
-                    <div key={`list-${race.id}`} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr auto" : "92px 92px minmax(0, 1fr) 78px 96px", gap: "10px", alignItems: "center", borderRadius: "16px", padding: "11px 12px", background: "#ffffff", border: "1px solid #efe7f6" }}>
-                      <div style={{ fontSize: "12px", fontWeight: 900, color: "#334155" }}>{formatShortDateRange(race.startDate, race.endDate)}</div>
-                      <div style={{ fontSize: "12px", fontWeight: 900, color: "#081224", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{race.venue}</div>
-                      {!isMobile && <div style={{ fontSize: "12px", fontWeight: 700, color: "#64748b", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{race.title}</div>}
-                      {!isMobile && <div style={{ fontSize: "11px", fontWeight: 900, color: "#475569" }}>{getUpcomingScheduleDayLabel(race)}</div>}
-                      <div style={{ display: "flex", justifyContent: "flex-end", gap: "6px", flexWrap: "wrap" }}>
-                        <span style={{ borderRadius: "9999px", padding: "4px 8px", fontSize: "10px", fontWeight: 900, background: getGradeBadgeTone(race.grade).background, color: getGradeBadgeTone(race.grade).text, border: `1px solid ${getGradeBadgeTone(race.grade).border}` }}>{race.grade}</span>
-                        <span style={{ borderRadius: "9999px", padding: "4px 8px", fontSize: "10px", fontWeight: 900, color: "#475569", background: "#f8fafc", border: "1px solid #e2e8f0" }}>{getScheduleDisplaySessionLabel(race)}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
         </section>
