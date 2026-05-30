@@ -16,9 +16,11 @@ import {
   groupVenueInsightEntries,
   isVenueInsightEntryReady,
   parseVenueInsightMarkdown,
+  parseVenueMarkdownDocument,
   parseVenueMasterSummary,
+  toCompactSingleLine,
 } from "./venueFeatures/venueFeatureParsers";
-import type { VenueInsightGroup, VenueInsightIndexItem } from "./venueFeatures/venueFeatureTypes";
+import type { VenueDetailBlock, VenueDetailSection, VenueInsightGroup, VenueInsightIndexItem } from "./venueFeatures/venueFeatureTypes";
 
 export type CalendarDay = {
   iso: string;
@@ -536,12 +538,41 @@ export type PredictionVenueSummary = {
   bankLength: string;
   bankMemo: string;
   masterAnalysis?: string;
+  masterDigest?: PredictionVenueMasterDigest;
+  masterDigestContextKey?: string;
+  reviewSummaryDigest?: PredictionVenueReviewSummaryDigest;
   learnedFeature?: string;
   learnedTarget?: string;
   learnedCaution?: string;
   learnedPeriod?: string;
   learnedGptMaterial?: string;
   source: "linked" | "loading" | "missing";
+};
+
+export type PredictionVenueMasterDigest = {
+  updatedAt?: string;
+  sampleSize?: string;
+  bankSpecs?: string[];
+  overallStats?: string[];
+  lineStats?: string[];
+  splitModeRules?: string[];
+  matchedCategoryLabel?: string;
+  matchedCategoryStats?: string[];
+  thirdPlaceInsurance?: string[];
+  tenPointRules?: string[];
+  windRules?: string[];
+  cautions?: string[];
+  source: "bank-master" | "missing";
+};
+
+export type PredictionVenueReviewSummaryDigest = {
+  updatedAt?: string;
+  learnedFeatures?: string[];
+  targets?: string[];
+  cautions?: string[];
+  period?: string;
+  gptMaterial?: string;
+  source: "review-summary" | "missing";
 };
 
 export type PredictionWeatherData = {
@@ -873,6 +904,12 @@ export const PREDICTION_OPEN_METEO_GEOCODING_URL = "https://geocoding-api.open-m
 export const PREDICTION_OPEN_METEO_FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
 export const PREDICTION_WEATHER_CACHE_TTL_MS = 5 * 60 * 1000;
 export const DEFAULT_PREDICTION_MEMO = "・主導権候補:\n・差し注意:\n・荒れ筋:\n・3着抜け注意:";
+export const MISSING_PREDICTION_VENUE_MASTER_DIGEST: PredictionVenueMasterDigest = {
+  source: "missing",
+};
+export const MISSING_PREDICTION_VENUE_REVIEW_SUMMARY_DIGEST: PredictionVenueReviewSummaryDigest = {
+  source: "missing",
+};
 export const DEFAULT_PREDICTION_VENUE_SUMMARY: PredictionVenueSummary = {
   bankFeature: "",
   target: "",
@@ -881,6 +918,8 @@ export const DEFAULT_PREDICTION_VENUE_SUMMARY: PredictionVenueSummary = {
   bankLength: "",
   bankMemo: "",
   masterAnalysis: "",
+  masterDigest: MISSING_PREDICTION_VENUE_MASTER_DIGEST,
+  reviewSummaryDigest: MISSING_PREDICTION_VENUE_REVIEW_SUMMARY_DIGEST,
   learnedFeature: "",
   learnedTarget: "",
   learnedCaution: "",
@@ -899,6 +938,8 @@ export const MISSING_PREDICTION_VENUE_SUMMARY: PredictionVenueSummary = {
   bankLength: "",
   bankMemo: "",
   masterAnalysis: "",
+  masterDigest: MISSING_PREDICTION_VENUE_MASTER_DIGEST,
+  reviewSummaryDigest: MISSING_PREDICTION_VENUE_REVIEW_SUMMARY_DIGEST,
   learnedFeature: "",
   learnedTarget: "",
   learnedCaution: "",
@@ -2308,12 +2349,252 @@ export const parsePredictionVenueSummary = (markdown: string): PredictionVenueSu
     volatility,
     bankLength,
     bankMemo,
+    masterDigest: MISSING_PREDICTION_VENUE_MASTER_DIGEST,
+    reviewSummaryDigest: MISSING_PREDICTION_VENUE_REVIEW_SUMMARY_DIGEST,
     learnedFeature: "",
     learnedTarget: "",
     learnedCaution: "",
     learnedPeriod: "",
     learnedGptMaterial: "",
     source: hasData ? "linked" : "missing",
+  };
+};
+
+const PREDICTION_VENUE_DIGEST_LINE_MAX = 180;
+
+const normalizePredictionVenueDigestLine = (value?: string | null, max = PREDICTION_VENUE_DIGEST_LINE_MAX) => {
+  const normalized = toCompactSingleLine(value ?? "")
+    .replace(/^[-*]\s*/u, "")
+    .replace(/\*\*/g, "")
+    .replace(/\s*\|\s*/g, " / ")
+    .replace(/^\d+(?:[-\s]\d+)*[.)]\s*/u, "")
+    .trim();
+  if (!normalized) return "";
+  return normalized.length > max ? `${normalized.slice(0, Math.max(0, max - 1)).trim()}…` : normalized;
+};
+
+const getPredictionVenueBlockLines = (block: VenueDetailBlock) => {
+  if (block.type === "paragraph" || block.type === "quote") {
+    return block.text.split(/\r?\n+/).map((line) => normalizePredictionVenueDigestLine(line)).filter(Boolean);
+  }
+  if (block.type === "list") {
+    return block.items.map((item) => normalizePredictionVenueDigestLine(item)).filter(Boolean);
+  }
+  if (block.type === "checklist") {
+    return block.items.map((item) => normalizePredictionVenueDigestLine(item.text)).filter(Boolean);
+  }
+  if (block.type === "subheading") {
+    return [normalizePredictionVenueDigestLine(block.text)].filter(Boolean);
+  }
+  if (block.type === "table") {
+    const headers = block.table.headers.map((header) => normalizePredictionVenueDigestLine(header, 32));
+    return block.table.rows.slice(0, 8).map((row) => {
+      const cells = row.map((cell) => normalizePredictionVenueDigestLine(cell, 48));
+      return headers.length === cells.length
+        ? cells.map((cell, index) => `${headers[index] || index + 1}: ${cell}`).join(" / ")
+        : cells.join(" / ");
+    }).map((line) => normalizePredictionVenueDigestLine(line)).filter(Boolean);
+  }
+  return [];
+};
+
+const getPredictionVenueSectionLines = (section?: VenueDetailSection | null) => {
+  if (!section) return [];
+  return section.blocks.flatMap((block) => getPredictionVenueBlockLines(block));
+};
+
+const findPredictionVenueSections = (sections: VenueDetailSection[], keywords: string[]) => {
+  return sections.filter((section) => {
+    const haystack = `${section.title}\n${getPredictionVenueSectionLines(section).join("\n")}`;
+    return keywords.some((keyword) => haystack.includes(keyword));
+  });
+};
+
+const uniquePredictionVenueDigestLines = (lines: string[], limit: number, max = PREDICTION_VENUE_DIGEST_LINE_MAX) => {
+  const seen = new Set<string>();
+  const results: string[] = [];
+  for (const line of lines) {
+    const normalized = normalizePredictionVenueDigestLine(line, max);
+    if (!normalized || /^[-:\s]+$/u.test(normalized) || seen.has(normalized)) continue;
+    seen.add(normalized);
+    results.push(normalized);
+    if (results.length >= limit) break;
+  }
+  return results;
+};
+
+const pickPredictionVenueLines = (
+  sections: VenueDetailSection[],
+  sectionKeywords: string[],
+  linePatterns: RegExp[],
+  limit: number,
+) => {
+  const targetSections = findPredictionVenueSections(sections, sectionKeywords);
+  const lines = targetSections.flatMap((section) => getPredictionVenueSectionLines(section));
+  const matched = lines.filter((line) => linePatterns.some((pattern) => pattern.test(line)));
+  return uniquePredictionVenueDigestLines(matched.length > 0 ? matched : lines, limit);
+};
+
+const splitPredictionVenueCategoryChunks = (section: VenueDetailSection) => {
+  const chunks: { label: string; lines: string[] }[] = [];
+  let current: { label: string; lines: string[] } = { label: section.title, lines: [] };
+  section.blocks.forEach((block) => {
+    if (block.type === "subheading") {
+      if (current.lines.length > 0) chunks.push(current);
+      current = { label: normalizePredictionVenueDigestLine(block.text, 80) || section.title, lines: [] };
+      return;
+    }
+    current.lines.push(...getPredictionVenueBlockLines(block));
+  });
+  if (current.lines.length > 0) chunks.push(current);
+  return chunks;
+};
+
+const getPredictionRaceCategoryHints = (
+  venue: PredictionVenueItem,
+  race: PredictionRaceItem,
+  gradeLabel: string,
+) => {
+  const riderCount = getPredictionMaterialRidersForKeirinRace(race, venue).length || race.riders?.length || 0;
+  const sessionBadge = getPredictionSessionBadge(venue);
+  const raceTitle = `${race.title ?? ""} ${race.sourceNote ?? ""}`;
+  const hints = [
+    gradeLabel,
+    venue.grade,
+    sessionBadge,
+    riderCount ? `${riderCount}車` : "",
+    /S級|Ｓ級|S\b/i.test(`${gradeLabel} ${raceTitle}`) ? "S級" : "",
+    /A級|Ａ級|A\b/i.test(`${gradeLabel} ${raceTitle}`) ? "A級" : "",
+    /ミッド|MID/i.test(sessionBadge) ? "ミッド" : "",
+    /ナイター|NIGHT/i.test(sessionBadge) ? "ナイター" : "",
+    /モーニング|MORNING/i.test(sessionBadge) ? "モーニング" : "",
+    /^G/i.test(String(venue.grade ?? gradeLabel)) ? "G" : "",
+  ].map((hint) => normalizePredictionVenueDigestLine(hint, 32)).filter(Boolean);
+  return Array.from(new Set(hints));
+};
+
+const pickPredictionVenueMatchedCategory = (
+  sections: VenueDetailSection[],
+  venue: PredictionVenueItem,
+  race: PredictionRaceItem,
+  gradeLabel: string,
+) => {
+  const primarySections = sections.filter((section) => /グレード|編成別の対策/u.test(section.title));
+  const categorySections = primarySections.length > 0
+    ? primarySections
+    : findPredictionVenueSections(sections, ["グレード", "編成", "時間帯", "カテゴリ", "対策"]);
+  const chunks = categorySections.flatMap((section) => splitPredictionVenueCategoryChunks(section));
+  if (chunks.length === 0) return { label: "", lines: [] };
+
+  const hints = getPredictionRaceCategoryHints(venue, race, gradeLabel);
+  const scored = chunks.map((chunk, index) => {
+    const haystack = `${chunk.label}\n${chunk.lines.join("\n")}`;
+    const score = hints.reduce((total, hint) => total + (haystack.includes(hint) ? 1 : 0), 0);
+    return { ...chunk, index, score };
+  }).sort((a, b) => b.score - a.score || a.index - b.index);
+
+  const picked = scored[0];
+  if (!picked || picked.score <= 0) return { label: "", lines: [] };
+  return {
+    label: picked.label,
+    lines: uniquePredictionVenueDigestLines(picked.lines, 6),
+  };
+};
+
+const parsePredictionVenueMasterGptMaterial = (
+  markdown: string,
+  updatedAt?: string,
+): PredictionVenueMasterDigest | null => {
+  const gptBlock = markdown.match(/##\s*(?:GPT_MATERIAL|GPT素材)([\s\S]*?)(?=\n##\s|\n#\s|$)/i)?.[1] ?? "";
+  if (!gptBlock.trim()) return null;
+  const lines = uniquePredictionVenueDigestLines(gptBlock.split(/\r?\n/), 18);
+  if (lines.length === 0) return null;
+
+  const pick = (patterns: RegExp[], limit: number) => uniquePredictionVenueDigestLines(
+    lines.filter((line) => patterns.some((pattern) => pattern.test(line))),
+    limit,
+  );
+
+  return {
+    updatedAt,
+    sampleSize: pick([/集計対象|対象R|R数/u], 1)[0] ?? "",
+    overallStats: pick([/重要傾向|1着|2着|決まり手|差し|捲|逃/u], 6),
+    lineStats: pick([/ライン|番手|ワンツー|スリー/u], 5),
+    splitModeRules: pick([/分戦/u], 4),
+    matchedCategoryStats: pick([/時間帯|グレード|カテゴリ|編成/u], 4),
+    thirdPlaceInsurance: pick([/3着|三着|保険/u], 4),
+    tenPointRules: pick([/10点|フォーマット|反映/u], 4),
+    windRules: pick([/風/u], 4),
+    cautions: pick([/警戒|注意/u], 4),
+    source: "bank-master",
+  };
+};
+
+const parsePredictionVenueMasterDigest = (
+  markdown: string,
+  masterMeta: Pick<VenueInsightIndexItem, "updatedAt"> | null | undefined,
+  venue: PredictionVenueItem,
+  race: PredictionRaceItem,
+  gradeLabel: string,
+): PredictionVenueMasterDigest => {
+  const document = parseVenueMarkdownDocument(markdown);
+  const updatedAt = masterMeta?.updatedAt ?? "";
+  const gptMaterialDigest = parsePredictionVenueMasterGptMaterial(markdown, updatedAt);
+  if (gptMaterialDigest) return gptMaterialDigest;
+
+  const matchedCategory = pickPredictionVenueMatchedCategory(document.sections, venue, race, gradeLabel);
+  const sampleSize = pickPredictionVenueLines(document.sections, ["メタ情報", "集計対象"], [/集計対象|対象R|全\d+R/u], 2)
+    .find((line) => /集計対象|対象R|全\d+R/u.test(line)) ?? "";
+
+  const digest: PredictionVenueMasterDigest = {
+    updatedAt,
+    sampleSize,
+    bankSpecs: pickPredictionVenueLines(document.sections, ["バンク仕様"], [/周長|カント|直線|幅員|特徴|差し|逃げ|捲り/u], 6),
+    overallStats: pickPredictionVenueLines(document.sections, ["決まり手", "傾向まとめ"], [/1着|2着|決まり手|逃げ|捲り|差し|番手勝ち/u], 8),
+    lineStats: pickPredictionVenueLines(document.sections, ["傾向まとめ", "ライン"], [/番手|同ライン|ワンツー|スリー|ライン/u], 6),
+    splitModeRules: pickPredictionVenueLines(document.sections, ["ライン", "分戦", "傾向まとめ"], [/2分戦|3分戦|4分戦|分戦|万車券/u], 6),
+    matchedCategoryLabel: matchedCategory.label,
+    matchedCategoryStats: matchedCategory.lines,
+    thirdPlaceInsurance: pickPredictionVenueLines(document.sections, ["3着保険", "傾向まとめ", "10点"], [/3着|保険|優先順位|三着/u], 5),
+    tenPointRules: pickPredictionVenueLines(document.sections, ["10点", "落とし込み", "フォーマット"], [/10点|3連単|2車単|本線|押さえ|厚め|反映/u], 6),
+    windRules: pickPredictionVenueLines(document.sections, ["風のクセ", "風速帯", "風"], [/風|向かい風|追い風|横風|風速/u], 6),
+    cautions: pickPredictionVenueLines(document.sections, ["運用チェックリスト", "注意", "警戒"], [/注意|警戒|チェック|確認|除外|未作成/u], 5),
+    source: "bank-master",
+  };
+
+  const hasContent = [
+    digest.sampleSize,
+    ...(digest.bankSpecs ?? []),
+    ...(digest.overallStats ?? []),
+    ...(digest.lineStats ?? []),
+    ...(digest.splitModeRules ?? []),
+    ...(digest.matchedCategoryStats ?? []),
+    ...(digest.thirdPlaceInsurance ?? []),
+    ...(digest.tenPointRules ?? []),
+    ...(digest.windRules ?? []),
+    ...(digest.cautions ?? []),
+  ].some(Boolean);
+
+  return hasContent ? digest : MISSING_PREDICTION_VENUE_MASTER_DIGEST;
+};
+
+const parsePredictionVenueReviewSummaryDigest = (
+  insightMarkdown: string,
+  insightMeta?: Pick<VenueInsightIndexItem, "updatedAt" | "source"> | null,
+): PredictionVenueReviewSummaryDigest => {
+  const insight = parseVenueInsightMarkdown(insightMarkdown, {
+    updatedAt: insightMeta?.updatedAt,
+    source: insightMeta?.source,
+  });
+  if (!insight.hasContent) return MISSING_PREDICTION_VENUE_REVIEW_SUMMARY_DIGEST;
+  return {
+    updatedAt: insight.updatedAt,
+    learnedFeatures: insight.learnedFeature ? [insight.learnedFeature] : [],
+    targets: insight.learnedTarget ? [insight.learnedTarget] : [],
+    cautions: insight.learnedCaution ? [insight.learnedCaution] : [],
+    period: insight.learnedPeriod,
+    gptMaterial: insight.gptMaterial,
+    source: "review-summary",
   };
 };
 
@@ -2342,6 +2623,7 @@ const mergePredictionVenueSummaryWithInsight = (
     learnedCaution: insight.learnedCaution,
     learnedPeriod: insight.learnedPeriod,
     learnedGptMaterial: insight.gptMaterial,
+    reviewSummaryDigest: parsePredictionVenueReviewSummaryDigest(insightMarkdown, insightMeta),
     source: "linked",
   };
 };
@@ -2350,6 +2632,9 @@ const mergePredictionVenueSummaryWithMaster = (
   summary: PredictionVenueSummary,
   masterMarkdown: string,
   masterMeta?: Pick<VenueInsightIndexItem, "updatedAt"> | null,
+  venue?: PredictionVenueItem | null,
+  race?: PredictionRaceItem | null,
+  gradeLabel = "",
 ): PredictionVenueSummary => {
   if (!masterMarkdown.trim()) return summary;
 
@@ -2362,6 +2647,9 @@ const mergePredictionVenueSummaryWithMaster = (
   return {
     ...summary,
     masterAnalysis: masterSummary.gptMaterial,
+    masterDigest: venue && race
+      ? parsePredictionVenueMasterDigest(masterMarkdown, masterMeta, venue, race, gradeLabel)
+      : { updatedAt: masterMeta?.updatedAt, overallStats: [masterSummary.gptMaterial].filter(Boolean), source: "bank-master" },
     source: "linked",
   };
 };
@@ -3414,6 +3702,82 @@ export const buildPredictionOddsBuckets = (race?: PredictionRaceItem | null) => 
   ];
 };
 
+const appendPredictionVenueExportField = (lines: string[], label: string, value?: string | null, fallback = "未取得") => {
+  lines.push(`- ${label}: ${normalizePredictionMaterialValue(value ?? "", fallback)}`);
+};
+
+const appendPredictionVenueExportList = (lines: string[], label: string, values?: string[] | null, fallback = "未取得", limit = 4) => {
+  const items = uniquePredictionVenueDigestLines(values ?? [], limit, 220);
+  lines.push(`- ${label}: ${items.length > 0 ? items.join(" / ") : fallback}`);
+};
+
+const buildPredictionVenueSummaryExportLines = ({
+  venue,
+  race,
+  gradeLabel,
+  venueSummary,
+}: {
+  venue: PredictionVenueItem;
+  race: PredictionRaceItem;
+  gradeLabel: string;
+  venueSummary: PredictionVenueSummary;
+}) => {
+  const venueFallbackLabel = venueSummary.source === "missing" ? "未登録" : "未取得";
+  const lines: string[] = [
+    "[C. 会場特徴 / バンク傾向]",
+    "",
+    "【基本バンク特徴】",
+  ];
+
+  appendPredictionVenueExportField(lines, "バンク長", venueSummary.bankLength, venueFallbackLabel);
+  appendPredictionVenueExportField(lines, "バンク特徴", venueSummary.bankFeature, venueFallbackLabel);
+  appendPredictionVenueExportField(lines, "狙いどころ", venueSummary.target, venueFallbackLabel);
+  appendPredictionVenueExportField(lines, "注意点", venueSummary.caution, venueFallbackLabel);
+  appendPredictionVenueExportField(lines, "荒れそう度", venueSummary.volatility, venueFallbackLabel);
+  appendPredictionVenueExportField(lines, "会場メモ", venueSummary.bankMemo, venueFallbackLabel);
+
+  const masterDigest = venueSummary.masterDigest ?? MISSING_PREDICTION_VENUE_MASTER_DIGEST;
+  lines.push("", "【会場別マスター分析｜予想用抜粋】");
+  if (masterDigest.source === "bank-master") {
+    const splitCount = buildPredictionLineupGroups(race).length;
+    const splitLabel = splitCount > 0 ? `${splitCount}分戦` : "未取得";
+    const categoryLabel = masterDigest.matchedCategoryLabel || getPredictionRaceCategoryHints(venue, race, gradeLabel).join(" / ") || "未取得";
+
+    appendPredictionVenueExportField(lines, "最終更新", masterDigest.updatedAt, "未取得");
+    appendPredictionVenueExportField(lines, "集計対象", masterDigest.sampleSize, "未取得");
+    appendPredictionVenueExportList(lines, "バンク仕様", masterDigest.bankSpecs, "未取得", 5);
+    appendPredictionVenueExportList(lines, "1着決まり手", masterDigest.overallStats?.filter((line) => /1着|差し|捲り|逃げ/u.test(line)), "未取得", 4);
+    appendPredictionVenueExportList(lines, "2着決まり手", masterDigest.overallStats?.filter((line) => /2着|マーク|差し|捲り|逃げ/u.test(line)), "未取得", 4);
+    appendPredictionVenueExportList(lines, "番手差し傾向", masterDigest.lineStats?.filter((line) => /番手|差し勝ち/u.test(line)), "未取得", 3);
+    appendPredictionVenueExportList(lines, "同ラインワンツー", masterDigest.lineStats?.filter((line) => /ワンツー|同ライン/u.test(line)), "未取得", 3);
+    appendPredictionVenueExportList(lines, "同ラインスリー", masterDigest.lineStats?.filter((line) => /スリー|3車|3人|三/u.test(line)), "未取得", 3);
+    appendPredictionVenueExportField(lines, "今回の分戦数", splitLabel, "未取得");
+    appendPredictionVenueExportList(lines, "分戦数別の運用", masterDigest.splitModeRules, "未取得", 5);
+    appendPredictionVenueExportField(lines, "今回条件に近いカテゴリ", categoryLabel, "未取得");
+    appendPredictionVenueExportList(lines, "カテゴリ別傾向", masterDigest.matchedCategoryStats, "未取得", 6);
+    appendPredictionVenueExportList(lines, "風条件の注意", masterDigest.windRules, "未取得", 5);
+    appendPredictionVenueExportList(lines, "3着保険の優先順位", masterDigest.thirdPlaceInsurance, "未取得", 5);
+    appendPredictionVenueExportList(lines, "10点予想への反映", masterDigest.tenPointRules, "未取得", 6);
+    appendPredictionVenueExportList(lines, "データ上の注意", masterDigest.cautions, "未取得", 4);
+  } else {
+    lines.push("会場別マスター分析は未作成です。");
+  }
+
+  const reviewSummary = venueSummary.reviewSummaryDigest ?? MISSING_PREDICTION_VENUE_REVIEW_SUMMARY_DIGEST;
+  lines.push("", "【Summary学習メモ】");
+  if (reviewSummary.source === "review-summary") {
+    appendPredictionVenueExportField(lines, "学習期間", reviewSummary.period || reviewSummary.updatedAt, "未取得");
+    appendPredictionVenueExportList(lines, "学習特徴", reviewSummary.learnedFeatures, "未取得", 3);
+    appendPredictionVenueExportList(lines, "追加で狙う形", reviewSummary.targets, "未取得", 3);
+    appendPredictionVenueExportList(lines, "警戒", reviewSummary.cautions, "未取得", 3);
+    if (reviewSummary.gptMaterial) appendPredictionVenueExportField(lines, "GPT素材", reviewSummary.gptMaterial, "");
+  } else {
+    lines.push("Summary学習メモは未作成です。");
+  }
+
+  return lines;
+};
+
 export const buildPredictionExportText = ({
   date,
   venue,
@@ -3471,7 +3835,6 @@ export const buildPredictionExportText = ({
     exportRace.title || exportRace.sourceNote || (venue.title ? `${venue.title} ${exportRace.raceNo}R` : ""),
     "レース名なし"
   );
-  const venueFallbackLabel = venueSummary.source === "missing" ? "未登録" : "未取得";
   const lineupText = buildPredictionKdreamsLineupExport(exportRace);
   void memo;
 
@@ -3489,28 +3852,7 @@ export const buildPredictionExportText = ({
     "[B. KDreams 並び予想 / 周回予想]",
     lineupText,
     "",
-    "[C. 会場特徴 / バンク傾向]",
-    `バンク特徴: ${normalizePredictionMaterialValue(venueSummary.bankFeature, venueFallbackLabel)}`,
-    `狙いどころ: ${normalizePredictionMaterialValue(venueSummary.target, venueFallbackLabel)}`,
-    `注意点: ${normalizePredictionMaterialValue(venueSummary.caution, venueFallbackLabel)}`,
-    `荒れそう度: ${normalizePredictionMaterialValue(venueSummary.volatility, venueFallbackLabel)}`,
-    `バンク長: ${normalizePredictionMaterialValue(venueSummary.bankLength, venueFallbackLabel)}`,
-    `会場メモ: ${normalizePredictionMaterialValue(venueSummary.bankMemo, venueFallbackLabel)}`,
-    ...(venueSummary.masterAnalysis
-      ? [`会場別マスター分析: ${normalizePredictionMaterialValue(venueSummary.masterAnalysis, "")}`]
-      : []),
-    ...(venueSummary.learnedFeature || venueSummary.learnedTarget || venueSummary.learnedCaution || venueSummary.learnedPeriod
-      ? [
-          "Summary学習メモ:",
-          `- 学習特徴: ${normalizePredictionMaterialValue(venueSummary.learnedFeature ?? "", "")}`,
-          `- 予想で使う狙い: ${normalizePredictionMaterialValue(venueSummary.learnedTarget ?? "", "")}`,
-          `- 警戒: ${normalizePredictionMaterialValue(venueSummary.learnedCaution ?? "", "")}`,
-          `- 反映期間: ${normalizePredictionMaterialValue(venueSummary.learnedPeriod ?? "", "")}`,
-          ...(venueSummary.learnedGptMaterial
-            ? [`- GPT素材用まとめ: ${normalizePredictionMaterialValue(venueSummary.learnedGptMaterial, "")}`]
-            : []),
-        ]
-      : []),
+    ...buildPredictionVenueSummaryExportLines({ venue, race: exportRace, gradeLabel, venueSummary }),
     "",
     "[D. 登録選手特徴メモ]",
     resolvedPlayerCardInsightText,
@@ -9185,7 +9527,8 @@ if (!nextSlots[currentKey] && nextSlots[legacyKey]) {
   useEffect(() => {
     if (!selectedVenue) return;
     const summaryKey = normalizePredictionVenueName(selectedVenue.venue);
-    if (venueSummaryMap[summaryKey]) return;
+    const summaryContextKey = `${selectedVenue.id}:${selectedRace?.raceNo ?? ""}:${getPredictionGradeDisplayLabel(selectedVenue, predictionFeed?.date ?? TODAY)}`;
+    if (venueSummaryMap[summaryKey]?.masterDigestContextKey === summaryContextKey) return;
 
     let isActive = true;
 
@@ -9215,16 +9558,17 @@ if (!nextSlots[currentKey] && nextSlots[legacyKey]) {
         const baseSummary = bankMarkdown
           ? parsePredictionVenueSummary(bankMarkdown)
           : { ...MISSING_PREDICTION_VENUE_SUMMARY };
+        const gradeLabel = getPredictionGradeDisplayLabel(selectedVenue, predictionFeed?.date ?? TODAY);
         const mergedSummary = mergePredictionVenueSummaryWithInsight(
-          mergePredictionVenueSummaryWithMaster(baseSummary, masterMarkdown, bankMasterTarget),
+          mergePredictionVenueSummaryWithMaster(baseSummary, masterMarkdown, bankMasterTarget, selectedVenue, selectedRace ?? undefined, gradeLabel),
           insightMarkdown,
           reviewSummaryTarget,
         );
 
-        setVenueSummaryMap((current) => ({ ...current, [summaryKey]: mergedSummary }));
+        setVenueSummaryMap((current) => ({ ...current, [summaryKey]: { ...mergedSummary, masterDigestContextKey: summaryContextKey } }));
       } catch {
         if (!isActive) return;
-        setVenueSummaryMap((current) => ({ ...current, [summaryKey]: MISSING_PREDICTION_VENUE_SUMMARY }));
+        setVenueSummaryMap((current) => ({ ...current, [summaryKey]: { ...MISSING_PREDICTION_VENUE_SUMMARY, masterDigestContextKey: summaryContextKey } }));
       }
     };
 
@@ -9233,7 +9577,7 @@ if (!nextSlots[currentKey] && nextSlots[legacyKey]) {
     return () => {
       isActive = false;
     };
-  }, [predictionBankIndex, predictionInsightGroups, selectedVenue, venueSummaryMap]);
+  }, [predictionBankIndex, predictionFeed?.date, predictionInsightGroups, selectedRace, selectedVenue, venueSummaryMap]);
 
   useEffect(() => {
     if (!selectedVenue) return;
@@ -10761,6 +11105,9 @@ const record = normalizePredictionResultRecord({
 })()}
                     <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "7px 12px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.12em", background: "linear-gradient(135deg, rgba(242,236,251,1) 0%, rgba(232,241,255,1) 100%)", color: "#6b57a8", border: "1px solid #ddd3f0", boxShadow: "0 8px 18px rgba(122,103,184,0.08)" }}>{predictionMaterialStateLabel}</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.06em", background: selectedVenueSummary.source === "missing" ? "rgba(255,255,255,0.82)" : "rgba(236,253,245,0.9)", color: selectedVenueSummary.source === "missing" ? "#7a8090" : "#047857", border: selectedVenueSummary.source === "missing" ? "1px solid #ebe3f3" : "1px solid #a7f3d0" }}>基本バンク特徴：{selectedVenueSummary.source === "missing" ? "未登録" : "反映済み"}</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.06em", background: selectedVenueSummary.masterDigest?.source === "bank-master" ? "rgba(236,253,245,0.9)" : "rgba(255,255,255,0.82)", color: selectedVenueSummary.masterDigest?.source === "bank-master" ? "#047857" : "#7a8090", border: selectedVenueSummary.masterDigest?.source === "bank-master" ? "1px solid #a7f3d0" : "1px solid #ebe3f3" }}>会場別マスター分析：{selectedVenueSummary.masterDigest?.source === "bank-master" ? "反映済み" : "未作成"}</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.06em", background: selectedVenueSummary.reviewSummaryDigest?.source === "review-summary" ? "rgba(236,253,245,0.9)" : "rgba(255,255,255,0.82)", color: selectedVenueSummary.reviewSummaryDigest?.source === "review-summary" ? "#047857" : "#7a8090", border: selectedVenueSummary.reviewSummaryDigest?.source === "review-summary" ? "1px solid #a7f3d0" : "1px solid #ebe3f3" }}>Summary学習メモ：{selectedVenueSummary.reviewSummaryDigest?.source === "review-summary" ? "反映済み" : "未作成"}</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.06em", background: selectedPredictionLinkedPlayerContexts.length > 0 ? "rgba(236,253,245,0.9)" : "rgba(255,255,255,0.82)", color: selectedPredictionLinkedPlayerContexts.length > 0 ? "#047857" : "#7a8090", border: selectedPredictionLinkedPlayerContexts.length > 0 ? "1px solid #a7f3d0" : "1px solid #ebe3f3" }}>登録選手特徴：{selectedPredictionLinkedPlayerContexts.length}名反映</span>
                       {selectedPredictionLinkedPlayerContexts.slice(0, 4).map((context) => (
                         <span key={`linked-player-chip-${context.rider.carNo}-${context.indexItem?.id}`} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 10px", fontSize: "10px", fontWeight: 800, background: "rgba(240,253,250,0.9)", color: "#0f766e", border: "1px solid #99f6e4" }}>{context.rider.carNo}番車 {context.indexItem?.name ?? context.rider.name}</span>
