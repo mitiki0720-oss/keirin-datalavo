@@ -4,8 +4,10 @@ import type { DailyMetricItem } from "../types/dailyMetrics";
 import type { RaceGrade, RaceScheduleItem, RaceScheduleSource, RaceSession } from "../types/raceSchedule";
 import { getRaceEventDayLabel } from "../utils/raceEventDay";
 import {
+  findPlayerCardByRegistrationNo,
   loadPlayerCardIndex,
   loadPlayerCardMarkdown,
+  normalizeRegistrationNo,
   type PlayerCardIndexItem as PublicPlayerCardIndexItem,
 } from "../lib/playerCards";
 import {
@@ -439,6 +441,12 @@ export type PredictionRiderItem = {
   carNo: string;
   name: string;
   fullName?: string;
+  registrationNo?: string | number;
+  registrationNumber?: string | number;
+  registrationId?: string | number;
+  playerId?: string | number;
+  racerId?: string | number;
+  athleteId?: string | number;
   materialMissing?: boolean;
   isPlaceholder?: boolean;
   source?: string;
@@ -3418,6 +3426,7 @@ export const buildPredictionExportText = ({
   weatherFallbackText,
   memo,
   riderBasicText,
+  playerCardInsightText = "",
   recentPerformanceText,
   recentRaceText,
   matchupText,
@@ -3436,6 +3445,7 @@ export const buildPredictionExportText = ({
   weatherFallbackText: string;
   memo: string;
   riderBasicText: string;
+  playerCardInsightText?: string;
   recentPerformanceText: string;
   recentRaceText: string;
   matchupText: string;
@@ -3449,6 +3459,7 @@ export const buildPredictionExportText = ({
     : getPredictionMaterialRidersForKeirinRace(exportRace, venue);
   const exportContexts = buildPredictionExportContextsFromRiders(exportRiders);
   const resolvedRiderBasicText = riderBasicText.trim() || buildPredictionBasicRiderExport(exportContexts, exportRace);
+  const resolvedPlayerCardInsightText = playerCardInsightText.trim() || buildPredictionPlayerCardInsightExport(exportContexts);
   const resolvedRecentPerformanceText = recentPerformanceText.trim() || buildPredictionRecentPerformanceExport(exportContexts);
   const resolvedRecentRaceText = recentRaceText.trim() || buildPredictionRecentRaceExport(exportContexts, venue, gradeLabel);
   const resolvedMatchupText = matchupText.trim() || buildPredictionMatchupExport(exportContexts, exportRace);
@@ -3501,7 +3512,10 @@ export const buildPredictionExportText = ({
         ]
       : []),
     "",
-    "[D. 天気 / 風]",
+    "[D. 登録選手特徴メモ]",
+    resolvedPlayerCardInsightText,
+    "",
+    "[E. 天気 / 風]",
     `基準時刻: ${normalizePredictionExportValue(weather?.referenceText ?? weatherFallbackText, "時刻情報なし")}`,
     `天候: ${normalizePredictionExportValue(weather?.weatherLabel ?? weatherFallbackText, "天気情報なし")}`,
     `気温: ${normalizePredictionExportValue(weather?.temperatureText ?? weatherFallbackText, "気温情報なし")}`,
@@ -3510,28 +3524,28 @@ export const buildPredictionExportText = ({
     `降水: ${normalizePredictionExportValue(weather?.precipitationText ?? weatherFallbackText, "降水情報なし")}`,
     `採用予報: ${normalizePredictionExportValue(weather?.updatedAtText ?? weatherFallbackText, "時刻情報なし")}`,
     "",
-    "[E. KDreams 出走表詳細]",
+    "[F. KDreams 出走表詳細]",
     resolvedRiderBasicText,
     "",
-    "[F. KDreams 選手コメント / 前回出走レース成績]",
+    "[G. KDreams 選手コメント / 前回出走レース成績]",
     resolvedRecentPerformanceText,
     "",
-    "[G. KDreams 年間勝利度数]",
+    "[H. KDreams 年間勝利度数]",
     resolvedRecentRaceText,
     "",
-    "[H. KDreams 同走路年間勝利度数]",
+    "[I. KDreams 同走路年間勝利度数]",
     resolvedMatchupText,
     "",
-    "[I. KDreams 当所5年]",
+    "[J. KDreams 当所5年]",
     resolvedTrackAffinityText,
     "",
-    "[J. KDreams取得データまとめ]",
+    "[K. KDreams取得データまとめ]",
     resolvedDataAnalysisText,
     "",
-    "[K. KDreams オッズ]",
+    "[L. KDreams オッズ]",
     resolvedOddsText,
     "",
-    "[L. 補足ソース]",
+    "[M. 補足ソース]",
     buildPredictionMemoExport(exportRace, memo),
   ].join("\n");
 };
@@ -7199,6 +7213,7 @@ export function DashboardPage() {
 
 type PlayerIndexItem = {
   id: string;
+  registrationNo: string;
   name: string;
   kana?: string;
   prefecture?: string;
@@ -7224,30 +7239,13 @@ type PredictionExportRiderContext = {
   rider: PredictionRiderItem;
   indexItem: PlayerIndexItem | null;
   card: ParsedPlayerCard | null;
+  matchMethod?: "registrationNo" | "name";
 };
 
 const buildPredictionExportContextsFromRiders = (riders: PredictionRiderItem[]): PredictionExportRiderContext[] =>
   riders.map((rider) => ({ rider, indexItem: null, card: null }));
 
 
-const PLAYER_INDEX_URL = toPublicPath("/data/player-cards/index.json");
-const PLAYER_CARD_BASE = toPublicPath("/data/player-cards/");
-
-const resolvePlayerCardUrl = (file: string) => {
-  const normalized = file.trim();
-
-  if (!normalized) return PLAYER_CARD_BASE;
-
-  if (normalized.startsWith("http://") || normalized.startsWith("https://")) {
-    return normalized;
-  }
-
-  if (normalized.startsWith("/")) {
-    return toPublicPath(normalized);
-  }
-
-  return `${PLAYER_CARD_BASE}${normalized.replace(/^\/+/, "")}`;
-};
 const parseTableBlock = (block: string) => {
   const lines = block
     .split("\n")
@@ -7313,11 +7311,70 @@ const parsePlayerCard = (id: string, markdown: string): ParsedPlayerCard => ({
   schedule: extractKeyValueSection(markdown, "## 2）更新スケジュール（4ヶ月ローテ前提）"),
 });
 
+function compactPredictionPlayerCardText(value: unknown, maxLength = 460) {
+  const normalized = String(value ?? "")
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/^[-*]\s*/, "").trim())
+    .filter((line) => line && !/^\|?\s*-{2,}/.test(line))
+    .join(" / ")
+    .replace(/\s+/g, " ")
+    .replace(/\s*\/\s*\/\s*/g, " / ")
+    .trim();
+
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, maxLength - 1).trim()}…`;
+}
+
+function getPredictionPlayerCardPreferredSection(card: ParsedPlayerCard | null) {
+  if (!card) return "";
+
+  const preferredSection = card.sections.find((section) =>
+    /GPT[_\s-]*MATERIAL|GPT素材/i.test(section.title)
+  );
+  if (preferredSection?.content) {
+    return compactPredictionPlayerCardText(preferredSection.content);
+  }
+
+  const sectionKeywords = /特徴|脚質|得意パターン|狙い|警戒|ライン|位置取り|直近傾向/i;
+  const sectionText = card.sections
+    .filter((section) => sectionKeywords.test(section.title))
+    .map((section) => `${section.title}: ${section.content}`)
+    .join("\n");
+  if (sectionText.trim()) return compactPredictionPlayerCardText(sectionText);
+
+  const summaryText = Object.entries(card.summary)
+    .filter(([key]) => sectionKeywords.test(key))
+    .map(([key, value]) => `${key}: ${value}`)
+    .join("\n");
+  if (summaryText.trim()) return compactPredictionPlayerCardText(summaryText);
+
+  return "";
+}
+
 function normalizePredictionPlayerName(value?: string | null) {
   return (value ?? "")
     .normalize("NFKC")
-    .replace(/[\s　]/g, "")
+    .replace(/[\s　・]/g, "")
     .trim();
+}
+
+function getPredictionRiderRegistrationNo(rider: PredictionRiderItem) {
+  const candidates = [
+    rider.registrationNo,
+    rider.registrationNumber,
+    rider.registrationId,
+    rider.playerId,
+    rider.racerId,
+    rider.athleteId,
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = normalizeRegistrationNo(candidate);
+    if (normalized) return normalized;
+  }
+
+  return "";
 }
 
 function normalizePredictionExportValue(value: unknown, fallback = "情報なし") {
@@ -7488,6 +7545,27 @@ function buildPredictionBasicRiderExport(contexts: PredictionExportRiderContext[
     ? [`※出走表データに不足があります: 車番${missingCarNos.join(",")}が未取得`, ""]
     : [];
   return [...missingNote, contexts.map((context) => buildPredictionRiderProfileLine(context)).join("\n\n")].join("\n");
+}
+
+function buildPredictionPlayerCardInsightExport(contexts: PredictionExportRiderContext[]) {
+  const linkedContexts = contexts.filter((context) => context.indexItem);
+  if (linkedContexts.length === 0) return "該当する登録済み選手カードはありません。";
+
+  return linkedContexts.map((context) => {
+    const item = context.indexItem!;
+    const registrationNo = item.registrationNo || item.id;
+    const cardText = context.card
+      ? getPredictionPlayerCardPreferredSection(context.card) || item.summary || ""
+      : item.summary || "選手特徴メモを取得できませんでした";
+    const lines = [
+      `${context.rider.carNo}番車 ${registrationNo} ${item.name || context.rider.name}`,
+      `- 級班: ${item.grade || context.rider.grade || "未記載"}`,
+      `- 府県: ${item.prefecture || context.rider.prefecture || "未記載"}`,
+      `- 照合: ${context.matchMethod === "registrationNo" ? "登録番号完全一致" : "選手名一意一致"}`,
+      `- 特徴: ${compactPredictionPlayerCardText(cardText, 500) || "未記載"}`,
+    ];
+    return lines.join("\n");
+  }).join("\n\n");
 }
 
 function buildPredictionRecentPerformanceExport(contexts: PredictionExportRiderContext[]) {
@@ -9021,9 +9099,7 @@ if (!nextSlots[currentKey] && nextSlots[legacyKey]) {
 
     const loadPredictionPlayerIndex = async () => {
       try {
-        const response = await fetch(`${PLAYER_INDEX_URL}?v=${Date.now()}`);
-        if (!response.ok) throw new Error(`prediction-player-index-${response.status}`);
-        const data = (await response.json()) as PlayerIndexItem[];
+        const data = await loadPlayerCardIndex() as PlayerIndexItem[];
         if (!isActive) return;
         setPredictionPlayerIndex(data);
       } catch {
@@ -9728,13 +9804,29 @@ if (
     [selectedPredictionMaterialRace, selectedPredictionMaterialVenue]
   );
   const selectedPredictionRiderContexts = useMemo<PredictionExportRiderContext[]>(() => {
+    const nameIndex = new Map<string, PlayerIndexItem[]>();
+    predictionPlayerIndex.forEach((item) => {
+      const normalizedName = normalizePredictionPlayerName(item.name);
+      if (!normalizedName) return;
+      const current = nameIndex.get(normalizedName) ?? [];
+      current.push(item);
+      nameIndex.set(normalizedName, current);
+    });
+
     return selectedPredictionMaterialRiders.map((rider) => {
-      const normalizedName = normalizePredictionPlayerName(rider.name);
-      const indexItem = predictionPlayerIndex.find((item) => normalizePredictionPlayerName(item.name) === normalizedName) ?? null;
+      const registrationNo = getPredictionRiderRegistrationNo(rider);
+      const registrationMatch = registrationNo
+        ? findPlayerCardByRegistrationNo(predictionPlayerIndex, registrationNo) as PlayerIndexItem | null
+        : null;
+      const normalizedName = normalizePredictionPlayerName(rider.name || rider.fullName);
+      const nameMatches = normalizedName ? nameIndex.get(normalizedName) ?? [] : [];
+      const indexItem = registrationMatch ?? (nameMatches.length === 1 ? nameMatches[0] : null);
+      const matchMethod = registrationMatch ? "registrationNo" : indexItem ? "name" : undefined;
       return {
         rider,
         indexItem,
         card: indexItem ? predictionPlayerCards[indexItem.id] ?? null : null,
+        matchMethod,
       };
     });
   }, [predictionPlayerCards, predictionPlayerIndex, selectedPredictionMaterialRiders]);
@@ -9743,7 +9835,12 @@ if (
     if (selectedPredictionRiderContexts.length === 0) return;
 
     let isActive = true;
-    const unresolved = selectedPredictionRiderContexts.filter((context) => context.indexItem && !(context.indexItem.id in predictionPlayerCards));
+    const unresolved = selectedPredictionRiderContexts
+      .filter((context) => context.indexItem && !(context.indexItem.id in predictionPlayerCards))
+      .filter((context, index, list) =>
+        list.findIndex((item) => item.indexItem?.id === context.indexItem?.id) === index
+      )
+      .slice(0, 9);
     if (unresolved.length === 0) return;
 
     const loadPredictionPlayerCards = async () => {
@@ -9751,9 +9848,7 @@ if (
         const indexItem = context.indexItem;
         if (!indexItem) return;
         try {
-          const response = await fetch(resolvePlayerCardUrl(indexItem.file), { cache: "force-cache" });
-          if (!response.ok) throw new Error(`prediction-player-card-${response.status}`);
-          const markdown = await response.text();
+          const markdown = await loadPlayerCardMarkdown(indexItem.file);
           if (!isActive) return;
           setPredictionPlayerCards((current) => ({ ...current, [indexItem.id]: parsePlayerCard(indexItem.id, markdown) }));
         } catch {
@@ -9770,10 +9865,29 @@ if (
     };
   }, [predictionPlayerCards, selectedPredictionRiderContexts]);
 
+  useEffect(() => {
+    if (!import.meta.env.DEV || selectedPredictionMaterialRiders.length === 0) return;
+    const registrationMatches = selectedPredictionRiderContexts.filter((context) => context.matchMethod === "registrationNo").length;
+    const nameMatches = selectedPredictionRiderContexts.filter((context) => context.matchMethod === "name").length;
+    console.log("[player-card-link] selected race riders:", selectedPredictionMaterialRiders.length);
+    console.log("[player-card-link] matched by registrationNo:", registrationMatches);
+    console.log("[player-card-link] matched by unique name fallback:", nameMatches);
+    console.log("[player-card-link] unmatched:", selectedPredictionMaterialRiders.length - registrationMatches - nameMatches);
+  }, [selectedPredictionMaterialRiders.length, selectedPredictionRiderContexts]);
+
   const selectedPredictionRiderBasicText = useMemo(
     () => buildPredictionBasicRiderExport(selectedPredictionRiderContexts, selectedPredictionMaterialRace),
     [selectedPredictionMaterialRace, selectedPredictionRiderContexts]
   );
+  const selectedPredictionPlayerCardInsightText = useMemo(
+    () => buildPredictionPlayerCardInsightExport(selectedPredictionRiderContexts),
+    [selectedPredictionRiderContexts]
+  );
+  const selectedPredictionLinkedPlayerContexts = useMemo(
+    () => selectedPredictionRiderContexts.filter((context) => context.indexItem),
+    [selectedPredictionRiderContexts]
+  );
+  const selectedPredictionLoadedPlayerContextCount = selectedPredictionLinkedPlayerContexts.filter((context) => context.card).length;
   const selectedPredictionRecentPerformanceText = useMemo(
     () => buildPredictionRecentPerformanceExport(selectedPredictionRiderContexts),
     [selectedPredictionRiderContexts]
@@ -9827,6 +9941,7 @@ if (
       weatherFallbackText: selectedWeatherFallbackText,
       memo: selectedPredictionMemoText,
       riderBasicText: selectedPredictionRiderBasicText,
+      playerCardInsightText: selectedPredictionPlayerCardInsightText,
       recentPerformanceText: selectedPredictionRecentPerformanceText,
       recentRaceText: selectedPredictionRecentRaceText,
       matchupText: selectedPredictionMatchupText,
@@ -9834,7 +9949,7 @@ if (
       dataAnalysisText: selectedPredictionDataAnalysisText,
       oddsText: selectedPredictionOddsText,
     });
-  }, [predictionFeed, selectedPredictionDataAnalysisText, selectedPredictionMatchupText, selectedPredictionMaterialRace, selectedPredictionMaterialRiders, selectedPredictionMaterialVenue, selectedPredictionMemoText, selectedPredictionOddsText, selectedPredictionRecentPerformanceText, selectedPredictionRecentRaceText, selectedPredictionRiderBasicText, selectedPredictionTrackAffinityText, selectedVenueGradeLabel, selectedVenueSummary, selectedWeather, selectedWeatherFallbackText]);
+  }, [predictionFeed, selectedPredictionDataAnalysisText, selectedPredictionMatchupText, selectedPredictionMaterialRace, selectedPredictionMaterialRiders, selectedPredictionMaterialVenue, selectedPredictionMemoText, selectedPredictionOddsText, selectedPredictionPlayerCardInsightText, selectedPredictionRecentPerformanceText, selectedPredictionRecentRaceText, selectedPredictionRiderBasicText, selectedPredictionTrackAffinityText, selectedVenueGradeLabel, selectedVenueSummary, selectedWeather, selectedWeatherFallbackText]);
   const gptExportLineCount = useMemo(() => gptExportText.split(/\r?\n/).length, [gptExportText]);
   const gptExportCharCount = useMemo(() => gptExportText.length, [gptExportText]);
   const selectedPredictionTargetLabel = selectedVenue && selectedRace ? `${selectedVenue.venue} ${selectedRace.raceNo}R` : "レース選択待ち";
@@ -10646,6 +10761,16 @@ const record = normalizePredictionResultRecord({
 })()}
                     <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "7px 12px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.12em", background: "linear-gradient(135deg, rgba(242,236,251,1) 0%, rgba(232,241,255,1) 100%)", color: "#6b57a8", border: "1px solid #ddd3f0", boxShadow: "0 8px 18px rgba(122,103,184,0.08)" }}>{predictionMaterialStateLabel}</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.06em", background: selectedPredictionLinkedPlayerContexts.length > 0 ? "rgba(236,253,245,0.9)" : "rgba(255,255,255,0.82)", color: selectedPredictionLinkedPlayerContexts.length > 0 ? "#047857" : "#7a8090", border: selectedPredictionLinkedPlayerContexts.length > 0 ? "1px solid #a7f3d0" : "1px solid #ebe3f3" }}>登録選手特徴：{selectedPredictionLinkedPlayerContexts.length}名反映</span>
+                      {selectedPredictionLinkedPlayerContexts.slice(0, 4).map((context) => (
+                        <span key={`linked-player-chip-${context.rider.carNo}-${context.indexItem?.id}`} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 10px", fontSize: "10px", fontWeight: 800, background: "rgba(240,253,250,0.9)", color: "#0f766e", border: "1px solid #99f6e4" }}>{context.rider.carNo}番車 {context.indexItem?.name ?? context.rider.name}</span>
+                      ))}
+                      {selectedPredictionLinkedPlayerContexts.length > 4 ? (
+                        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 10px", fontSize: "10px", fontWeight: 800, background: "rgba(240,253,250,0.9)", color: "#0f766e", border: "1px solid #99f6e4" }}>+{selectedPredictionLinkedPlayerContexts.length - 4}名</span>
+                      ) : null}
+                      {selectedPredictionLinkedPlayerContexts.length > 0 && selectedPredictionLoadedPlayerContextCount < selectedPredictionLinkedPlayerContexts.length ? (
+                        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 10px", fontSize: "10px", fontWeight: 800, background: "rgba(255,251,235,0.9)", color: "#92400e", border: "1px solid #fde68a" }}>特徴メモ取得中</span>
+                      ) : null}
                       {[selectedPredictionTargetLabel, `${gptExportCharCount.toLocaleString()} chars`, `${gptExportLineCount.toLocaleString()} lines`].map((item) => (
                         <span key={item} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 800, letterSpacing: "0.06em", background: "rgba(255,255,255,0.82)", color: "#7a8090", border: "1px solid #ebe3f3" }}>{item}</span>
                       ))}
