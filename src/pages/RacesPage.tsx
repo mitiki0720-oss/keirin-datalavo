@@ -637,6 +637,7 @@ const GENERATED_TODAY_RACES_URL_CANDIDATES = import.meta.env.DEV
 
 async function fetchGeneratedTodayRacesPayload(dateKey: string) {
   let lastError: unknown = null;
+  const payloads: GeneratedTodayRacesPayload[] = [];
 
   for (const url of GENERATED_TODAY_RACES_URL_CANDIDATES) {
     try {
@@ -644,10 +645,15 @@ async function fetchGeneratedTodayRacesPayload(dateKey: string) {
       if (!response.ok) {
         throw new Error(`failed to load generated races: ${response.status}`);
       }
-      return await response.json() as GeneratedTodayRacesPayload;
+      payloads.push(await response.json() as GeneratedTodayRacesPayload);
     } catch (error) {
       lastError = error;
     }
+  }
+
+  if (payloads.length > 0) {
+    return payloads
+      .sort((a, b) => String(b.date ?? "").localeCompare(String(a.date ?? "")))[0];
   }
 
   throw lastError ?? new Error("failed to load generated races");

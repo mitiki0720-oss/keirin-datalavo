@@ -1,11 +1,13 @@
 export type RaceEventDayLabelOptions = {
+  feedDate?: string | null;
   startDate?: string | null;
   endDate?: string | null;
   targetDate?: string | null;
 };
 
 export type RaceEventDayInfo = {
-  label: string;
+  label: string | null;
+  dayNumber: number | null;
   currentDay: number;
   totalDays: number;
   isFinalDay: boolean;
@@ -27,13 +29,14 @@ const diffDays = (from: Date, to: Date) => {
 };
 
 export const getRaceEventDayInfo = ({
+  feedDate,
   startDate,
   endDate,
   targetDate,
 }: RaceEventDayLabelOptions): RaceEventDayInfo | null => {
   const start = parseJstDate(startDate);
   const end = parseJstDate(endDate);
-  const target = parseJstDate(targetDate);
+  const target = parseJstDate(feedDate ?? targetDate);
 
   if (!start || !end || !target) return null;
   if (end.getTime() < start.getTime()) return null;
@@ -43,15 +46,18 @@ export const getRaceEventDayInfo = ({
 
   if (currentDay < 1 || currentDay > totalDays) return null;
 
-  const isFinalDay = currentDay === totalDays;
+  const isFinalDay = target.getTime() === end.getTime();
   const label = currentDay === 1
-    ? "初日"
+    ? isFinalDay
+      ? "初日・最終日"
+      : "初日"
     : isFinalDay
       ? `${currentDay}日目・最終日`
       : `${currentDay}日目`;
 
   return {
     label,
+    dayNumber: currentDay,
     currentDay,
     totalDays,
     isFinalDay,
@@ -61,3 +67,5 @@ export const getRaceEventDayInfo = ({
 export const getRaceEventDayLabel = (options: RaceEventDayLabelOptions) => {
   return getRaceEventDayInfo(options)?.label ?? null;
 };
+
+export const resolveRaceEventDay = getRaceEventDayInfo;

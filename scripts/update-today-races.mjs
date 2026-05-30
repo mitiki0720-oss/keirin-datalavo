@@ -55,6 +55,7 @@ const SOURCE_POLICY = resolveSourcePolicy(args);
 const OUTPUT_PATH = shouldWritePublic ? PUBLIC_OUTPUT_PATH : LOCAL_DEBUG_OUTPUT_PATH;
 const OVERRIDE_PATH = path.resolve("scripts/today-races-overrides.json");
 const RACE_SCHEDULE_DATA_PATH = path.resolve("src/data/raceScheduleData.ts");
+const UPCOMING_SCHEDULE_DATA_PATH = path.resolve("public/data/races/upcoming-schedule.generated.json");
 
 const DEBUG_DIR = path.resolve("scripts");
 const DEBUG_ODDS_DIR = path.join(DEBUG_DIR, "debug");
@@ -318,6 +319,23 @@ async function readRaceScheduleData() {
     return JSON.parse(match[1]);
   } catch (error) {
     console.warn("[schedule] failed to read raceScheduleData.ts", error);
+    return [];
+  }
+}
+
+async function readUpcomingScheduleData() {
+  try {
+    const raw = await fs.readFile(UPCOMING_SCHEDULE_DATA_PATH, "utf-8");
+    const parsed = JSON.parse(raw);
+    const items = Array.isArray(parsed?.items) ? parsed.items : [];
+    return items
+      .map((item) => ({
+        ...item,
+        venue: item.venueName || item.venue,
+      }))
+      .filter((item) => item.venue && item.startDate && item.endDate);
+  } catch (error) {
+    console.warn("[schedule] failed to read upcoming-schedule.generated.json", error);
     return [];
   }
 }
@@ -970,11 +988,27 @@ function shouldFetchResultForRace(race, venue, updatePhase) {
 }
 
 function normalizeScheduleVenueName(value) {
-  return String(value ?? "")
+  const normalized = String(value ?? "")
     .normalize("NFKC")
+    .toLowerCase()
     .replace(/\s+/g, "")
     .replace(/競輪場|競輪/g, "")
     .trim();
+
+  const aliases = new Map([
+    ["伊東温泉", "伊東"],
+    ["ito-onsen", "伊東"],
+    ["itoonsen", "伊東"],
+    ["ito", "伊東"],
+    ["iwakitaira", "いわき平"],
+    ["iwaki-daira", "いわき平"],
+    ["oogaki", "大垣"],
+    ["ogaki", "大垣"],
+    ["houhu", "防府"],
+    ["hofu", "防府"],
+  ]);
+
+  return aliases.get(normalized) ?? normalized;
 }
 
 const VENUE_SCHEDULE_RANGE_OVERRIDES = [
@@ -1009,11 +1043,15 @@ function resolveVenueScheduleRangeOverride(venueName, grade, todayIso) {
 
 function resolveVenueScheduleRange(scheduleData, venueName, todayIso, grade = "") {
   const normalizedVenue = normalizeScheduleVenueName(venueName);
+  const normalizedGrade = normalizeVenueScheduleGrade(grade);
 
   const candidates = scheduleData
     .filter((item) => normalizeScheduleVenueName(item.venue) === normalizedVenue)
     .filter((item) => item.startDate <= todayIso && item.endDate >= todayIso)
     .sort((a, b) => {
+      const aGradeMatches = normalizedGrade && normalizeVenueScheduleGrade(a.grade) === normalizedGrade ? 1 : 0;
+      const bGradeMatches = normalizedGrade && normalizeVenueScheduleGrade(b.grade) === normalizedGrade ? 1 : 0;
+      if (aGradeMatches !== bGradeMatches) return bGradeMatches - aGradeMatches;
       const aLength = (new Date(`${a.endDate}T00:00:00+09:00`).getTime() - new Date(`${a.startDate}T00:00:00+09:00`).getTime());
       const bLength = (new Date(`${b.endDate}T00:00:00+09:00`).getTime() - new Date(`${b.startDate}T00:00:00+09:00`).getTime());
       return bLength - aLength || b.startDate.localeCompare(a.startDate);
@@ -1023,9 +1061,40 @@ function resolveVenueScheduleRange(scheduleData, venueName, todayIso, grade = ""
   const override = matched ? null : resolveVenueScheduleRangeOverride(venueName, grade, todayIso);
 
   return {
-    startDate: matched?.startDate ?? override?.startDate ?? todayIso,
-    endDate: matched?.endDate ?? override?.endDate ?? todayIso,
+    startDate: matched?.startDate ?? override?.startDate ?? "",
+    endDate: matched?.endDate ?? override?.endDate ?? "",
   };
+}
+
+function resolveRaceEventDay({ feedDate, startDate, endDate }) {
+  const start = new Date(`${startDate}T00:00:00+09:00`);
+  const end = new Date(`${endDate}T00:00:00+09:00`);
+  const target = new Date(`${feedDate}T00:00:00+09:00`);
+  if (
+    Number.isNaN(start.getTime()) ||
+    Number.isNaN(end.getTime()) ||
+    Number.isNaN(target.getTime()) ||
+    end.getTime() < start.getTime()
+  ) {
+    return { dayNumber: null, isFinalDay: false, label: null };
+  }
+
+  const dayNumber = Math.floor((target.getTime() - start.getTime()) / 86400000) + 1;
+  const totalDays = Math.floor((end.getTime() - start.getTime()) / 86400000) + 1;
+  if (dayNumber < 1 || dayNumber > totalDays) {
+    return { dayNumber: null, isFinalDay: false, label: null };
+  }
+
+  const isFinalDay = feedDate === endDate;
+  const label = dayNumber === 1
+    ? isFinalDay
+      ? "初日・最終日"
+      : "初日"
+    : isFinalDay
+      ? `${dayNumber}日目・最終日`
+      : `${dayNumber}日目`;
+
+  return { dayNumber, isFinalDay, label };
 }
 
 function parseKdreamsTodayVenues(html, todayIso, scheduleData) {
@@ -1076,6 +1145,11 @@ function parseKdreamsTodayVenues(html, todayIso, scheduleData) {
     const venueCode = detailLinks[0]?.raceId?.slice(0, 2) ?? cardId.slice(0, 2) ?? venueCodeFromLinks;
     const { startDate: resolvedStartDate, endDate: resolvedEndDate } =
       resolveVenueScheduleRange(scheduleData, venueText, todayIso, grade);
+    const eventDay = resolveRaceEventDay({
+      feedDate: todayIso,
+      startDate: resolvedStartDate,
+      endDate: resolvedEndDate,
+    });
 
     parseRows.push({
       venue: venueText,
@@ -1097,6 +1171,10 @@ function parseKdreamsTodayVenues(html, todayIso, scheduleData) {
       grade,
       startDate: resolvedStartDate,
       endDate: resolvedEndDate,
+      eventStartDate: resolvedStartDate,
+      eventEndDate: resolvedEndDate,
+      eventDayNumber: eventDay.dayNumber,
+      eventDayLabel: eventDay.label,
       session,
       hasGirls,
       note: "Kドリームス出走表一覧から自動生成",
@@ -3858,7 +3936,10 @@ async function main() {
     console.log(`[cache] no reusable existing feed for ${todayIso}`);
   }
   const overrides = await readOverrides();
-  const scheduleData = await readRaceScheduleData();
+  const scheduleData = [
+    ...(await readUpcomingScheduleData()),
+    ...(await readRaceScheduleData()),
+  ];
   let cacheReusedCount = 0;
   let cacheSkippedIncompleteCount = 0;
   let cacheFetchedCount = 0;

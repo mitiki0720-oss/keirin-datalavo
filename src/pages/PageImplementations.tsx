@@ -253,6 +253,10 @@ export type PredictionVenueItem = {
   grade?: string;
   startDate?: string;
   endDate?: string;
+  eventStartDate?: string;
+  eventEndDate?: string;
+  eventDayNumber?: number;
+  eventDayLabel?: string;
   session: "day" | "night" | "midnight";
   hasGirls?: boolean;
   note?: string;
@@ -3047,6 +3051,9 @@ export type PredictionVenueStageSource = {
   title?: string | null;
   startDate?: string | null;
   endDate?: string | null;
+  eventStartDate?: string | null;
+  eventEndDate?: string | null;
+  eventDayLabel?: string | null;
 };
 
 const getPredictionStageDateTime = (iso?: string | null) => {
@@ -3095,10 +3102,12 @@ export const getPredictionVenueStageLabel = (
   targetIsoDate = TODAY,
 ) => {
   const schedule = resolvePredictionVenueStageSchedule(venue, targetIsoDate);
+  const startDate = venue?.eventStartDate || venue?.startDate || schedule?.startDate;
+  const endDate = venue?.eventEndDate || venue?.endDate || schedule?.endDate;
   return getRaceEventDayLabel({
-    startDate: venue?.startDate || schedule?.startDate,
-    endDate: venue?.endDate || schedule?.endDate,
-    targetDate: targetIsoDate,
+    feedDate: targetIsoDate,
+    startDate,
+    endDate,
   }) ?? "日目未取得";
 };
 
@@ -3316,6 +3325,10 @@ const mergePredictionVenuePreserveRichData = (baseVenue: PredictionVenueItem, ov
     grade: preferPredictionNonEmpty(baseVenue.grade, overlayVenue.grade),
     startDate: preferPredictionNonEmpty(baseVenue.startDate, overlayVenue.startDate),
     endDate: preferPredictionNonEmpty(baseVenue.endDate, overlayVenue.endDate),
+    eventStartDate: preferPredictionNonEmpty(baseVenue.eventStartDate, overlayVenue.eventStartDate),
+    eventEndDate: preferPredictionNonEmpty(baseVenue.eventEndDate, overlayVenue.eventEndDate),
+    eventDayNumber: baseVenue.eventDayNumber ?? overlayVenue.eventDayNumber,
+    eventDayLabel: preferPredictionNonEmpty(baseVenue.eventDayLabel, overlayVenue.eventDayLabel),
     session: preferPredictionNonEmpty(baseVenue.session, overlayVenue.session) ?? baseVenue.session,
     hasGirls: baseVenue.hasGirls ?? overlayVenue.hasGirls,
     note: mergePredictionSourceNote(baseVenue.note, overlayVenue.note),
@@ -3344,7 +3357,14 @@ const mergePredictionVenuePreserveRichData = (baseVenue: PredictionVenueItem, ov
 };
 
 export const mergePredictionTodayFeedsPreserveRichData = (feeds: PredictionTodayFeed[]): PredictionTodayFeed => {
-  const [firstFeed, ...restFeeds] = feeds;
+  const latestFeedDate = feeds
+    .map((feed) => feed.date)
+    .filter((date): date is string => Boolean(date))
+    .sort((a, b) => b.localeCompare(a))[0];
+  const mergeFeeds = latestFeedDate
+    ? feeds.filter((feed) => feed.date === latestFeedDate)
+    : feeds;
+  const [firstFeed, ...restFeeds] = mergeFeeds;
   const merged: PredictionTodayFeed = {
     generatedAt: firstFeed.generatedAt,
     date: firstFeed.date,
