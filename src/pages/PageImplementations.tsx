@@ -7799,19 +7799,43 @@ function getPredictionKdreamsSectionStatus(availableCount: number, totalCount: n
 }
 
 function buildPredictionKdreamsLineupExport(race?: PredictionRaceItem | null) {
-  const rawLineup = String(race?.kdreamsLineupRaw ?? race?.lineup ?? "").trim();
-  if (!rawLineup) return "KDreams未掲載";
+  const kdreamsRaw = String(race?.kdreamsLineupRaw ?? "").trim();
+  const fallbackRaw = String(
+    race?.charilotoLineupRaw ??
+    race?.oddsparkLineupRaw ??
+    race?.netkeirinLineupRaw ??
+    race?.winticketLineupRaw ??
+    race?.lineup ??
+    ""
+  ).trim();
+  const rawLineup = kdreamsRaw || fallbackRaw;
+  const hasRaceDetail = Boolean(
+    (race?.riders?.length ?? 0) > 0 ||
+    (race?.oddsTrifecta?.length ?? 0) > 0 ||
+    (race?.oddsPreview?.length ?? 0) > 0 ||
+    String(race?.sourceNote ?? "").includes("racedetail=")
+  );
+  if (!rawLineup) {
+    return hasRaceDetail
+      ? [
+          "- KDreams並び予想: 未掲載",
+          "- 代替周回予想: 取得できませんでした",
+        ].join("\n")
+      : "KDreams詳細データを取得できませんでした。";
+  }
 
   const parsed = parsePredictionLineupRaw(rawLineup);
   return [
-    `- KDreams raw: ${rawLineup}`,
+    `- KDreams並び予想: ${kdreamsRaw ? "取得済み" : "未掲載"}`,
+    ...(kdreamsRaw ? [`- KDreams raw: ${kdreamsRaw}`] : []),
+    ...(!kdreamsRaw ? ["- 代替周回予想: 取得済み"] : []),
     `- 周回予想: ${parsed.orderLabel || rawLineup}`,
     ...(parsed.groupedGroups.length > 0
       ? [`- ライン区切り: ${parsed.groupedGroups.join(" / ")}`]
       : race?.isGirls && parsed.orderLabel
         ? ["- ライン区切り: 周回予想のみ。ライン区切りなし"]
         : parsed.orderLabel
-          ? ["- ライン区切り: KDreams未掲載"]
+          ? ["- ライン区切り: 未掲載"]
           : []),
   ].join("\n");
 }
