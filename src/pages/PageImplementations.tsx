@@ -8343,12 +8343,14 @@ export function PlayersPageLegacy() {
 
 type PlayerCardClassFilter = "all" | "SS" | "S1" | "unclassified";
 
+const PLAYERS_PAGE_BG_PATH = "/players-page/players-page-bg-sky-green-bank.png";
+
 const playerPagePanelStyle: CSSProperties = {
   borderRadius: "30px",
-  border: "1px solid rgba(160, 140, 220, 0.24)",
-  background: "rgba(255,255,255,0.84)",
-  boxShadow: "0 24px 70px rgba(80, 72, 140, 0.12)",
-  backdropFilter: "blur(18px)",
+  border: "1px solid rgba(160, 188, 220, 0.34)",
+  background: "rgba(255,255,255,0.82)",
+  boxShadow: "0 22px 60px rgba(75, 110, 150, 0.12)",
+  backdropFilter: "blur(16px)",
 };
 
 function PlayerCardStat({
@@ -8631,7 +8633,27 @@ export function PlayersPage() {
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #f2f4ff 0%, #f7f2ff 42%, #eef7ff 100%)", color: "#111827", fontFamily: "'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif" }}>
+    <div style={{ position: "relative", isolation: "isolate", minHeight: "100vh", overflowX: "hidden", backgroundColor: "#edf7ff", color: "#111827", fontFamily: "'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif" }}>
+      <div
+        aria-hidden="true"
+        data-players-bg-layer="true"
+        style={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+          backgroundColor: "#edf7ff",
+          backgroundImage: [
+            "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.10))",
+            `url("${toPublicPath(PLAYERS_PAGE_BG_PATH)}")`,
+          ].join(", "),
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "center top",
+          backgroundSize: "cover",
+          filter: "saturate(1.05) contrast(1.03)",
+        }}
+      />
+      <div style={{ position: "relative", zIndex: 1 }}>
       <SiteHeader activeKey="players" />
 
       <main style={{ width: isMobile ? "min(100%, calc(100vw - 28px))" : "min(1760px, calc(100vw - 48px))", margin: "0 auto", padding: isMobile ? "28px 0 64px" : "42px 0 88px", display: "grid", gap: "24px" }}>
@@ -8763,6 +8785,7 @@ export function PlayersPage() {
           </div>
         </section>
       </main>
+      </div>
     </div>
   );
 }
