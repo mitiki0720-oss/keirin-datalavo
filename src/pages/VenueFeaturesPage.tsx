@@ -478,7 +478,7 @@ export default function VenueFeaturesPage() {
         const bankIndexResponse = await fetch(toPublicPath("/data/venues/banks/index.json"), { cache: "force-cache" });
         const bankData = bankIndexResponse.ok ? ((await bankIndexResponse.json()) as VenueBankIndexItem[]) : [];
 
-        const insightData = await fetch(toPublicPath("/data/venues/bank-insights/index.json"), { cache: "force-cache" })
+        const insightData = await fetch(toPublicPath("/data/venues/bank-insights/index.json"), { cache: "no-cache" })
           .then(async (response) => (response.ok ? ((await response.json()) as VenueInsightIndexItem[]) : []))
           .catch(() => []);
 

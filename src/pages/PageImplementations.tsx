@@ -3768,11 +3768,11 @@ const buildPredictionVenueSummaryExportLines = ({
   const reviewSummary = venueSummary.reviewSummaryDigest ?? MISSING_PREDICTION_VENUE_REVIEW_SUMMARY_DIGEST;
   lines.push("", "【Summary学習メモ】");
   if (reviewSummary.source === "review-summary") {
-    appendPredictionVenueExportField(lines, "学習期間", reviewSummary.period || reviewSummary.updatedAt, "未取得");
+    appendPredictionVenueExportField(lines, "反映期間", reviewSummary.period || reviewSummary.updatedAt, "未取得");
     appendPredictionVenueExportList(lines, "学習特徴", reviewSummary.learnedFeatures, "未取得", 3);
-    appendPredictionVenueExportList(lines, "追加で狙う形", reviewSummary.targets, "未取得", 3);
+    appendPredictionVenueExportList(lines, "予想で使う狙い", reviewSummary.targets, "未取得", 3);
     appendPredictionVenueExportList(lines, "警戒", reviewSummary.cautions, "未取得", 3);
-    if (reviewSummary.gptMaterial) appendPredictionVenueExportField(lines, "GPT素材", reviewSummary.gptMaterial, "");
+    if (reviewSummary.gptMaterial) appendPredictionVenueExportField(lines, "GPT素材用まとめ", reviewSummary.gptMaterial, "");
   } else {
     lines.push("Summary学習メモは未作成です。");
   }
@@ -9408,7 +9408,7 @@ useEffect(() => {
             throw lastError ?? new Error("prediction-feed-missing");
           })(),
           fetch(PREDICTION_VENUE_BANK_INDEX_URL, { cache: "force-cache" }),
-          fetch(PREDICTION_VENUE_INSIGHT_INDEX_URL, { cache: "force-cache" }).catch(() => null),
+          fetch(PREDICTION_VENUE_INSIGHT_INDEX_URL, { cache: "no-cache" }).catch(() => null),
         ]);
 
         const bankIndex = bankIndexResponse.ok
