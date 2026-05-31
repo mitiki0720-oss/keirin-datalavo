@@ -484,6 +484,8 @@ export type PredictionRiderItem = {
   kdreamsRiderNote?: string;
 };
 
+type PredictionRookieRaceCategory = "advance-rookie-men" | "rookie-women" | null;
+
 export type PredictionRiderHistoricalRaceItem = {
   venue?: string;
   date?: string;
@@ -3835,6 +3837,8 @@ export const buildPredictionExportText = ({
     exportRace.title || exportRace.sourceNote || (venue.title ? `${venue.title} ${exportRace.raceNo}R` : ""),
     "レース名なし"
   );
+  const rookieRaceCategory = detectPredictionRookieRaceCategory(exportRace);
+  const rookieRaceLabel = getPredictionRookieRaceLabel(rookieRaceCategory);
   const lineupText = buildPredictionKdreamsLineupExport(exportRace);
   void memo;
 
@@ -3848,6 +3852,7 @@ export const buildPredictionExportText = ({
     `グレード: ${normalizePredictionExportValue(gradeLabel, "グレード情報なし")}`,
     `race_id: ${raceIdLabel}`,
     `レースタイトル: ${raceTitleLabel}`,
+    ...(rookieRaceLabel ? [`レース区分: ${rookieRaceLabel}`] : []),
     "",
     "[B. KDreams 並び予想 / 周回予想]",
     lineupText,
@@ -7798,6 +7803,44 @@ function getPredictionKdreamsSectionStatus(availableCount: number, totalCount: n
   return "一部未掲載";
 }
 
+function detectPredictionRookieRaceCategory(race?: PredictionRaceItem | null): PredictionRookieRaceCategory {
+  const title = String(race?.title ?? "").normalize("NFKC");
+  const periods = (race?.riders ?? [])
+    .map((rider) => Number(rider.term))
+    .filter((period) => Number.isFinite(period));
+  const majorityCount = periods.length > 0 ? Math.ceil(periods.length * 0.8) : 0;
+  const period129Count = periods.filter((period) => period === 129).length;
+  const period130Count = periods.filter((period) => period === 130).length;
+  const mostlyPeriod129 = majorityCount > 0 && period129Count >= majorityCount;
+  const mostlyPeriod130 = majorityCount > 0 && period130Count >= majorityCount;
+
+  if (/ガールズ新人|新人一般|新人決勝|新人予選[12]/u.test(title) || mostlyPeriod130) {
+    return "rookie-women";
+  }
+
+  if (/男予1|男予2|男ア般|男決勝|男ア決/u.test(title) || mostlyPeriod129) {
+    return "advance-rookie-men";
+  }
+
+  return null;
+}
+
+function getPredictionRookieRaceLabel(category: PredictionRookieRaceCategory) {
+  if (category === "advance-rookie-men") return "アドバンス新人戦";
+  if (category === "rookie-women") return "ガールズ新人戦";
+  return "";
+}
+
+function getPredictionRookieLineupNote(category: PredictionRookieRaceCategory) {
+  if (category === "advance-rookie-men") {
+    return "補足: アドバンス新人戦のため、通常のライン予想が掲載されない可能性があります。ライン固定ではなく、個々の走力・直近成績・上がり・オッズ分布を重視してください。";
+  }
+  if (category === "rookie-women") {
+    return "補足: ガールズ新人戦のため、通常のライン固定では評価しません。個々の位置取り・自力実績・直近成績・上がり・オッズ分布を重視してください。";
+  }
+  return "";
+}
+
 function buildPredictionKdreamsLineupExport(race?: PredictionRaceItem | null) {
   const kdreamsRaw = String(race?.kdreamsLineupRaw ?? "").trim();
   const fallbackRaw = String(
@@ -7815,28 +7858,39 @@ function buildPredictionKdreamsLineupExport(race?: PredictionRaceItem | null) {
     (race?.oddsPreview?.length ?? 0) > 0 ||
     String(race?.sourceNote ?? "").includes("racedetail=")
   );
+  const rookieCategory = detectPredictionRookieRaceCategory(race);
+  const rookieNote = getPredictionRookieLineupNote(rookieCategory);
   if (!rawLineup) {
     return hasRaceDetail
       ? [
           "- KDreams並び予想: 未掲載",
           "- 代替周回予想: 取得できませんでした",
+          ...(rookieNote ? [`- ${rookieNote}`] : []),
         ].join("\n")
       : "KDreams詳細データを取得できませんでした。";
   }
 
   const parsed = parsePredictionLineupRaw(rawLineup);
+  const hasGroupedLineup = parsed.groupedGroups.length > 0;
+  const shouldShowRookieNote = Boolean(
+    rookieNote &&
+    (rookieCategory === "advance-rookie-men"
+      ? !kdreamsRaw
+      : !hasGroupedLineup)
+  );
   return [
     `- KDreams並び予想: ${kdreamsRaw ? "取得済み" : "未掲載"}`,
     ...(kdreamsRaw ? [`- KDreams raw: ${kdreamsRaw}`] : []),
     ...(!kdreamsRaw ? ["- 代替周回予想: 取得済み"] : []),
     `- 周回予想: ${parsed.orderLabel || rawLineup}`,
-    ...(parsed.groupedGroups.length > 0
+    ...(hasGroupedLineup
       ? [`- ライン区切り: ${parsed.groupedGroups.join(" / ")}`]
       : race?.isGirls && parsed.orderLabel
         ? ["- ライン区切り: 周回予想のみ。ライン区切りなし"]
         : parsed.orderLabel
           ? ["- ライン区切り: 未掲載"]
           : []),
+    ...(shouldShowRookieNote ? [`- ${rookieNote}`] : []),
   ].join("\n");
 }
 
