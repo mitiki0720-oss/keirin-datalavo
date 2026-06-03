@@ -1,0 +1,87 @@
+{
+  "generatedAt": "2026-06-03T08:30:00+09:00",
+  "source": "operation-status-fixture",
+  "date": "2026-06-03",
+  "venues": [
+    {
+      "id": "fixture-normal",
+      "venue": "青森",
+      "venueCode": "12",
+      "slug": "aomori",
+      "grade": "F2",
+      "session": "day",
+      "venueOperationStatus": "scheduled",
+      "venueOperationLabel": "",
+      "venueOperationReason": "",
+      "venueOperationSource": "fixture",
+      "venueOperationUpdatedAt": "2026-06-03T08:30:00+09:00",
+      "races": [
+        {
+          "raceNo": 1,
+          "time": "10:30",
+          "title": "通常開催サンプル",
+          "raceOperationStatus": "scheduled",
+          "raceOperationLabel": "",
+          "raceOperationReason": "",
+          "raceOperationSource": "fixture",
+          "raceOperationUpdatedAt": "2026-06-03T08:30:00+09:00",
+          "riders": [{ "carNo": "1", "name": "選手A" }, { "carNo": "2", "name": "選手B" }, { "carNo": "3", "name": "選手C" }],
+          "lineup": "1 23",
+          "oddsTrifecta": [{ "combination": "1-2-3", "odds": 12.3, "source": "fixture" }]
+        }
+      ]
+    },
+    {
+      "id": "fixture-cancelled-venue",
+      "venue": "別府",
+      "venueCode": "86",
+      "slug": "beppu",
+      "grade": "F2",
+      "session": "day",
+      "venueOperationStatus": "cancelled",
+      "venueOperationLabel": "開催中止",
+      "venueOperationReason": "荒天のため",
+      "venueOperationSource": "fixture",
+      "venueOperationUpdatedAt": "2026-06-03T08:30:00+09:00",
+      "races": [
+        {
+          "raceNo": 1,
+          "time": "08:30",
+          "title": "会場全体中止サンプル",
+          "raceOperationStatus": "cancelled",
+          "raceOperationLabel": "開催中止",
+          "raceOperationReason": "荒天のため",
+          "raceOperationSource": "fixture",
+          "raceOperationUpdatedAt": "2026-06-03T08:30:00+09:00",
+          "riders": []
+        }
+      ]
+    },
+    {
+      "id": "fixture-cancelled-race",
+      "venue": "青森",
+      "venueCode": "12",
+      "slug": "aomori",
+      "grade": "F2",
+      "session": "day",
+      "venueOperationStatus": "scheduled",
+      "venueOperationLabel": "",
+      "venueOperationReason": "",
+      "venueOperationSource": "fixture",
+      "venueOperationUpdatedAt": "2026-06-03T08:30:00+09:00",
+      "races": [
+        {
+          "raceNo": 4,
+          "time": "12:00",
+          "title": "個別レース中止サンプル",
+          "raceOperationStatus": "cancelled",
+          "raceOperationLabel": "中止",
+          "raceOperationReason": "荒天のため",
+          "raceOperationSource": "fixture",
+          "raceOperationUpdatedAt": "2026-06-03T08:30:00+09:00",
+          "riders": []
+        }
+      ]
+    }
+  ]
+}

@@ -248,6 +248,9 @@ export type PredictionTodayFeed = {
   venues: PredictionVenueItem[];
 };
 
+type PredictionVenueOperationStatus = "scheduled" | "cancelled" | "postponed" | "suspended" | "unknown";
+type PredictionRaceOperationStatus = PredictionVenueOperationStatus | "finished";
+
 export type PredictionVenueItem = {
   id: string;
   venue: string;
@@ -264,6 +267,12 @@ export type PredictionVenueItem = {
   session: "day" | "night" | "midnight";
   hasGirls?: boolean;
   note?: string;
+  venueOperationStatus?: PredictionVenueOperationStatus;
+  venueOperationLabel?: string;
+  venueOperationReason?: string;
+  venueOperationSource?: string;
+  venueOperationUpdatedAt?: string;
+  venueOperationRaw?: string;
   raceNos?: number[];
   raceIds?: string[];
   races: PredictionRaceItem[];
@@ -279,6 +288,12 @@ export type PredictionRaceItem = {
   winticketLineupRaw?: string;
   netkeirinLineupRaw?: string;
   kdreamsLineupRaw?: string;
+  raceOperationStatus?: PredictionRaceOperationStatus;
+  raceOperationLabel?: string;
+  raceOperationReason?: string;
+  raceOperationSource?: string;
+  raceOperationUpdatedAt?: string;
+  raceOperationRaw?: string;
   isGirls?: boolean;
   sourceNote?: string;
   oddsNote?: string;
@@ -3431,11 +3446,32 @@ export const comparePredictionVenues = (a: PredictionVenueItem, b: PredictionVen
 
 export const getPredictionMaterialReady = (race?: PredictionRaceItem | null) => {
   if (!race) return false;
+  if (isPredictionRaceExcludedByOperation(undefined, race)) return false;
   const hasRiders = (race.riders?.length ?? 0) > 0;
   const hasLineup = buildPredictionLineupDisplay(race) !== "並び未取得";
   const hasOdds = (race.oddsTrifecta?.length ?? 0) > 0 || (race.oddsPreview?.length ?? 0) > 0;
   return hasRiders && hasLineup && hasOdds;
 };
+
+const OPERATION_EXCLUDED_STATUSES = new Set(["cancelled", "postponed", "suspended"]);
+
+const isPredictionVenueOperationExcluded = (venue?: PredictionVenueItem | null) =>
+  OPERATION_EXCLUDED_STATUSES.has(String(venue?.venueOperationStatus ?? ""));
+
+const isPredictionRaceOperationExcluded = (race?: PredictionRaceItem | null) =>
+  OPERATION_EXCLUDED_STATUSES.has(String(race?.raceOperationStatus ?? ""));
+
+const isPredictionRaceExcludedByOperation = (venue?: PredictionVenueItem | null, race?: PredictionRaceItem | null) =>
+  isPredictionVenueOperationExcluded(venue) || isPredictionRaceOperationExcluded(race);
+
+const getPredictionOperationLabel = (venue?: PredictionVenueItem | null, race?: PredictionRaceItem | null) => {
+  if (isPredictionVenueOperationExcluded(venue)) return venue?.venueOperationLabel || "開催中止";
+  if (isPredictionRaceOperationExcluded(race)) return race?.raceOperationLabel || "レース中止";
+  return "";
+};
+
+const getPredictionOperationReason = (venue?: PredictionVenueItem | null, race?: PredictionRaceItem | null) =>
+  (isPredictionVenueOperationExcluded(venue) ? venue?.venueOperationReason : race?.raceOperationReason) || "";
 
 const getPredictionRaceExternalId = (race?: PredictionRaceItem | null) => {
   const source = race as (PredictionRaceItem & { race_id?: unknown; raceId?: unknown; id?: unknown }) | null | undefined;
@@ -3629,6 +3665,12 @@ const mergePredictionVenuePreserveRichData = (baseVenue: PredictionVenueItem, ov
     eventDayLabel: preferPredictionNonEmpty(baseVenue.eventDayLabel, overlayVenue.eventDayLabel),
     session: preferPredictionNonEmpty(baseVenue.session, overlayVenue.session) ?? baseVenue.session,
     hasGirls: baseVenue.hasGirls ?? overlayVenue.hasGirls,
+    venueOperationStatus: preferPredictionNonEmpty(overlayVenue.venueOperationStatus, baseVenue.venueOperationStatus),
+    venueOperationLabel: preferPredictionNonEmpty(overlayVenue.venueOperationLabel, baseVenue.venueOperationLabel),
+    venueOperationReason: preferPredictionNonEmpty(overlayVenue.venueOperationReason, baseVenue.venueOperationReason),
+    venueOperationSource: preferPredictionNonEmpty(overlayVenue.venueOperationSource, baseVenue.venueOperationSource),
+    venueOperationUpdatedAt: preferPredictionNonEmpty(overlayVenue.venueOperationUpdatedAt, baseVenue.venueOperationUpdatedAt),
+    venueOperationRaw: preferPredictionNonEmpty(overlayVenue.venueOperationRaw, baseVenue.venueOperationRaw),
     note: mergePredictionSourceNote(baseVenue.note, overlayVenue.note),
     raceNos: preferPredictionLongerArray(baseVenue.raceNos, overlayVenue.raceNos),
     raceIds: preferPredictionLongerArray(baseVenue.raceIds, overlayVenue.raceIds),
@@ -3820,6 +3862,23 @@ export const buildPredictionExportText = ({
   oddsText: string;
 }) => {
   const exportRace = materialRace ?? race;
+  if (isPredictionRaceExcludedByOperation(venue, exportRace)) {
+    const operationLabel = isPredictionVenueOperationExcluded(venue) ? "開催中止" : "レース中止";
+    const sourceLabel = getPredictionOperationLabel(venue, exportRace) || operationLabel;
+    const reason = getPredictionOperationReason(venue, exportRace);
+    return [
+      "[A. レース基本情報]",
+      `会場名: ${normalizePredictionExportValue(venue.venue, "会場情報なし")}`,
+      `日付: ${normalizePredictionExportValue(date, "日付情報なし")}`,
+      `レース番号: ${exportRace.raceNo}R`,
+      `発走時刻: ${normalizePredictionExportValue(exportRace.time, "時刻情報なし")}`,
+      `開催状態: ${sourceLabel === "中止" && operationLabel === "レース中止" ? "レース中止" : sourceLabel}`,
+      ...(reason ? [`理由: ${reason}`] : []),
+      "",
+      "[NOTICE]",
+      "このレースは中止です。予想対象から除外してください。",
+    ].join("\n");
+  }
   const exportRiders = materialRiders?.length
     ? materialRiders
     : getPredictionMaterialRidersForKeirinRace(exportRace, venue);
@@ -10368,7 +10427,15 @@ if (
 
   const todayVenueCount = predictionFeed?.venues.length ?? 0;
   const todayRaceCount = predictionFeed?.venues.reduce((sum, venue) => sum + venue.races.length, 0) ?? 0;
-  const readyRaceCount = predictionFeed?.venues.reduce((sum, venue) => sum + venue.races.filter((race) => getPredictionMaterialReady(race)).length, 0) ?? 0;
+  const cancelledRaceCount = predictionFeed?.venues.reduce(
+    (sum, venue) => sum + venue.races.filter((race) => isPredictionRaceExcludedByOperation(venue, race)).length,
+    0
+  ) ?? 0;
+  const predictionTargetRaceCount = Math.max(0, todayRaceCount - cancelledRaceCount);
+  const readyRaceCount = predictionFeed?.venues.reduce(
+    (sum, venue) => sum + venue.races.filter((race) => !isPredictionRaceExcludedByOperation(venue, race) && getPredictionMaterialReady(race)).length,
+    0
+  ) ?? 0;
   const copyableRaceCount = readyRaceCount;
   const reflectedWeatherCount = Object.values(weatherByVenue).filter((item) => item !== null).length;
 
@@ -10403,6 +10470,8 @@ if (
   : "日程確認中";
   const predictionMaterialStateLabel = !selectedVenue || !selectedRace
     ? "対象未選択"
+    : isPredictionRaceExcludedByOperation(selectedVenue, selectedRace)
+      ? "中止NOTICE"
     : getPredictionMaterialReady(materialRace)
       ? "素材生成済み"
       : "素材補完中";
@@ -10779,8 +10848,8 @@ const record = normalizePredictionResultRecord({
           <section style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "16px" }}>
             {[
               { label: "TODAY VENUES", value: `${todayVenueCount}会場`, sub: "今日の開催会場数" },
-              { label: "TARGET RACES", value: `${todayRaceCount}R`, sub: "素材確認の対象レース数" },
-              { label: "READY MATERIAL", value: `${readyRaceCount}R`, sub: "並び・選手・オッズが揃う仮基準" },
+              { label: "TARGET RACES", value: `${predictionTargetRaceCount}R`, sub: cancelledRaceCount > 0 ? `全${todayRaceCount}R / 中止 ${cancelledRaceCount}R を除外` : "素材確認の対象レース数" },
+              { label: "READY MATERIAL", value: `${readyRaceCount}R`, sub: cancelledRaceCount > 0 ? `中止 ${cancelledRaceCount}R を除外` : "並び・選手・オッズが揃う仮基準" },
               { label: "COPY READY", value: `${copyableRaceCount}R`, sub: weatherLoadingVenue ? `${weatherLoadingVenue} の天気取得中` : `天気反映 ${reflectedWeatherCount}/${todayVenueCount || 0}会場` },
             ].map((item) => (
               <article key={item.label} style={{ borderRadius: "28px", border: "1px solid #ebe3f3", background: "linear-gradient(180deg, #ffffff 0%, #fcfafe 100%)", boxShadow: "0 16px 34px rgba(15, 23, 42, 0.05)", padding: "20px 22px" }}>
@@ -11056,6 +11125,11 @@ const record = normalizePredictionResultRecord({
                 <div style={{ fontSize: "9px", fontWeight: 900, letterSpacing: "0.16em", color: "#8c63c7", marginBottom: "6px" }}>CURRENT</div>
                 <div style={{ fontSize: "16px", fontWeight: 900, color: "#081224", lineHeight: 1.25 }}>{selectedVenue?.venue ?? "会場選択待ち"}{selectedRace ? ` / ${selectedRace.raceNo}R` : ""}</div>
                 <div style={{ marginTop: "4px", fontSize: "12px", color: "#7b889b", lineHeight: 1.7 }}>{selectedRace?.time ? `発走 ${selectedRace.time}` : "レース選択待ち"}</div>
+                {isPredictionRaceExcludedByOperation(selectedVenue, selectedRace) ? (
+                  <div style={{ marginTop: "8px", display: "inline-flex", alignItems: "center", width: "fit-content", borderRadius: "9999px", padding: "5px 9px", fontSize: "10px", fontWeight: 900, background: "rgba(255, 238, 242, 0.92)", border: "1px solid rgba(220, 70, 100, 0.42)", color: "#b42345" }}>
+                    {isPredictionVenueOperationExcluded(selectedVenue) ? "開催中止" : "レース中止"}
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -11094,6 +11168,7 @@ const record = normalizePredictionResultRecord({
                     const sessionTone = getPredictionSessionBadgeTone(venue);
                     const representativeRace = isActive ? selectedRace?.raceNo ?? venue.races[0]?.raceNo : venue.races[0]?.raceNo;
                     const representativeTime = isActive ? selectedRace?.time ?? venue.races[0]?.time : venue.races[0]?.time;
+                    const isVenueCancelled = isPredictionVenueOperationExcluded(venue);
 
                     return (
                       <button
@@ -11133,8 +11208,18 @@ const record = normalizePredictionResultRecord({
   }}
 >
   {venueStageLabel}
-</span>
+                          </span>
                         </div>
+                        {isVenueCancelled ? (
+                          <div style={{ display: "grid", gap: "4px", marginBottom: "10px" }}>
+                            <span style={{ display: "inline-flex", alignItems: "center", width: "fit-content", borderRadius: "9999px", padding: "5px 9px", fontSize: "10px", fontWeight: 900, background: "rgba(255, 238, 242, 0.92)", border: "1px solid rgba(220, 70, 100, 0.42)", color: "#b42345" }}>
+                              {venue.venueOperationLabel || "開催中止"}
+                            </span>
+                            {venue.venueOperationReason ? (
+                              <span style={{ fontSize: "11px", fontWeight: 800, color: "#b42345", lineHeight: 1.45 }}>{venue.venueOperationReason}</span>
+                            ) : null}
+                          </div>
+                        ) : null}
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", flexWrap: "wrap" }}>
                           <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 10px", fontSize: "10px", fontWeight: 900, background: sessionTone.background, color: sessionTone.text, border: `1px solid ${sessionTone.border}` }}>{sessionBadge}</span>
                           <div style={{ fontSize: "12px", fontWeight: 800, color: isActive ? "#5f4ea0" : "#526072", lineHeight: 1.5 }}>{representativeRace ? `${representativeRace}R` : "--R"}{representativeTime ? `  ${representativeTime}` : ""}</div>
@@ -11153,12 +11238,13 @@ const record = normalizePredictionResultRecord({
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(96px, 1fr))", gap: "10px" }}>
                   {(selectedVenue?.races ?? []).map((race) => {
                     const isActive = race.raceNo === selectedRace?.raceNo;
+                    const isRaceCancelled = isPredictionRaceExcludedByOperation(selectedVenue, race);
                     return (
                       <button
                         key={`quick-race-${selectedVenue?.id}-${race.raceNo}`}
                         type="button"
                         onClick={() => handlePredictionRaceSelect(race.raceNo)}
-                        style={{ display: "grid", gap: "4px", justifyItems: "start", borderRadius: "20px", border: isActive ? "1px solid #cbb9f0" : "1px solid #ebe3f3", background: isActive ? "linear-gradient(135deg, #7a67b8 0%, #526cc8 100%)" : "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(251,247,254,0.96) 100%)", color: isActive ? "#ffffff" : "#425266", padding: "12px 14px", cursor: "pointer", boxShadow: isActive ? "0 14px 28px rgba(122,103,184,0.18)" : "0 8px 18px rgba(15, 23, 42, 0.04)", transition: "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease" }}
+                        style={{ display: "grid", gap: "4px", justifyItems: "start", borderRadius: "20px", border: isRaceCancelled ? "1px solid rgba(220, 70, 100, 0.38)" : isActive ? "1px solid #cbb9f0" : "1px solid #ebe3f3", background: isRaceCancelled ? "rgba(255, 238, 242, 0.96)" : isActive ? "linear-gradient(135deg, #7a67b8 0%, #526cc8 100%)" : "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(251,247,254,0.96) 100%)", color: isRaceCancelled ? "#b42345" : isActive ? "#ffffff" : "#425266", opacity: isRaceCancelled ? 0.78 : 1, padding: "12px 14px", cursor: "pointer", boxShadow: isRaceCancelled ? "0 8px 18px rgba(180, 35, 69, 0.06)" : isActive ? "0 14px 28px rgba(122,103,184,0.18)" : "0 8px 18px rgba(15, 23, 42, 0.04)", transition: "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease" }}
                         onMouseEnter={(event) => {
                           event.currentTarget.style.transform = "translateY(-1px)";
                           event.currentTarget.style.boxShadow = isActive ? "0 16px 30px rgba(122,103,184,0.20)" : "0 10px 20px rgba(15, 23, 42, 0.07)";
@@ -11169,7 +11255,7 @@ const record = normalizePredictionResultRecord({
                         }}
                       >
                         <span style={{ fontSize: "14px", fontWeight: 900, lineHeight: 1.2 }}>{race.raceNo}R</span>
-                        <span style={{ fontSize: "11px", fontWeight: 800, color: isActive ? "rgba(255,255,255,0.84)" : "#7b889b", lineHeight: 1.2 }}>{race.time ?? "--:--"}</span>
+                        <span style={{ fontSize: "11px", fontWeight: 800, color: isRaceCancelled ? "#b42345" : isActive ? "rgba(255,255,255,0.84)" : "#7b889b", lineHeight: 1.2 }}>{isRaceCancelled ? (isPredictionVenueOperationExcluded(selectedVenue) ? "開催中止" : "中止") : (race.time ?? "--:--")}</span>
                       </button>
                     );
                   })}
@@ -11192,7 +11278,7 @@ const record = normalizePredictionResultRecord({
                 <div style={{ display: "grid", gap: "12px", marginBottom: "16px" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
                     <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                      <button type="button" onClick={handlePredictionCopy} style={{ minWidth: "160px", border: "none", borderRadius: "9999px", padding: "13px 18px", background: "linear-gradient(135deg, #081224 0%, #162745 100%)", color: "white", fontWeight: 900, fontSize: "12px", letterSpacing: "0.04em", cursor: "pointer", boxShadow: "0 12px 26px rgba(8, 18, 36, 0.14)" }}>コピー</button>
+                      <button type="button" onClick={handlePredictionCopy} style={{ minWidth: "160px", border: "none", borderRadius: "9999px", padding: "13px 18px", background: "linear-gradient(135deg, #081224 0%, #162745 100%)", color: "white", fontWeight: 900, fontSize: "12px", letterSpacing: "0.04em", cursor: "pointer", boxShadow: "0 12px 26px rgba(8, 18, 36, 0.14)" }}>{isPredictionRaceExcludedByOperation(selectedVenue, selectedRace) ? "中止情報をコピー" : "コピー"}</button>
                       <button type="button" onClick={handlePredictionDownload} style={{ minWidth: "180px", border: "1px solid #e0d6f4", borderRadius: "9999px", padding: "13px 18px", background: "linear-gradient(180deg, #fffefe 0%, #fff6fb 48%, #f6fbff 100%)", color: "#7a67b8", fontWeight: 900, fontSize: "12px", letterSpacing: "0.04em", cursor: "pointer" }}>TXTダウンロード</button>
                     </div>
 {(() => {

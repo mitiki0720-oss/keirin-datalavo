@@ -578,6 +578,9 @@ type LiveRaceResult = {
   bLeaderCarNo?: string;
 };
 
+type LiveVenueOperationStatus = "scheduled" | "cancelled" | "postponed" | "suspended" | "unknown";
+type LiveRaceOperationStatus = LiveVenueOperationStatus | "finished";
+
 type LiveRaceDetail = {
   raceNo: number;
   time: string;
@@ -594,6 +597,11 @@ type LiveRaceDetail = {
   favoriteOdds?: number | null;
   favoriteCombination?: string;
   oddsNote?: string;
+  raceOperationStatus?: LiveRaceOperationStatus;
+  raceOperationLabel?: string;
+  raceOperationReason?: string;
+  raceOperationSource?: string;
+  raceOperationUpdatedAt?: string;
   riders?: LiveRaceRider[];
   resultStatus?: "pending" | "confirmed";
   resultTop3?: LiveRaceResultEntry[];
@@ -611,8 +619,21 @@ type LiveTodayVenueItem = {
   session: RaceScheduleItem["session"];
   hasGirls: boolean;
   note?: string;
+  venueOperationStatus?: LiveVenueOperationStatus;
+  venueOperationLabel?: string;
+  venueOperationReason?: string;
+  venueOperationSource?: string;
+  venueOperationUpdatedAt?: string;
   races?: LiveRaceDetail[];
 };
+
+const LIVE_OPERATION_EXCLUDED_STATUSES = new Set(["cancelled", "postponed", "suspended"]);
+const isLiveVenueOperationExcluded = (venue?: LiveTodayVenueItem | null) =>
+  LIVE_OPERATION_EXCLUDED_STATUSES.has(String(venue?.venueOperationStatus ?? ""));
+const isLiveRaceOperationExcluded = (race?: LiveRaceDetail | null) =>
+  LIVE_OPERATION_EXCLUDED_STATUSES.has(String(race?.raceOperationStatus ?? ""));
+const isLiveRaceExcludedByOperation = (venue?: LiveTodayVenueItem | null, race?: LiveRaceDetail | null) =>
+  isLiveVenueOperationExcluded(venue) || isLiveRaceOperationExcluded(race);
 
 type GeneratedTodayRacesPayload = {
   generatedAt?: string;
@@ -3273,6 +3294,7 @@ gap: isMobile ? "10px" : "12px",
             const stage = getRacesPageStageLabel(venue, generatedDate);
             const venueBand = getVenueTimeBand(venue);
             const venueCardSessionLabel = normalizeRacesPageSessionLabel(venueBand);
+            const isVenueCancelled = isLiveVenueOperationExcluded(venue);
             const venueCardSessionTone =
               venueBand === "morning"
                 ? { background: "#fff7cc", color: "#9a6a00", border: "#f3df8a" }
@@ -3333,6 +3355,9 @@ gap: isMobile ? "10px" : "12px",
                   <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "5px 9px", fontSize: "10px", fontWeight: 900, background: venueCardSessionTone.background, color: venueCardSessionTone.color, border: `1px solid ${venueCardSessionTone.border}` }}>{venueCardSessionLabel}</span>
                   {stage ? (
                     <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "5px 9px", fontSize: "10px", fontWeight: 900, background: "#eef8ff", color: "#3d6b98", border: "1px solid #cfe6fb" }}>{stage}</span>
+                  ) : null}
+                  {isVenueCancelled ? (
+                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "5px 9px", fontSize: "10px", fontWeight: 900, background: "rgba(255, 238, 242, 0.92)", color: "#b42345", border: "1px solid rgba(220, 70, 100, 0.42)" }}>{venue.venueOperationLabel || "開催中止"}</span>
                   ) : null}
                 </div>
 
@@ -3477,6 +3502,7 @@ gap: isMobile ? "10px" : "12px",
 >
         {selectedVenueRaces.map((race) => {
           const active = race.raceNo === selectedRace?.raceNo;
+          const isRaceCancelled = isLiveRaceExcludedByOperation(selectedVenue, race);
           return (
             <button
               key={`${selectedVenue?.id}-${race.raceNo}`}
@@ -3484,18 +3510,21 @@ gap: isMobile ? "10px" : "12px",
               onClick={() => setSelectedRaceNo(race.raceNo)}
               style={{
                 borderRadius: isMobile ? "18px" : "22px",
-                border: active ? "1.5px solid #cdbff0" : "1px solid #ebe3f3",
-                background: active
+                border: isRaceCancelled ? "1px solid rgba(220, 70, 100, 0.38)" : active ? "1.5px solid #cdbff0" : "1px solid #ebe3f3",
+                background: isRaceCancelled ? "rgba(255, 238, 242, 0.96)" : active
                   ? "linear-gradient(180deg, #f7f0ff 0%, #ffffff 55%, #f3f9ff 100%)"
                   : "linear-gradient(180deg, #ffffff 0%, #fbf9fe 100%)",
                 padding: isMobile ? "12px 9px" : "15px 12px",
-                boxShadow: active ? "0 14px 28px rgba(122,103,184,0.10)" : "0 10px 20px rgba(15, 23, 42, 0.04)",
+                boxShadow: isRaceCancelled ? "0 10px 20px rgba(180, 35, 69, 0.05)" : active ? "0 14px 28px rgba(122,103,184,0.10)" : "0 10px 20px rgba(15, 23, 42, 0.04)",
                 cursor: "pointer",
                 display: "grid",
                 gap: isMobile ? "5px" : "6px",
               }}
             >
-              <div style={{ fontSize: "17px", fontWeight: 900, color: "#081224", lineHeight: 1 }}>{race.raceNo}R</div>
+              <div style={{ fontSize: "17px", fontWeight: 900, color: isRaceCancelled ? "#b42345" : "#081224", lineHeight: 1 }}>{race.raceNo}R</div>
+              {isRaceCancelled ? (
+                <div style={{ display: "inline-flex", alignItems: "center", width: "fit-content", borderRadius: "9999px", padding: "3px 7px", fontSize: "10px", fontWeight: 900, background: "rgba(255, 238, 242, 0.92)", color: "#b42345", border: "1px solid rgba(220, 70, 100, 0.42)" }}>{isLiveVenueOperationExcluded(selectedVenue) ? "開催中止" : "中止"}</div>
+              ) : null}
               <div style={{ fontSize: "12px", fontWeight: 800, color: active ? "#7a67b8" : "#607086" }}>{race.time || "—"}</div>
               <div style={{ fontSize: "10px", color: "#7b8a9d", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{race.title?.trim() || "レース詳細"}</div>
             </button>

@@ -175,6 +175,65 @@ function cleanCellText(value) {
   return stripTags(value).replace(/\s+/g, " ").trim();
 }
 
+function normalizeOperationStatus(rawValue, fallbackStatus = "scheduled") {
+  const text = String(rawValue ?? "").normalize("NFKC").replace(/\s+/g, " ").trim();
+  const emptyStatus = fallbackStatus || "unknown";
+  if (!text) {
+    return { status: emptyStatus, label: emptyStatus === "scheduled" ? "" : "状態未取得", reason: "", raw: "" };
+  }
+
+  if (/中止ではありません|未中止|中止なし|中止情報なし/u.test(text)) {
+    return { status: "scheduled", label: "", reason: "", raw: text };
+  }
+
+  const reason = matchOne(text, [
+    /(?:理由|事由|原因)[:：\s]*([^。／\/\n\r]+)/u,
+    /(荒天[^。／\/\n\r]*)/u,
+    /(悪天候[^。／\/\n\r]*)/u,
+    /(強風[^。／\/\n\r]*)/u,
+  ]);
+
+  if (/開催中止|発売中止|投票中止|(?:^|[^未])中止/u.test(text)) {
+    return {
+      status: "cancelled",
+      label: text.includes("開催中止") ? "開催中止" : "中止",
+      reason,
+      raw: text,
+    };
+  }
+
+  if (/順延|延期/u.test(text)) {
+    return { status: "postponed", label: "順延", reason, raw: text };
+  }
+
+  if (/打切|打ち切|打切り|打ち切り|一時中断|中断/u.test(text)) {
+    return { status: "suspended", label: "打ち切り・中断", reason, raw: text };
+  }
+
+  return { status: "scheduled", label: "", reason: "", raw: text };
+}
+
+function createOperationFields(prefix, operation, source, updatedAt) {
+  return {
+    [`${prefix}OperationStatus`]: operation.status,
+    [`${prefix}OperationLabel`]: operation.label,
+    [`${prefix}OperationReason`]: operation.reason,
+    [`${prefix}OperationSource`]: source,
+    [`${prefix}OperationUpdatedAt`]: updatedAt,
+    [`${prefix}OperationRaw`]: operation.raw,
+  };
+}
+
+function resolveRaceOperationStatus({ venueOperation, raceOperation, resultStatus }) {
+  const venueStatus = venueOperation?.status ?? "unknown";
+  const raceStatus = raceOperation?.status ?? "unknown";
+  if (["cancelled", "postponed", "suspended"].includes(venueStatus)) return venueOperation;
+  if (["cancelled", "postponed", "suspended"].includes(raceStatus)) return raceOperation;
+  if (resultStatus === "confirmed") return { status: "finished", label: "結果確定", reason: "", raw: "result confirmed" };
+  if (raceStatus === "scheduled" || venueStatus === "scheduled") return { status: "scheduled", label: "", reason: "", raw: "" };
+  return { status: "unknown", label: "状態未取得", reason: "", raw: "" };
+}
+
 const MOJIBAKE_TOKEN_PATTERN = /�|蟷|譛|譌|繝|繧|髱|髦|蠎|霈|荳|縺/g;
 
 function scoreTextMojibake(value) {
@@ -1097,7 +1156,7 @@ function resolveRaceEventDay({ feedDate, startDate, endDate }) {
   return { dayNumber, isFinalDay, label };
 }
 
-function parseKdreamsTodayVenues(html, todayIso, scheduleData) {
+function parseKdreamsTodayVenues(html, todayIso, scheduleData, operationUpdatedAt) {
   const tableMatch = html.match(/<div class="raceinfo_table">[\s\S]*?<table>([\s\S]*?)<\/table>/i);
   if (!tableMatch) {
     return { venues: [], debug: { tableFound: false } };
@@ -1119,8 +1178,10 @@ function parseKdreamsTodayVenues(html, todayIso, scheduleData) {
     const gradeCell = cells[1];
     const typeCell = cells[2];
     const linksCell = cells[3];
+    const rowText = cleanCellText(rowHtml);
 
     const venueText = stripTags(venueCell).replace(/競輪$/, "").trim();
+    const venueOperation = normalizeOperationStatus(rowText, "scheduled");
     const venueCodeFromLinks = linksCell.match(/\/racecard\/(\d{2})\d+\//i)?.[1] ?? "";
     const venueId = `live-${compactDate(todayIso)}${venueCodeFromLinks || venueText}`;
     const grade = inferGradeFromGradeHtml(gradeCell, {
@@ -1137,6 +1198,11 @@ function parseKdreamsTodayVenues(html, todayIso, scheduleData) {
       slug: m[1],
       raceId: m[2],
       raceNo: Number(m[3]),
+      racecardOperationStatus: "scheduled",
+      racecardOperationLabel: "",
+      racecardOperationReason: "",
+      racecardOperationSource: "kdreams:racecard",
+      racecardOperationUpdatedAt: operationUpdatedAt,
     }));
 
     const listLink = linksCell.match(/href="https:\/\/keirin\.kdreams\.jp\/([^/]+)\/racecard\/(\d+)\/"[^>]*>一覧<\/a>/i);
@@ -1158,6 +1224,12 @@ function parseKdreamsTodayVenues(html, todayIso, scheduleData) {
       grade,
       session,
       hasGirls,
+      venueOperationStatus: venueOperation.status,
+      venueOperationLabel: venueOperation.label,
+      venueOperationReason: venueOperation.reason,
+      venueOperationSource: "kdreams:racecard",
+      venueOperationUpdatedAt: operationUpdatedAt,
+      venueOperationRaw: venueOperation.raw,
       raceCount: detailLinks.length,
       raceNos: detailLinks.map((item) => item.raceNo),
     });
@@ -1179,6 +1251,12 @@ function parseKdreamsTodayVenues(html, todayIso, scheduleData) {
       hasGirls,
       note: "Kドリームス出走表一覧から自動生成",
       raceNos: detailLinks.map((item) => item.raceNo),
+      venueOperationStatus: venueOperation.status,
+      venueOperationLabel: venueOperation.label,
+      venueOperationReason: venueOperation.reason,
+      venueOperationSource: "kdreams:racecard",
+      venueOperationUpdatedAt: operationUpdatedAt,
+      venueOperationRaw: venueOperation.raw,
       raceIds: detailLinks.map((item) => item.raceId),
       raceDetailLinks: detailLinks,
       races: [],
@@ -2761,6 +2839,12 @@ function createEmptyRaceDetail(raceNo, sourceNote) {
     winticketLineupRaw: "",
     netkeirinLineupRaw: "",
     kdreamsLineupRaw: "",
+    raceOperationStatus: "unknown",
+    raceOperationLabel: "状態未取得",
+    raceOperationReason: "",
+    raceOperationSource: "",
+    raceOperationUpdatedAt: "",
+    raceOperationRaw: "",
     isGirls: false,
     sourceNote,
     lead: "",
@@ -2798,6 +2882,7 @@ async function fetchKdreamsRaceDetail(slug, kdreamsRaceId, raceNo, saveSample = 
   const riders = extractKdreamsRiders(html);
   const isGirls = /ガールズ|女子|L級|Ｌ級/i.test(title) || riders.some((rider) => /^L[12]$/i.test(rider.grade));
   const lineupData = extractKdreamsLineupFromForecast(html, raceNo, isGirls);
+  const raceOperation = normalizeOperationStatus(`${title} ${stripTags(html).slice(0, 3000)}`, "scheduled");
   const baseSourceNote = lineupData.lineup
     ? `kdreams racedetail=${url} / lineFallback: kdreams lineup accepted`
     : `kdreams racedetail=${url} / lineFallback: kdreams lineup unavailable${lineupData.reason ? ` (${lineupData.reason})` : ""}`;
@@ -2825,6 +2910,7 @@ async function fetchKdreamsRaceDetail(slug, kdreamsRaceId, raceNo, saveSample = 
     title,
     lineup: lineupData.lineup,
     kdreamsLineupRaw: lineupData.rawText,
+    ...createOperationFields("race", raceOperation, "kdreams:racedetail", `${getJstNowParts().isoDateTime}+09:00`),
     isGirls,
     sourceNote: appendUniqueNote(appendUniqueNote(baseSourceNote, riderFallbackNote), missingRiderNote),
     riders,
@@ -3114,6 +3200,12 @@ function mergeRaceDetailWithFallback(primary, fallback) {
     winticketLineupRaw: safePrimary.winticketLineupRaw || safeFallback.winticketLineupRaw,
     netkeirinLineupRaw: safePrimary.netkeirinLineupRaw || safeFallback.netkeirinLineupRaw,
     kdreamsLineupRaw: safePrimary.kdreamsLineupRaw || safeFallback.kdreamsLineupRaw,
+    raceOperationStatus: safePrimary.raceOperationStatus || safeFallback.raceOperationStatus || "unknown",
+    raceOperationLabel: safePrimary.raceOperationLabel || safeFallback.raceOperationLabel || "",
+    raceOperationReason: safePrimary.raceOperationReason || safeFallback.raceOperationReason || "",
+    raceOperationSource: safePrimary.raceOperationSource || safeFallback.raceOperationSource || "",
+    raceOperationUpdatedAt: safePrimary.raceOperationUpdatedAt || safeFallback.raceOperationUpdatedAt || "",
+    raceOperationRaw: safePrimary.raceOperationRaw || safeFallback.raceOperationRaw || "",
     isGirls: Boolean(safePrimary.isGirls || safeFallback.isGirls),
     sourceNote: safePrimary.sourceNote,
     lead: safePrimary.lead || safeFallback.lead,
@@ -3961,7 +4053,8 @@ async function main() {
   const html = await readHtmlResponse(response);
   await fs.writeFile(KDREAMS_DEBUG_HTML_PATH, html, "utf-8");
 
-  const { venues: todayVenues, debug } = parseKdreamsTodayVenues(html, todayIso, scheduleData);
+  const operationUpdatedAt = `${getJstNowParts().isoDateTime}+09:00`;
+  const { venues: todayVenues, debug } = parseKdreamsTodayVenues(html, todayIso, scheduleData, operationUpdatedAt);
   await fs.writeFile(
     DEBUG_JSON_PATH,
     JSON.stringify({ todayIso, matchedCount: todayVenues.length, debug }, null, 2),
@@ -4001,8 +4094,29 @@ async function main() {
 
       if (!cachedRaceRefreshReason && isReusableFinalRace(cachedRace) && !shouldFetchOddsForRace(cachedRace, venue, updatePhase)) {
         const reusableRace = prepareCachedRaceForReuse(cachedRace, raceNo);
+        const venueOperation = {
+          status: venue.venueOperationStatus ?? "scheduled",
+          label: venue.venueOperationLabel ?? "",
+          reason: venue.venueOperationReason ?? "",
+          raw: venue.venueOperationRaw ?? "",
+        };
+        const racecardOperation = {
+          status: detailLink?.racecardOperationStatus ?? "scheduled",
+          label: detailLink?.racecardOperationLabel ?? "",
+          reason: detailLink?.racecardOperationReason ?? "",
+          raw: "",
+        };
+        const resolvedOperation = resolveRaceOperationStatus({
+          venueOperation,
+          raceOperation: normalizeOperationStatus(reusableRace.raceOperationRaw || racecardOperation.raw, racecardOperation.status),
+          resultStatus: reusableRace.resultStatus,
+        });
+        const resolvedOperationSource = ["cancelled", "postponed", "suspended"].includes(venueOperation.status)
+          ? venue.venueOperationSource || "kdreams:racecard"
+          : reusableRace.raceOperationSource || "kdreams:racecard";
         fetchedRaces.push({
           ...reusableRace,
+          ...createOperationFields("race", resolvedOperation, resolvedOperationSource, operationUpdatedAt),
           ...extra,
           riders: Array.isArray(extra.riders) && extra.riders.length ? extra.riders : reusableRace.riders,
         });
@@ -4150,8 +4264,29 @@ async function main() {
         Boolean(oddsData.finalTrifectaFavorite) &&
         Array.isArray(oddsData.oddsTrifecta) &&
         oddsData.oddsTrifecta.length > 0;
+      const venueOperation = {
+        status: venue.venueOperationStatus ?? "scheduled",
+        label: venue.venueOperationLabel ?? "",
+        reason: venue.venueOperationReason ?? "",
+        raw: venue.venueOperationRaw ?? "",
+      };
+      const raceDetailOperation = {
+        status: detailRace.raceOperationStatus ?? detailLink?.racecardOperationStatus ?? "unknown",
+        label: detailRace.raceOperationLabel ?? detailLink?.racecardOperationLabel ?? "",
+        reason: detailRace.raceOperationReason ?? detailLink?.racecardOperationReason ?? "",
+        raw: detailRace.raceOperationRaw ?? "",
+      };
+      const resolvedRaceOperation = resolveRaceOperationStatus({
+        venueOperation,
+        raceOperation: raceDetailOperation,
+        resultStatus: hasConfirmedRaceResult(resultData) ? resultData.resultStatus : detailRace.resultStatus,
+      });
+      const resolvedRaceOperationSource = ["cancelled", "postponed", "suspended"].includes(venueOperation.status)
+        ? venue.venueOperationSource || "kdreams:racecard"
+        : detailRace.raceOperationSource || detailLink?.racecardOperationSource || "kdreams:racecard";
       const race = sanitizeRaceForCurrentPolicy({
         ...detailRace,
+        ...createOperationFields("race", resolvedRaceOperation, resolvedRaceOperationSource, operationUpdatedAt),
         oddsPreview:
           hasFreshOdds
             ? oddsData.oddsPreview

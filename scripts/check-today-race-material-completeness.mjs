@@ -81,6 +81,12 @@ const getLineupStatus = (race) => {
   return "lineup not checked";
 };
 
+const OPERATION_SKIP_STATUSES = new Set(["cancelled", "postponed", "suspended"]);
+
+const isVenueOperationSkipped = (venue) => OPERATION_SKIP_STATUSES.has(String(venue?.venueOperationStatus ?? ""));
+const isRaceOperationSkipped = (race) => OPERATION_SKIP_STATUSES.has(String(race?.raceOperationStatus ?? ""));
+const isRaceSkippedByOperation = (venue, race) => isVenueOperationSkipped(venue) || isRaceOperationSkipped(race);
+
 const getRiderHistoryCount = (rider) => {
   const previousRaceResults = Array.isArray(rider.previousRaceResults) ? rider.previousRaceResults.length : 0;
   const summaryCount = String(rider.previousRaceSummary ?? "").trim()
@@ -99,6 +105,9 @@ const warnings = [];
 for (const venue of today.venues ?? []) {
   const bankTarget = findVenueBankTarget(bankIndex, venue);
   const insightTargets = findVenueInsightTargets(insightIndex, venue);
+  if (isVenueOperationSkipped(venue)) {
+    warnings.push(`[cancelled-venue] ${venue.venue ?? venue.venueName ?? ""} ${venue.venueOperationLabel || venue.venueOperationStatus}`);
+  }
   const venueBaseSummaryStatus = bankTarget
     ? existsPublicFile(bankTarget.file) ? "ready" : "index-file-missing"
     : "missing";
@@ -107,6 +116,13 @@ for (const venue of today.venues ?? []) {
     : "missing";
 
   for (const race of venue.races ?? []) {
+    if (isRaceSkippedByOperation(venue, race)) {
+      const label = isVenueOperationSkipped(venue)
+        ? venue.venueOperationLabel || venue.venueOperationStatus
+        : race.raceOperationLabel || race.raceOperationStatus;
+      warnings.push(`[${isVenueOperationSkipped(venue) ? "skipped-cancelled" : "cancelled-race"}] ${venue.venue ?? venue.venueName ?? ""} ${race.raceNo}R: ${label}`);
+      continue;
+    }
     const riders = Array.isArray(race.riders) ? race.riders : [];
     const riderCount = riders.length;
     const expectedTrifectaCount = riderCount >= 3 ? riderCount * (riderCount - 1) * (riderCount - 2) : 0;
