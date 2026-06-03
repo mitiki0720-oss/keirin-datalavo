@@ -2,6 +2,7 @@
 import AnalysisMaterialPage from "./pages/AnalysisMaterialPage";
 import DashboardPage from "./pages/DashboardPage";
 import MobileDashboardPage from "./pages/MobileDashboardPage";
+import MonthlyReviewPage from "./pages/MonthlyReviewPage";
 import PlayersPage from "./pages/PlayersPage";
 import PredictionPage from "./pages/PredictionPage";
 import RacesPage from "./pages/RacesPage";
@@ -86,6 +87,10 @@ export default function App() {
     return <PlayersPage />;
   }
 
+  if (route.startsWith("monthly-review-page")) {
+    return <MonthlyReviewPage />;
+  }
+
   if (route.startsWith("races-page")) {
     return <RacesPage />;
   }
@@ -108,4 +113,3 @@ export default function App() {
 
   return <DashboardPage />;
 }
-

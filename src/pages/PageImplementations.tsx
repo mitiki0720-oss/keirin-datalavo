@@ -10,6 +10,7 @@ import {
   normalizeRegistrationNo,
   type PlayerCardIndexItem as PublicPlayerCardIndexItem,
 } from "../lib/playerCards";
+import { buildMonthlyPredictionGuidance, getActiveMonthlyReview } from "../lib/monthlyReviewInsights";
 import {
   findVenueInsightGroup,
   formatVenueInsightMemo,
@@ -21,6 +22,7 @@ import {
   toCompactSingleLine,
 } from "./venueFeatures/venueFeatureParsers";
 import type { VenueDetailBlock, VenueDetailSection, VenueInsightGroup, VenueInsightIndexItem } from "./venueFeatures/venueFeatureTypes";
+import type { MonthlyReviewDigest, MonthlyReviewIndexItem } from "../types/monthlyReview";
 
 export type CalendarDay = {
   iso: string;
@@ -3841,6 +3843,7 @@ export const buildPredictionExportText = ({
   trackAffinityText,
   dataAnalysisText,
   oddsText,
+  monthlyGuidanceText = "",
 }: {
   date: string;
   venue: PredictionVenueItem;
@@ -3860,6 +3863,7 @@ export const buildPredictionExportText = ({
   trackAffinityText: string;
   dataAnalysisText: string;
   oddsText: string;
+  monthlyGuidanceText?: string;
 }) => {
   const exportRace = materialRace ?? race;
   if (isPredictionRaceExcludedByOperation(venue, exportRace)) {
@@ -3953,6 +3957,7 @@ export const buildPredictionExportText = ({
     "",
     "[M. 補足ソース]",
     buildPredictionMemoExport(exportRace, memo),
+    ...(monthlyGuidanceText.trim() ? ["", monthlyGuidanceText.trim()] : []),
   ].join("\n");
 };
 
@@ -6661,7 +6666,7 @@ export function DashboardPage() {
 
   const navigateDashboardHashTop = (href: string) => {
     window.location.hash = href;
-    if (href === "#races-page" || href === "#players-page" || href === "#prediction-page" || href === "#review-page" || href === "#venue-features-page") {
+    if (href === "#races-page" || href === "#players-page" || href === "#monthly-review-page" || href === "#prediction-page" || href === "#review-page" || href === "#venue-features-page") {
       window.requestAnimationFrame(() => {
         window.scrollTo({ top: 0, behavior: "auto" });
       });
@@ -8857,6 +8862,7 @@ export type SiteHeaderActiveKey =
   | "races"
   | "venues"
   | "players"
+  | "monthly"
   | "calendar"
   | "mobile";
 
@@ -9076,6 +9082,9 @@ return (
             <a href="#players-page" onClick={goHashTop("#players-page")} style={getNavStyle("players")}>
               Players
             </a>
+            <a href="#monthly-review-page" onClick={goHashTop("#monthly-review-page")} style={getNavStyle("monthly")}>
+              Monthly
+            </a>
             <a href="#mobile-dashboard" onClick={goHashTop("#mobile-dashboard")} style={getNavStyle("mobile")}>
               Mobile
             </a>
@@ -9117,13 +9126,15 @@ const subPageActiveKey: SiteHeaderActiveKey =
           ? "venues"
           : routePrefix === "players-page"
             ? "players"
-            : routePrefix === "mobile-dashboard"
-              ? "mobile"
-              : routePrefix === "calendar"
-                ? "calendar"
-                : routePrefix === "featured-race"
-                  ? "analysis"
-                  : "dashboard";
+            : routePrefix === "monthly-review-page"
+              ? "monthly"
+              : routePrefix === "mobile-dashboard"
+                ? "mobile"
+                : routePrefix === "calendar"
+                  ? "calendar"
+                  : routePrefix === "featured-race"
+                    ? "analysis"
+                    : "dashboard";
 
     const isRacesSubPage = subPageActiveKey === "races";
 
@@ -9317,6 +9328,9 @@ export function PredictionPage() {
   const [weatherByVenue, setWeatherByVenue] = useState<Record<string, PredictionWeatherData | null>>({});
   const [weatherStatusByVenue, setWeatherStatusByVenue] = useState<Record<string, string>>({});
   const [weatherLoadingVenue, setWeatherLoadingVenue] = useState("");
+  const [monthlyReviewItem, setMonthlyReviewItem] = useState<MonthlyReviewIndexItem | null>(null);
+  const [monthlyReviewDigest, setMonthlyReviewDigest] = useState<MonthlyReviewDigest | null>(null);
+  const [monthlyReviewStatus, setMonthlyReviewStatus] = useState<"loading" | "ready" | "missing" | "error">("loading");
   const hitNotificationLookup = useMemo(
     () => buildHitNotificationLookup(predictionFeed, savedPredictionSlots, savedPredictionResults),
     [predictionFeed, savedPredictionSlots, savedPredictionResults]
@@ -9442,6 +9456,28 @@ useEffect(() => {
     window.addEventListener("resize", handleResize);
     return () => {
       window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+
+    getActiveMonthlyReview()
+      .then(({ item, digest }) => {
+        if (!isActive) return;
+        setMonthlyReviewItem(item);
+        setMonthlyReviewDigest(digest);
+        setMonthlyReviewStatus(item && digest ? "ready" : "missing");
+      })
+      .catch(() => {
+        if (!isActive) return;
+        setMonthlyReviewItem(null);
+        setMonthlyReviewDigest(null);
+        setMonthlyReviewStatus("error");
+      });
+
+    return () => {
+      isActive = false;
     };
   }, []);
 
@@ -10420,6 +10456,18 @@ if (
     () => buildPredictionMemoExport(selectedPredictionMaterialRace ?? { raceNo: 0 }, predictionMemo),
     [predictionMemo, selectedPredictionMaterialRace]
   );
+  const selectedPredictionMonthlyGuidanceText = useMemo(
+    () => buildMonthlyPredictionGuidance({
+      digest: monthlyReviewDigest,
+      raceTitle: selectedPredictionMaterialRace?.title || selectedPredictionMaterialRace?.sourceNote || "",
+      lineup: buildPredictionLineupDisplay(selectedPredictionMaterialRace),
+      isCancelled: Boolean(selectedPredictionMaterialVenue && selectedPredictionMaterialRace && isPredictionRaceExcludedByOperation(selectedPredictionMaterialVenue, selectedPredictionMaterialRace)),
+      hasVenueMaster: selectedVenueSummary.masterDigest?.source === "bank-master",
+      hasReviewSummary: selectedVenueSummary.reviewSummaryDigest?.source === "review-summary",
+      hasRegisteredRiderMemo: selectedPredictionLinkedPlayerContexts.length > 0,
+    }),
+    [monthlyReviewDigest, selectedPredictionLinkedPlayerContexts.length, selectedPredictionMaterialRace, selectedPredictionMaterialVenue, selectedVenueSummary.masterDigest?.source, selectedVenueSummary.reviewSummaryDigest?.source]
+  );
   const sortedPredictionVenues = useMemo(
     () => [...(predictionFeed?.venues ?? [])].sort(comparePredictionVenues),
     [predictionFeed]
@@ -10460,8 +10508,9 @@ if (
       trackAffinityText: selectedPredictionTrackAffinityText,
       dataAnalysisText: selectedPredictionDataAnalysisText,
       oddsText: selectedPredictionOddsText,
+      monthlyGuidanceText: selectedPredictionMonthlyGuidanceText,
     });
-  }, [predictionFeed, selectedPredictionDataAnalysisText, selectedPredictionMatchupText, selectedPredictionMaterialRace, selectedPredictionMaterialRiders, selectedPredictionMaterialVenue, selectedPredictionMemoText, selectedPredictionOddsText, selectedPredictionPlayerCardInsightText, selectedPredictionRecentPerformanceText, selectedPredictionRecentRaceText, selectedPredictionRiderBasicText, selectedPredictionTrackAffinityText, selectedVenueGradeLabel, selectedVenueSummary, selectedWeather, selectedWeatherFallbackText]);
+  }, [predictionFeed, selectedPredictionDataAnalysisText, selectedPredictionMatchupText, selectedPredictionMaterialRace, selectedPredictionMaterialRiders, selectedPredictionMaterialVenue, selectedPredictionMemoText, selectedPredictionMonthlyGuidanceText, selectedPredictionOddsText, selectedPredictionPlayerCardInsightText, selectedPredictionRecentPerformanceText, selectedPredictionRecentRaceText, selectedPredictionRiderBasicText, selectedPredictionTrackAffinityText, selectedVenueGradeLabel, selectedVenueSummary, selectedWeather, selectedWeatherFallbackText]);
   const gptExportLineCount = useMemo(() => gptExportText.split(/\r?\n/).length, [gptExportText]);
   const gptExportCharCount = useMemo(() => gptExportText.length, [gptExportText]);
   const selectedPredictionTargetLabel = selectedVenue && selectedRace ? `${selectedVenue.venue} ${selectedRace.raceNo}R` : "レース選択待ち";
@@ -10475,6 +10524,11 @@ if (
     : getPredictionMaterialReady(materialRace)
       ? "素材生成済み"
       : "素材補完中";
+  const monthlyReviewStateLabel = monthlyReviewStatus === "ready"
+    ? "月次振り返り: 反映済み"
+    : monthlyReviewStatus === "loading"
+      ? "月次振り返り: 読み込み中"
+      : "月次振り返り: 未登録";
   const predictionSlotSaveStateLabel = selectedSavedPredictionSlot ? "保存済み" : "未保存";
   const predictionResultLinkStateLabel = selectedGeneratedPredictionResult?.resultStatus === "confirmed"
     ? "結果反映済み"
@@ -11292,6 +11346,7 @@ const record = normalizePredictionResultRecord({
 })()}
                     <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "7px 12px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.12em", background: "linear-gradient(135deg, rgba(242,236,251,1) 0%, rgba(232,241,255,1) 100%)", color: "#6b57a8", border: "1px solid #ddd3f0", boxShadow: "0 8px 18px rgba(122,103,184,0.08)" }}>{predictionMaterialStateLabel}</span>
+                      <span title={monthlyReviewItem?.title ?? undefined} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.06em", background: monthlyReviewStatus === "ready" ? "rgba(236,253,245,0.9)" : "rgba(255,255,255,0.82)", color: monthlyReviewStatus === "ready" ? "#047857" : "#7a8090", border: monthlyReviewStatus === "ready" ? "1px solid #a7f3d0" : "1px solid #ebe3f3" }}>{monthlyReviewStateLabel}</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.06em", background: selectedVenueSummary.source === "missing" ? "rgba(255,255,255,0.82)" : "rgba(236,253,245,0.9)", color: selectedVenueSummary.source === "missing" ? "#7a8090" : "#047857", border: selectedVenueSummary.source === "missing" ? "1px solid #ebe3f3" : "1px solid #a7f3d0" }}>基本バンク特徴：{selectedVenueSummary.source === "missing" ? "未登録" : "反映済み"}</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.06em", background: selectedVenueSummary.masterDigest?.source === "bank-master" ? "rgba(236,253,245,0.9)" : "rgba(255,255,255,0.82)", color: selectedVenueSummary.masterDigest?.source === "bank-master" ? "#047857" : "#7a8090", border: selectedVenueSummary.masterDigest?.source === "bank-master" ? "1px solid #a7f3d0" : "1px solid #ebe3f3" }}>会場別マスター分析：{selectedVenueSummary.masterDigest?.source === "bank-master" ? "反映済み" : "未作成"}</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.06em", background: selectedVenueSummary.reviewSummaryDigest?.source === "review-summary" ? "rgba(236,253,245,0.9)" : "rgba(255,255,255,0.82)", color: selectedVenueSummary.reviewSummaryDigest?.source === "review-summary" ? "#047857" : "#7a8090", border: selectedVenueSummary.reviewSummaryDigest?.source === "review-summary" ? "1px solid #a7f3d0" : "1px solid #ebe3f3" }}>Summary学習メモ：{selectedVenueSummary.reviewSummaryDigest?.source === "review-summary" ? "反映済み" : "未作成"}</span>
