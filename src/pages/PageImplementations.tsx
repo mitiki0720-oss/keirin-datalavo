@@ -14,9 +14,12 @@ import {
 import { buildMonthlyPredictionGuidance, getActiveMonthlyReview } from "../lib/monthlyReviewInsights";
 import {
   buildKurariExPredictionMaterial,
+  findKurariExExactVenueEntryByVenueName,
   findKurariExVenueEntryByVenueName,
+  loadKurariExExactIndex,
   loadKurariExIndex,
   loadKurariExVenueBundle,
+  loadKurariExVenueExact,
 } from "../lib/kurariExData";
 import {
   findVenueInsightGroup,
@@ -30,7 +33,12 @@ import {
 } from "./venueFeatures/venueFeatureParsers";
 import type { VenueDetailBlock, VenueDetailSection, VenueInsightGroup, VenueInsightIndexItem } from "./venueFeatures/venueFeatureTypes";
 import type { MonthlyReviewDigest, MonthlyReviewIndexItem } from "../types/monthlyReview";
-import type { KurariExIndex, KurariExVenueBundle } from "../types/kurariEx";
+import type {
+  KurariExExactIndex,
+  KurariExIndex,
+  KurariExVenueBundle,
+  KurariExVenueExact,
+} from "../types/kurariEx";
 
 export type CalendarDay = {
   iso: string;
@@ -9348,10 +9356,16 @@ export function PredictionPage() {
   const [monthlyReviewStatus, setMonthlyReviewStatus] = useState<"loading" | "ready" | "missing" | "error">("loading");
   const [kurariExIndex, setKurariExIndex] = useState<KurariExIndex | null>(null);
   const [kurariExIndexStatus, setKurariExIndexStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [kurariExExactIndex, setKurariExExactIndex] = useState<KurariExExactIndex | null>(null);
+  const [kurariExExactIndexStatus, setKurariExExactIndexStatus] = useState<"loading" | "ready" | "error">("loading");
   const [kurariExVenueCache, setKurariExVenueCache] = useState<Record<string, KurariExVenueBundle>>({});
   const [kurariExVenueStatus, setKurariExVenueStatus] = useState<Record<string, "loading" | "ready" | "missing" | "error">>({});
+  const [kurariExExactVenueCache, setKurariExExactVenueCache] = useState<Record<string, KurariExVenueExact>>({});
+  const [kurariExExactVenueStatus, setKurariExExactVenueStatus] = useState<Record<string, "loading" | "ready" | "missing" | "error">>({});
   const kurariExVenueCacheRef = useRef<Record<string, KurariExVenueBundle>>({});
   const kurariExVenueLoadingRef = useRef<Set<string>>(new Set());
+  const kurariExExactVenueCacheRef = useRef<Record<string, KurariExVenueExact>>({});
+  const kurariExExactVenueLoadingRef = useRef<Set<string>>(new Set());
   const hitNotificationLookup = useMemo(
     () => buildHitNotificationLookup(predictionFeed, savedPredictionSlots, savedPredictionResults),
     [predictionFeed, savedPredictionSlots, savedPredictionResults]
@@ -9497,6 +9511,24 @@ useEffect(() => {
         setMonthlyReviewStatus("error");
       });
 
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+    loadKurariExExactIndex()
+      .then((index) => {
+        if (!isActive) return;
+        setKurariExExactIndex(index);
+        setKurariExExactIndexStatus("ready");
+      })
+      .catch(() => {
+        if (!isActive) return;
+        setKurariExExactIndex(null);
+        setKurariExExactIndexStatus("error");
+      });
     return () => {
       isActive = false;
     };
@@ -9765,6 +9797,12 @@ if (!nextSlots[currentKey] && nextSlots[legacyKey]) {
       : null,
     [kurariExIndex, selectedVenue],
   );
+  const selectedKurariExExactEntry = useMemo(
+    () => kurariExExactIndex && selectedVenue
+      ? findKurariExExactVenueEntryByVenueName(kurariExExactIndex, selectedVenue.venue, selectedVenue.slug)
+      : null,
+    [kurariExExactIndex, selectedVenue],
+  );
 
   useEffect(() => {
     if (!selectedVenue || kurariExIndexStatus !== "ready") return;
@@ -9797,6 +9835,38 @@ if (!nextSlots[currentKey] && nextSlots[legacyKey]) {
       isActive = false;
     };
   }, [kurariExIndexStatus, selectedKurariExEntry, selectedVenue]);
+
+  useEffect(() => {
+    if (!selectedVenue || kurariExExactIndexStatus !== "ready") return;
+    const venueNameKey = normalizePredictionVenueName(selectedVenue.venue);
+    if (!selectedKurariExExactEntry) {
+      setKurariExExactVenueStatus((current) => ({ ...current, [venueNameKey]: "missing" }));
+      return;
+    }
+    const venueKey = selectedKurariExExactEntry.venueKey;
+    if (kurariExExactVenueCacheRef.current[venueKey] || kurariExExactVenueLoadingRef.current.has(venueKey)) return;
+
+    let isActive = true;
+    kurariExExactVenueLoadingRef.current.add(venueKey);
+    setKurariExExactVenueStatus((current) => ({ ...current, [venueKey]: "loading" }));
+    loadKurariExVenueExact(selectedKurariExExactEntry)
+      .then((exact) => {
+        if (!isActive) return;
+        kurariExExactVenueCacheRef.current = { ...kurariExExactVenueCacheRef.current, [venueKey]: exact };
+        setKurariExExactVenueCache((current) => ({ ...current, [venueKey]: exact }));
+        setKurariExExactVenueStatus((current) => ({ ...current, [venueKey]: "ready" }));
+      })
+      .catch(() => {
+        if (!isActive) return;
+        setKurariExExactVenueStatus((current) => ({ ...current, [venueKey]: "error" }));
+      })
+      .finally(() => {
+        kurariExExactVenueLoadingRef.current.delete(venueKey);
+      });
+    return () => {
+      isActive = false;
+    };
+  }, [kurariExExactIndexStatus, selectedKurariExExactEntry, selectedVenue]);
 
   useEffect(() => {
     if (!selectedVenue) return;
@@ -10556,13 +10626,32 @@ if (
       : kurariExIndexStatus === "ready"
         ? "missing"
         : "loading";
+  const selectedKurariExExact = selectedKurariExExactEntry
+    ? kurariExExactVenueCache[selectedKurariExExactEntry.venueKey] ?? null
+    : null;
+  const selectedKurariExExactStatus = selectedKurariExExactEntry
+    ? kurariExExactVenueStatus[selectedKurariExExactEntry.venueKey] ?? "loading"
+    : kurariExExactIndexStatus === "error"
+      ? "error"
+      : kurariExExactIndexStatus === "ready"
+        ? "missing"
+        : "loading";
+  const selectedKurariExAnyReady = selectedKurariExStatus === "ready" || selectedKurariExExactStatus === "ready";
+  const selectedKurariExBothMissing = selectedKurariExStatus === "missing" && selectedKurariExExactStatus === "missing";
   const selectedKurariExGuidanceText = useMemo(
-    () => selectedKurariExStatus === "ready"
-      ? buildKurariExPredictionMaterial(selectedKurariExBundle)
-      : selectedKurariExStatus === "missing"
-        ? buildKurariExPredictionMaterial(null)
+    () => selectedKurariExAnyReady
+      ? buildKurariExPredictionMaterial(selectedKurariExBundle, selectedKurariExExact, {
+          timeslot: selectedPredictionMaterialVenue?.session,
+          raceTime: selectedPredictionMaterialRace?.time,
+          raceTitle: selectedPredictionMaterialRace?.title,
+          isGirls: selectedPredictionMaterialRace?.isGirls,
+          lineup: selectedPredictionMaterialRace?.lineup,
+          windSpeedKmh: parsePredictionNumber(selectedWeather?.windSpeedText ?? ""),
+        })
+      : selectedKurariExBothMissing
+        ? buildKurariExPredictionMaterial(null, null)
         : "",
-    [selectedKurariExBundle, selectedKurariExStatus],
+    [selectedKurariExAnyReady, selectedKurariExBothMissing, selectedKurariExBundle, selectedKurariExExact, selectedPredictionMaterialRace, selectedPredictionMaterialVenue?.session, selectedWeather?.windSpeedText],
   );
   const sortedPredictionVenues = useMemo(
     () => [...(predictionFeed?.venues ?? [])].sort(comparePredictionVenues),
@@ -10626,11 +10715,15 @@ if (
     : monthlyReviewStatus === "loading"
       ? "月次振り返り: 読み込み中"
       : "月次振り返り: 未登録";
-  const kurariExStateLabel = selectedKurariExStatus === "ready"
-    ? "KURARI EX：SEED反映済み"
-    : selectedKurariExStatus === "error"
+  const kurariExStateLabel = selectedKurariExStatus === "ready" && selectedKurariExExactStatus === "ready"
+    ? "KURARI EX：SEED + EXACT反映済み"
+    : selectedKurariExStatus === "ready"
+      ? "KURARI EX：SEED反映済み"
+      : selectedKurariExExactStatus === "ready"
+        ? "KURARI EX：EXACT反映済み"
+        : selectedKurariExStatus === "error" || selectedKurariExExactStatus === "error"
       ? "KURARI EX：取得失敗"
-      : selectedKurariExStatus === "missing"
+      : selectedKurariExStatus === "missing" && selectedKurariExExactStatus === "missing"
         ? "KURARI EX：未登録"
         : "KURARI EX：確認中";
   const predictionSlotSaveStateLabel = selectedSavedPredictionSlot ? "保存済み" : "未保存";
@@ -11451,7 +11544,7 @@ const record = normalizePredictionResultRecord({
                     <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "7px 12px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.12em", background: "linear-gradient(135deg, rgba(242,236,251,1) 0%, rgba(232,241,255,1) 100%)", color: "#6b57a8", border: "1px solid #ddd3f0", boxShadow: "0 8px 18px rgba(122,103,184,0.08)" }}>{predictionMaterialStateLabel}</span>
                       <span title={monthlyReviewItem?.title ?? undefined} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.06em", background: monthlyReviewStatus === "ready" ? "rgba(236,253,245,0.9)" : "rgba(255,255,255,0.82)", color: monthlyReviewStatus === "ready" ? "#047857" : "#7a8090", border: monthlyReviewStatus === "ready" ? "1px solid #a7f3d0" : "1px solid #ebe3f3" }}>{monthlyReviewStateLabel}</span>
-                      <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.06em", background: selectedKurariExStatus === "ready" ? "rgba(229, 246, 239, 0.92)" : "rgba(255,255,255,0.82)", color: selectedKurariExStatus === "ready" ? "#276b59" : selectedKurariExStatus === "error" ? "#9f3858" : "#7a8090", border: selectedKurariExStatus === "ready" ? "1px solid rgba(87, 160, 132, 0.32)" : selectedKurariExStatus === "error" ? "1px solid #f0d8df" : "1px solid #ebe3f3" }}>{kurariExStateLabel}</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.06em", background: selectedKurariExAnyReady ? "rgba(229, 246, 239, 0.92)" : "rgba(255,255,255,0.82)", color: selectedKurariExAnyReady ? "#276b59" : selectedKurariExStatus === "error" || selectedKurariExExactStatus === "error" ? "#9f3858" : "#7a8090", border: selectedKurariExAnyReady ? "1px solid rgba(87, 160, 132, 0.32)" : selectedKurariExStatus === "error" || selectedKurariExExactStatus === "error" ? "1px solid #f0d8df" : "1px solid #ebe3f3" }}>{kurariExStateLabel}</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.06em", background: selectedVenueSummary.source === "missing" ? "rgba(255,255,255,0.82)" : "rgba(236,253,245,0.9)", color: selectedVenueSummary.source === "missing" ? "#7a8090" : "#047857", border: selectedVenueSummary.source === "missing" ? "1px solid #ebe3f3" : "1px solid #a7f3d0" }}>基本バンク特徴：{selectedVenueSummary.source === "missing" ? "未登録" : "反映済み"}</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.06em", background: selectedVenueSummary.masterDigest?.source === "bank-master" ? "rgba(236,253,245,0.9)" : "rgba(255,255,255,0.82)", color: selectedVenueSummary.masterDigest?.source === "bank-master" ? "#047857" : "#7a8090", border: selectedVenueSummary.masterDigest?.source === "bank-master" ? "1px solid #a7f3d0" : "1px solid #ebe3f3" }}>会場別マスター分析：{selectedVenueSummary.masterDigest?.source === "bank-master" ? "反映済み" : "未作成"}</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.06em", background: selectedVenueSummary.reviewSummaryDigest?.source === "review-summary" ? "rgba(236,253,245,0.9)" : "rgba(255,255,255,0.82)", color: selectedVenueSummary.reviewSummaryDigest?.source === "review-summary" ? "#047857" : "#7a8090", border: selectedVenueSummary.reviewSummaryDigest?.source === "review-summary" ? "1px solid #a7f3d0" : "1px solid #ebe3f3" }}>Summary学習メモ：{selectedVenueSummary.reviewSummaryDigest?.source === "review-summary" ? "反映済み" : "未作成"}</span>

@@ -1,9 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { loadKurariExInitialData, loadKurariExVenueBundle } from "../lib/kurariExData";
+import {
+  formatKurariExMetric,
+  loadKurariExExactInitialData,
+  loadKurariExInitialData,
+  loadKurariExVenueBundle,
+  loadKurariExVenueExact,
+} from "../lib/kurariExData";
 import type {
+  KurariExExactInitialData,
+  KurariExMetric,
   KurariExInitialData,
   KurariExVenueBundle,
-  KurariExVenueListItem,
+  KurariExVenueExact,
 } from "../types/kurariEx";
 import { SiteHeader, useIsMobile } from "./PageImplementations";
 
@@ -62,14 +70,40 @@ function EmptyState({ text }: { text: string }) {
   return <div className="ex-empty">{text}</div>;
 }
 
+function ExactMetricCard({ label, metric }: { label: string; metric?: KurariExMetric }) {
+  if (!metric || metric.rate == null) return null;
+  return (
+    <article className="ex-metric-card">
+      <div className="ex-eyebrow">{label}</div>
+      <div className="ex-metric-value">{metric.rate.toFixed(1)}%</div>
+      <div className="ex-muted">{metric.count.toLocaleString("ja-JP")} / {metric.total.toLocaleString("ja-JP")}</div>
+      {metric.quality === "low-sample" || metric.total < 5 ? <span className="ex-low-sample">母数少</span> : null}
+    </article>
+  );
+}
+
+function exactCategoryLabel(category: string, key: string) {
+  const labels: Record<string, Record<string, string>> = {
+    "時間帯別": { morning: "モーニング", day: "デイ", night: "ナイター", midnight: "ミッド", unknown: "未取得" },
+    "級班別": { a: "A級", s: "S級", a3: "A3", girls: "ガールズ", other: "その他" },
+    "分戦数別": { "2": "2分戦", "3": "3分戦", "4+": "4分戦以上", unknown: "未取得" },
+    "風速帯別": { "0-2": "0〜2m/s", "2-4": "2〜4m/s", "4+": "4m/s以上", unknown: "未取得" },
+  };
+  return labels[category]?.[key] ?? key;
+}
+
 export default function ExDataPage() {
   const isMobile = useIsMobile();
   const [initialData, setInitialData] = useState<KurariExInitialData | null>(null);
   const [initialStatus, setInitialStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [exactInitialData, setExactInitialData] = useState<KurariExExactInitialData | null>(null);
+  const [exactInitialStatus, setExactInitialStatus] = useState<"loading" | "ready" | "error">("loading");
   const [query, setQuery] = useState("");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [venueCache, setVenueCache] = useState<Record<string, KurariExVenueBundle>>({});
   const [venueStatus, setVenueStatus] = useState<Record<string, "loading" | "ready" | "error">>({});
+  const [exactVenueCache, setExactVenueCache] = useState<Record<string, KurariExVenueExact>>({});
+  const [exactVenueStatus, setExactVenueStatus] = useState<Record<string, "loading" | "ready" | "error">>({});
 
   useEffect(() => {
     let active = true;
@@ -88,32 +122,76 @@ export default function ExDataPage() {
     };
   }, []);
 
-  const selectVenue = (item: KurariExVenueListItem) => {
-    setSelectedKey(item.venueKey);
-    if (venueCache[item.venueKey] || venueStatus[item.venueKey] === "loading") return;
-    setVenueStatus((current) => ({ ...current, [item.venueKey]: "loading" }));
-    loadKurariExVenueBundle(item)
-      .then((bundle) => {
-        setVenueCache((current) => ({ ...current, [item.venueKey]: bundle }));
-        setVenueStatus((current) => ({ ...current, [item.venueKey]: "ready" }));
+  useEffect(() => {
+    let active = true;
+    loadKurariExExactInitialData()
+      .then((data) => {
+        if (!active) return;
+        setExactInitialData(data);
+        setExactInitialStatus("ready");
       })
       .catch(() => {
-        setVenueStatus((current) => ({ ...current, [item.venueKey]: "error" }));
+        if (!active) return;
+        setExactInitialStatus("error");
       });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const allVenues = useMemo(() => {
+    const venues = new Map<string, { venueKey: string; venueName: string }>();
+    for (const item of initialData?.venues ?? []) venues.set(item.venueKey, item);
+    for (const item of exactInitialData?.venues ?? []) {
+      if (!venues.has(item.venueKey)) venues.set(item.venueKey, item);
+    }
+    return [...venues.values()].sort((left, right) => left.venueName.localeCompare(right.venueName, "ja"));
+  }, [exactInitialData?.venues, initialData?.venues]);
+
+  const selectVenue = (item: { venueKey: string; venueName: string }) => {
+    setSelectedKey(item.venueKey);
+    const seedItem = initialData?.venues.find((entry) => entry.venueKey === item.venueKey);
+    const exactItem = exactInitialData?.venues.find((entry) => entry.venueKey === item.venueKey);
+    if (seedItem && !venueCache[item.venueKey] && venueStatus[item.venueKey] !== "loading") {
+      setVenueStatus((current) => ({ ...current, [item.venueKey]: "loading" }));
+      loadKurariExVenueBundle(seedItem)
+        .then((bundle) => {
+          setVenueCache((current) => ({ ...current, [item.venueKey]: bundle }));
+          setVenueStatus((current) => ({ ...current, [item.venueKey]: "ready" }));
+        })
+        .catch(() => {
+          setVenueStatus((current) => ({ ...current, [item.venueKey]: "error" }));
+        });
+    }
+    if (exactItem && !exactVenueCache[item.venueKey] && exactVenueStatus[item.venueKey] !== "loading") {
+      setExactVenueStatus((current) => ({ ...current, [item.venueKey]: "loading" }));
+      loadKurariExVenueExact(exactItem)
+        .then((exact) => {
+          setExactVenueCache((current) => ({ ...current, [item.venueKey]: exact }));
+          setExactVenueStatus((current) => ({ ...current, [item.venueKey]: "ready" }));
+        })
+        .catch(() => {
+          setExactVenueStatus((current) => ({ ...current, [item.venueKey]: "error" }));
+        });
+    }
   };
 
   const filteredVenues = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    if (!normalized) return initialData?.venues ?? [];
-    return (initialData?.venues ?? []).filter((item) =>
+    if (!normalized) return allVenues;
+    return allVenues.filter((item) =>
       item.venueName.includes(query.trim()) || item.venueKey.includes(normalized)
     );
-  }, [initialData?.venues, query]);
+  }, [allVenues, query]);
 
   const selectedBundle = selectedKey ? venueCache[selectedKey] : null;
   const selectedLoadStatus = selectedKey ? venueStatus[selectedKey] : undefined;
+  const selectedExact = selectedKey ? exactVenueCache[selectedKey] : null;
+  const selectedExactLoadStatus = selectedKey ? exactVenueStatus[selectedKey] : undefined;
   const status = initialData?.status;
   const global = initialData?.globalKpi.kpi;
+  const exactStatus = exactInitialData?.status;
+  const exactGlobal = exactInitialData?.globalKpi;
   const sizeWarning = (status?.outputBytes ?? 0) > 20 * 1024 * 1024;
   const healthMetrics = [
     ["PERIOD", status ? `${status.dateFrom ?? "--"}〜${status.dateTo ?? "--"}` : "--", "source range"],
@@ -170,6 +248,13 @@ export default function ExDataPage() {
         .ex-detail-head h3 { margin: 5px 0 0; font: 850 ${isMobile ? "32px" : "44px"}/1 ${serif}; }
         .ex-badges { display: flex; flex-wrap: wrap; gap: 8px; }
         .ex-badge { display: inline-flex; padding: 7px 10px; border-radius: 999px; background: #eee9fb; color: #6653a4; font-size: 10px; font-weight: 900; letter-spacing: .08em; }
+        .ex-badge.is-exact { background: #e7f8f0; color: #276b59; }
+        .ex-low-sample { display: inline-flex; margin-top: 8px; padding: 4px 7px; border-radius: 999px; background: #fff2dc; color: #985b15; font-size: 9px; font-weight: 900; }
+        .ex-subsection { display: grid; gap: 13px; padding-top: 4px; }
+        .ex-category-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 2}, minmax(0,1fr)); gap: 12px; }
+        .ex-category-card { padding: 18px; border: 1px solid #e1e8ee; border-radius: 20px; background: linear-gradient(145deg,#fff,#f5fbf8); }
+        .ex-category-card h4 { margin: 0 0 12px; color: #276b59; font-size: 12px; letter-spacing: .1em; }
+        .ex-category-row { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-top: 1px solid #edf1f3; color: #59677d; font-size: 12px; }
         .ex-insights { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 2}, minmax(0,1fr)); gap: 12px; }
         .ex-insight { padding: 17px; border: 1px solid #e5e3ef; border-radius: 19px; background: rgba(255,255,255,.85); }
         .ex-insight strong { display: block; color: #26344d; margin-bottom: 10px; }
@@ -196,8 +281,8 @@ export default function ExDataPage() {
           </div>
           <aside className="ex-phase">
             <div className="ex-eyebrow">CURRENT PHASE</div>
-            <strong>SEED INSIGHT</strong>
-            <div className="ex-muted">EXACT / PROXY / MANUALへ段階的に育成</div>
+            <strong>SEED + EXACT</strong>
+            <div className="ex-badges"><span className="ex-badge">SEED INSIGHT</span><span className="ex-badge is-exact">{exactInitialStatus === "ready" ? "EXACT ANALYTICS" : "EXACT：未生成"}</span></div>
           </aside>
         </section>
 
@@ -214,6 +299,20 @@ export default function ExDataPage() {
               <MetricCard key={label} label={label} value={initialStatus === "loading" ? "…" : value} note={note} warning={label === "PUBLIC EX SIZE" && sizeWarning} />
             ))}
           </div>
+          <div className="ex-subsection">
+            <div className="ex-eyebrow">EXACT DATA HEALTH</div>
+            <div className="ex-health-grid">
+              {[
+                ["NORMALIZED RACES", valueText(exactStatus?.normalizedRaceCount), "EXACT source"],
+                ["EXACT VENUES", valueText(exactStatus?.venueCount), "generated"],
+                ["EXACT FILES", valueText(exactStatus?.outputFileCount), "public JSON"],
+                ["EXACT SIZE", formatBytes(exactStatus?.outputBytes), "lightweight"],
+                ["LINEUP PARSED", valueText(exactGlobal?.coverage.lineupParsed), "available"],
+                ["PREDICTION PARSED", valueText(exactGlobal?.coverage.predictionParsed), "available"],
+                ["RESULT PARSED", valueText(exactGlobal?.coverage.resultParsed), "available"],
+              ].map(([label, value, note]) => <MetricCard key={label} label={label} value={exactInitialStatus === "loading" ? "…" : value} note={note} />)}
+            </div>
+          </div>
           {sizeWarning ? <div className="ex-empty">WARNING: 公開EXデータ容量が20MBを超えています。</div> : null}
           {(initialData?.index.warnings.length ?? 0) > 0 ? (
             <div className="ex-muted">WARNINGS: {initialData?.index.warnings.join(" / ")}</div>
@@ -221,7 +320,7 @@ export default function ExDataPage() {
         </section>
 
         <section className="ex-panel ex-section">
-          <SectionTitle eyebrow="QUALITY LEGEND" title="データ品質の4段階" lead="現在の公開データは主にSEED段階です。" />
+          <SectionTitle eyebrow="QUALITY LEGEND" title="データ品質の4段階" lead="SEEDとEXACTを分離して公開しています。" />
           <div className="ex-legend">
             {[
               ["SEED", "過去Summaryから抽出した初期知識"],
@@ -234,6 +333,7 @@ export default function ExDataPage() {
 
         <section className="ex-panel ex-section">
           <SectionTitle eyebrow="GLOBAL KPI" title="全体傾向" lead="Summaryに明記された値だけを集計。" />
+          <div className="ex-eyebrow">SEED / Summary由来の初期知識</div>
           <div className="ex-kpi-grid">
             {[
               ["SUMMARY SOURCES", valueText(global?.sourceCount)],
@@ -250,20 +350,33 @@ export default function ExDataPage() {
               <MetricCard key={label} label={label} value={initialStatus === "loading" ? "…" : value} />
             ))}
           </div>
+          <div className="ex-subsection">
+            <div className="ex-eyebrow">EXACT / 正規化履歴からの確定集計</div>
+            <div className="ex-kpi-grid">
+              <ExactMetricCard label="3連単的中率" metric={exactGlobal?.predictionKpi.trifectaHitRate} />
+              <ExactMetricCard label="2車単的中率" metric={exactGlobal?.predictionKpi.exactaHitRate} />
+              <ExactMetricCard label="いずれか的中率" metric={exactGlobal?.predictionKpi.anyHitRate} />
+              <ExactMetricCard label="2車単救済率" metric={exactGlobal?.predictionKpi.exactaSalvageRate} />
+              <ExactMetricCard label="3着だけ抜け率" metric={exactGlobal?.predictionKpi.thirdOnlyMissRate} />
+            </div>
+          </div>
         </section>
 
         <section className="ex-workspace">
           <aside className="ex-panel ex-section">
-            <SectionTitle eyebrow="VENUE EX LIST" title="会場別SEED" lead="選択時に個別JSONだけを読み込みます。" />
+            <SectionTitle eyebrow="VENUE EX LIST" title="会場別SEED / EXACT" lead="選択時に個別JSONだけを読み込みます。" />
             <input className="ex-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="会場名を検索" aria-label="会場名を検索" />
             <div className="ex-venue-list">
               {filteredVenues.map((item) => {
                 const cached = venueCache[item.venueKey];
+                const exactCached = exactVenueCache[item.venueKey];
+                const hasSeed = initialData?.venues.some((entry) => entry.venueKey === item.venueKey);
+                const hasExact = exactInitialData?.venues.some((entry) => entry.venueKey === item.venueKey);
                 return (
                   <button key={item.venueKey} className={`ex-venue-button${selectedKey === item.venueKey ? " is-active" : ""}`} type="button" onClick={() => selectVenue(item)}>
                     <strong>{item.venueName}</strong>
                     <div className="ex-muted">
-                      {cached ? `SEED ${cached.venue.quality.seedSources}件 / Guidance ${cached.guidance?.items.length ?? 0}件 / ${cached.venue.period.from ?? "--"}〜${cached.venue.period.to ?? "--"} / ${cached.venue.quality.status.toUpperCase()}` : "選択してSEED情報を取得"}
+                      {cached ? `SEED ${cached.venue.quality.seedSources}件` : hasSeed ? "SEED 反映済み" : "SEED 未生成"} / {exactCached ? `EXACT ${exactCached.coverage.normalizedRaces}R` : hasExact ? "EXACT 反映済み" : "EXACT 未生成"}
                     </div>
                   </button>
                 );
@@ -274,7 +387,7 @@ export default function ExDataPage() {
 
           <div className="ex-detail">
             <section className="ex-panel ex-section">
-              <SectionTitle eyebrow="SELECTED VENUE EX" title={selectedBundle?.venue.venueName ?? "会場を選択"} />
+              <SectionTitle eyebrow="SELECTED VENUE EX" title={selectedBundle?.venue.venueName ?? selectedExact?.venueName ?? "会場を選択"} />
               {!selectedKey ? <EmptyState text="左の会場一覧から、確認する会場を選択してください。" /> : null}
               {selectedLoadStatus === "loading" ? <EmptyState text="会場EX SEEDを読み込んでいます。" /> : null}
               {selectedLoadStatus === "error" ? <EmptyState text="この会場のEX SEEDはまだ生成されていません。" /> : null}
@@ -319,6 +432,67 @@ export default function ExDataPage() {
                       </article>
                     ))}
                   </div>
+                </>
+              ) : null}
+              {selectedKey && !selectedBundle && selectedLoadStatus !== "loading" ? <EmptyState text="この会場のSEEDは未生成です。" /> : null}
+            </section>
+
+            <section className="ex-panel ex-section">
+              <SectionTitle eyebrow="EXACT ANALYTICS" title="会場別確定集計" lead="正規化履歴から機械的に算出した集計です。" />
+              {selectedExactLoadStatus === "loading" ? <EmptyState text="会場別EXACTを読み込んでいます。" /> : null}
+              {selectedExactLoadStatus === "error" || (selectedKey && !selectedExact && selectedExactLoadStatus !== "loading") ? <EmptyState text="この会場のEXACTは未生成です。" /> : null}
+              {selectedExact ? (
+                <>
+                  <div className="ex-detail-head">
+                    <div><div className="ex-eyebrow">{selectedExact.venueKey}</div><h3>{selectedExact.venueName}</h3><div className="ex-muted">{selectedExact.period.from ?? "--"} 〜 {selectedExact.period.to ?? "--"}</div></div>
+                    <div className="ex-badges"><span className="ex-badge is-exact">EXACT</span><span className="ex-badge">{selectedExact.coverage.normalizedRaces} RACES</span></div>
+                  </div>
+                  <div className="ex-health-grid">
+                    <MetricCard label="NORMALIZED" value={valueText(selectedExact.coverage.normalizedRaces)} />
+                    <MetricCard label="PREDICTION PARSED" value={valueText(selectedExact.coverage.predictionParsed)} />
+                    <MetricCard label="RESULT PARSED" value={valueText(selectedExact.coverage.resultParsed)} />
+                    <MetricCard label="LINEUP PARSED" value={valueText(selectedExact.coverage.lineupParsed)} />
+                  </div>
+                  <div className="ex-subsection"><div className="ex-eyebrow">EXACT KPI</div><div className="ex-kpi-grid">
+                    {Object.entries({
+                      "3連単的中率": selectedExact.predictionKpi.trifectaHitRate,
+                      "2車単的中率": selectedExact.predictionKpi.exactaHitRate,
+                      "いずれか的中率": selectedExact.predictionKpi.anyHitRate,
+                      "2車単救済率": selectedExact.predictionKpi.exactaSalvageRate,
+                      "3着だけ抜け率": selectedExact.predictionKpi.thirdOnlyMissRate,
+                      "1着候補不在率": selectedExact.predictionKpi.headMissRate,
+                    }).map(([label, metric]) => <ExactMetricCard key={label} label={label} metric={metric} />)}
+                  </div></div>
+                  <div className="ex-subsection"><div className="ex-eyebrow">RACE PATTERN</div><div className="ex-kpi-grid">
+                    {Object.entries({
+                      "逃げ率": selectedExact.racePattern.escapeWinRate,
+                      "捲り率": selectedExact.racePattern.makuriWinRate,
+                      "差し率": selectedExact.racePattern.sashiWinRate,
+                      "同ラインワンツー率": selectedExact.racePattern.sameLineTop2Rate,
+                      "同ラインスリー率": selectedExact.racePattern.sameLineTop3Rate,
+                      "別線3着混入率": selectedExact.racePattern.otherLineThirdRate,
+                      "単騎3着率": selectedExact.racePattern.singleThirdRate,
+                      "B選手車券内残り率": selectedExact.racePattern.bRiderInsideTop3Rate,
+                      "3連単1番人気的中率": selectedExact.racePattern.favoriteTrifectaHitRate,
+                    }).map(([label, metric]) => <ExactMetricCard key={label} label={label} metric={metric} />)}
+                  </div></div>
+                  <div className="ex-subsection"><div className="ex-eyebrow">CATEGORY BREAKDOWN</div><div className="ex-category-grid">
+                    {Object.entries({
+                      "時間帯別": selectedExact.dimensions.timeslot,
+                      "級班別": selectedExact.dimensions.raceClass,
+                      "分戦数別": selectedExact.dimensions.lineCount,
+                      "風速帯別": selectedExact.dimensions.windSpeedMps,
+                    }).map(([label, entries]) => (
+                      <article className="ex-category-card" key={label}><h4>{label}</h4>
+                        {Object.entries(entries).map(([key, entry]) => (
+                          <div className="ex-category-row" key={key}>
+                            <span>{exactCategoryLabel(label, key)} / {entry.raceCount}R {entry.predictionKpi.anyHitRate.quality === "low-sample" || entry.predictionKpi.anyHitRate.total < 5 ? <span className="ex-low-sample">母数少</span> : null}</span>
+                            <span>{formatKurariExMetric(entry.predictionKpi.anyHitRate)}</span>
+                          </div>
+                        ))}
+                      </article>
+                    ))}
+                  </div></div>
                 </>
               ) : null}
             </section>

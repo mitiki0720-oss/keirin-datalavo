@@ -134,3 +134,113 @@ export type KurariExVenueBundle = {
   venue: KurariExVenue;
   guidance: KurariExGuidance | null;
 };
+
+export type KurariExMetric = {
+  count: number;
+  total: number;
+  rate: number | null;
+  sourceType: "EXACT";
+  quality: "ok" | "low-sample";
+};
+
+export type KurariExExactMetricGroup = {
+  trifectaHitRate: KurariExMetric;
+  exactaHitRate: KurariExMetric;
+  anyHitRate: KurariExMetric;
+  exactaSalvageRate: KurariExMetric;
+  thirdOnlyMissRate: KurariExMetric;
+  headMissRate: KurariExMetric;
+};
+
+export type KurariExExactRacePattern = {
+  escapeWinRate: KurariExMetric;
+  makuriWinRate: KurariExMetric;
+  sashiWinRate: KurariExMetric;
+  sameLineTop2Rate: KurariExMetric;
+  sameLineTop3Rate: KurariExMetric;
+  otherLineThirdRate: KurariExMetric;
+  singleThirdRate: KurariExMetric;
+  bRiderInsideTop3Rate: KurariExMetric;
+  favoriteTrifectaHitRate: KurariExMetric;
+};
+
+export type KurariExExactDimensionEntry = {
+  raceCount: number;
+  predictionKpi: KurariExExactMetricGroup;
+  racePattern: KurariExExactRacePattern;
+};
+
+export type KurariExExactDimensions = {
+  timeslot: Record<string, KurariExExactDimensionEntry>;
+  raceClass: Record<string, KurariExExactDimensionEntry>;
+  lineCount: Record<string, KurariExExactDimensionEntry>;
+  windSpeedMps: Record<string, KurariExExactDimensionEntry>;
+};
+
+export type KurariExExactIndex = {
+  schemaVersion: number;
+  generatedAt: string;
+  sourceType: "EXACT";
+  period: KurariExPeriod;
+  venueCount: number;
+  normalizedRaceCount: number;
+  files: string[];
+  warningCount: number;
+};
+
+export type KurariExExactStatus = {
+  schemaVersion: number;
+  generatedAt: string;
+  sourceType: "EXACT";
+  normalizedRaceCount: number;
+  venueCount: number;
+  warningCount: number;
+  outputFileCount: number;
+  outputBytes: number;
+};
+
+export type KurariExExactAnalytics = {
+  schemaVersion: number;
+  sourceType: "EXACT";
+  generatedAt: string;
+  period: KurariExPeriod;
+  coverage: {
+    normalizedRaces: number;
+    resultParsed: number;
+    predictionParsed: number;
+    lineupParsed: number;
+  };
+  predictionKpi: KurariExExactMetricGroup;
+  racePattern: KurariExExactRacePattern;
+  dimensions: KurariExExactDimensions;
+  warnings: string[];
+};
+
+export type KurariExExactGlobalKpi = KurariExExactAnalytics;
+
+export type KurariExVenueExact = KurariExExactAnalytics & {
+  venueKey: string;
+  venueName: string;
+};
+
+export type KurariExExactVenueListItem = {
+  venueKey: string;
+  venueName: string;
+  exactFile: string;
+};
+
+export type KurariExExactInitialData = {
+  index: KurariExExactIndex;
+  status: KurariExExactStatus;
+  globalKpi: KurariExExactGlobalKpi;
+  venues: KurariExExactVenueListItem[];
+};
+
+export type KurariExPredictionContext = {
+  timeslot?: string | null;
+  raceTime?: string | null;
+  raceTitle?: string | null;
+  isGirls?: boolean;
+  lineup?: string | null;
+  windSpeedKmh?: number | null;
+};
