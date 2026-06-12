@@ -69,13 +69,19 @@ function preserveBRiderMetrics(target, baseline, races) {
 }
 
 function aggregatePredictionKpi(races) {
+  const eligibleRaces = races.filter(
+    (race) =>
+      (race.predictionEnrichment?.status === "matched"
+        || race.quality?.predictionParsed === true)
+      && race.quality?.predictionParsed === true,
+  );
   return {
-    trifectaHitRate: rateMetric(races.map((race) => race.evaluation.trifectaHit)),
-    exactaHitRate: rateMetric(races.map((race) => race.evaluation.exactaHit)),
-    anyHitRate: rateMetric(races.map((race) => race.evaluation.anyHit)),
-    exactaSalvageRate: rateMetric(races.map((race) => race.evaluation.exactaSalvage)),
-    thirdOnlyMissRate: rateMetric(races.map((race) => race.evaluation.thirdOnlyMiss)),
-    headMissRate: rateMetric(races.map((race) => race.evaluation.headMiss)),
+    trifectaHitRate: rateMetric(eligibleRaces.map((race) => race.evaluation.trifectaHit)),
+    exactaHitRate: rateMetric(eligibleRaces.map((race) => race.evaluation.exactaHit)),
+    anyHitRate: rateMetric(eligibleRaces.map((race) => race.evaluation.anyHit)),
+    exactaSalvageRate: rateMetric(eligibleRaces.map((race) => race.evaluation.exactaSalvage)),
+    thirdOnlyMissRate: rateMetric(eligibleRaces.map((race) => race.evaluation.thirdOnlyMiss)),
+    headMissRate: rateMetric(eligibleRaces.map((race) => race.evaluation.headMiss)),
   };
 }
 

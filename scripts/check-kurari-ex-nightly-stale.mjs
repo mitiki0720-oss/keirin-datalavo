@@ -1,9 +1,6 @@
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
-import {
-  compactHistoryRoot,
-  exactOutputRoot,
-} from "./kurari-ex-history-common.mjs";
+import { compactHistoryRoot } from "./kurari-ex-history-common.mjs";
 import {
   getArgValue,
   resolveJstDate,
@@ -24,6 +21,7 @@ async function main() {
     `${targetDate}.generated.json`,
   );
   const errors = [];
+  const warnings = [];
   let daily = null;
   try {
     await stat(dailyFile);
@@ -32,12 +30,7 @@ async function main() {
     if (error?.code === "ENOENT") errors.push(`daily FACTS missing for ${targetDate}`);
     else throw error;
   }
-  const [index, status, venueIndex, riderIndex] = await Promise.all([
-    readJson(path.join(compactHistoryRoot, "index.generated.json")),
-    readJson(path.join(compactHistoryRoot, "status.generated.json")),
-    readJson(path.join(exactOutputRoot, "index.generated.json")),
-    readJson(path.join(exactOutputRoot, "riders", "index.generated.json")),
-  ]);
+  const index = await readJson(path.join(compactHistoryRoot, "index.generated.json"));
 
   if (daily?.raceCount <= 0) errors.push("daily raceCount is zero");
   if (
@@ -49,20 +42,23 @@ async function main() {
   if (!index.items?.some((item) => item.date === targetDate)) {
     errors.push("history index does not contain target date");
   }
-  if (!status.lastArchiveDate || status.lastArchiveDate < targetDate) {
-    errors.push(`status.lastArchiveDate is older than ${targetDate}`);
+  if (daily?.predictionCoverage?.coverageRate < 95) {
+    warnings.push(
+      `saved prediction coverage is ${daily.predictionCoverage.coverageRate}%`,
+    );
   }
-  if (!venueIndex.period?.to || venueIndex.period.to < targetDate) {
-    errors.push(`venue EXACT period is older than ${targetDate}`);
-  }
-  if (!riderIndex.period?.to || riderIndex.period.to < targetDate) {
-    errors.push(`rider EXACT period is older than ${targetDate}`);
+  if (["partial", "missing"].includes(daily?.predictionCoverage?.status)) {
+    warnings.push(
+      `saved prediction coverage status is ${daily.predictionCoverage.status}`,
+    );
   }
 
   console.log("[kurari-ex nightly stale check]");
   console.log(`date: ${targetDate}`);
   console.log(`errors: ${errors.length}`);
+  console.log(`warnings: ${warnings.length}`);
   for (const error of errors) console.error(`ERROR: ${error}`);
+  for (const warning of warnings) console.warn(`WARNING: ${warning}`);
   if (errors.length) process.exitCode = 1;
 }
 

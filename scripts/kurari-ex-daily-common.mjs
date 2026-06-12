@@ -92,38 +92,81 @@ function payoutYen(item) {
   return numberValue(item?.payout);
 }
 
-function predictionRecords(payload) {
-  const candidates = [
+export function normalizeVenueName(value) {
+  return String(value ?? "")
+    .normalize("NFKC")
+    .replace(/\s+/gu, "")
+    .replace(/競輪場|競輪$/u, "");
+}
+
+export function predictionCompositeKey(date, venueName, raceNumber) {
+  return `${String(date ?? "")}:${normalizeVenueName(venueName)}:${Number(raceNumber)}`;
+}
+
+export function predictionRecords(payload) {
+  const rawCandidates = [
     ...(Array.isArray(payload.recordList) ? payload.recordList : []),
     ...Object.values(payload.records ?? {}),
   ];
+  const candidates = [
+    ...new Map(rawCandidates.map((record) => [
+      JSON.stringify([
+        String(record?.raceId ?? "").trim(),
+        record?.date,
+        record?.venue,
+        record?.raceNumber,
+        record?.predictionJson,
+        record?.predictionText,
+      ]),
+      record,
+    ])).values(),
+  ];
   const byRaceId = new Map();
+  const byComposite = new Map();
   const ambiguous = [];
+  const compositeAmbiguous = [];
   for (const record of candidates) {
     const raceId = String(record?.raceId ?? "").trim();
-    if (!raceId) continue;
-    const current = byRaceId.get(raceId);
-    if (!current) {
-      byRaceId.set(raceId, record);
-      continue;
+    if (raceId) {
+      const current = byRaceId.get(raceId);
+      if (!current) {
+        byRaceId.set(raceId, record);
+      } else {
+        const currentSignature = JSON.stringify([
+          current.date,
+          current.venue,
+          current.raceNumber,
+          current.predictionJson,
+          current.predictionText,
+        ]);
+        const nextSignature = JSON.stringify([
+          record.date,
+          record.venue,
+          record.raceNumber,
+          record.predictionJson,
+          record.predictionText,
+        ]);
+        if (currentSignature !== nextSignature) ambiguous.push(raceId);
+      }
     }
-    const currentSignature = JSON.stringify([
-      current.date,
-      current.venue,
-      current.raceNumber,
-      current.predictionJson,
-      current.predictionText,
-    ]);
-    const nextSignature = JSON.stringify([
-      record.date,
-      record.venue,
-      record.raceNumber,
-      record.predictionJson,
-      record.predictionText,
-    ]);
-    if (currentSignature !== nextSignature) ambiguous.push(raceId);
+    const composite = predictionCompositeKey(
+      record?.date,
+      record?.venue,
+      record?.raceNumber,
+    );
+    if (!record?.date || !normalizeVenueName(record?.venue) || !Number(record?.raceNumber)) continue;
+    const compositeRecords = byComposite.get(composite) ?? [];
+    compositeRecords.push(record);
+    byComposite.set(composite, compositeRecords);
+    if (compositeRecords.length > 1) compositeAmbiguous.push(composite);
   }
-  return { byRaceId, ambiguous: [...new Set(ambiguous)].sort() };
+  return {
+    candidates,
+    byRaceId,
+    byComposite,
+    ambiguous: [...new Set(ambiguous)].sort(),
+    compositeAmbiguous: [...new Set(compositeAmbiguous)].sort(),
+  };
 }
 
 function parsePrediction(record) {
@@ -258,8 +301,22 @@ export async function loadDailySource({
         ?? "",
       ).trim();
       const raceNumber = Number(race?.raceNo);
-      const predictionRecord = predictionLookup.byRaceId.get(raceId) ?? null;
-      const prediction = parsePrediction(predictionRecord);
+      let predictionRecord = predictionLookup.byRaceId.get(raceId) ?? null;
+      let matchedBy = predictionRecord ? "raceId" : null;
+      if (!predictionRecord) {
+        const composite = predictionCompositeKey(feed.date, venue?.venue, raceNumber);
+        const candidates = predictionLookup.byComposite.get(composite) ?? [];
+        const unique = candidates.filter((candidate) => (
+          String(candidate?.date ?? "") === String(feed.date ?? "")
+          && normalizeVenueName(candidate?.venue) === normalizeVenueName(venue?.venue)
+          && Number(candidate?.raceNumber) === raceNumber
+        ));
+        if (unique.length === 1) {
+          predictionRecord = unique[0];
+          matchedBy = "unique-composite-key";
+        }
+      }
+      const parsedPrediction = predictionRecord ? parsePrediction(predictionRecord) : null;
       const result = compactResult(race);
       const cancelled = isCancelled(venue, race);
       const operationStatus = cancelled
@@ -311,11 +368,16 @@ export async function loadDailySource({
           ...result,
           status: operationStatus === "finished" ? "finished" : "unknown",
         },
-        prediction,
+        prediction: parsedPrediction,
+        predictionEnrichment: {
+          status: predictionRecord ? "matched" : "missing",
+          matchedBy,
+        },
         quality: {
           resultParsed: operationStatus === "finished" && Boolean(result.trifecta.combination),
           predictionParsed: Boolean(
-            prediction.trifectaTickets.length || prediction.exactaTickets.length,
+            parsedPrediction?.trifectaTickets.length
+            || parsedPrediction?.exactaTickets.length,
           ),
           lineupParsed: lineup.status === "parsed",
           starterParsed: starters.length > 0,
@@ -336,6 +398,12 @@ export function summarizeDailySource({ feed, races }) {
   const settledRaceCount = races.filter((race) => race.operationStatus === "finished").length;
   const cancelledRaceCount = races.filter((race) => race.operationStatus === "cancelled").length;
   const pendingRaceCount = races.length - settledRaceCount - cancelledRaceCount;
+  const predictionMatchedRaceCount = races.filter(
+    (race) => race.predictionEnrichment?.status === "matched",
+  ).length;
+  const predictionCoverageRate = races.length
+    ? Number(((predictionMatchedRaceCount / races.length) * 100).toFixed(1))
+    : 0;
   return {
     feedDate: feed.date ?? "",
     venueCount: new Set(races.map((race) => race.venueKey)).size,
@@ -347,17 +415,15 @@ export function summarizeDailySource({ feed, races }) {
     resultUnparsedCount: races.filter(
       (race) => race.operationStatus === "finished" && !race.quality.resultParsed,
     ).length,
+    predictionMatchedRaceCount,
     predictionParsedCount: races.filter((race) => race.quality.predictionParsed).length,
-    predictionMissingCount: races.filter(
-      (race) => race.operationStatus !== "cancelled" && !race.quality.predictionParsed,
-    ).length,
-    predictionCoverageRate: races.filter((race) => race.operationStatus !== "cancelled").length
-      ? Number((
-          (races.filter((race) => race.quality.predictionParsed).length
-            / races.filter((race) => race.operationStatus !== "cancelled").length)
-          * 100
-        ).toFixed(1))
-      : 100,
+    predictionMissingCount: races.length - predictionMatchedRaceCount,
+    predictionCoverageRate,
+    predictionCoverageStatus: predictionCoverageRate >= 95
+      ? "complete"
+      : predictionCoverageRate > 0
+        ? "partial"
+        : "missing",
     lineupParsedCount: races.filter((race) => race.quality.lineupParsed).length,
     starterParsedCount: races.filter((race) => race.quality.starterParsed).length,
     registrationResolvedStarterCount: races
@@ -460,6 +526,21 @@ export async function rebuildHistoryMetadata(archiveFields = {}) {
     lastArchiveMessage: archiveFields.lastArchiveMessage
       ?? previousStatus.lastArchiveMessage
       ?? "",
+    lastPredictionCoverageRate: archiveFields.lastPredictionCoverageRate
+      ?? previousStatus.lastPredictionCoverageRate
+      ?? null,
+    lastPredictionMatchedRaceCount: archiveFields.lastPredictionMatchedRaceCount
+      ?? previousStatus.lastPredictionMatchedRaceCount
+      ?? null,
+    lastPredictionTotalRaceCount: archiveFields.lastPredictionTotalRaceCount
+      ?? previousStatus.lastPredictionTotalRaceCount
+      ?? null,
+    lastPredictionCoverageStatus: archiveFields.lastPredictionCoverageStatus
+      ?? previousStatus.lastPredictionCoverageStatus
+      ?? null,
+    predictionArchiveWarningCount: archiveFields.predictionArchiveWarningCount
+      ?? previousStatus.predictionArchiveWarningCount
+      ?? 0,
   };
   await Promise.all([
     writeFile(path.join(compactHistoryRoot, "index.generated.json"), serializeJson(index), "utf8"),
@@ -487,4 +568,34 @@ export async function writeDailyPayload(payload) {
   await mkdir(path.dirname(file), { recursive: true });
   await writeFile(file, content, "utf8");
   return { file, changed: true };
+}
+
+export async function readDailyPayload(date) {
+  const file = path.join(
+    compactHistoryDailyRoot,
+    date.slice(0, 7),
+    `${date}.generated.json`,
+  );
+  try {
+    return { file, payload: parseJson(await readFile(file, "utf8")) };
+  } catch (error) {
+    if (error?.code === "ENOENT") return { file, payload: null };
+    throw error;
+  }
+}
+
+export function predictionCoverageForRaces(races) {
+  const matchedRaceCount = races.filter(
+    (race) => race.predictionEnrichment?.status === "matched",
+  ).length;
+  const totalRaceCount = races.length;
+  const coverageRate = totalRaceCount
+    ? Number(((matchedRaceCount / totalRaceCount) * 100).toFixed(1))
+    : 0;
+  return {
+    matchedRaceCount,
+    totalRaceCount,
+    coverageRate,
+    status: coverageRate >= 95 ? "complete" : coverageRate > 0 ? "partial" : "missing",
+  };
 }

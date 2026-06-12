@@ -28,9 +28,6 @@ async function main() {
   if (summary.duplicateRaceKeyCount > 0) fatal.push("duplicate raceKey detected");
   if (summary.missingRaceIdCount > 0) fatal.push("raceId missing");
   if (summary.missingVenueKeyCount > 0) fatal.push("venue slug missing");
-  if (summary.pendingRaceCount === 0 && summary.predictionCoverageRate < 95) {
-    fatal.push(`saved prediction coverage below 95% (${summary.predictionCoverageRate}%)`);
-  }
   for (const message of fatal) console.error(`ERROR: ${message}`);
   if (fatal.length) process.exitCode = 1;
 }

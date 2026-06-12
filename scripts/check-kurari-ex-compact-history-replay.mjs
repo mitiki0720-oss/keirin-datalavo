@@ -47,7 +47,13 @@ async function readCompactRaces() {
 }
 
 function aggregatePredictionKpi(races) {
-  const evaluations = races.map((race) => evaluateRace(
+  const eligibleRaces = races.filter(
+    (race) =>
+      (race.predictionEnrichment?.status === "matched"
+        || race.quality?.predictionParsed === true)
+      && race.quality?.predictionParsed === true,
+  );
+  const evaluations = eligibleRaces.map((race) => evaluateRace(
     race.result,
     {
       trifectaTickets: race.prediction?.trifectaTickets ?? [],

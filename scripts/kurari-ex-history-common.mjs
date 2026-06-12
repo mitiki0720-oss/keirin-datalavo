@@ -626,6 +626,11 @@ export async function readCompactHistoryRaces() {
     try {
       const payload = JSON.parse(await readFile(file, "utf8"));
       for (const compact of payload.items ?? []) {
+        const predictionEnrichment = compact.predictionEnrichment ?? (
+          compact.quality?.predictionParsed === true
+            ? { status: "matched", matchedBy: "raceId" }
+            : { status: "missing", matchedBy: null }
+        );
         const lineup = {
           raw: "",
           lines: compact.lineup?.status === "parsed" ? compact.lineup.lines ?? [] : [],
@@ -638,7 +643,10 @@ export async function readCompactHistoryRaces() {
           status: compact.lineup?.status === "parsed" ? "parsed" : "missing",
         };
         const prediction = {
-          status: compact.quality?.predictionParsed ? "parsed" : "missing",
+          status: predictionEnrichment.status === "matched"
+            && compact.quality?.predictionParsed
+            ? "parsed"
+            : "missing",
           trifectaTickets: compact.prediction?.trifectaTickets ?? [],
           exactaTickets: compact.prediction?.exactaTickets ?? [],
           confidence: compact.prediction?.confidence ?? "",
@@ -674,6 +682,7 @@ export async function readCompactHistoryRaces() {
           },
           result,
           prediction,
+          predictionEnrichment,
           evaluation: evaluated.evaluation,
           derived: evaluated.derived,
           quality: {

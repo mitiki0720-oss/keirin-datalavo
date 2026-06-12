@@ -57,6 +57,7 @@ function compactRace(race) {
     .map(compactStarter)
     .sort((left, right) => Number(left.carNo) - Number(right.carNo));
   const resultStatus = race.result?.status === "finished" ? "finished" : "unknown";
+  const predictionMatched = race.quality?.predictionParsed === true;
   return {
     raceKey: race.raceKey,
     raceId: String(race.raceId ?? ""),
@@ -99,12 +100,18 @@ function compactRace(race) {
         ? { bRider: { carNo: race.result.bRider.carNo } }
         : {}),
     },
-    prediction: {
-      trifectaTickets: [...new Set(race.prediction?.trifectaTickets ?? [])].sort(),
-      exactaTickets: [...new Set(race.prediction?.exactaTickets ?? [])].sort(),
-      confidence: String(race.prediction?.confidence ?? ""),
-      raceType: String(race.prediction?.raceType ?? ""),
-      tags: [...new Set(race.prediction?.tags ?? [])].sort(),
+    prediction: predictionMatched
+      ? {
+          trifectaTickets: [...new Set(race.prediction?.trifectaTickets ?? [])].sort(),
+          exactaTickets: [...new Set(race.prediction?.exactaTickets ?? [])].sort(),
+          confidence: String(race.prediction?.confidence ?? ""),
+          raceType: String(race.prediction?.raceType ?? ""),
+          tags: [...new Set(race.prediction?.tags ?? [])].sort(),
+        }
+      : null,
+    predictionEnrichment: {
+      status: predictionMatched ? "matched" : "missing",
+      matchedBy: predictionMatched ? "raceId" : null,
     },
     quality: {
       resultParsed: race.quality?.resultParsed === true,
@@ -181,6 +188,23 @@ async function main() {
       raceCount: items.length,
       settledRaceCount,
       cancelledRaceCount,
+      predictionCoverage: {
+        matchedRaceCount: items.filter(
+          (race) => race.predictionEnrichment.status === "matched",
+        ).length,
+        totalRaceCount: items.length,
+        coverageRate: Number((
+          (items.filter((race) => race.predictionEnrichment.status === "matched").length
+            / items.length)
+          * 100
+        ).toFixed(1)),
+        status: items.filter((race) => race.predictionEnrichment.status === "matched").length
+          / items.length >= 0.95
+          ? "complete"
+          : items.some((race) => race.predictionEnrichment.status === "matched")
+            ? "partial"
+            : "missing",
+      },
       items,
     };
     const content = serializeJson(payload);
