@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import { raceScheduleData } from "../data/raceScheduleData";
+import { useRef } from "react";
 import type { DailyMetricItem } from "../types/dailyMetrics";
 import type { RaceGrade, RaceScheduleItem, RaceScheduleSource, RaceSession } from "../types/raceSchedule";
 import { getRaceEventDayLabel } from "../utils/raceEventDay";
@@ -12,6 +13,12 @@ import {
 } from "../lib/playerCards";
 import { buildMonthlyPredictionGuidance, getActiveMonthlyReview } from "../lib/monthlyReviewInsights";
 import {
+  buildKurariExPredictionMaterial,
+  findKurariExVenueEntryByVenueName,
+  loadKurariExIndex,
+  loadKurariExVenueBundle,
+} from "../lib/kurariExData";
+import {
   findVenueInsightGroup,
   formatVenueInsightMemo,
   groupVenueInsightEntries,
@@ -23,6 +30,7 @@ import {
 } from "./venueFeatures/venueFeatureParsers";
 import type { VenueDetailBlock, VenueDetailSection, VenueInsightGroup, VenueInsightIndexItem } from "./venueFeatures/venueFeatureTypes";
 import type { MonthlyReviewDigest, MonthlyReviewIndexItem } from "../types/monthlyReview";
+import type { KurariExIndex, KurariExVenueBundle } from "../types/kurariEx";
 
 export type CalendarDay = {
   iso: string;
@@ -3844,6 +3852,7 @@ export const buildPredictionExportText = ({
   dataAnalysisText,
   oddsText,
   monthlyGuidanceText = "",
+  kurariExGuidanceText = "",
 }: {
   date: string;
   venue: PredictionVenueItem;
@@ -3864,6 +3873,7 @@ export const buildPredictionExportText = ({
   dataAnalysisText: string;
   oddsText: string;
   monthlyGuidanceText?: string;
+  kurariExGuidanceText?: string;
 }) => {
   const exportRace = materialRace ?? race;
   if (isPredictionRaceExcludedByOperation(venue, exportRace)) {
@@ -3958,6 +3968,7 @@ export const buildPredictionExportText = ({
     "[M. 補足ソース]",
     buildPredictionMemoExport(exportRace, memo),
     ...(monthlyGuidanceText.trim() ? ["", monthlyGuidanceText.trim()] : []),
+    ...(kurariExGuidanceText.trim() ? ["", kurariExGuidanceText.trim()] : []),
   ].join("\n");
 };
 
@@ -9335,6 +9346,12 @@ export function PredictionPage() {
   const [monthlyReviewItem, setMonthlyReviewItem] = useState<MonthlyReviewIndexItem | null>(null);
   const [monthlyReviewDigest, setMonthlyReviewDigest] = useState<MonthlyReviewDigest | null>(null);
   const [monthlyReviewStatus, setMonthlyReviewStatus] = useState<"loading" | "ready" | "missing" | "error">("loading");
+  const [kurariExIndex, setKurariExIndex] = useState<KurariExIndex | null>(null);
+  const [kurariExIndexStatus, setKurariExIndexStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [kurariExVenueCache, setKurariExVenueCache] = useState<Record<string, KurariExVenueBundle>>({});
+  const [kurariExVenueStatus, setKurariExVenueStatus] = useState<Record<string, "loading" | "ready" | "missing" | "error">>({});
+  const kurariExVenueCacheRef = useRef<Record<string, KurariExVenueBundle>>({});
+  const kurariExVenueLoadingRef = useRef<Set<string>>(new Set());
   const hitNotificationLookup = useMemo(
     () => buildHitNotificationLookup(predictionFeed, savedPredictionSlots, savedPredictionResults),
     [predictionFeed, savedPredictionSlots, savedPredictionResults]
@@ -9480,6 +9497,24 @@ useEffect(() => {
         setMonthlyReviewStatus("error");
       });
 
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+    loadKurariExIndex()
+      .then((index) => {
+        if (!isActive) return;
+        setKurariExIndex(index);
+        setKurariExIndexStatus("ready");
+      })
+      .catch(() => {
+        if (!isActive) return;
+        setKurariExIndex(null);
+        setKurariExIndexStatus("error");
+      });
     return () => {
       isActive = false;
     };
@@ -9723,6 +9758,45 @@ if (!nextSlots[currentKey] && nextSlots[legacyKey]) {
     () => selectedVenue?.races.find((race) => race.raceNo === selectedRaceNo) ?? selectedVenue?.races[0] ?? null,
     [selectedVenue, selectedRaceNo]
   );
+
+  const selectedKurariExEntry = useMemo(
+    () => kurariExIndex && selectedVenue
+      ? findKurariExVenueEntryByVenueName(kurariExIndex, selectedVenue.venue, selectedVenue.slug)
+      : null,
+    [kurariExIndex, selectedVenue],
+  );
+
+  useEffect(() => {
+    if (!selectedVenue || kurariExIndexStatus !== "ready") return;
+    const venueNameKey = normalizePredictionVenueName(selectedVenue.venue);
+    if (!selectedKurariExEntry) {
+      setKurariExVenueStatus((current) => ({ ...current, [venueNameKey]: "missing" }));
+      return;
+    }
+    const venueKey = selectedKurariExEntry.venueKey;
+    if (kurariExVenueCacheRef.current[venueKey] || kurariExVenueLoadingRef.current.has(venueKey)) return;
+
+    let isActive = true;
+    kurariExVenueLoadingRef.current.add(venueKey);
+    setKurariExVenueStatus((current) => ({ ...current, [venueKey]: "loading" }));
+    loadKurariExVenueBundle(selectedKurariExEntry)
+      .then((bundle) => {
+        if (!isActive) return;
+        kurariExVenueCacheRef.current = { ...kurariExVenueCacheRef.current, [venueKey]: bundle };
+        setKurariExVenueCache((current) => ({ ...current, [venueKey]: bundle }));
+        setKurariExVenueStatus((current) => ({ ...current, [venueKey]: "ready" }));
+      })
+      .catch(() => {
+        if (!isActive) return;
+        setKurariExVenueStatus((current) => ({ ...current, [venueKey]: "error" }));
+      })
+      .finally(() => {
+        kurariExVenueLoadingRef.current.delete(venueKey);
+      });
+    return () => {
+      isActive = false;
+    };
+  }, [kurariExIndexStatus, selectedKurariExEntry, selectedVenue]);
 
   useEffect(() => {
     if (!selectedVenue) return;
@@ -10472,6 +10546,24 @@ if (
     }),
     [monthlyReviewDigest, selectedPredictionLinkedPlayerContexts.length, selectedPredictionMaterialRace, selectedPredictionMaterialVenue, selectedVenueSummary.masterDigest?.source, selectedVenueSummary.reviewSummaryDigest?.source]
   );
+  const selectedKurariExBundle = selectedKurariExEntry
+    ? kurariExVenueCache[selectedKurariExEntry.venueKey] ?? null
+    : null;
+  const selectedKurariExStatus = selectedKurariExEntry
+    ? kurariExVenueStatus[selectedKurariExEntry.venueKey] ?? "loading"
+    : kurariExIndexStatus === "error"
+      ? "error"
+      : kurariExIndexStatus === "ready"
+        ? "missing"
+        : "loading";
+  const selectedKurariExGuidanceText = useMemo(
+    () => selectedKurariExStatus === "ready"
+      ? buildKurariExPredictionMaterial(selectedKurariExBundle)
+      : selectedKurariExStatus === "missing"
+        ? buildKurariExPredictionMaterial(null)
+        : "",
+    [selectedKurariExBundle, selectedKurariExStatus],
+  );
   const sortedPredictionVenues = useMemo(
     () => [...(predictionFeed?.venues ?? [])].sort(comparePredictionVenues),
     [predictionFeed]
@@ -10513,8 +10605,9 @@ if (
       dataAnalysisText: selectedPredictionDataAnalysisText,
       oddsText: selectedPredictionOddsText,
       monthlyGuidanceText: selectedPredictionMonthlyGuidanceText,
+      kurariExGuidanceText: selectedKurariExGuidanceText,
     });
-  }, [predictionFeed, selectedPredictionDataAnalysisText, selectedPredictionMatchupText, selectedPredictionMaterialRace, selectedPredictionMaterialRiders, selectedPredictionMaterialVenue, selectedPredictionMemoText, selectedPredictionMonthlyGuidanceText, selectedPredictionOddsText, selectedPredictionPlayerCardInsightText, selectedPredictionRecentPerformanceText, selectedPredictionRecentRaceText, selectedPredictionRiderBasicText, selectedPredictionTrackAffinityText, selectedVenueGradeLabel, selectedVenueSummary, selectedWeather, selectedWeatherFallbackText]);
+  }, [predictionFeed, selectedKurariExGuidanceText, selectedPredictionDataAnalysisText, selectedPredictionMatchupText, selectedPredictionMaterialRace, selectedPredictionMaterialRiders, selectedPredictionMaterialVenue, selectedPredictionMemoText, selectedPredictionMonthlyGuidanceText, selectedPredictionOddsText, selectedPredictionPlayerCardInsightText, selectedPredictionRecentPerformanceText, selectedPredictionRecentRaceText, selectedPredictionRiderBasicText, selectedPredictionTrackAffinityText, selectedVenueGradeLabel, selectedVenueSummary, selectedWeather, selectedWeatherFallbackText]);
   const gptExportLineCount = useMemo(() => gptExportText.split(/\r?\n/).length, [gptExportText]);
   const gptExportCharCount = useMemo(() => gptExportText.length, [gptExportText]);
   const selectedPredictionTargetLabel = selectedVenue && selectedRace ? `${selectedVenue.venue} ${selectedRace.raceNo}R` : "レース選択待ち";
@@ -10533,6 +10626,13 @@ if (
     : monthlyReviewStatus === "loading"
       ? "月次振り返り: 読み込み中"
       : "月次振り返り: 未登録";
+  const kurariExStateLabel = selectedKurariExStatus === "ready"
+    ? "KURARI EX：SEED反映済み"
+    : selectedKurariExStatus === "error"
+      ? "KURARI EX：取得失敗"
+      : selectedKurariExStatus === "missing"
+        ? "KURARI EX：未登録"
+        : "KURARI EX：確認中";
   const predictionSlotSaveStateLabel = selectedSavedPredictionSlot ? "保存済み" : "未保存";
   const predictionResultLinkStateLabel = selectedGeneratedPredictionResult?.resultStatus === "confirmed"
     ? "結果反映済み"
@@ -11351,6 +11451,7 @@ const record = normalizePredictionResultRecord({
                     <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "7px 12px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.12em", background: "linear-gradient(135deg, rgba(242,236,251,1) 0%, rgba(232,241,255,1) 100%)", color: "#6b57a8", border: "1px solid #ddd3f0", boxShadow: "0 8px 18px rgba(122,103,184,0.08)" }}>{predictionMaterialStateLabel}</span>
                       <span title={monthlyReviewItem?.title ?? undefined} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.06em", background: monthlyReviewStatus === "ready" ? "rgba(236,253,245,0.9)" : "rgba(255,255,255,0.82)", color: monthlyReviewStatus === "ready" ? "#047857" : "#7a8090", border: monthlyReviewStatus === "ready" ? "1px solid #a7f3d0" : "1px solid #ebe3f3" }}>{monthlyReviewStateLabel}</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.06em", background: selectedKurariExStatus === "ready" ? "rgba(229, 246, 239, 0.92)" : "rgba(255,255,255,0.82)", color: selectedKurariExStatus === "ready" ? "#276b59" : selectedKurariExStatus === "error" ? "#9f3858" : "#7a8090", border: selectedKurariExStatus === "ready" ? "1px solid rgba(87, 160, 132, 0.32)" : selectedKurariExStatus === "error" ? "1px solid #f0d8df" : "1px solid #ebe3f3" }}>{kurariExStateLabel}</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.06em", background: selectedVenueSummary.source === "missing" ? "rgba(255,255,255,0.82)" : "rgba(236,253,245,0.9)", color: selectedVenueSummary.source === "missing" ? "#7a8090" : "#047857", border: selectedVenueSummary.source === "missing" ? "1px solid #ebe3f3" : "1px solid #a7f3d0" }}>基本バンク特徴：{selectedVenueSummary.source === "missing" ? "未登録" : "反映済み"}</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.06em", background: selectedVenueSummary.masterDigest?.source === "bank-master" ? "rgba(236,253,245,0.9)" : "rgba(255,255,255,0.82)", color: selectedVenueSummary.masterDigest?.source === "bank-master" ? "#047857" : "#7a8090", border: selectedVenueSummary.masterDigest?.source === "bank-master" ? "1px solid #a7f3d0" : "1px solid #ebe3f3" }}>会場別マスター分析：{selectedVenueSummary.masterDigest?.source === "bank-master" ? "反映済み" : "未作成"}</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.06em", background: selectedVenueSummary.reviewSummaryDigest?.source === "review-summary" ? "rgba(236,253,245,0.9)" : "rgba(255,255,255,0.82)", color: selectedVenueSummary.reviewSummaryDigest?.source === "review-summary" ? "#047857" : "#7a8090", border: selectedVenueSummary.reviewSummaryDigest?.source === "review-summary" ? "1px solid #a7f3d0" : "1px solid #ebe3f3" }}>Summary学習メモ：{selectedVenueSummary.reviewSummaryDigest?.source === "review-summary" ? "反映済み" : "未作成"}</span>
