@@ -19,6 +19,12 @@ import {
   venueMap,
   writeJson,
 } from "./kurari-ex-history-common.mjs";
+import {
+  loadRiderIdentitySources,
+  normalizeRiderName,
+  parseExplicitStarterTable,
+  resolveRiderIdentity,
+} from "./kurari-ex-rider-common.mjs";
 
 function mapBlocks(items, type) {
   const map = new Map();
@@ -41,6 +47,7 @@ function normalizeWinningMethod(value) {
 
 async function main() {
   const scan = await scanRawInputs();
+  const riderIdentitySources = await loadRiderIdentitySources();
   const races = [];
   const warnings = [];
 
@@ -108,6 +115,21 @@ async function main() {
       );
       if (lineup.status !== "parsed") raceWarnings.push("lineup parse incomplete");
       const meta = parseRaceMeta(summaryBlock, predictionBlock?.text ?? resultBlock?.text ?? "");
+      const explicitStarters = parseExplicitStarterTable(predictionBlock?.text ?? "");
+      const starters = explicitStarters.map((starter) => {
+        const identity = resolveRiderIdentity(starter, riderIdentitySources);
+        return {
+          carNo: starter.carNo,
+          name: starter.name,
+          nameKey: normalizeRiderName(starter.name),
+          registrationNo: identity.registrationNo,
+          prefecture: identity.card?.prefecture ?? "",
+          class: identity.card?.class ?? identity.card?.grade ?? "",
+          period: null,
+          style: identity.card?.style ?? "",
+          identityStatus: identity.status,
+        };
+      });
       const weather = result.weather;
       const calculated = evaluateRace(result, prediction, lineup);
       const sourceRefs = {
@@ -130,7 +152,8 @@ async function main() {
         timeslot: meta.timeslot,
         raceClass: meta.raceClass,
         raceTitle: meta.raceTitle,
-        starters: meta.starters,
+        starterCount: meta.starters ?? (starters.length || null),
+        starters,
         lineup,
         weather,
         result: {

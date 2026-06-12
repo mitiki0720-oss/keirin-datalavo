@@ -141,7 +141,12 @@ async function main() {
     venueGroups.set(race.venueKey, current);
   }
 
-  await rm(exactOutputRoot, { recursive: true, force: true });
+  await Promise.all([
+    rm(path.join(exactOutputRoot, "venues"), { recursive: true, force: true }),
+    rm(path.join(exactOutputRoot, "global"), { recursive: true, force: true }),
+    rm(path.join(exactOutputRoot, "index.generated.json"), { force: true }),
+    rm(path.join(exactOutputRoot, "status.generated.json"), { force: true }),
+  ]);
   await mkdir(path.join(exactOutputRoot, "venues"), { recursive: true });
   const files = [];
   let warningCount = 0;

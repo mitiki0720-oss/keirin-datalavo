@@ -14,6 +14,9 @@ const thresholds = {
   exactIndex: 100 * 1024,
   exactVenue: 100 * 1024,
   exactTotal: 5 * 1024 * 1024,
+  riderIndex: 300 * 1024,
+  riderFile: 20 * 1024,
+  riderTotal: 5 * 1024 * 1024,
 };
 
 async function collectFiles(directory) {
@@ -49,12 +52,14 @@ async function main() {
   const prohibited = [];
   let totalBytes = 0;
   let exactBytes = 0;
+  let riderBytes = 0;
 
   for (const file of files) {
     const relativePath = path.relative(outputRoot, file).replaceAll(path.sep, "/");
     const { size } = await stat(file);
     totalBytes += size;
     if (relativePath.startsWith("exact/")) exactBytes += size;
+    if (relativePath.startsWith("exact/riders/")) riderBytes += size;
     const extension = path.extname(file).toLowerCase();
 
     if (extension === ".txt" || extension === ".md") {
@@ -78,6 +83,33 @@ async function main() {
     if (relativePath.startsWith("exact/venues/") && size > thresholds.exactVenue) {
       warnings.push(`exact venue JSON exceeds 100 KB: ${relativePath} (${formatBytes(size)})`);
     }
+    if (
+      relativePath === "exact/riders/index.generated.json"
+      && size > thresholds.riderIndex
+    ) {
+      warnings.push(`rider index exceeds 300 KB: ${relativePath} (${formatBytes(size)})`);
+    }
+    if (
+      /^exact\/riders\/by-tail\/\d{2}\/\d{6}\.generated\.json$/u.test(relativePath)
+      && size > thresholds.riderFile
+    ) {
+      warnings.push(`rider JSON exceeds 20 KB: ${relativePath} (${formatBytes(size)})`);
+    }
+    if (relativePath.startsWith("exact/riders/") && extension === ".json") {
+      const content = await readFile(file, "utf8");
+      if (
+        /WINTICKET|かまし成功率|つっぱり成功率|ちぎり率|ちぎられ率|飛びつき成功率|競りの勝率/u
+          .test(content)
+      ) {
+        prohibited.push(`WINTICKET-derived field under rider output: ${relativePath}`);
+      }
+      if (/"(?:raw|rawText|summary|html)"\s*:/u.test(content)) {
+        prohibited.push(`raw text field under rider output: ${relativePath}`);
+      }
+      if (/<(?:html|body|script|div|table)\b/iu.test(content)) {
+        prohibited.push(`embedded HTML under rider output: ${relativePath}`);
+      }
+    }
   }
 
   if (totalBytes > thresholds.total) {
@@ -85,6 +117,9 @@ async function main() {
   }
   if (exactBytes > thresholds.exactTotal) {
     warnings.push(`KURARI EX exact output exceeds 5 MB: ${formatBytes(exactBytes)}`);
+  }
+  if (riderBytes > thresholds.riderTotal) {
+    warnings.push(`KURARI EX rider output exceeds 5 MB: ${formatBytes(riderBytes)}`);
   }
 
   const importerSource = await readFile(importerPath, "utf8");
@@ -97,6 +132,7 @@ async function main() {
   console.log(`files: ${files.length}`);
   console.log(`total: ${formatBytes(totalBytes)}`);
   console.log(`exact: ${formatBytes(exactBytes)}`);
+  console.log(`riders: ${formatBytes(riderBytes)}`);
   console.log(`warnings: ${warnings.length}`);
   console.log(`prohibited: ${prohibited.length}`);
   for (const warning of warnings) console.warn(`WARNING: ${warning}`);
