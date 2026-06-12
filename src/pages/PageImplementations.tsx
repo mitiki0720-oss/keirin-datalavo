@@ -8862,6 +8862,7 @@ export type SiteHeaderActiveKey =
   | "races"
   | "venues"
   | "players"
+  | "ex-data"
   | "monthly"
   | "calendar"
   | "mobile";
@@ -9081,6 +9082,9 @@ return (
             </a>
             <a href="#players-page" onClick={goHashTop("#players-page")} style={getNavStyle("players")}>
               Players
+            </a>
+            <a href="#ex-data-page" onClick={goHashTop("#ex-data-page")} style={getNavStyle("ex-data")}>
+              EX Lab
             </a>
             <a href="#monthly-review-page" onClick={goHashTop("#monthly-review-page")} style={getNavStyle("monthly")}>
               Monthly

@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState } from "react";
 import AnalysisMaterialPage from "./pages/AnalysisMaterialPage";
 import DashboardPage from "./pages/DashboardPage";
+import ExDataPage from "./pages/ExDataPage";
 import MobileDashboardPage from "./pages/MobileDashboardPage";
 import MonthlyReviewPage from "./pages/MonthlyReviewPage";
 import PlayersPage from "./pages/PlayersPage";
@@ -85,6 +86,10 @@ export default function App() {
 
   if (route.startsWith("players-page")) {
     return <PlayersPage />;
+  }
+
+  if (route.startsWith("ex-data-page")) {
+    return <ExDataPage />;
   }
 
   if (route.startsWith("monthly-review-page")) {
