@@ -10,6 +10,12 @@ import type {
   KurariExInitialData,
   KurariExMetric,
   KurariExPredictionContext,
+  KurariExRiderExact,
+  KurariExRiderExactIndex,
+  KurariExRiderExactInitialData,
+  KurariExRiderExactStatus,
+  KurariExRiderMetric,
+  KurariExRiderQuality,
   KurariExStatus,
   KurariExVenue,
   KurariExVenueBundle,
@@ -19,6 +25,7 @@ import type {
 
 const EX_ROOT = "/data/analytics/kurari-ex";
 const EXACT_ROOT = `${EX_ROOT}/exact`;
+const RIDER_EXACT_ROOT = `${EXACT_ROOT}/riders`;
 
 const venueNameMap: Record<string, string> = {
   aomori: "青森",
@@ -393,4 +400,39 @@ export async function loadKurariExVenueExact(
     ? `${EXACT_ROOT}/venues/${item}.generated.json`
     : item.exactFile;
   return fetchJson<KurariExVenueExact>(path);
+}
+
+export async function loadKurariExRiderExactIndex(): Promise<KurariExRiderExactIndex> {
+  return fetchJson<KurariExRiderExactIndex>(`${RIDER_EXACT_ROOT}/index.generated.json`);
+}
+
+export async function loadKurariExRiderExactStatus(): Promise<KurariExRiderExactStatus> {
+  return fetchJson<KurariExRiderExactStatus>(`${RIDER_EXACT_ROOT}/status.generated.json`);
+}
+
+export async function loadKurariExRiderExactInitialData(): Promise<KurariExRiderExactInitialData> {
+  const [index, status] = await Promise.all([
+    loadKurariExRiderExactIndex(),
+    loadKurariExRiderExactStatus(),
+  ]);
+  return { index, status };
+}
+
+export async function loadKurariExRiderExactByFile(file: string): Promise<KurariExRiderExact> {
+  return fetchJson<KurariExRiderExact>(file);
+}
+
+export function formatKurariExRiderMetric(metric?: KurariExRiderMetric | null) {
+  if (!metric || metric.rate == null || metric.total == null) return "未取得";
+  return `${metric.rate.toFixed(1)}%（${metric.count.toLocaleString("ja-JP")} / ${metric.total.toLocaleString("ja-JP")}）`;
+}
+
+export function getKurariExRiderQualityLabel(quality?: KurariExRiderQuality | null) {
+  const labels: Record<KurariExRiderQuality, string> = {
+    complete: "COMPLETE",
+    partial: "PARTIAL",
+    "low-sample": "LOW SAMPLE",
+    "identity-only": "IDENTITY ONLY",
+  };
+  return quality ? labels[quality] : "UNKNOWN";
 }

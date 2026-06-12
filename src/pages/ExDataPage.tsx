@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   formatKurariExMetric,
+  formatKurariExRiderMetric,
+  getKurariExRiderQualityLabel,
   loadKurariExExactInitialData,
   loadKurariExInitialData,
+  loadKurariExRiderExactByFile,
+  loadKurariExRiderExactInitialData,
   loadKurariExVenueBundle,
   loadKurariExVenueExact,
 } from "../lib/kurariExData";
@@ -12,6 +16,11 @@ import type {
   KurariExInitialData,
   KurariExVenueBundle,
   KurariExVenueExact,
+  KurariExRiderAggregate,
+  KurariExRiderExact,
+  KurariExRiderExactIndexItem,
+  KurariExRiderExactInitialData,
+  KurariExRiderQuality,
 } from "../types/kurariEx";
 import { SiteHeader, useIsMobile } from "./PageImplementations";
 
@@ -92,18 +101,63 @@ function exactCategoryLabel(category: string, key: string) {
   return labels[category]?.[key] ?? key;
 }
 
+function RiderQualityBadge({ quality }: { quality: KurariExRiderQuality }) {
+  return (
+    <span className={`ex-quality is-${quality}`}>
+      {getKurariExRiderQualityLabel(quality)}
+    </span>
+  );
+}
+
+function RiderAggregateCards({ aggregate }: { aggregate: KurariExRiderAggregate }) {
+  const values = [
+    ["出走数", aggregate.starts == null ? "未取得" : valueText(aggregate.starts)],
+    ["1着", valueText(aggregate.wins)],
+    ["2着", valueText(aggregate.seconds)],
+    ["3着", valueText(aggregate.thirds)],
+    ["着外", aggregate.outside == null ? "未取得" : valueText(aggregate.outside)],
+    ["勝率", formatKurariExRiderMetric(aggregate.winRate)],
+    ["2連対率", formatKurariExRiderMetric(aggregate.top2Rate)],
+    ["3着以内率", formatKurariExRiderMetric(aggregate.top3Rate)],
+  ];
+  return (
+    <div className="ex-kpi-grid">
+      {values.map(([label, value]) => <MetricCard key={label} label={label} value={value} />)}
+    </div>
+  );
+}
+
+function normalizeSearchText(value: string) {
+  return value.normalize("NFKC").replace(/[\s\u3000]/gu, "").toLowerCase();
+}
+
+const timeslotLabels: Record<string, string> = {
+  morning: "モーニング",
+  day: "デイ",
+  night: "ナイター",
+  midnight: "ミッド",
+  unknown: "未取得",
+};
+
 export default function ExDataPage() {
   const isMobile = useIsMobile();
   const [initialData, setInitialData] = useState<KurariExInitialData | null>(null);
   const [initialStatus, setInitialStatus] = useState<"loading" | "ready" | "error">("loading");
   const [exactInitialData, setExactInitialData] = useState<KurariExExactInitialData | null>(null);
   const [exactInitialStatus, setExactInitialStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [activeView, setActiveView] = useState<"venue" | "player">("venue");
   const [query, setQuery] = useState("");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [venueCache, setVenueCache] = useState<Record<string, KurariExVenueBundle>>({});
   const [venueStatus, setVenueStatus] = useState<Record<string, "loading" | "ready" | "error">>({});
   const [exactVenueCache, setExactVenueCache] = useState<Record<string, KurariExVenueExact>>({});
   const [exactVenueStatus, setExactVenueStatus] = useState<Record<string, "loading" | "ready" | "error">>({});
+  const [riderInitialData, setRiderInitialData] = useState<KurariExRiderExactInitialData | null>(null);
+  const [riderInitialStatus, setRiderInitialStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [riderQuery, setRiderQuery] = useState("");
+  const [selectedRiderNo, setSelectedRiderNo] = useState<string | null>(null);
+  const [riderCache, setRiderCache] = useState<Record<string, KurariExRiderExact>>({});
+  const [riderStatus, setRiderStatus] = useState<Record<string, "loading" | "ready" | "error">>({});
 
   useEffect(() => {
     let active = true;
@@ -116,6 +170,23 @@ export default function ExDataPage() {
       .catch(() => {
         if (!active) return;
         setInitialStatus("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    loadKurariExRiderExactInitialData()
+      .then((data) => {
+        if (!active) return;
+        setRiderInitialData(data);
+        setRiderInitialStatus("ready");
+      })
+      .catch(() => {
+        if (!active) return;
+        setRiderInitialStatus("error");
       });
     return () => {
       active = false;
@@ -184,6 +255,29 @@ export default function ExDataPage() {
     );
   }, [allVenues, query]);
 
+  const filteredRiders = useMemo(() => {
+    const normalized = normalizeSearchText(riderQuery);
+    if (!normalized) return riderInitialData?.index.items ?? [];
+    return (riderInitialData?.index.items ?? []).filter((item) => (
+      [item.name, item.nameKey, item.registrationNo, item.prefecture, item.class]
+        .some((value) => normalizeSearchText(value).includes(normalized))
+    ));
+  }, [riderInitialData?.index.items, riderQuery]);
+
+  const selectRider = (item: KurariExRiderExactIndexItem) => {
+    setSelectedRiderNo(item.registrationNo);
+    if (riderCache[item.registrationNo] || riderStatus[item.registrationNo] === "loading") return;
+    setRiderStatus((current) => ({ ...current, [item.registrationNo]: "loading" }));
+    loadKurariExRiderExactByFile(item.file)
+      .then((rider) => {
+        setRiderCache((current) => ({ ...current, [item.registrationNo]: rider }));
+        setRiderStatus((current) => ({ ...current, [item.registrationNo]: "ready" }));
+      })
+      .catch(() => {
+        setRiderStatus((current) => ({ ...current, [item.registrationNo]: "error" }));
+      });
+  };
+
   const selectedBundle = selectedKey ? venueCache[selectedKey] : null;
   const selectedLoadStatus = selectedKey ? venueStatus[selectedKey] : undefined;
   const selectedExact = selectedKey ? exactVenueCache[selectedKey] : null;
@@ -192,6 +286,11 @@ export default function ExDataPage() {
   const global = initialData?.globalKpi.kpi;
   const exactStatus = exactInitialData?.status;
   const exactGlobal = exactInitialData?.globalKpi;
+  const selectedRiderItem = riderInitialData?.index.items.find(
+    (item) => item.registrationNo === selectedRiderNo,
+  );
+  const selectedRider = selectedRiderNo ? riderCache[selectedRiderNo] : null;
+  const selectedRiderStatus = selectedRiderNo ? riderStatus[selectedRiderNo] : undefined;
   const sizeWarning = (status?.outputBytes ?? 0) > 20 * 1024 * 1024;
   const healthMetrics = [
     ["PERIOD", status ? `${status.dateFrom ?? "--"}〜${status.dateTo ?? "--"}` : "--", "source range"],
@@ -239,6 +338,9 @@ export default function ExDataPage() {
         .ex-kpi-grid { display: grid; grid-template-columns: repeat(${isMobile ? 2 : 5}, minmax(0,1fr)); gap: 13px; }
         .ex-workspace { display: grid; grid-template-columns: ${isMobile ? "1fr" : "minmax(300px,.72fr) minmax(0,1.28fr)"}; gap: 22px; align-items: start; }
         .ex-search { width: 100%; box-sizing: border-box; border: 1px solid #dcd9eb; border-radius: 16px; padding: 13px 15px; background: rgba(255,255,255,.9); color: #26354d; font: 700 14px ${sans}; outline: none; }
+        .ex-view-tabs { display: flex; gap: 10px; padding: 8px; width: fit-content; border: 1px solid #dedbea; border-radius: 18px; background: rgba(255,255,255,.72); }
+        .ex-view-tab { cursor: pointer; border: 0; border-radius: 13px; padding: 11px 18px; background: transparent; color: #748096; font: 900 12px ${sans}; letter-spacing: .08em; }
+        .ex-view-tab.is-active { color: #554294; background: linear-gradient(135deg,#eee7ff,#eaf8ff); box-shadow: 0 7px 18px rgba(92,73,150,.12); }
         .ex-venue-list { display: grid; gap: 9px; max-height: ${isMobile ? "none" : "720px"}; overflow-y: ${isMobile ? "visible" : "auto"}; padding-right: 4px; }
         .ex-venue-button { width: 100%; text-align: left; cursor: pointer; border: 1px solid #e2e1ec; border-radius: 18px; padding: 15px; background: rgba(255,255,255,.76); color: #233149; }
         .ex-venue-button:hover, .ex-venue-button.is-active { border-color: #aa9ad9; background: linear-gradient(135deg,#f6f0ff,#eef9ff); box-shadow: 0 10px 24px rgba(102,83,157,.1); }
@@ -249,6 +351,17 @@ export default function ExDataPage() {
         .ex-badges { display: flex; flex-wrap: wrap; gap: 8px; }
         .ex-badge { display: inline-flex; padding: 7px 10px; border-radius: 999px; background: #eee9fb; color: #6653a4; font-size: 10px; font-weight: 900; letter-spacing: .08em; }
         .ex-badge.is-exact { background: #e7f8f0; color: #276b59; }
+        .ex-quality { display: inline-flex; padding: 6px 9px; border-radius: 999px; font-size: 9px; font-weight: 950; letter-spacing: .08em; }
+        .ex-quality.is-complete { color: #23664c; background: #daf5e8; }
+        .ex-quality.is-partial { color: #315f91; background: #e1efff; }
+        .ex-quality.is-low-sample { color: #925711; background: #fff0d3; }
+        .ex-quality.is-identity-only { color: #687184; background: #eceef2; }
+        .ex-sample-alert { padding: 18px; border: 1px solid #f0c98e; border-radius: 19px; background: #fff8e9; color: #78501d; line-height: 1.75; }
+        .ex-sample-alert strong { display: block; margin-bottom: 5px; letter-spacing: .12em; }
+        .ex-data-table { width: 100%; border-collapse: collapse; min-width: 580px; color: #526078; font-size: 12px; }
+        .ex-data-table th, .ex-data-table td { padding: 10px 9px; border-bottom: 1px solid #edf0f4; text-align: left; white-space: nowrap; }
+        .ex-data-table th { color: #7765ae; font-size: 10px; letter-spacing: .08em; }
+        .ex-table-wrap { max-width: 100%; overflow-x: auto; border: 1px solid #e4e7ee; border-radius: 18px; background: rgba(255,255,255,.7); }
         .ex-low-sample { display: inline-flex; margin-top: 8px; padding: 4px 7px; border-radius: 999px; background: #fff2dc; color: #985b15; font-size: 9px; font-weight: 900; }
         .ex-subsection { display: grid; gap: 13px; padding-top: 4px; }
         .ex-category-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 2}, minmax(0,1fr)); gap: 12px; }
@@ -362,7 +475,12 @@ export default function ExDataPage() {
           </div>
         </section>
 
-        <section className="ex-workspace">
+        <div className="ex-view-tabs" role="tablist" aria-label="EX表示切替">
+          <button className={`ex-view-tab${activeView === "venue" ? " is-active" : ""}`} type="button" role="tab" aria-selected={activeView === "venue"} onClick={() => setActiveView("venue")}>VENUE EX</button>
+          <button className={`ex-view-tab${activeView === "player" ? " is-active" : ""}`} type="button" role="tab" aria-selected={activeView === "player"} onClick={() => setActiveView("player")}>PLAYER EX</button>
+        </div>
+
+        {activeView === "venue" ? <section className="ex-workspace">
           <aside className="ex-panel ex-section">
             <SectionTitle eyebrow="VENUE EX LIST" title="会場別SEED / EXACT" lead="選択時に個別JSONだけを読み込みます。" />
             <input className="ex-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="会場名を検索" aria-label="会場名を検索" />
@@ -506,7 +624,159 @@ export default function ExDataPage() {
               ) : <EmptyState text={selectedKey ? "この会場のGuidanceはまだ生成されていません。" : "会場を選択するとGuidanceを表示します。"} />}
             </section>
           </div>
-        </section>
+        </section> : (
+          <>
+            <section className="ex-panel ex-section">
+              <SectionTitle eyebrow="PLAYER EX" title="選手別確定集計" lead="登録番号へ安全に紐付いた選手だけを表示。母数が少ない指標は過信しないでください。" />
+              <div className="ex-eyebrow">PLAYER DATA HEALTH</div>
+              <div className="ex-health-grid">
+                <MetricCard label="PUBLISHED RIDERS" value={riderInitialStatus === "loading" ? "…" : valueText(riderInitialData?.status.riderCount)} />
+                <MetricCard label="LOW SAMPLE" value={riderInitialStatus === "loading" ? "…" : valueText(riderInitialData?.status.qualityCounts["low-sample"])} warning={(riderInitialData?.status.qualityCounts["low-sample"] ?? 0) > 0} />
+                <MetricCard label="PARTIAL" value={riderInitialStatus === "loading" ? "…" : valueText(riderInitialData?.status.qualityCounts.partial)} />
+                <MetricCard label="COMPLETE" value={riderInitialStatus === "loading" ? "…" : valueText(riderInitialData?.status.qualityCounts.complete)} />
+                <MetricCard label="MAX RIDER JSON" value={riderInitialStatus === "loading" ? "…" : formatBytes(riderInitialData?.status.maxFileBytes)} />
+                <MetricCard label="TOTAL RIDER EX" value={riderInitialStatus === "loading" ? "…" : formatBytes(riderInitialData?.status.outputBytes)} />
+              </div>
+              {riderInitialStatus === "error" ? <EmptyState text="PLAYER EXのindex / statusを取得できませんでした。" /> : null}
+            </section>
+
+            <section className="ex-workspace">
+              <aside className="ex-panel ex-section">
+                <SectionTitle eyebrow="PLAYER EX LIST" title="公開選手" lead={`${filteredRiders.length.toLocaleString("ja-JP")} / ${(riderInitialData?.index.riderCount ?? 0).toLocaleString("ja-JP")}名`} />
+                <input className="ex-search" value={riderQuery} onChange={(event) => setRiderQuery(event.target.value)} placeholder="選手名・登録番号・府県で検索" aria-label="選手名・登録番号・府県で検索" />
+                <div className="ex-venue-list">
+                  {filteredRiders.map((item) => (
+                    <button key={item.registrationNo} className={`ex-venue-button${selectedRiderNo === item.registrationNo ? " is-active" : ""}`} type="button" onClick={() => selectRider(item)}>
+                      <div className="ex-detail-head">
+                        <div>
+                          <strong>{item.name}</strong>
+                          <div className="ex-muted">{item.registrationNo} / {item.prefecture || "府県未取得"} / {item.class || "級班未取得"}</div>
+                        </div>
+                        <RiderQualityBadge quality={item.quality} />
+                      </div>
+                      <div className="ex-muted">確認出走 {item.confirmedStartCount}R / 役割解析 {item.roleEligibleCount}R</div>
+                    </button>
+                  ))}
+                  {riderInitialStatus === "ready" && filteredRiders.length === 0 ? <EmptyState text="該当する選手がいません。" /> : null}
+                </div>
+              </aside>
+
+              <div className="ex-detail">
+                <section className="ex-panel ex-section">
+                  <SectionTitle eyebrow="PLAYER EXACT ANALYTICS" title={selectedRider?.name ?? selectedRiderItem?.name ?? "選手別確定集計"} />
+                  {!selectedRiderNo ? <EmptyState text="選手を選択すると、KURARI EX EXACTが表示されます。" /> : null}
+                  {selectedRiderStatus === "loading" ? <EmptyState text="選手別EXACTを読み込んでいます。" /> : null}
+                  {selectedRiderStatus === "error" ? <EmptyState text="この選手のEXACTデータを取得できませんでした。" /> : null}
+                  {selectedRider ? (
+                    <>
+                      <div className="ex-detail-head">
+                        <div>
+                          <div className="ex-eyebrow">REGISTRATION {selectedRider.registrationNo}</div>
+                          <h3>{selectedRider.name}</h3>
+                          <div className="ex-muted">
+                            {selectedRiderItem?.prefecture || "府県未取得"} / {selectedRiderItem?.class || "級班未取得"} / {selectedRider.period.from ?? "--"}〜{selectedRider.period.to ?? "--"}
+                          </div>
+                        </div>
+                        <div className="ex-badges">
+                          <span className="ex-badge is-exact">EXACT</span>
+                          <RiderQualityBadge quality={selectedRider.quality} />
+                          <span className="ex-badge">IDENTITY 登録番号解決済み</span>
+                          <span className="ex-badge">RESOLUTION {selectedRider.identity.status}</span>
+                        </div>
+                      </div>
+                      {selectedRider.quality === "low-sample" || selectedRider.coverage.confirmedStartCount < 5 ? (
+                        <div className="ex-sample-alert"><strong>LOW SAMPLE / 母数少</strong>母数が少ないため、確定的な評価には使わず、展開判断の補助として確認してください。</div>
+                      ) : null}
+                    </>
+                  ) : null}
+                </section>
+
+                {selectedRider ? (
+                  <>
+                    <section className="ex-panel ex-section">
+                      <SectionTitle eyebrow="COVERAGE" title="解析範囲" />
+                      <div className="ex-health-grid">
+                        <MetricCard label="OBSERVED RACES" value={valueText(selectedRider.coverage.observedRaceCount)} />
+                        <MetricCard label="CONFIRMED STARTS" value={valueText(selectedRider.coverage.confirmedStartCount)} />
+                        <MetricCard label="RESULT PARSED" value={valueText(selectedRider.coverage.resultParsedCount)} />
+                        <MetricCard label="ROLE ELIGIBLE" value={valueText(selectedRider.coverage.roleEligibleCount)} />
+                        <MetricCard label="VENUES" value={valueText(selectedRider.coverage.venueCount)} />
+                      </div>
+                    </section>
+
+                    <section className="ex-panel ex-section">
+                      <SectionTitle eyebrow="OVERALL" title="全体成績" lead="未取得と0%を区別して表示します。" />
+                      <RiderAggregateCards aggregate={selectedRider.overall} />
+                    </section>
+
+                    <section className="ex-panel ex-section">
+                      <SectionTitle eyebrow="WINNING METHODS" title="1着決まり手" />
+                      <div className="ex-kpi-grid">
+                        {([
+                          ["逃", selectedRider.winningMethods.escape],
+                          ["捲", selectedRider.winningMethods.sprint],
+                          ["差", selectedRider.winningMethods.difference],
+                        ] as const).map(([label, metric]) => <MetricCard key={label} label={label} value={formatKurariExRiderMetric(metric)} />)}
+                      </div>
+                    </section>
+
+                    {selectedRider.byVenue.length ? (
+                      <section className="ex-panel ex-section">
+                        <SectionTitle eyebrow="BY VENUE" title="会場別" />
+                        <div className="ex-table-wrap"><table className="ex-data-table"><thead><tr><th>会場</th><th>出走</th><th>1着</th><th>2着</th><th>3着</th><th>3着以内率</th></tr></thead><tbody>
+                          {selectedRider.byVenue.map((row) => <tr key={row.venueKey}><td>{row.venueName ?? row.venueKey}</td><td>{row.starts ?? "未取得"}</td><td>{row.wins}</td><td>{row.seconds}</td><td>{row.thirds}</td><td>{formatKurariExRiderMetric(row.top3Rate)}</td></tr>)}
+                        </tbody></table></div>
+                      </section>
+                    ) : null}
+
+                    {selectedRider.byTimeslot.length ? (
+                      <section className="ex-panel ex-section">
+                        <SectionTitle eyebrow="BY TIMESLOT" title="時間帯別" />
+                        <div className="ex-table-wrap"><table className="ex-data-table"><thead><tr><th>時間帯</th><th>出走</th><th>1着</th><th>2着</th><th>3着</th><th>3着以内率</th></tr></thead><tbody>
+                          {selectedRider.byTimeslot.map((row) => <tr key={row.timeslot}><td>{timeslotLabels[row.timeslot ?? "unknown"] ?? row.timeslot}</td><td>{row.starts ?? "未取得"}</td><td>{row.wins}</td><td>{row.seconds}</td><td>{row.thirds}</td><td>{formatKurariExRiderMetric(row.top3Rate)}</td></tr>)}
+                        </tbody></table></div>
+                      </section>
+                    ) : null}
+
+                    {selectedRider.byClass.length ? (
+                      <section className="ex-panel ex-section">
+                        <SectionTitle eyebrow="BY CLASS" title="級班別" />
+                        <div className="ex-table-wrap"><table className="ex-data-table"><thead><tr><th>級班</th><th>出走</th><th>1着</th><th>2着</th><th>3着</th><th>3着以内率</th></tr></thead><tbody>
+                          {selectedRider.byClass.map((row, index) => <tr key={`${row.raceClass}-${index}`}><td>{row.raceClass === "unknown" ? "未取得" : row.raceClass}</td><td>{row.starts ?? "未取得"}</td><td>{row.wins}</td><td>{row.seconds}</td><td>{row.thirds}</td><td>{formatKurariExRiderMetric(row.top3Rate)}</td></tr>)}
+                        </tbody></table></div>
+                      </section>
+                    ) : null}
+
+                    <section className="ex-panel ex-section">
+                      <SectionTitle eyebrow="BY ROLE" title="ライン役割別" />
+                      {selectedRider.byRole && Object.values(selectedRider.byRole).some(Boolean) ? (
+                        <div className="ex-category-grid">
+                          {([
+                            ["front", "ライン先頭"],
+                            ["bante", "番手"],
+                            ["third", "3番手"],
+                            ["single", "単騎"],
+                          ] as const).map(([key, label]) => {
+                            const aggregate = selectedRider.byRole?.[key];
+                            if (!aggregate) return null;
+                            return <article className="ex-category-card" key={key}><h4>{label}</h4><div className="ex-category-row"><span>出走</span><span>{aggregate.starts ?? "未取得"}</span></div><div className="ex-category-row"><span>勝率</span><span>{formatKurariExRiderMetric(aggregate.winRate)}</span></div><div className="ex-category-row"><span>3着以内率</span><span>{formatKurariExRiderMetric(aggregate.top3Rate)}</span></div>{aggregate.differenceWinRate ? <div className="ex-category-row"><span>番手時差し</span><span>{formatKurariExRiderMetric(aggregate.differenceWinRate)}</span></div> : null}</article>;
+                          })}
+                        </div>
+                      ) : <EmptyState text="役割別EXACTは、解析可能レースの蓄積後に表示されます。" />}
+                    </section>
+
+                    {selectedRider.warnings.length ? (
+                      <section className="ex-panel ex-section">
+                        <SectionTitle eyebrow="DATA QUALITY NOTES" title="データ品質上の注意" />
+                        <ul className="ex-guidance-list">{selectedRider.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>
+                      </section>
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
+            </section>
+          </>
+        )}
 
         <details className="ex-panel ex-section ex-raw">
           <summary>RAW STATUS / 生成状態を見る</summary>

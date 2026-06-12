@@ -244,3 +244,115 @@ export type KurariExPredictionContext = {
   lineup?: string | null;
   windSpeedKmh?: number | null;
 };
+
+export type KurariExRiderQuality =
+  | "complete"
+  | "partial"
+  | "low-sample"
+  | "identity-only";
+
+export type KurariExRiderMetric = {
+  count: number;
+  total: number | null;
+  rate: number | null;
+  sourceType: "EXACT";
+  quality?: "ok" | "low-sample" | "unavailable";
+};
+
+export type KurariExRiderAggregate = {
+  starts: number | null;
+  wins: number;
+  seconds: number;
+  thirds: number;
+  outside: number | null;
+  winRate: KurariExRiderMetric;
+  top2Rate: KurariExRiderMetric;
+  top3Rate: KurariExRiderMetric;
+  sourceType: "EXACT";
+  differenceWinRate?: KurariExRiderMetric;
+};
+
+export type KurariExRiderExactIndexItem = {
+  registrationNo: string;
+  name: string;
+  nameKey: string;
+  prefecture: string;
+  class: string;
+  file: string;
+  observedRaceCount: number;
+  confirmedStartCount: number;
+  roleEligibleCount: number;
+  quality: KurariExRiderQuality;
+};
+
+export type KurariExRiderExactIndex = {
+  schemaVersion: number;
+  generatedAt: string;
+  sourceType: "EXACT";
+  riderCount: number;
+  period: KurariExPeriod;
+  items: KurariExRiderExactIndexItem[];
+};
+
+export type KurariExRiderExactStatus = {
+  schemaVersion: number;
+  generatedAt: string;
+  sourceType: "EXACT";
+  normalizedRaceCount: number;
+  riderCount: number;
+  qualityCounts: Record<KurariExRiderQuality, number>;
+  outputFileCount: number;
+  outputBytes: number;
+  maxFileBytes: number;
+  source: string;
+};
+
+export type KurariExRiderDimension = KurariExRiderAggregate & {
+  venueKey?: string;
+  venueName?: string;
+  timeslot?: string;
+  raceClass?: string;
+};
+
+export type KurariExRiderExact = {
+  schemaVersion: number;
+  registrationNo: string;
+  name: string;
+  nameKey: string;
+  sourceType: "EXACT";
+  generatedAt: string;
+  period: KurariExPeriod;
+  identity: {
+    status: "registration-no" | "unique-player-card-name" | "manual-override";
+    registrationNoResolved: boolean;
+  };
+  coverage: {
+    observedRaceCount: number;
+    confirmedStartCount: number;
+    resultParsedCount: number;
+    roleEligibleCount: number;
+    venueCount: number;
+  };
+  overall: KurariExRiderAggregate;
+  winningMethods: {
+    escape: KurariExRiderMetric;
+    sprint: KurariExRiderMetric;
+    difference: KurariExRiderMetric;
+  };
+  byVenue: KurariExRiderDimension[];
+  byTimeslot: KurariExRiderDimension[];
+  byClass: KurariExRiderDimension[];
+  byRole: {
+    front: KurariExRiderAggregate | null;
+    bante: KurariExRiderAggregate | null;
+    third: KurariExRiderAggregate | null;
+    single: KurariExRiderAggregate | null;
+  } | null;
+  quality: KurariExRiderQuality;
+  warnings: string[];
+};
+
+export type KurariExRiderExactInitialData = {
+  index: KurariExRiderExactIndex;
+  status: KurariExRiderExactStatus;
+};
