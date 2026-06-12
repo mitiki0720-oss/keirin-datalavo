@@ -17,6 +17,9 @@ const thresholds = {
   riderIndex: 300 * 1024,
   riderFile: 20 * 1024,
   riderTotal: 5 * 1024 * 1024,
+  historyIndex: 200 * 1024,
+  historyDaily: 300 * 1024,
+  historyTotal: 10 * 1024 * 1024,
 };
 
 async function collectFiles(directory) {
@@ -53,6 +56,7 @@ async function main() {
   let totalBytes = 0;
   let exactBytes = 0;
   let riderBytes = 0;
+  let historyBytes = 0;
 
   for (const file of files) {
     const relativePath = path.relative(outputRoot, file).replaceAll(path.sep, "/");
@@ -60,6 +64,7 @@ async function main() {
     totalBytes += size;
     if (relativePath.startsWith("exact/")) exactBytes += size;
     if (relativePath.startsWith("exact/riders/")) riderBytes += size;
+    if (relativePath.startsWith("history/")) historyBytes += size;
     const extension = path.extname(file).toLowerCase();
 
     if (extension === ".txt" || extension === ".md") {
@@ -110,6 +115,30 @@ async function main() {
         prohibited.push(`embedded HTML under rider output: ${relativePath}`);
       }
     }
+    if (
+      relativePath === "history/index.generated.json"
+      && size > thresholds.historyIndex
+    ) {
+      warnings.push(`history index exceeds 200 KB: ${relativePath} (${formatBytes(size)})`);
+    }
+    if (
+      /^history\/daily\/\d{4}-\d{2}\/\d{4}-\d{2}-\d{2}\.generated\.json$/u.test(relativePath)
+      && size > thresholds.historyDaily
+    ) {
+      warnings.push(`history daily JSON exceeds 300 KB: ${relativePath} (${formatBytes(size)})`);
+    }
+    if (relativePath.startsWith("history/") && extension === ".json") {
+      const content = await readFile(file, "utf8");
+      if (/"(?:raw|rawText)"\s*:/iu.test(content)) {
+        prohibited.push(`raw text field under history output: ${relativePath}`);
+      }
+      if (/"(?:sourceRef|sourceRefs|summaryFile|predictionFile|resultFile)"\s*:/iu.test(content)) {
+        prohibited.push(`source reference under history output: ${relativePath}`);
+      }
+      if (/<(?:html|body|script|div|table)\b/iu.test(content)) {
+        prohibited.push(`embedded HTML under history output: ${relativePath}`);
+      }
+    }
   }
 
   if (totalBytes > thresholds.total) {
@@ -120,6 +149,9 @@ async function main() {
   }
   if (riderBytes > thresholds.riderTotal) {
     warnings.push(`KURARI EX rider output exceeds 5 MB: ${formatBytes(riderBytes)}`);
+  }
+  if (historyBytes > thresholds.historyTotal) {
+    warnings.push(`KURARI EX compact history exceeds 10 MB: ${formatBytes(historyBytes)}`);
   }
 
   const importerSource = await readFile(importerPath, "utf8");
@@ -133,6 +165,7 @@ async function main() {
   console.log(`total: ${formatBytes(totalBytes)}`);
   console.log(`exact: ${formatBytes(exactBytes)}`);
   console.log(`riders: ${formatBytes(riderBytes)}`);
+  console.log(`history: ${formatBytes(historyBytes)}`);
   console.log(`warnings: ${warnings.length}`);
   console.log(`prohibited: ${prohibited.length}`);
   for (const warning of warnings) console.warn(`WARNING: ${warning}`);
