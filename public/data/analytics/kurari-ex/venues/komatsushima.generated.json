@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "venueKey": "komatsushima",
+  "venueName": "小松島",
+  "updatedAt": "2026-06-12",
+  "source": "review-summary-import",
+  "sourceType": "SEED",
+  "period": {
+    "from": "2026-05-13",
+    "to": "2026-06-08"
+  },
+  "quality": {
+    "seedSources": 6,
+    "parsedDateSources": 6,
+    "exactRaceCount": 0,
+    "status": "seed"
+  },
+  "seedKpi": {
+    "sourceType": "SEED",
+    "sourceCount": 6,
+    "raceCount": 63,
+    "trifectaHits": 14,
+    "trifectaHitRate": 22.2,
+    "exactaHits": 2,
+    "exactaHitRate": 3.2,
+    "anyTicketHits": null,
+    "hitRate": null,
+    "investmentYen": 63000,
+    "returnYen": 50080,
+    "recoveryRate": 79.5,
+    "kimarite": {
+      "escape": null,
+      "makuri": null,
+      "sashi": null
+    }
+  },
+  "seedInsights": [
+    {
+      "tag": "BANTE_SASHI_ALERT",
+      "label": "番手差しを警戒",
+      "evidenceCount": 6,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "CLASS_CONTEXT",
+      "label": "級班条件を分離",
+      "evidenceCount": 6,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "MAKURI_ALERT",
+      "label": "捲り展開を警戒",
+      "evidenceCount": 6,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "SOLO_RIDER_ALERT",
+      "label": "単騎の差し込みを警戒",
+      "evidenceCount": 6,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "TIME_SLOT_BIAS",
+      "label": "時間帯差を確認",
+      "evidenceCount": 6,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "WIND_SENSITIVE",
+      "label": "風条件を確認",
+      "evidenceCount": 6,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "THIRD_PLACE_SPREAD",
+      "label": "3着候補を分散",
+      "evidenceCount": 5,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "LINE_COHESION",
+      "label": "同ライン決着を評価",
+      "evidenceCount": 2,
+      "confidence": "low",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "OTHER_LINE_ALERT",
+      "label": "別線の浮上を警戒",
+      "evidenceCount": 2,
+      "confidence": "low",
+      "sourceType": "SEED"
+    }
+  ],
+  "seedNotes": {
+    "features": [],
+    "targets": [
+      "※予想プロジェクトで実際に出した買い目を写経。追加・削除なし。",
+      "本レポートでの買い目照合後判定：hit",
+      "注記：結果テキストの pending 表記は、実際の買い目と払戻を照合して補完。",
+      "本レポートでの買い目照合後判定：miss",
+      "注記：結果テキストの8R・9Rは pending 表記。買い目と払戻を再照合し、8Rはmiss、9Rは3連単hitとして補完。",
+      "的中買い目：03）1-2-3／払戻 1,210円",
+      "注記：pending表記のレースは、買い目と払戻の一致を再照合して補完。"
+    ],
+    "cautions": [
+      "タグ： 小松島 ミッドナイト ガールズ予選1 ライン固定なし TYPE-B 三着候補広め バック追い風寄り 風影響 捲り重視 位置取り重視 落車明け注意 三着保護 逆目救済 自信度🔥🔥",
+      "タグ： 小松島 ミッドナイト A級選抜 三分戦 単騎あり TYPE-C 一着候補複数 北西風 バック向かい風 強風16kmh 梶原先行 西田番手差し 伊藤捲り追い込み 眞砂自在 ズブズブ警戒 三着保護 逆目救済 自信度🔥",
+      "タグ： 小松島 ミッドナイト A級準決勝 三分戦 単騎あり TYPE-C 一着候補複数 北西風 バック向かい風 強風16kmh 諸隈先行 吉松番手差し 福元捲り追い込み 筒井番手差し 緒方単騎先行 ズブズブ警戒 三着保護 逆目救済 自信度🔥"
+    ],
+    "improvements": [
+      "次回への持ち越し：ガールズ一般では、頭候補の表裏だけでなく「追走型の2着」と「B取得選手の3着残り」を分けて置く。",
+      "次回への持ち越し：強い捲り頭を採用する際は「捲り頭 × 逃げた別線の番手・3番手」を標準の三着保護候補にする。",
+      "次回への持ち越し：悪天候の一般戦では、番手差しだけで止めず「3番手の頭浮上」を低頻度穴シナリオとして確認する。"
+    ]
+  },
+  "predictionGuidance": [
+    "先行軸だけで固定せず、番手差しの逆目を残す",
+    "級班とレース種別を分けて傾向を評価する",
+    "先行争いがある場合は別線の捲り筋を残す",
+    "踏み合い時は単騎の差し込みを3着候補に加える",
+    "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+    "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
+    "ラインの長さと追走力を確認し、同ライン決着を評価する"
+  ]
+}

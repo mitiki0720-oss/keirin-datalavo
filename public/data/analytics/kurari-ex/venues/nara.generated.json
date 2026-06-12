@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "venueKey": "nara",
+  "venueName": "奈良",
+  "updatedAt": "2026-06-12",
+  "source": "review-summary-import",
+  "sourceType": "SEED",
+  "period": {
+    "from": "2026-05-01",
+    "to": "2026-06-08"
+  },
+  "quality": {
+    "seedSources": 12,
+    "parsedDateSources": 12,
+    "exactRaceCount": 0,
+    "status": "seed"
+  },
+  "seedKpi": {
+    "sourceType": "SEED",
+    "sourceCount": 12,
+    "raceCount": 122,
+    "trifectaHits": 35,
+    "trifectaHitRate": 28.7,
+    "exactaHits": 9,
+    "exactaHitRate": 7.4,
+    "anyTicketHits": null,
+    "hitRate": null,
+    "investmentYen": 122000,
+    "returnYen": 83860,
+    "recoveryRate": 68.7,
+    "kimarite": {
+      "escape": null,
+      "makuri": null,
+      "sashi": null
+    }
+  },
+  "seedInsights": [
+    {
+      "tag": "CLASS_CONTEXT",
+      "label": "級班条件を分離",
+      "evidenceCount": 12,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "MAKURI_ALERT",
+      "label": "捲り展開を警戒",
+      "evidenceCount": 12,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "SOLO_RIDER_ALERT",
+      "label": "単騎の差し込みを警戒",
+      "evidenceCount": 12,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "THIRD_PLACE_SPREAD",
+      "label": "3着候補を分散",
+      "evidenceCount": 12,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "TIME_SLOT_BIAS",
+      "label": "時間帯差を確認",
+      "evidenceCount": 12,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "WIND_SENSITIVE",
+      "label": "風条件を確認",
+      "evidenceCount": 11,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "BANTE_SASHI_ALERT",
+      "label": "番手差しを警戒",
+      "evidenceCount": 10,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "OTHER_LINE_ALERT",
+      "label": "別線の浮上を警戒",
+      "evidenceCount": 1,
+      "confidence": "low",
+      "sourceType": "SEED"
+    }
+  ],
+  "seedNotes": {
+    "features": [
+      "2-1. 最重要ポイント：B選手の残りをさらに強く扱う"
+    ],
+    "targets": [
+      "2車単：2点（穴狙い）",
+      "10 Ｓ級 特選 6-1-4 差 1,580円(5人) × 結果ファイル判定pending→買い目照合で確定",
+      "12 Ｓ級 決勝 5-2-7 差 1,910円(4人) 3連単 結果ファイル判定pending→買い目照合で確定",
+      "メモ：結果ファイル内で 最終判定: pending になっていたレースは、 買い目と確定結果（着順）で再照合して最終判定を確定 しました。",
+      "予想時：天候:霧雨／気温:24℃／風:南西6km/h（雨＋風で隊列伸びやすい＝3着ズレ狙い）",
+      "予想時：天候:霧雨／気温:22℃／風:北西8km/h（風あり＝3着ズレ重視）",
+      "予想時：天候:霧雨／気温:22℃／風:北西8km/h（強め＝踏み直し＆3着ズレ重視）",
+      "予想時：天候:くもり／気温:22℃／風:北北西9km/h（強め＝踏み直し＆3着ズレ重視）",
+      "予想・結果の全Rを再照合し、pending 表記を実買い目基準で補正。",
+      "結果テキスト内の自動照合欄が pending のため、実際の買い目と払戻表を再照合して的中結果・回収額を確定した。",
+      "注記：マスターテンプレの標準形「3連単7点＋2車単3点」と異なるため、このレポートでは実際に出した買い目を改変せず記録。",
+      "足りなかった点・展開誤差：大きな修正点なし。4は今節7着続きでもB1と一般戦実績を根拠に消さなかった点が有効。"
+    ],
+    "cautions": [
+      "自信度：🔥（注意付き）",
+      "自信度（予想時）：🔥（注意付き）",
+      "レース型：TYPE-C：並び未掲載・自力2車・雨の差し込み警戒",
+      "レース型：TYPE-B：上位3車中心・3着ズレ警戒の全員単騎戦",
+      "レース型：TYPE-B：1着軸は明確・2着3着の順序ズレに注意"
+    ],
+    "improvements": [
+      "次回は可能なら、レース映像メモまたは「初手／打鐘／最終ホーム／最終バック」の簡易隊列を追加する。",
+      "2-5. 次回用チェックリスト",
+      "次回への反映：並び未掲載でも「唯一の先行型＋差し最上位」の表裏は優先。3着は前団直後へ入りやすい選手を先に置く。"
+    ]
+  },
+  "predictionGuidance": [
+    "級班とレース種別を分けて傾向を評価する",
+    "先行争いがある場合は別線の捲り筋を残す",
+    "踏み合い時は単騎の差し込みを3着候補に加える",
+    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
+    "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+    "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+    "先行軸だけで固定せず、番手差しの逆目を残す",
+    "本線が崩れた場合の別線頭と別線3着を保護する"
+  ]
+}

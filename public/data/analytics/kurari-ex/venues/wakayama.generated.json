@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "venueKey": "wakayama",
+  "venueName": "和歌山",
+  "updatedAt": "2026-06-12",
+  "source": "review-summary-import",
+  "sourceType": "SEED",
+  "period": {
+    "from": "2026-05-17",
+    "to": "2026-06-03"
+  },
+  "quality": {
+    "seedSources": 7,
+    "parsedDateSources": 7,
+    "exactRaceCount": 0,
+    "status": "seed"
+  },
+  "seedKpi": {
+    "sourceType": "SEED",
+    "sourceCount": 7,
+    "raceCount": 66,
+    "trifectaHits": 17,
+    "trifectaHitRate": 25.8,
+    "exactaHits": 5,
+    "exactaHitRate": 7.6,
+    "anyTicketHits": null,
+    "hitRate": null,
+    "investmentYen": 66000,
+    "returnYen": 37600,
+    "recoveryRate": 57,
+    "kimarite": {
+      "escape": null,
+      "makuri": null,
+      "sashi": null
+    }
+  },
+  "seedInsights": [
+    {
+      "tag": "CLASS_CONTEXT",
+      "label": "級班条件を分離",
+      "evidenceCount": 7,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "TIME_SLOT_BIAS",
+      "label": "時間帯差を確認",
+      "evidenceCount": 7,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "WIND_SENSITIVE",
+      "label": "風条件を確認",
+      "evidenceCount": 7,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "SOLO_RIDER_ALERT",
+      "label": "単騎の差し込みを警戒",
+      "evidenceCount": 6,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "BANTE_SASHI_ALERT",
+      "label": "番手差しを警戒",
+      "evidenceCount": 4,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "MAKURI_ALERT",
+      "label": "捲り展開を警戒",
+      "evidenceCount": 4,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "THIRD_PLACE_SPREAD",
+      "label": "3着候補を分散",
+      "evidenceCount": 4,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "OTHER_LINE_ALERT",
+      "label": "別線の浮上を警戒",
+      "evidenceCount": 2,
+      "confidence": "low",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "LINE_COHESION",
+      "label": "同ライン決着を評価",
+      "evidenceCount": 1,
+      "confidence": "low",
+      "sourceType": "SEED"
+    }
+  ],
+  "seedNotes": {
+    "features": [],
+    "targets": [
+      "2車単：2点（穴狙い）",
+      "このレポートは「予想プロジェクトで出した買い目」と「結果テキスト」を、開催テンプレ構造（1R＝1ブロック）で整形したものです。新規予想は行いません。",
+      "【予想10点の内訳（実際に出した買い目）】",
+      "このレポートは「予想プロジェクトで出した買い目」と「結果テキスト」を 写経＋整形 したものです。",
+      "実着順：2-1-4（買い目内なし）／取り逃しパターン：3着抜け（1-2着一致）",
+      "このチャット内で新規の予想（買い目追加・変更）は行っていません。",
+      "2車単（穴狙い2点）09/10",
+      "取り逃しパターン（あれば）：買い目内に結果一致なし",
+      "新規予想、買い目の追加・削除、分析用キャンバス①・②の直接編集は行っていません。",
+      "元予想テキストは各Rとも 3連単8点＋2車単2点＝合計10点 。テンプレ例の配分に置き換えず、実際に出された買い目を原文どおり保存。"
+    ],
+    "cautions": [],
+    "improvements": []
+  },
+  "predictionGuidance": [
+    "級班とレース種別を分けて傾向を評価する",
+    "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+    "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+    "踏み合い時は単騎の差し込みを3着候補に加える",
+    "先行軸だけで固定せず、番手差しの逆目を残す",
+    "先行争いがある場合は別線の捲り筋を残す",
+    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
+    "本線が崩れた場合の別線頭と別線3着を保護する"
+  ]
+}

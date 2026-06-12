@@ -1,15 +1,41 @@
+import { execFile } from "node:child_process";
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
 const inputRoot = path.join(projectRoot, "private-input", "kurari-ex");
-const summariesRoot = path.join(inputRoot, "summaries");
+const sourceArchivesRoot = path.join(inputRoot, "source-archives");
+const rawRoot = path.join(inputRoot, "raw");
 const outputRoot = path.join(projectRoot, "public", "data", "analytics", "kurari-ex");
-const dryRun = process.argv.includes("--dry-run");
+const zipHelperPath = path.join(__dirname, "import-kurari-ex-seeds.ps1");
+const execFileAsync = promisify(execFile);
+const cliOptions = parseCliOptions(process.argv.slice(2));
+const dryRun = cliOptions.dryRun;
 const generatedAt = new Date().toISOString();
 const updatedAt = generatedAt.slice(0, 10);
+
+function parseCliOptions(args) {
+  const options = { dryRun: false, zipPath: null };
+  for (let index = 0; index < args.length; index += 1) {
+    const argument = args[index];
+    if (argument === "--dry-run") {
+      options.dryRun = true;
+      continue;
+    }
+    if (argument === "--zip") {
+      const value = args[index + 1];
+      if (!value || value.startsWith("--")) throw new Error("--zip requires a ZIP path");
+      options.zipPath = value;
+      index += 1;
+      continue;
+    }
+    throw new Error(`Unknown option: ${argument}`);
+  }
+  return options;
+}
 
 const venueMap = {
   aomori: "青森",
@@ -284,6 +310,135 @@ async function collectInputFiles(directory) {
   return files.sort((left, right) => left.localeCompare(right));
 }
 
+async function collectZipFiles(directory) {
+  const files = [];
+  async function visit(current) {
+    let entries;
+    try {
+      entries = await readdir(current, { withFileTypes: true });
+    } catch (error) {
+      if (error?.code === "ENOENT") return;
+      throw error;
+    }
+    for (const entry of entries) {
+      const target = path.join(current, entry.name);
+      if (entry.isSymbolicLink()) continue;
+      if (entry.isDirectory()) await visit(target);
+      if (entry.isFile() && /\.zip$/iu.test(entry.name)) files.push(target);
+    }
+  }
+  await visit(directory);
+  return files.sort((left, right) => left.localeCompare(right));
+}
+
+function assertPathWithin(targetPath, rootPath, label) {
+  const normalizedTarget = path.resolve(targetPath);
+  const normalizedRoot = `${path.resolve(rootPath)}${path.sep}`;
+  if (!`${normalizedTarget}${path.sep}`.startsWith(normalizedRoot)) {
+    throw new Error(`${label} must remain under ${rootPath}: ${normalizedTarget}`);
+  }
+  return normalizedTarget;
+}
+
+async function extractZip(zipArgument, destinationPath) {
+  const archivePath = assertPathWithin(
+    path.isAbsolute(zipArgument) ? zipArgument : path.resolve(projectRoot, zipArgument),
+    inputRoot,
+    "ZIP archive",
+  );
+  const destination = assertPathWithin(destinationPath, inputRoot, "ZIP destination");
+  const { stdout, stderr } = await execFileAsync(
+    "powershell.exe",
+    [
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      zipHelperPath,
+      "-ArchivePath",
+      archivePath,
+      "-DestinationPath",
+      destination,
+      "-AllowedRoot",
+      inputRoot,
+    ],
+    {
+      cwd: projectRoot,
+      windowsHide: true,
+      maxBuffer: 4 * 1024 * 1024,
+    },
+  );
+  if (stderr.trim()) console.warn(stderr.trim());
+  const jsonLine = stdout.trim().split(/\r?\n/u).filter(Boolean).at(-1);
+  if (!jsonLine) throw new Error("ZIP helper returned no result");
+  return JSON.parse(jsonLine);
+}
+
+function classifyRawInput(inputFile, scanRoot) {
+  const relativePath = path.relative(scanRoot, inputFile).replaceAll(path.sep, "/");
+  const fileName = path.basename(relativePath).toLowerCase();
+  const match = fileName.match(
+    /^(?<slug>[a-z0-9-]+?)-(?<type>prediction|result|summary)(?<suffix>\d{4})?\.(?:txt|md)$/u,
+  );
+  if (!match?.groups) return { relativePath, classified: false };
+
+  const canonicalSlug = slugAliases[match.groups.slug] ?? match.groups.slug;
+  const date = relativePath.split("/").find((segment) => /^\d{4}-\d{2}-\d{2}$/u.test(segment)) ?? null;
+  return {
+    relativePath,
+    classified: true,
+    inputFile,
+    venueKey: canonicalSlug,
+    venueName: venueMap[canonicalSlug] ?? canonicalSlug,
+    type: match.groups.type,
+    date,
+    irregular: Boolean(match.groups.suffix),
+  };
+}
+
+function buildRawScan(rawFiles, scanRoot) {
+  const classified = rawFiles.map((file) => classifyRawInput(file, scanRoot));
+  const recognized = classified.filter((item) => item.classified);
+  const groups = new Map();
+  for (const item of recognized) {
+    const key = `${item.date ?? "unknown"}:${item.venueKey}`;
+    const current = groups.get(key) ?? {
+      date: item.date,
+      venueKey: item.venueKey,
+      venueName: item.venueName,
+      prediction: [],
+      result: [],
+      summary: [],
+    };
+    current[item.type].push(item);
+    groups.set(key, current);
+  }
+
+  const missingSummary = [...groups.values()]
+    .filter((group) => group.prediction.length > 0 && group.result.length > 0 && group.summary.length === 0)
+    .sort((left, right) =>
+      `${left.date}:${left.venueKey}`.localeCompare(`${right.date}:${right.venueKey}`),
+    );
+  const completeTripletCount = [...groups.values()].filter((group) =>
+    group.prediction.length > 0 && group.result.length > 0 && group.summary.length > 0
+  ).length;
+  const dates = recognized.map((item) => item.date).filter(Boolean).sort();
+
+  return {
+    recognized,
+    unclassified: classified.filter((item) => !item.classified),
+    predictionFiles: recognized.filter((item) => item.type === "prediction"),
+    resultFiles: recognized.filter((item) => item.type === "result"),
+    summaryFiles: recognized.filter((item) => item.type === "summary"),
+    irregularFiles: recognized.filter((item) => item.irregular),
+    missingSummary,
+    completeTripletCount,
+    dateFrom: dates[0] ?? null,
+    dateTo: dates.at(-1) ?? null,
+    venueCount: new Set(recognized.map((item) => item.venueKey)).size,
+  };
+}
+
 function mergeKpi(records) {
   const sumKnown = (selector) => {
     const values = records.map(selector).filter((value) => Number.isFinite(value));
@@ -459,6 +614,19 @@ async function buildOutputs(records, warnings, stats) {
   const statusBase = {
     schemaVersion: 1,
     lastImportAt: generatedAt,
+    archiveCount: stats.archiveCount,
+    rawInputFileCount: stats.rawInputFileCount,
+    predictionFileCount: stats.predictionFileCount,
+    resultFileCount: stats.resultFileCount,
+    summaryFileCount: stats.summaryFileCount,
+    dateFrom: stats.dateFrom,
+    dateTo: stats.dateTo,
+    venueCount: stats.venueCount,
+    completeTripletCount: stats.completeTripletCount,
+    missingSummaryCount: stats.missingSummaryCount,
+    irregularFilenameCount: stats.irregularFilenameCount,
+    parsedSummaryCount: stats.parsedSummaryCount,
+    skippedSummaryCount: stats.skippedSummaryCount,
     inputFileCount: stats.inputFileCount,
     parsedFileCount: stats.parsedFileCount,
     skippedFileCount: stats.skippedFileCount,
@@ -493,58 +661,113 @@ async function writeOutputs(outputs) {
 
 async function main() {
   await Promise.all([
-    mkdir(path.join(summariesRoot, "2026-04"), { recursive: true }),
-    mkdir(path.join(summariesRoot, "2026-05"), { recursive: true }),
-    mkdir(path.join(summariesRoot, "2026-06"), { recursive: true }),
-    mkdir(path.join(inputRoot, "predictions"), { recursive: true }),
-    mkdir(path.join(inputRoot, "results"), { recursive: true }),
+    mkdir(sourceArchivesRoot, { recursive: true }),
+    mkdir(rawRoot, { recursive: true }),
   ]);
 
-  const inputFiles = await collectInputFiles(summariesRoot);
-  const warnings = [];
-  const records = [];
+  let scanRoot = rawRoot;
+  let temporaryScanRoot = null;
+  let extractionResult = null;
 
-  for (const inputFile of inputFiles) {
-    const relativePath = path.relative(summariesRoot, inputFile).replaceAll(path.sep, "/");
-    const text = normalizeText(await readFile(inputFile, "utf8"));
-    if (!text.trim()) {
-      warnings.push(`empty input skipped: ${relativePath}`);
-      continue;
+  try {
+    if (cliOptions.zipPath) {
+      if (dryRun) {
+        temporaryScanRoot = path.join(
+          inputRoot,
+          ".dry-run",
+          `zip-${process.pid}-${Date.now()}`,
+        );
+        scanRoot = temporaryScanRoot;
+      }
+      extractionResult = await extractZip(cliOptions.zipPath, scanRoot);
     }
-    const venue = extractVenue(text, relativePath);
-    if (!venue) {
-      warnings.push(`venue not found: ${relativePath}`);
-      continue;
+
+    const [archiveFiles, rawFiles] = await Promise.all([
+      collectZipFiles(sourceArchivesRoot),
+      collectInputFiles(scanRoot),
+    ]);
+    const rawScan = buildRawScan(rawFiles, scanRoot);
+    const warnings = [
+      ...rawScan.missingSummary.map(
+        (group) => `${group.date} ${group.venueKey} summary missing`,
+      ),
+      ...rawScan.irregularFiles.map(
+        (item) => `${item.date} ${item.venueKey} ${item.type} irregular filename: ${item.relativePath}`,
+      ),
+      ...rawScan.unclassified.map(
+        (item) => `unclassified raw input skipped: ${item.relativePath}`,
+      ),
+    ];
+    const records = [];
+
+    for (const summaryFile of rawScan.summaryFiles) {
+      const text = normalizeText(await readFile(summaryFile.inputFile, "utf8"));
+      if (!text.trim()) {
+        warnings.push(`empty summary skipped: ${summaryFile.relativePath}`);
+        continue;
+      }
+      const date = summaryFile.date ?? extractDate(text, summaryFile.relativePath);
+      if (!date) warnings.push(`date not found: ${summaryFile.relativePath}`);
+      records.push({
+        venueKey: summaryFile.venueKey,
+        venueName: summaryFile.venueName,
+        date,
+        text,
+        kpi: extractKpi(text),
+        notes: extractNotes(text),
+      });
     }
-    const date = extractDate(text, relativePath);
-    if (!date) warnings.push(`date not found: ${relativePath}`);
-    records.push({
-      ...venue,
-      date,
-      text,
-      kpi: extractKpi(text),
-      notes: extractNotes(text),
-    });
+
+    const stats = {
+      archiveCount: archiveFiles.length,
+      rawInputFileCount: rawFiles.length,
+      predictionFileCount: rawScan.predictionFiles.length,
+      resultFileCount: rawScan.resultFiles.length,
+      summaryFileCount: rawScan.summaryFiles.length,
+      dateFrom: rawScan.dateFrom,
+      dateTo: rawScan.dateTo,
+      venueCount: rawScan.venueCount,
+      completeTripletCount: rawScan.completeTripletCount,
+      missingSummaryCount: rawScan.missingSummary.length,
+      irregularFilenameCount: rawScan.irregularFiles.length,
+      parsedSummaryCount: records.length,
+      skippedSummaryCount: rawScan.summaryFiles.length - records.length,
+      inputFileCount: rawFiles.length,
+      parsedFileCount: records.length,
+      skippedFileCount: rawScan.summaryFiles.length - records.length,
+    };
+    const { outputs, venueCount } = await buildOutputs(records, warnings, stats);
+    const outputBytes = calculateOutputBytes(outputs);
+
+    if (!dryRun) await writeOutputs(outputs);
+
+    console.log("[kurari-ex raw scan]");
+    if (extractionResult) {
+      console.log(`archive entries: ${extractionResult.eligibleEntryCount}`);
+      console.log(`archive written: ${extractionResult.writtenCount}`);
+      console.log(`archive unchanged: ${extractionResult.unchangedCount}`);
+    }
+    console.log(`prediction: ${stats.predictionFileCount}`);
+    console.log(`result: ${stats.resultFileCount}`);
+    console.log(`summary: ${stats.summaryFileCount}`);
+    console.log(`complete triplets: ${stats.completeTripletCount}`);
+    console.log(`missing summary: ${stats.missingSummaryCount}`);
+    console.log(`irregular filenames: ${stats.irregularFilenameCount}`);
+    console.log("[kurari-ex seed import]");
+    console.log(`mode: ${dryRun ? "dry-run" : "write"}`);
+    console.log(`input files: ${stats.rawInputFileCount}`);
+    console.log(`parsed summaries: ${stats.parsedSummaryCount}`);
+    console.log(`skipped summaries: ${stats.skippedSummaryCount}`);
+    console.log(`venues: ${venueCount}`);
+    console.log(`period: ${stats.dateFrom ?? "--"} to ${stats.dateTo ?? "--"}`);
+    console.log(`warnings: ${warnings.length}`);
+    console.log(`output estimate: ${(outputBytes / 1024).toFixed(1)} KB`);
+    for (const warning of warnings) console.warn(`WARNING: ${warning}`);
+  } finally {
+    if (temporaryScanRoot) {
+      await rm(temporaryScanRoot, { recursive: true, force: true });
+    }
   }
-
-  const stats = {
-    inputFileCount: inputFiles.length,
-    parsedFileCount: records.length,
-    skippedFileCount: inputFiles.length - records.length,
-  };
-  const { outputs, venueCount } = await buildOutputs(records, warnings, stats);
-  const outputBytes = calculateOutputBytes(outputs);
-
-  if (!dryRun) await writeOutputs(outputs);
-
-  console.log("[kurari-ex seed import]");
-  console.log(`mode: ${dryRun ? "dry-run" : "write"}`);
-  console.log(`input files: ${stats.inputFileCount}`);
-  console.log(`parsed: ${stats.parsedFileCount}`);
-  console.log(`skipped: ${stats.skippedFileCount}`);
-  console.log(`venues: ${venueCount}`);
-  console.log(`warnings: ${warnings.length}`);
-  console.log(`output estimate: ${(outputBytes / 1024).toFixed(1)} KB`);
 }
 
 main().catch((error) => {

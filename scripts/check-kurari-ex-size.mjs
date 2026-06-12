@@ -52,7 +52,10 @@ async function main() {
     totalBytes += size;
     const extension = path.extname(file).toLowerCase();
 
-    if (extension === ".txt") prohibited.push(`original TXT under public output: ${relativePath}`);
+    if (extension === ".txt" || extension === ".md") {
+      prohibited.push(`original text under public output: ${relativePath}`);
+    }
+    if (extension === ".zip") prohibited.push(`source ZIP under public output: ${relativePath}`);
     if (extension === ".html" || extension === ".htm") prohibited.push(`HTML under public output: ${relativePath}`);
     if (relativePath === "index.generated.json" && size > thresholds.index) {
       warnings.push(`index exceeds 100 KB: ${relativePath} (${formatBytes(size)})`);

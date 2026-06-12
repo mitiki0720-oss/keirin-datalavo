@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "venueKey": "hiratsuka",
+  "venueName": "平塚",
+  "updatedAt": "2026-06-12",
+  "source": "review-summary-import",
+  "sourceType": "SEED",
+  "period": {
+    "from": "2026-05-01",
+    "to": "2026-06-05"
+  },
+  "quality": {
+    "seedSources": 12,
+    "parsedDateSources": 12,
+    "exactRaceCount": 0,
+    "status": "seed"
+  },
+  "seedKpi": {
+    "sourceType": "SEED",
+    "sourceCount": 12,
+    "raceCount": 120,
+    "trifectaHits": 29,
+    "trifectaHitRate": 24.2,
+    "exactaHits": 4,
+    "exactaHitRate": 3.3,
+    "anyTicketHits": null,
+    "hitRate": null,
+    "investmentYen": 120000,
+    "returnYen": 100880,
+    "recoveryRate": 84.1,
+    "kimarite": {
+      "escape": null,
+      "makuri": null,
+      "sashi": null
+    }
+  },
+  "seedInsights": [
+    {
+      "tag": "CLASS_CONTEXT",
+      "label": "級班条件を分離",
+      "evidenceCount": 12,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "TIME_SLOT_BIAS",
+      "label": "時間帯差を確認",
+      "evidenceCount": 12,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "WIND_SENSITIVE",
+      "label": "風条件を確認",
+      "evidenceCount": 12,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "SOLO_RIDER_ALERT",
+      "label": "単騎の差し込みを警戒",
+      "evidenceCount": 9,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "THIRD_PLACE_SPREAD",
+      "label": "3着候補を分散",
+      "evidenceCount": 7,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "MAKURI_ALERT",
+      "label": "捲り展開を警戒",
+      "evidenceCount": 6,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "BANTE_SASHI_ALERT",
+      "label": "番手差しを警戒",
+      "evidenceCount": 5,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "OTHER_LINE_ALERT",
+      "label": "別線の浮上を警戒",
+      "evidenceCount": 3,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "LINE_COHESION",
+      "label": "同ライン決着を評価",
+      "evidenceCount": 1,
+      "confidence": "low",
+      "sourceType": "SEED"
+    }
+  ],
+  "seedNotes": {
+    "features": [],
+    "targets": [
+      "※買い目表記は添付の予想テキスト準拠（ 3連単8＋2車単2＝10点 ）で記載。",
+      "2車単：2点（穴狙い）",
+      "決まり手=差／着順=1-3-9。 三連単：的中（買い目内）。 B=3（車券内残り（1〜3着））。 風=南 10km/h。",
+      "平塚 G1 S級一般1 細切れ 単騎 強風 番手差し 先行残り 三着ズレ 穴狙い",
+      "平塚 G1 S級選抜 デイ 四分戦 強風 番手差し 捲り差し 単騎 三着ズレ 穴狙い",
+      "平塚 G1 S級選抜 デイ 四分戦 南風 番手差し 捲り差し 単騎 三着ズレ 穴狙い",
+      "平塚 G1 S級選抜一 デイ 四分戦 強風 番手差し 捲り差し 三着ズレ 穴狙い",
+      "平塚 G1 S級二次予選 デイ 強風 番手差し 先行残り 捲り差し 三着ズレ 穴狙い",
+      "※予想テキストに該当Rの買い目が見当たらず（不明）",
+      "注：買い目内訳（3連単/2車単の点数配分）はRごとに異なる場合があるため、各Rブロックに「実際の10点内訳」をそのまま記載。",
+      "新規予想や買い目の追加・削除は行っていません。",
+      "予想プロジェクトで実際に出した買い目をそのまま記録。"
+    ],
+    "cautions": [
+      "予想時の理由：①辻田―⑤服部―②亀井―⑦高森の4車ラインが優位。①は直近6走で4勝・2着1回と安定。ただし天気・風データが欠損しているため、強い風補正は掛けず、B9の③小泉による先行争いと捲り残りを厚めに警戒する。",
+      "レースタイプ：TYPE-C｜①鈴木軸だが、北日本ラインの逆転に注意"
+    ],
+    "improvements": [
+      "後工程では、この開催レポートを別の平塚分析チャットへ渡して反映する。"
+    ]
+  },
+  "predictionGuidance": [
+    "級班とレース種別を分けて傾向を評価する",
+    "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+    "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+    "踏み合い時は単騎の差し込みを3着候補に加える",
+    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
+    "先行争いがある場合は別線の捲り筋を残す",
+    "先行軸だけで固定せず、番手差しの逆目を残す",
+    "本線が崩れた場合の別線頭と別線3着を保護する"
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "venueKey": "kurume",
+  "venueName": "久留米",
+  "updatedAt": "2026-06-12",
+  "source": "review-summary-import",
+  "sourceType": "SEED",
+  "period": {
+    "from": "2026-05-01",
+    "to": "2026-06-07"
+  },
+  "quality": {
+    "seedSources": 8,
+    "parsedDateSources": 8,
+    "exactRaceCount": 0,
+    "status": "seed"
+  },
+  "seedKpi": {
+    "sourceType": "SEED",
+    "sourceCount": 8,
+    "raceCount": 80,
+    "trifectaHits": 19,
+    "trifectaHitRate": 23.8,
+    "exactaHits": 18,
+    "exactaHitRate": 26.5,
+    "anyTicketHits": null,
+    "hitRate": null,
+    "investmentYen": 80000,
+    "returnYen": 46890,
+    "recoveryRate": 58.6,
+    "kimarite": {
+      "escape": null,
+      "makuri": null,
+      "sashi": null
+    }
+  },
+  "seedInsights": [
+    {
+      "tag": "TIME_SLOT_BIAS",
+      "label": "時間帯差を確認",
+      "evidenceCount": 8,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "WIND_SENSITIVE",
+      "label": "風条件を確認",
+      "evidenceCount": 8,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "CLASS_CONTEXT",
+      "label": "級班条件を分離",
+      "evidenceCount": 7,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    }
+  ],
+  "seedNotes": {
+    "features": [],
+    "targets": [
+      "⚠️ このレポートは 予想は行いません （外部で確定した買い目＋結果の整理のみ）。",
+      "回収：2,180円（※的中した買い目の払戻合算）",
+      "取り逃しパターン：結果が買い目外（出目ズレ）",
+      "このレポートは、別プロジェクトで確定した予想買い目と結果テキストを整理した開催単位レポートです。ここでは新規予想を行いません。",
+      "実際の買い目構成：各R 10点（3連単8点＋2車単2点）",
+      "R 的中券種 的中買い目 決まり手 3連単結果 3連単人気 投資 回収 収支",
+      "10R：元結果テキストは「3連単 2-7-3＝2,840円」のみを払戻として記録しています。実際の10点買い目には「09）2-7（二車単）」も含まれるため、手動照合では二車単1,520円も的中です。"
+    ],
+    "cautions": [
+      "レースタイプ：混戦・崩れ警戒型（TYPE-D）"
+    ],
+    "improvements": []
+  },
+  "predictionGuidance": [
+    "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+    "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+    "級班とレース種別を分けて傾向を評価する"
+  ]
+}

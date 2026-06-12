@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "venueKey": "kishiwada",
+  "venueName": "岸和田",
+  "updatedAt": "2026-06-12",
+  "source": "review-summary-import",
+  "sourceType": "SEED",
+  "period": {
+    "from": "2026-05-04",
+    "to": "2026-06-02"
+  },
+  "quality": {
+    "seedSources": 11,
+    "parsedDateSources": 11,
+    "exactRaceCount": 0,
+    "status": "seed"
+  },
+  "seedKpi": {
+    "sourceType": "SEED",
+    "sourceCount": 11,
+    "raceCount": 108,
+    "trifectaHits": 23,
+    "trifectaHitRate": 21.3,
+    "exactaHits": 10,
+    "exactaHitRate": 9.3,
+    "anyTicketHits": null,
+    "hitRate": null,
+    "investmentYen": 108000,
+    "returnYen": 68450,
+    "recoveryRate": 63.4,
+    "kimarite": {
+      "escape": null,
+      "makuri": null,
+      "sashi": null
+    }
+  },
+  "seedInsights": [
+    {
+      "tag": "CLASS_CONTEXT",
+      "label": "級班条件を分離",
+      "evidenceCount": 11,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "SOLO_RIDER_ALERT",
+      "label": "単騎の差し込みを警戒",
+      "evidenceCount": 11,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "TIME_SLOT_BIAS",
+      "label": "時間帯差を確認",
+      "evidenceCount": 11,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "WIND_SENSITIVE",
+      "label": "風条件を確認",
+      "evidenceCount": 11,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "BANTE_SASHI_ALERT",
+      "label": "番手差しを警戒",
+      "evidenceCount": 9,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "MAKURI_ALERT",
+      "label": "捲り展開を警戒",
+      "evidenceCount": 8,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "THIRD_PLACE_SPREAD",
+      "label": "3着候補を分散",
+      "evidenceCount": 8,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "OTHER_LINE_ALERT",
+      "label": "別線の浮上を警戒",
+      "evidenceCount": 6,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "LINE_COHESION",
+      "label": "同ライン決着を評価",
+      "evidenceCount": 1,
+      "confidence": "low",
+      "sourceType": "SEED"
+    }
+  ],
+  "seedNotes": {
+    "features": [],
+    "targets": [
+      "2車単：2点（穴狙い）",
+      "三分戦 A級一般 番手差し 先行残り 3着ズレ 穴狙い",
+      "ガールズ 主導権 捲り差し 位置取り 3着ズレ 中穴狙い",
+      "買い目外で決着。 決まり手は「捲」。 風は北北西8km/h（弱〜中）。 万車帯で振れ。",
+      "タグ： 二分戦 四車ライン 番手差し 主導権 踏み直し 中穴狙い",
+      "タグ： 五車ライン 単騎 飛び付き 先行 番手差し 中穴狙い",
+      "予想タグ： 岸和田 チャレンジ一般 番手競り ペース駆け 3着ズレ 中穴狙い",
+      "予想タグ： 二分戦 番手競り ペース駆け 差し 3着ズレ 穴狙い",
+      "取り逃し：結果 4-7-5（買い目10点に該当なし）",
+      "取り逃し：結果 1-4-5（買い目10点に該当なし）",
+      "1R A級一般 ○ × 逃 1着 雨・強風下でもB選手を消さずに残した買い目が機能。3-1維持＋別線3着の形。",
+      "雨・強風下でもB選手を消さずに残した買い目が機能。3-1維持＋別線3着の形。"
+    ],
+    "cautions": [],
+    "improvements": []
+  },
+  "predictionGuidance": [
+    "級班とレース種別を分けて傾向を評価する",
+    "踏み合い時は単騎の差し込みを3着候補に加える",
+    "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+    "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+    "先行軸だけで固定せず、番手差しの逆目を残す",
+    "先行争いがある場合は別線の捲り筋を残す",
+    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
+    "本線が崩れた場合の別線頭と別線3着を保護する"
+  ]
+}

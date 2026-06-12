@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "venueKey": "hiroshima",
+  "venueName": "広島",
+  "updatedAt": "2026-06-12",
+  "source": "review-summary-import",
+  "sourceType": "SEED",
+  "period": {
+    "from": "2026-05-06",
+    "to": "2026-05-30"
+  },
+  "quality": {
+    "seedSources": 9,
+    "parsedDateSources": 9,
+    "exactRaceCount": 0,
+    "status": "seed"
+  },
+  "seedKpi": {
+    "sourceType": "SEED",
+    "sourceCount": 9,
+    "raceCount": 97,
+    "trifectaHits": 20,
+    "trifectaHitRate": 20.6,
+    "exactaHits": 5,
+    "exactaHitRate": 5.2,
+    "anyTicketHits": null,
+    "hitRate": null,
+    "investmentYen": 97000,
+    "returnYen": 45510,
+    "recoveryRate": 46.9,
+    "kimarite": {
+      "escape": null,
+      "makuri": null,
+      "sashi": null
+    }
+  },
+  "seedInsights": [
+    {
+      "tag": "CLASS_CONTEXT",
+      "label": "級班条件を分離",
+      "evidenceCount": 9,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "TIME_SLOT_BIAS",
+      "label": "時間帯差を確認",
+      "evidenceCount": 9,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "WIND_SENSITIVE",
+      "label": "風条件を確認",
+      "evidenceCount": 9,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "BANTE_SASHI_ALERT",
+      "label": "番手差しを警戒",
+      "evidenceCount": 6,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "MAKURI_ALERT",
+      "label": "捲り展開を警戒",
+      "evidenceCount": 6,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "SOLO_RIDER_ALERT",
+      "label": "単騎の差し込みを警戒",
+      "evidenceCount": 5,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "THIRD_PLACE_SPREAD",
+      "label": "3着候補を分散",
+      "evidenceCount": 5,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "LINE_COHESION",
+      "label": "同ライン決着を評価",
+      "evidenceCount": 1,
+      "confidence": "low",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "OTHER_LINE_ALERT",
+      "label": "別線の浮上を警戒",
+      "evidenceCount": 1,
+      "confidence": "low",
+      "sourceType": "SEED"
+    }
+  ],
+  "seedNotes": {
+    "features": [],
+    "targets": [
+      "2車単：2点（穴狙い）",
+      "予想メモ：本線：強風（北東24km/h）で先行が踏まされやすいが、1松本のB16で主導権濃厚。番手5石田は地元で差し込みも十分、直線長めで「5頭」か「1残り」＋3着ズレが狙い。",
+      "タグ： 広島競輪 S級準決勝 ナイター F1 三分戦 先行一本 捲り差し 直線勝負 中穴狙い 3着荒れ",
+      "B=4が7着。穴頭（5or6）狙いに対して、実際は3-1-2の差し決着。",
+      "取り逃しパターン（あれば）：買い目外。3着ズレ／別線頭／番手差しズレを要確認。",
+      "地元5竹内頭は合うが、2着7尾形、3着1北村。買い目は5-1-6と7絡みのズレで届かず。",
+      "入力された実買い目は各Rとも 3連単8点＋2車単2点＝計10点 のため、その構成を改変せず記録しています。",
+      "1R A級一般・7車 × × 逃 1,360円 1番が主導権から逃げ切り。番手5番も追走したが、3着が3番となり買い目外。",
+      "2R A級一般・7車 × × 差 40,520円 6番の差し抜けで高配当。Bを取った3番は6着。単騎4番が3着へ入り、買い目外。"
+    ],
+    "cautions": [],
+    "improvements": [
+      "※提供テキスト上の10点内訳は 3連単8点＋2車単2点＝10点 でした（記載通り反映）。"
+    ]
+  },
+  "predictionGuidance": [
+    "級班とレース種別を分けて傾向を評価する",
+    "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+    "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+    "先行軸だけで固定せず、番手差しの逆目を残す",
+    "先行争いがある場合は別線の捲り筋を残す",
+    "踏み合い時は単騎の差し込みを3着候補に加える",
+    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
+    "ラインの長さと追走力を確認し、同ライン決着を評価する"
+  ]
+}

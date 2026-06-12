@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "venueKey": "odawara",
+  "venueName": "小田原",
+  "updatedAt": "2026-06-12",
+  "source": "review-summary-import",
+  "sourceType": "SEED",
+  "period": {
+    "from": "2026-05-10",
+    "to": "2026-06-02"
+  },
+  "quality": {
+    "seedSources": 9,
+    "parsedDateSources": 9,
+    "exactRaceCount": 0,
+    "status": "seed"
+  },
+  "seedKpi": {
+    "sourceType": "SEED",
+    "sourceCount": 9,
+    "raceCount": 78,
+    "trifectaHits": 14,
+    "trifectaHitRate": 17.9,
+    "exactaHits": 8,
+    "exactaHitRate": 10.3,
+    "anyTicketHits": null,
+    "hitRate": null,
+    "investmentYen": 78000,
+    "returnYen": 50730,
+    "recoveryRate": 65,
+    "kimarite": {
+      "escape": null,
+      "makuri": null,
+      "sashi": null
+    }
+  },
+  "seedInsights": [
+    {
+      "tag": "CLASS_CONTEXT",
+      "label": "級班条件を分離",
+      "evidenceCount": 9,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "TIME_SLOT_BIAS",
+      "label": "時間帯差を確認",
+      "evidenceCount": 9,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "WIND_SENSITIVE",
+      "label": "風条件を確認",
+      "evidenceCount": 9,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    }
+  ],
+  "seedNotes": {
+    "features": [],
+    "targets": [
+      "2車単：3点（穴狙い）",
+      "テンプレの標準点数表記（3連単7＋2車単3）と今回の予想テキスト（3連単8＋2車単2）が異なるため、実際に出した買い目を優先して記録。",
+      "テンプレ標準の点数表記（3連単7＋2車単3）と今回の予想テキスト（3連単8＋2車単2）が異なるため、実際に出した買い目を優先して記録。",
+      "小田原7Rとして有効な予想10点：不明",
+      "判定：評価対象外（有効な小田原7R予想が添付されていないため）",
+      "重要注記：予想ソース混入のため、小田原7Rは予想精度分析・買い目評価の集計対象から除外推奨。"
+    ],
+    "cautions": [],
+    "improvements": []
+  },
+  "predictionGuidance": [
+    "級班とレース種別を分けて傾向を評価する",
+    "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+    "風向と風速を確認し、先行残りと差し届きを固定評価しない"
+  ]
+}

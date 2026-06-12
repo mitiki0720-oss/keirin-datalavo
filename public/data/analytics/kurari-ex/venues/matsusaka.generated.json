@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "venueKey": "matsusaka",
+  "venueName": "松阪",
+  "updatedAt": "2026-06-12",
+  "source": "review-summary-import",
+  "sourceType": "SEED",
+  "period": {
+    "from": "2026-05-04",
+    "to": "2026-06-09"
+  },
+  "quality": {
+    "seedSources": 10,
+    "parsedDateSources": 10,
+    "exactRaceCount": 0,
+    "status": "seed"
+  },
+  "seedKpi": {
+    "sourceType": "SEED",
+    "sourceCount": 10,
+    "raceCount": 117,
+    "trifectaHits": 31,
+    "trifectaHitRate": 26.5,
+    "exactaHits": 7,
+    "exactaHitRate": 6,
+    "anyTicketHits": null,
+    "hitRate": null,
+    "investmentYen": 115000,
+    "returnYen": 68840,
+    "recoveryRate": 59.9,
+    "kimarite": {
+      "escape": null,
+      "makuri": null,
+      "sashi": null
+    }
+  },
+  "seedInsights": [
+    {
+      "tag": "CLASS_CONTEXT",
+      "label": "級班条件を分離",
+      "evidenceCount": 10,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "TIME_SLOT_BIAS",
+      "label": "時間帯差を確認",
+      "evidenceCount": 10,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "WIND_SENSITIVE",
+      "label": "風条件を確認",
+      "evidenceCount": 10,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "SOLO_RIDER_ALERT",
+      "label": "単騎の差し込みを警戒",
+      "evidenceCount": 7,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "BANTE_SASHI_ALERT",
+      "label": "番手差しを警戒",
+      "evidenceCount": 6,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "MAKURI_ALERT",
+      "label": "捲り展開を警戒",
+      "evidenceCount": 6,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "THIRD_PLACE_SPREAD",
+      "label": "3着候補を分散",
+      "evidenceCount": 6,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "OTHER_LINE_ALERT",
+      "label": "別線の浮上を警戒",
+      "evidenceCount": 4,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "LINE_COHESION",
+      "label": "同ライン決着を評価",
+      "evidenceCount": 2,
+      "confidence": "low",
+      "sourceType": "SEED"
+    }
+  ],
+  "seedNotes": {
+    "features": [],
+    "targets": [
+      "注：予想10点は添付原文どおり 3連単8点＋2車単2点＝計10点 で転記（本チャット側で買い目の増減・再構成はしていません）。",
+      "2車単：2点（穴狙い）",
+      "2-2) 予想10点の全買い目監査値（同時的中を含む）",
+      "⚠️ 11Rは、3連単 5-2-1 （08）に加えて2車単 5-2 （10）も買い目上は同時的中です。",
+      "結果照合テキストの「払戻」欄には3連単9,180円のみが計上されているため、原文準拠値と全買い目監査値を分けています。",
+      "S級 6R 3R 50.0% 6R・7R・9R的中。役割が明確なライン戦では買い目設計が機能。",
+      "10R：7番・5番・3番を重視していたが、1番・坂井洋の車券内残りを前提にし過ぎて 7-5-3 を落とした。",
+      "7. 締切前に気象を再取得し、風向変化があれば買い目配分を再点検。",
+      "11R S級決勝 5-7-6 ○ 1,150円 差 着外 2車単的中（穴狙い09）",
+      "長いラインでは、直線の長さだけで番手差しへ寄せ過ぎず、先頭押し切りと番手差しを対称に残す形が有効。",
+      "3-5. 10点固定の買い目設計案"
+    ],
+    "cautions": [
+      "11R：2番・嶋津拓弥と単騎3番・渡邉豪大を個別に警戒したが、同時浮上の 2-3-7 を作れなかった。",
+      "レースタイプ：TYPE-C：差し本線・単騎警戒型",
+      "レースタイプ：TYPE-A：強軸中心・別線番手差し警戒型",
+      "低 高配当交差決着の全面追跡 5R 実着 4-3-5 10点固定では広げ過ぎ注意。当所相性が強い時のみ。"
+    ],
+    "improvements": [
+      "3-3. 不的中の構造と修正ルール",
+      "修正： 本命頭が共通する時は、2着候補Aと3着候補Bを入れ替えた交差形を最低1点。",
+      "修正： 勝負レース🔥では、軸着外の「番手差し＋別線番手＋別線番手」を最低1点。",
+      "3) 詳細summary：次回予想へ残すべきこと",
+      "次回は高配当を無理に追うより、まず 回収可能だった不的中 を減らすことが重要。特に、交差決着・番手差し逆目・状態の良い単騎の3着介入を保護する。",
+      "3-4. 的中率を上げるための優先修正"
+    ]
+  },
+  "predictionGuidance": [
+    "級班とレース種別を分けて傾向を評価する",
+    "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+    "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+    "踏み合い時は単騎の差し込みを3着候補に加える",
+    "先行軸だけで固定せず、番手差しの逆目を残す",
+    "先行争いがある場合は別線の捲り筋を残す",
+    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
+    "本線が崩れた場合の別線頭と別線3着を保護する"
+  ]
+}
