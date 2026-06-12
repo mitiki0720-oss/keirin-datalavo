@@ -11,6 +11,9 @@ const thresholds = {
   venue: 100 * 1024,
   guidance: 100 * 1024,
   total: 20 * 1024 * 1024,
+  exactIndex: 100 * 1024,
+  exactVenue: 100 * 1024,
+  exactTotal: 5 * 1024 * 1024,
 };
 
 async function collectFiles(directory) {
@@ -45,11 +48,13 @@ async function main() {
   const warnings = [];
   const prohibited = [];
   let totalBytes = 0;
+  let exactBytes = 0;
 
   for (const file of files) {
     const relativePath = path.relative(outputRoot, file).replaceAll(path.sep, "/");
     const { size } = await stat(file);
     totalBytes += size;
+    if (relativePath.startsWith("exact/")) exactBytes += size;
     const extension = path.extname(file).toLowerCase();
 
     if (extension === ".txt" || extension === ".md") {
@@ -57,6 +62,7 @@ async function main() {
     }
     if (extension === ".zip") prohibited.push(`source ZIP under public output: ${relativePath}`);
     if (extension === ".html" || extension === ".htm") prohibited.push(`HTML under public output: ${relativePath}`);
+    if (extension === ".jsonl") prohibited.push(`JSONL under public output: ${relativePath}`);
     if (relativePath === "index.generated.json" && size > thresholds.index) {
       warnings.push(`index exceeds 100 KB: ${relativePath} (${formatBytes(size)})`);
     }
@@ -66,10 +72,19 @@ async function main() {
     if (relativePath.startsWith("guidance/") && size > thresholds.guidance) {
       warnings.push(`guidance JSON exceeds 100 KB: ${relativePath} (${formatBytes(size)})`);
     }
+    if (relativePath === "exact/index.generated.json" && size > thresholds.exactIndex) {
+      warnings.push(`exact index exceeds 100 KB: ${relativePath} (${formatBytes(size)})`);
+    }
+    if (relativePath.startsWith("exact/venues/") && size > thresholds.exactVenue) {
+      warnings.push(`exact venue JSON exceeds 100 KB: ${relativePath} (${formatBytes(size)})`);
+    }
   }
 
   if (totalBytes > thresholds.total) {
     warnings.push(`KURARI EX output exceeds 20 MB: ${formatBytes(totalBytes)}`);
+  }
+  if (exactBytes > thresholds.exactTotal) {
+    warnings.push(`KURARI EX exact output exceeds 5 MB: ${formatBytes(exactBytes)}`);
   }
 
   const importerSource = await readFile(importerPath, "utf8");
@@ -81,6 +96,7 @@ async function main() {
   console.log("[kurari-ex size check]");
   console.log(`files: ${files.length}`);
   console.log(`total: ${formatBytes(totalBytes)}`);
+  console.log(`exact: ${formatBytes(exactBytes)}`);
   console.log(`warnings: ${warnings.length}`);
   console.log(`prohibited: ${prohibited.length}`);
   for (const warning of warnings) console.warn(`WARNING: ${warning}`);
