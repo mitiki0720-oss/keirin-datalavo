@@ -10,6 +10,7 @@ import type {
   KurariExInitialData,
   KurariExMetric,
   KurariExPredictionContext,
+  KurariExRiderAggregate,
   KurariExRiderExact,
   KurariExRiderExactIndex,
   KurariExRiderExactInitialData,
@@ -26,6 +27,7 @@ import type {
 const EX_ROOT = "/data/analytics/kurari-ex";
 const EXACT_ROOT = `${EX_ROOT}/exact`;
 const RIDER_EXACT_ROOT = `${EXACT_ROOT}/riders`;
+let riderExactIndexPromise: Promise<KurariExRiderExactIndex> | null = null;
 
 const venueNameMap: Record<string, string> = {
   aomori: "青森",
@@ -281,10 +283,11 @@ function buildKurariExPredictionMaterialText(
   guidance: KurariExGuidance | null,
   exact: KurariExVenueExact | null,
   context: KurariExPredictionContext | null | undefined,
+  riderMaterial: string,
   insightLimit: number,
   guidanceLimit: number,
 ) {
-  if (!venue && !exact) {
+  if (!venue && !exact && !riderMaterial) {
     return [
       "[P. KURARI EX DATA / 独自展開指標]",
       "",
@@ -303,6 +306,7 @@ function buildKurariExPredictionMaterialText(
     ...(venue ? ["SEEDは過去Summaryから抽出した初期知識です。"] : []),
   ];
   if (exact) lines.push("", ...buildExactLines(exact, context));
+  if (riderMaterial) lines.push("", riderMaterial);
   if (venue) {
     lines.push("", "【会場別SEED】", `- 対象会場: ${venue.venueName}`);
   }
@@ -350,18 +354,20 @@ export function buildKurariExPredictionMaterial(
   bundle: KurariExVenueBundle | null,
   exact: KurariExVenueExact | null = null,
   context?: KurariExPredictionContext | null,
+  riderMaterial = "",
 ): string {
   const venue = bundle?.venue ?? null;
   const guidance = bundle?.guidance ?? null;
+  const maxLength = riderMaterial ? 8000 : 4500;
   for (let insightLimit = Math.min(8, venue?.seedInsights.length ?? 0); insightLimit >= 0; insightLimit -= 1) {
-    const text = buildKurariExPredictionMaterialText(venue, guidance, exact, context, insightLimit, 8);
-    if (text.length <= 4500) return text;
+    const text = buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, insightLimit, 8);
+    if (text.length <= maxLength) return text;
   }
   for (let guidanceLimit = 7; guidanceLimit >= 1; guidanceLimit -= 1) {
-    const text = buildKurariExPredictionMaterialText(venue, guidance, exact, context, 0, guidanceLimit);
-    if (text.length <= 4500) return text;
+    const text = buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, 0, guidanceLimit);
+    if (text.length <= maxLength) return text;
   }
-  return buildKurariExPredictionMaterialText(venue, guidance, exact, context, 0, 1).slice(0, 4500);
+  return buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, 0, 1).slice(0, maxLength);
 }
 
 export async function loadKurariExInitialData(): Promise<KurariExInitialData> {
@@ -403,7 +409,14 @@ export async function loadKurariExVenueExact(
 }
 
 export async function loadKurariExRiderExactIndex(): Promise<KurariExRiderExactIndex> {
-  return fetchJson<KurariExRiderExactIndex>(`${RIDER_EXACT_ROOT}/index.generated.json`);
+  if (!riderExactIndexPromise) {
+    riderExactIndexPromise = fetchJson<KurariExRiderExactIndex>(`${RIDER_EXACT_ROOT}/index.generated.json`)
+      .catch((error) => {
+        riderExactIndexPromise = null;
+        throw error;
+      });
+  }
+  return riderExactIndexPromise;
 }
 
 export async function loadKurariExRiderExactStatus(): Promise<KurariExRiderExactStatus> {
@@ -435,4 +448,273 @@ export function getKurariExRiderQualityLabel(quality?: KurariExRiderQuality | nu
     "identity-only": "IDENTITY ONLY",
   };
   return quality ? labels[quality] : "UNKNOWN";
+}
+
+export type KurariExRaceRiderLike = {
+  carNo: string;
+  name?: string | null;
+  fullName?: string | null;
+  registrationNo?: string | number | null;
+};
+
+export type KurariExRiderExactMatch = {
+  carNo: string;
+  riderName: string;
+  registrationNo: string;
+  matchMethod: "registrationNo" | "name";
+  indexItem: KurariExRiderExactIndex["items"][number];
+};
+
+export type KurariExRiderPredictionContext = {
+  venueKey?: string | null;
+  venueName?: string | null;
+  timeslot?: string | null;
+  raceTitle?: string | null;
+  isGirls?: boolean;
+  lineupGroups?: string[];
+  allowRole?: boolean;
+};
+
+export type KurariExRiderPredictionEntry = KurariExRiderExactMatch & {
+  exact: KurariExRiderExact;
+};
+
+export type KurariExRiderPredictionMaterial = {
+  text: string;
+  reflectedCount: number;
+};
+
+function normalizeKurariExRiderRegistrationNo(value?: string | number | null) {
+  const digits = String(value ?? "").replace(/\D/gu, "");
+  if (!digits) return "";
+  return digits.length <= 6 ? digits.padStart(6, "0") : digits;
+}
+
+function normalizeKurariExRiderName(value?: string | null) {
+  return String(value ?? "")
+    .normalize("NFKC")
+    .replace(/[\s\u3000・]/gu, "")
+    .trim();
+}
+
+export function matchKurariExRidersForRace(
+  index: KurariExRiderExactIndex,
+  riders: KurariExRaceRiderLike[],
+): KurariExRiderExactMatch[] {
+  const byRegistrationNo = new Map(
+    index.items.map((item) => [normalizeKurariExRiderRegistrationNo(item.registrationNo), item]),
+  );
+  const byName = new Map<string, KurariExRiderExactIndex["items"][number]>();
+  const duplicateNames = new Set<string>();
+  for (const item of index.items) {
+    const nameKey = normalizeKurariExRiderName(item.nameKey || item.name);
+    if (!nameKey) continue;
+    if (byName.has(nameKey)) {
+      duplicateNames.add(nameKey);
+      byName.delete(nameKey);
+      continue;
+    }
+    if (!duplicateNames.has(nameKey)) byName.set(nameKey, item);
+  }
+
+  const matchedRegistrationNos = new Set<string>();
+  return riders
+    .map((rider): KurariExRiderExactMatch | null => {
+      const registrationNo = normalizeKurariExRiderRegistrationNo(rider.registrationNo);
+      const registrationMatch = registrationNo ? byRegistrationNo.get(registrationNo) ?? null : null;
+      const nameKey = normalizeKurariExRiderName(rider.fullName || rider.name);
+      const nameMatch = !registrationNo && nameKey ? byName.get(nameKey) ?? null : null;
+      const indexItem = registrationMatch ?? nameMatch;
+      if (!indexItem || matchedRegistrationNos.has(indexItem.registrationNo)) return null;
+      matchedRegistrationNos.add(indexItem.registrationNo);
+      return {
+        carNo: String(rider.carNo),
+        riderName: String(rider.fullName || rider.name || indexItem.name).trim(),
+        registrationNo: indexItem.registrationNo,
+        matchMethod: registrationMatch ? "registrationNo" : "name",
+        indexItem,
+      };
+    })
+    .filter((item): item is KurariExRiderExactMatch => Boolean(item))
+    .sort((left, right) => Number(left.carNo) - Number(right.carNo));
+}
+
+function formatKurariExRiderAggregate(label: string, aggregate?: KurariExRiderAggregate | null, prefix = "") {
+  if (!aggregate) return "";
+  const parts = [
+    aggregate.starts != null ? `${aggregate.starts}走` : "",
+    Number.isFinite(aggregate.wins) ? `1着${aggregate.wins}` : "",
+    Number.isFinite(aggregate.seconds) ? `2着${aggregate.seconds}` : "",
+    Number.isFinite(aggregate.thirds) ? `3着${aggregate.thirds}` : "",
+    aggregate.top3Rate?.rate != null ? `3着以内率${aggregate.top3Rate.rate.toFixed(1)}%` : "",
+  ].filter(Boolean);
+  return parts.length ? `- ${label}: ${prefix}${parts.join(" / ")}` : "";
+}
+
+function resolveKurariExRiderRole(
+  carNo: string,
+  context?: KurariExRiderPredictionContext | null,
+): keyof NonNullable<KurariExRiderExact["byRole"]> | null {
+  if (!context?.allowRole || !context.lineupGroups?.length) return null;
+  for (const rawGroup of context.lineupGroups) {
+    const cars = rawGroup.split("-").map((value) => value.replace(/\D/gu, "")).filter(Boolean);
+    const position = cars.indexOf(carNo);
+    if (position < 0) continue;
+    if (cars.length === 1) return "single";
+    if (position === 0) return "front";
+    if (position === 1) return "bante";
+    if (position === 2) return "third";
+    return null;
+  }
+  return null;
+}
+
+function findKurariExRiderClassDimension(
+  exact: KurariExRiderExact,
+  context?: KurariExRiderPredictionContext | null,
+) {
+  const title = normalizeKurariExRiderName(context?.raceTitle);
+  if (!title) return null;
+  const candidates = exact.byClass
+    .filter((item) => item.raceClass && item.raceClass !== "unknown")
+    .filter((item) => title.includes(normalizeKurariExRiderName(item.raceClass)))
+    .sort((left, right) => String(right.raceClass).length - String(left.raceClass).length);
+  return candidates[0] ?? null;
+}
+
+function fitKurariExMaterialLines(lines: string[], maxLength: number) {
+  const fitted: string[] = [];
+  for (const line of lines) {
+    const candidate = [...fitted, line].join("\n");
+    if (candidate.length > maxLength) break;
+    fitted.push(line);
+  }
+  return fitted.join("\n").trimEnd();
+}
+
+function buildKurariExRiderCard(
+  entry: KurariExRiderPredictionEntry,
+  context?: KurariExRiderPredictionContext | null,
+) {
+  const { exact } = entry;
+  const lines = [
+    `### ${entry.carNo}番 ${entry.riderName || exact.name}`,
+    `- 登録番号: ${exact.registrationNo}`,
+    `- quality: ${getKurariExRiderQualityLabel(exact.quality)}`,
+    ...(exact.quality === "low-sample" ? ["- 注意: LOW SAMPLE / 母数少"] : []),
+    ...(exact.period.from || exact.period.to ? [`- 対象期間: ${exact.period.from ?? "--"}〜${exact.period.to ?? "--"}`] : []),
+    `- 確認出走数: ${exact.coverage.observedRaceCount}`,
+    `- 確定出走数: ${exact.coverage.confirmedStartCount}`,
+    `- 結果解析数: ${exact.coverage.resultParsedCount}`,
+    `- 役割解析可能数: ${exact.coverage.roleEligibleCount}`,
+    `- 観測会場数: ${exact.coverage.venueCount}`,
+    ...(exact.overall.starts != null ? [`- 集計出走数: ${exact.overall.starts}`] : []),
+    `- 1着: ${exact.overall.wins}`,
+    `- 2着: ${exact.overall.seconds}`,
+    `- 3着: ${exact.overall.thirds}`,
+    ...(exact.overall.outside != null ? [`- 着外: ${exact.overall.outside}`] : []),
+    ...(exact.overall.winRate.rate != null ? [`- 1着率: ${exact.overall.winRate.rate.toFixed(1)}%`] : []),
+    ...(exact.overall.top2Rate.rate != null ? [`- 2着以内率: ${exact.overall.top2Rate.rate.toFixed(1)}%`] : []),
+    ...(exact.overall.top3Rate.rate != null ? [`- 3着以内率: ${exact.overall.top3Rate.rate.toFixed(1)}%`] : []),
+  ];
+
+  const venue = context?.venueKey
+    ? exact.byVenue.find((item) => item.venueKey === context.venueKey)
+    : null;
+  const venueLine = formatKurariExRiderAggregate("当場成績", venue, venue ? `${venue.venueName || context?.venueName || ""} ` : "");
+  if (venueLine) lines.push(venueLine);
+
+  const timeslot = context?.timeslot
+    ? exact.byTimeslot.find((item) => item.timeslot === context.timeslot)
+    : null;
+  const timeslotLabels: Record<string, string> = {
+    morning: "モーニング",
+    day: "デイ",
+    night: "ナイター",
+    midnight: "ミッド",
+  };
+  const timeslotLine = formatKurariExRiderAggregate(
+    "今回時間帯の成績",
+    timeslot,
+    timeslot ? `${timeslotLabels[timeslot.timeslot ?? ""] ?? timeslot.timeslot ?? ""} ` : "",
+  );
+  if (timeslotLine) lines.push(timeslotLine);
+
+  const raceClass = findKurariExRiderClassDimension(exact, context);
+  const classLine = formatKurariExRiderAggregate(
+    "今回級班の成績",
+    raceClass,
+    raceClass ? `${raceClass.raceClass} ` : "",
+  );
+  if (classLine) lines.push(classLine);
+
+  const role = resolveKurariExRiderRole(entry.carNo, context);
+  const roleAggregate = role && exact.byRole ? exact.byRole[role] : null;
+  const roleLabels = { front: "ライン先頭", bante: "番手", third: "3番手", single: "単騎" };
+  const roleLine = formatKurariExRiderAggregate(
+    "今回役割の成績",
+    roleAggregate,
+    role ? `${roleLabels[role]} ` : "",
+  );
+  if (roleLine) lines.push(roleLine);
+
+  return fitKurariExMaterialLines(lines, 700);
+}
+
+export function buildKurariExRiderPredictionMaterial(
+  entries: KurariExRiderPredictionEntry[],
+  context?: KurariExRiderPredictionContext | null,
+  state: "ready" | "missing" | "error" = "ready",
+): KurariExRiderPredictionMaterial {
+  const heading = "【登録選手別EXACT】";
+  if (state === "error") {
+    return {
+      text: [heading, "選手別EXACTを取得できませんでした。", "会場別EXACTと既存素材を主として予想してください。"].join("\n"),
+      reflectedCount: 0,
+    };
+  }
+  if (state === "missing" || entries.length === 0) {
+    return {
+      text: [heading, "該当する公開済み選手別EXACTはありません。", "会場別EXACTと既存素材を主として予想してください。"].join("\n"),
+      reflectedCount: 0,
+    };
+  }
+
+  const maxRiders = entries.length >= 8 ? 9 : 7;
+  const headerLines = [
+    heading,
+    "",
+    "扱い:",
+    "選手別EXACTは自前履歴から算出した確定集計です。",
+    "ただし、母数が少ない選手は強い根拠として固定せず、",
+    "展開判断の補助として確認してください。",
+  ];
+  const cards: string[] = [];
+  const includedEntries: KurariExRiderPredictionEntry[] = [];
+  for (const entry of entries.slice(0, maxRiders)) {
+    const card = buildKurariExRiderCard(entry, context);
+    const candidate = [...headerLines, "", ...cards.flatMap((item) => [item, ""]), card].join("\n");
+    if (candidate.length > 3150) break;
+    cards.push(card);
+    includedEntries.push(entry);
+  }
+
+  const notes = uniqueStrings(includedEntries.flatMap((entry) => {
+    const venue = context?.venueKey
+      ? entry.exact.byVenue.find((item) => item.venueKey === context.venueKey)
+      : null;
+    return [
+      entry.exact.coverage.confirmedStartCount < 5 ? "LOW SAMPLEのため過信しない" : "",
+      venue?.starts != null && venue.starts < 3 ? "当場データは母数3R未満のため参考扱い" : "",
+      entry.exact.coverage.roleEligibleCount < 3 ? "役割解析可能数が少ないため、番手差し評価を固定しない" : "",
+    ];
+  }));
+  const noteLines = notes.length
+    ? ["", "【登録選手EXACTからの注意】", ...notes.map((note) => `- ${note}`)]
+    : [];
+  const text = fitKurariExMaterialLines(
+    [...headerLines, ...cards.flatMap((card) => ["", card]), ...noteLines],
+    3500,
+  );
+  return { text, reflectedCount: includedEntries.length };
 }
