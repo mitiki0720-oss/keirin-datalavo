@@ -1,13 +1,72 @@
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
   countMetric,
-  exactOutputRoot,
+  exactOutputRoot as defaultExactOutputRoot,
   rateMetric,
-  readNormalizedRaces,
+  readKurariExRaces,
   serializeJson,
   writeJson,
 } from "./kurari-ex-history-common.mjs";
+
+const args = process.argv.slice(2);
+const getArg = (name, fallback = "") => (
+  args.find((arg) => arg.startsWith(`${name}=`))?.slice(name.length + 1)
+  ?? fallback
+);
+const source = getArg("--source", "history");
+const exactOutputRoot = path.resolve(getArg("--output-root", defaultExactOutputRoot));
+const baselineRoot = path.resolve(getArg("--baseline-root", defaultExactOutputRoot));
+const requestedGeneratedAt = getArg("--generated-at");
+
+async function readBaseline(relativePath) {
+  if (source !== "history") return null;
+  try {
+    return JSON.parse(await readFile(path.join(baselineRoot, relativePath), "utf8"));
+  } catch (error) {
+    if (error?.code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+function mergeRateMetric(baseline, increment) {
+  const count = (baseline?.count ?? 0) + (increment?.count ?? 0);
+  const total = (baseline?.total ?? 0) + (increment?.total ?? 0);
+  return {
+    count,
+    total,
+    rate: total ? Number(((count / total) * 100).toFixed(1)) : null,
+    sourceType: "EXACT",
+    quality: total > 0 && total < 5 ? "low-sample" : "ok",
+  };
+}
+
+// Legacy FACTS omit the B rider. Keep their exact baseline and add only newer,
+// B-aware daily FACTS so history generation does not erase a published metric.
+function preserveBRiderMetrics(target, baseline, races) {
+  if (!target || !baseline) return;
+  const newRaces = races.filter((race) => race.date > (baseline.period?.to ?? ""));
+  const increment = aggregate(newRaces, target.generatedAt);
+  if (baseline.racePattern?.bRiderInsideTop3Rate) {
+    target.racePattern.bRiderInsideTop3Rate = mergeRateMetric(
+      baseline.racePattern.bRiderInsideTop3Rate,
+      increment.racePattern.bRiderInsideTop3Rate,
+    );
+  }
+  for (const [dimension, groups] of Object.entries(target.dimensions ?? {})) {
+    for (const [bucket, value] of Object.entries(groups)) {
+      const baselineMetric = baseline.dimensions?.[dimension]?.[bucket]
+        ?.racePattern?.bRiderInsideTop3Rate;
+      if (baselineMetric) {
+        value.racePattern.bRiderInsideTop3Rate = mergeRateMetric(
+          baselineMetric,
+          increment.dimensions?.[dimension]?.[bucket]
+            ?.racePattern?.bRiderInsideTop3Rate,
+        );
+      }
+    }
+  }
+}
 
 function aggregatePredictionKpi(races) {
   return {
@@ -129,16 +188,26 @@ function aggregate(races, generatedAt) {
 }
 
 async function main() {
-  const { races, errors } = await readNormalizedRaces();
-  if (errors.length) throw new Error(`normalized JSONL contains ${errors.length} parse errors`);
-  if (!races.length) throw new Error("no normalized races found");
+  const { races, errors } = await readKurariExRaces(source);
+  if (errors.length) throw new Error(`${source} contains ${errors.length} parse errors`);
+  if (!races.length) throw new Error(`no ${source} races found`);
 
-  const generatedAt = new Date().toISOString();
+  const generatedAt = requestedGeneratedAt || new Date().toISOString();
   const venueGroups = new Map();
   for (const race of races) {
     const current = venueGroups.get(race.venueKey) ?? [];
     current.push(race);
     venueGroups.set(race.venueKey, current);
+  }
+  const baselinePayloads = new Map();
+  if (source === "history") {
+    const relativePaths = [
+      "global/prediction-kpi.generated.json",
+      ...[...venueGroups.keys()].map((venueKey) => `venues/${venueKey}.generated.json`),
+    ];
+    for (const relativePath of relativePaths) {
+      baselinePayloads.set(relativePath, await readBaseline(relativePath));
+    }
   }
 
   await Promise.all([
@@ -152,6 +221,11 @@ async function main() {
   let warningCount = 0;
   for (const [venueKey, venueRaces] of [...venueGroups.entries()].sort()) {
     const aggregatePayload = aggregate(venueRaces, generatedAt);
+    preserveBRiderMetrics(
+      aggregatePayload,
+      baselinePayloads.get(`venues/${venueKey}.generated.json`),
+      venueRaces,
+    );
     const payload = {
       schemaVersion: 1,
       venueKey,
@@ -165,6 +239,11 @@ async function main() {
   }
 
   const globalAggregate = aggregate(races, generatedAt);
+  preserveBRiderMetrics(
+    globalAggregate,
+    baselinePayloads.get("global/prediction-kpi.generated.json"),
+    races,
+  );
   const globalPayload = {
     schemaVersion: 1,
     ...globalAggregate,
@@ -195,19 +274,18 @@ async function main() {
     { relativePath: globalPath, content: serializeJson(globalPayload) },
     ...[...venueGroups.entries()].map(([venueKey, venueRaces]) => ({
       relativePath: `venues/${venueKey}.generated.json`,
-      content: serializeJson({
-        schemaVersion: 1,
-        venueKey,
-        venueName: venueRaces[0].venueName,
-        ...aggregate(venueRaces, generatedAt),
-      }),
+      content: null,
     })),
   ];
+  for (const file of outputFiles.filter((item) => item.content == null)) {
+    file.content = await readFile(path.join(exactOutputRoot, file.relativePath), "utf8");
+  }
   const status = {
     schemaVersion: 1,
     generatedAt,
     sourceType: "EXACT",
     normalizedRaceCount: races.length,
+    source: `${source}-history`,
     venueCount: venueGroups.size,
     warningCount,
     outputFileCount: outputFiles.length + 1,
@@ -225,6 +303,7 @@ async function main() {
   );
 
   console.log("[kurari-ex venue exact generate]");
+  console.log(`source: ${source}`);
   console.log(`races: ${races.length}`);
   console.log(`venues: ${venueGroups.size}`);
   console.log(`period: ${index.period.from} to ${index.period.to}`);

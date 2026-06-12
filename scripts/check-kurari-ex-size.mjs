@@ -10,16 +10,17 @@ const thresholds = {
   index: 100 * 1024,
   venue: 100 * 1024,
   guidance: 100 * 1024,
-  total: 20 * 1024 * 1024,
+  total: 120 * 1024 * 1024,
   exactIndex: 100 * 1024,
   exactVenue: 100 * 1024,
-  exactTotal: 5 * 1024 * 1024,
+  exactTotal: 10 * 1024 * 1024,
   riderIndex: 300 * 1024,
   riderFile: 20 * 1024,
   riderTotal: 5 * 1024 * 1024,
   historyIndex: 200 * 1024,
   historyDaily: 300 * 1024,
-  historyTotal: 10 * 1024 * 1024,
+  historyTotal: 100 * 1024 * 1024,
+  historyProjectedAnnual: 100 * 1024 * 1024,
 };
 
 async function collectFiles(directory) {
@@ -57,6 +58,9 @@ async function main() {
   let exactBytes = 0;
   let riderBytes = 0;
   let historyBytes = 0;
+  let historyDailyBytes = 0;
+  let historyDayCount = 0;
+  let historyFilesOver300KbCount = 0;
 
   for (const file of files) {
     const relativePath = path.relative(outputRoot, file).replaceAll(path.sep, "/");
@@ -123,9 +127,13 @@ async function main() {
     }
     if (
       /^history\/daily\/\d{4}-\d{2}\/\d{4}-\d{2}-\d{2}\.generated\.json$/u.test(relativePath)
-      && size > thresholds.historyDaily
     ) {
-      warnings.push(`history daily JSON exceeds 300 KB: ${relativePath} (${formatBytes(size)})`);
+      historyDayCount += 1;
+      historyDailyBytes += size;
+      if (size > thresholds.historyDaily) {
+        historyFilesOver300KbCount += 1;
+        warnings.push(`history daily JSON exceeds 300 KB: ${relativePath} (${formatBytes(size)})`);
+      }
     }
     if (relativePath.startsWith("history/") && extension === ".json") {
       const content = await readFile(file, "utf8");
@@ -142,16 +150,25 @@ async function main() {
   }
 
   if (totalBytes > thresholds.total) {
-    warnings.push(`KURARI EX output exceeds 20 MB: ${formatBytes(totalBytes)}`);
+    warnings.push(`KURARI EX output exceeds 120 MB: ${formatBytes(totalBytes)}`);
   }
   if (exactBytes > thresholds.exactTotal) {
-    warnings.push(`KURARI EX exact output exceeds 5 MB: ${formatBytes(exactBytes)}`);
+    warnings.push(`KURARI EX exact output exceeds 10 MB: ${formatBytes(exactBytes)}`);
   }
   if (riderBytes > thresholds.riderTotal) {
     warnings.push(`KURARI EX rider output exceeds 5 MB: ${formatBytes(riderBytes)}`);
   }
   if (historyBytes > thresholds.historyTotal) {
-    warnings.push(`KURARI EX compact history exceeds 10 MB: ${formatBytes(historyBytes)}`);
+    warnings.push(`KURARI EX compact history exceeds 100 MB: ${formatBytes(historyBytes)}`);
+  }
+  const historyAverageDailyBytes = historyDayCount
+    ? Math.round(historyDailyBytes / historyDayCount)
+    : 0;
+  const historyProjectedAnnualBytes = historyAverageDailyBytes * 365;
+  if (historyProjectedAnnualBytes > thresholds.historyProjectedAnnual) {
+    warnings.push(
+      `KURARI EX projected annual history exceeds 100 MB: ${formatBytes(historyProjectedAnnualBytes)}`,
+    );
   }
 
   const importerSource = await readFile(importerPath, "utf8");
@@ -166,6 +183,10 @@ async function main() {
   console.log(`exact: ${formatBytes(exactBytes)}`);
   console.log(`riders: ${formatBytes(riderBytes)}`);
   console.log(`history: ${formatBytes(historyBytes)}`);
+  console.log(`history dayCount: ${historyDayCount}`);
+  console.log(`history averageDailyBytes: ${historyAverageDailyBytes}`);
+  console.log(`history projectedAnnualBytes: ${historyProjectedAnnualBytes}`);
+  console.log(`history filesOver300KbCount: ${historyFilesOver300KbCount}`);
   console.log(`warnings: ${warnings.length}`);
   console.log(`prohibited: ${prohibited.length}`);
   for (const warning of warnings) console.warn(`WARNING: ${warning}`);

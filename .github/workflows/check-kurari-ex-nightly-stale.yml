@@ -1,0 +1,68 @@
+name: Check KURARI EX nightly stale
+
+on:
+  # Automatic 00:18 JST scheduling stays disabled with the nightly updater.
+  workflow_dispatch:
+    inputs:
+      target_date:
+        description: "YYYY-MM-DD, today, or yesterday"
+        required: false
+        default: "yesterday"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: keirin-data-auto-update
+  cancel-in-progress: false
+
+jobs:
+  check-and-recover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+      - run: git pull --ff-only origin main
+
+      - name: Check and recover stale KURARI EX
+        run: |
+          TARGET_DATE="${{ github.event.inputs.target_date || 'yesterday' }}"
+          if node scripts/check-kurari-ex-nightly-stale.mjs --date="$TARGET_DATE"; then
+            echo "KURARI EX is current."
+            exit 0
+          fi
+          node scripts/run-kurari-ex-nightly-update.mjs --date="$TARGET_DATE" --only-if-missing
+          node scripts/check-kurari-ex-nightly-stale.mjs --date="$TARGET_DATE"
+
+      - name: Commit recovered KURARI EX data
+        run: |
+          git add public/data/analytics/kurari-ex/history/
+          git add public/data/analytics/kurari-ex/exact/
+          if git diff --cached --quiet; then
+            echo "No recovery changes."
+            exit 0
+          fi
+
+          TARGET_DATE="${{ github.event.inputs.target_date || 'yesterday' }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update KURARI EX nightly data ${TARGET_DATE}"
+
+          for attempt in 1 2; do
+            if git pull --rebase origin main && git push origin main; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 2 ]; then
+              exit 1
+            fi
+            sleep 5
+          done

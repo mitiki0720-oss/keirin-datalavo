@@ -95,6 +95,9 @@ function compactRace(race) {
         combination: String(race.result?.favoriteTrifecta?.combination ?? ""),
         odds: race.result?.favoriteTrifecta?.odds ?? null,
       },
+      ...(race.result?.bRider?.carNo
+        ? { bRider: { carNo: race.result.bRider.carNo } }
+        : {}),
     },
     prediction: {
       trifectaTickets: [...new Set(race.prediction?.trifectaTickets ?? [])].sort(),

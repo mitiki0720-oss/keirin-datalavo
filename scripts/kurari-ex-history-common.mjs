@@ -18,6 +18,15 @@ export const exactOutputRoot = path.join(
   "kurari-ex",
   "exact",
 );
+export const compactHistoryRoot = path.join(
+  projectRoot,
+  "public",
+  "data",
+  "analytics",
+  "kurari-ex",
+  "history",
+);
+export const compactHistoryDailyRoot = path.join(compactHistoryRoot, "daily");
 
 export const venueMap = {
   aomori: "青森",
@@ -604,6 +613,92 @@ export async function readNormalizedRaces() {
     }
   }
   return { files, races, errors };
+}
+
+export async function readCompactHistoryRaces() {
+  const files = await collectFiles(
+    compactHistoryDailyRoot,
+    (file) => file.endsWith(".generated.json"),
+  );
+  const races = [];
+  const errors = [];
+  for (const file of files) {
+    try {
+      const payload = JSON.parse(await readFile(file, "utf8"));
+      for (const compact of payload.items ?? []) {
+        const lineup = {
+          raw: "",
+          lines: compact.lineup?.status === "parsed" ? compact.lineup.lines ?? [] : [],
+          lineCount: compact.lineup?.status === "parsed"
+            ? compact.lineup.lines?.length ?? null
+            : null,
+          singleCount: compact.lineup?.status === "parsed"
+            ? (compact.lineup.lines ?? []).filter((line) => line.length === 1).length
+            : null,
+          status: compact.lineup?.status === "parsed" ? "parsed" : "missing",
+        };
+        const prediction = {
+          status: compact.quality?.predictionParsed ? "parsed" : "missing",
+          trifectaTickets: compact.prediction?.trifectaTickets ?? [],
+          exactaTickets: compact.prediction?.exactaTickets ?? [],
+          confidence: compact.prediction?.confidence ?? "",
+          raceType: compact.prediction?.raceType ?? "",
+          isSpecialRace: false,
+          tags: compact.prediction?.tags ?? [],
+        };
+        const result = {
+          ...compact.result,
+          status: compact.result?.status === "finished" ? "finished" : "missing",
+          bRider: compact.result?.bRider ?? null,
+        };
+        const evaluated = evaluateRace(result, prediction, lineup);
+        races.push({
+          schemaVersion: compact.schemaVersion ?? 1,
+          raceKey: compact.raceKey,
+          raceId: compact.raceId ?? "",
+          date: compact.date,
+          venueKey: compact.venueKey,
+          venueName: compact.venueName,
+          raceNumber: compact.raceNumber,
+          grade: compact.grade ?? "",
+          timeslot: compact.timeslot ?? "",
+          raceClass: compact.raceClass ?? "",
+          raceTitle: "",
+          starterCount: compact.starters?.length ?? 0,
+          starters: compact.starters ?? [],
+          lineup,
+          weather: compact.weather ?? {
+            condition: "",
+            windDirection: "",
+            windSpeedMps: null,
+          },
+          result,
+          prediction,
+          evaluation: evaluated.evaluation,
+          derived: evaluated.derived,
+          quality: {
+            summaryFound: false,
+            predictionFound: compact.quality?.predictionParsed === true,
+            resultFound: compact.quality?.resultParsed === true,
+            lineupParsed: compact.quality?.lineupParsed === true,
+            resultParsed: compact.quality?.resultParsed === true,
+            predictionParsed: compact.quality?.predictionParsed === true,
+            warnings: compact.quality?.warnings ?? [],
+          },
+          sourceRefs: {},
+        });
+      }
+    } catch (error) {
+      errors.push(`${relativeProjectPath(file)}: ${error.message}`);
+    }
+  }
+  return { files, races, errors };
+}
+
+export async function readKurariExRaces(source = "history") {
+  if (source === "normalized") return readNormalizedRaces();
+  if (source === "history") return readCompactHistoryRaces();
+  throw new Error(`unsupported KURARI EX source: ${source}`);
 }
 
 export function rateMetric(values) {

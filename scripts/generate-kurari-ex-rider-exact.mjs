@@ -2,7 +2,7 @@ import { mkdir, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import {
   rateMetric,
-  readNormalizedRaces,
+  readKurariExRaces,
   relativeProjectPath,
   writeJson,
 } from "./kurari-ex-history-common.mjs";
@@ -11,8 +11,17 @@ import {
   loadRiderIdentitySources,
   resolveLineupRole,
   resolveRiderIdentity,
-  riderExactRoot,
+  riderExactRoot as defaultRiderExactRoot,
 } from "./kurari-ex-rider-common.mjs";
+
+const args = process.argv.slice(2);
+const getArg = (name, fallback = "") => (
+  args.find((arg) => arg.startsWith(`${name}=`))?.slice(name.length + 1)
+  ?? fallback
+);
+const source = getArg("--source", "history");
+const riderExactRoot = path.resolve(getArg("--output-root", defaultRiderExactRoot));
+const requestedGeneratedAt = getArg("--generated-at");
 
 function emptyAggregate() {
   return {
@@ -127,11 +136,11 @@ function qualityFor(observations) {
 
 async function main() {
   const [{ races, errors }, identitySources] = await Promise.all([
-    readNormalizedRaces(),
+    readKurariExRaces(source),
     loadRiderIdentitySources(),
   ]);
   if (errors.length) {
-    throw new Error(`normalized JSONL contains ${errors.length} parse errors`);
+    throw new Error(`${source} contains ${errors.length} parse errors`);
   }
 
   const observationsByRider = new Map();
@@ -170,7 +179,7 @@ async function main() {
 
   await rm(riderExactRoot, { recursive: true, force: true });
   await mkdir(path.join(riderExactRoot, "by-tail"), { recursive: true });
-  const generatedAt = new Date().toISOString();
+  const generatedAt = requestedGeneratedAt || new Date().toISOString();
   const indexItems = [];
   const qualityCounts = {
     complete: 0,
@@ -313,13 +322,14 @@ async function main() {
     outputFileCount: indexItems.length + 2,
     outputBytes: totalBytes,
     maxFileBytes,
-    source: "normalized-history",
+    source: `${source}-history`,
   };
   await writeJson(path.join(riderExactRoot, "status.generated.json"), status);
   status.outputBytes += (await stat(path.join(riderExactRoot, "status.generated.json"))).size;
   await writeJson(path.join(riderExactRoot, "status.generated.json"), status);
 
   console.log("[kurari-ex rider exact generate]");
+  console.log(`source: ${source}`);
   console.log(`riders: ${indexItems.length}`);
   console.log(`period: ${index.period.from} to ${index.period.to}`);
   console.log(`quality: ${JSON.stringify(qualityCounts)}`);
