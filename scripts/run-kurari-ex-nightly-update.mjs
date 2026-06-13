@@ -3,7 +3,10 @@ import { cp, mkdir, readFile, rm } from "node:fs/promises";
 import { promisify } from "node:util";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { archiveDailyFacts } from "./archive-kurari-ex-daily-facts.mjs";
+import {
+  archiveDailyFacts,
+  enrichExistingDailyFacts,
+} from "./archive-kurari-ex-daily-facts.mjs";
 import {
   compactHistoryRoot,
   exactOutputRoot,
@@ -11,7 +14,6 @@ import {
 } from "./kurari-ex-history-common.mjs";
 import {
   getArgValue,
-  savedPredictionsPath,
   todayFeedPath,
 } from "./kurari-ex-daily-common.mjs";
 
@@ -47,14 +49,26 @@ async function publishRiderExact(tempRoot) {
 }
 
 export async function runNightly(options = {}) {
-  const archive = await archiveDailyFacts({
-    date: options.date ?? "today",
-    dryRun: options.dryRun === true,
-    onlyIfMissing: options.onlyIfMissing === true,
-    feedFile: options.feedFile ?? todayFeedPath,
-    predictionsFile: options.predictionsFile ?? savedPredictionsPath,
-  });
+  const enrichment = options.allowEnrichmentUpgrade
+    ? await enrichExistingDailyFacts({
+        date: options.date ?? "today",
+        dryRun: options.dryRun === true,
+        predictionsFile: options.predictionsFile ?? "",
+      })
+    : null;
+  const archive = enrichment && !["missing-facts", "missing-predictions"].includes(enrichment.status)
+    ? enrichment
+    : await archiveDailyFacts({
+        date: options.date ?? "today",
+        dryRun: options.dryRun === true,
+        onlyIfMissing: options.onlyIfMissing === true,
+        feedFile: options.feedFile ?? todayFeedPath,
+        predictionsFile: options.predictionsFile ?? "",
+      });
   console.log(`[nightly] archive ${archive.status}: ${archive.message}`);
+  if (options.allowEnrichmentUpgrade) {
+    console.log("[nightly] enrichment upgrade enabled");
+  }
   if (archive.status === "skipped") return { status: "skipped", archive };
   if (options.dryRun) return { status: "dry-run", archive };
   if (["exists", "unchanged"].includes(archive.status)) {
@@ -102,10 +116,9 @@ async function main() {
     date: getArgValue(args, "--date", "today"),
     dryRun: args.includes("--dry-run"),
     onlyIfMissing: args.includes("--only-if-missing"),
+    allowEnrichmentUpgrade: args.includes("--allow-enrichment-upgrade"),
     feedFile: path.resolve(getArgValue(args, "--feed", todayFeedPath)),
-    predictionsFile: path.resolve(
-      getArgValue(args, "--predictions", savedPredictionsPath),
-    ),
+    predictionsFile: getArgValue(args, "--predictions", ""),
   });
   console.log("[kurari-ex nightly update]");
   console.log(`status: ${result.status}`);

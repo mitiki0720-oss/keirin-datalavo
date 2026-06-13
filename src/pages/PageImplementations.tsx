@@ -13,6 +13,10 @@ import {
 } from "../lib/playerCards";
 import { buildMonthlyPredictionGuidance, getActiveMonthlyReview } from "../lib/monthlyReviewInsights";
 import {
+  buildKeirinPredictionExport,
+  downloadKeirinPredictionExport,
+} from "../lib/keirinPredictionExport";
+import {
   buildKurariExPredictionMaterial,
   buildKurariExRiderPredictionMaterial,
   findKurariExExactVenueEntryByVenueName,
@@ -939,6 +943,7 @@ export const PREDICTION_TODAY_DATA_URL_CANDIDATES = import.meta.env.DEV
   ? [LOCAL_PREDICTION_TODAY_DATA_URL, PREDICTION_TODAY_DATA_URL]
   : [PREDICTION_TODAY_DATA_URL];
 export const UPCOMING_SCHEDULE_DATA_URL = toPublicPath("/data/races/upcoming-schedule.generated.json");
+export const DAILY_PREDICTION_INDEX_URL = toPublicPath("/data/predictions/daily/index.generated.json");
 export const PREDICTION_VENUE_BANK_INDEX_URL = toPublicPath("/data/venues/banks/index.json");
 export const PREDICTION_VENUE_INSIGHT_INDEX_URL = toPublicPath("/data/venues/bank-insights/index.json");
 export const PREDICTION_OPEN_METEO_GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search";
@@ -9344,6 +9349,8 @@ export function PredictionPage() {
   const [predictionSlotDraft, setPredictionSlotDraft] = useState("");
   const [predictionResultDraft, setPredictionResultDraft] = useState<PredictionResultDraft>(() => createDefaultPredictionResultDraft());
   const [predictionSlotStatus, setPredictionSlotStatus] = useState("");
+  const [predictionExportStatus, setPredictionExportStatus] = useState("");
+  const [publishedPredictionDates, setPublishedPredictionDates] = useState<string[]>([]);
   const [predictionResultStatus, setPredictionResultStatus] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
   const [savedPredictionSlots, setSavedPredictionSlots] = useState<PredictionSlotMap>(() => loadStoredPredictionSlots());
@@ -9631,6 +9638,27 @@ useEffect(() => {
 
     loadPredictionData();
 
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+    fetch(`${DAILY_PREDICTION_INDEX_URL}?t=${Date.now()}`, { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) return { items: [] };
+        return response.json() as Promise<{ items?: Array<{ date?: string }> }>;
+      })
+      .then((index) => {
+        if (!isActive) return;
+        setPublishedPredictionDates(
+          (index.items ?? []).map((item) => String(item.date ?? "")).filter(Boolean),
+        );
+      })
+      .catch(() => {
+        if (isActive) setPublishedPredictionDates([]);
+      });
     return () => {
       isActive = false;
     };
@@ -10814,6 +10842,24 @@ if (
   ) ?? 0;
   const copyableRaceCount = readyRaceCount;
   const reflectedWeatherCount = Object.values(weatherByVenue).filter((item) => item !== null).length;
+  const predictionExportBundle = useMemo(
+    () => predictionFeed
+      ? buildKeirinPredictionExport(predictionFeed, savedPredictionSlots)
+      : null,
+    [predictionFeed, savedPredictionSlots],
+  );
+  const predictionExportSummary = predictionExportBundle?.summary ?? {
+    date: predictionFeed?.date ?? TODAY,
+    savedRaceCount: 0,
+    structuredRaceCount: 0,
+    raceIdCount: 0,
+    exportRaceCount: 0,
+    excludedRaceCount: 0,
+    excludedReasons: {},
+  };
+  const isPredictionExportPublished = publishedPredictionDates.includes(
+    predictionFeed?.date ?? TODAY,
+  );
 
   const gptExportText = useMemo(() => {
     if (!predictionFeed || !selectedPredictionMaterialVenue || !selectedPredictionMaterialRace) return "対象レースを選択してください。";
@@ -10905,79 +10951,13 @@ if (
     window.URL.revokeObjectURL(url);
   };
 
-  const downloadPredictionPublicJsonFile = (records: PredictionSlotMap) => {
-    const payload = {
-      version: 1,
-      updatedAt: new Date().toISOString(),
-      source: "kurari-prediction-page",
-      records,
-      recordList: Object.values(records).sort((a, b) => {
-        const dateCompare = b.date.localeCompare(a.date);
-        if (dateCompare !== 0) return dateCompare;
-
-        const venueCompare = a.venue.localeCompare(b.venue, "ja");
-        if (venueCompare !== 0) return venueCompare;
-
-        return a.raceNumber - b.raceNumber;
-      }),
-    };
-
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {
-      type: "application/json;charset=utf-8",
-    });
-
-    const url = window.URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = "saved-predictions.generated.json";
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    window.URL.revokeObjectURL(url);
-  };
-
-  const handlePredictionPublicJsonExport = () => {
-    if (!predictionFeed || !selectedVenue || !selectedRace || !selectedPredictionSlotRaceKey) {
-      setPredictionSlotStatus("レースを選択してから公開JSONを書き出してください");
+  const handleDailyPredictionExport = () => {
+    if (!predictionExportBundle) {
+      setPredictionExportStatus("当日データを読み込み中です");
       return;
     }
-
-    try {
-      const predictionJson = parsePredictionTextToStructuredPrediction(predictionSlotDraft);
-
-      const record: PredictionSlotRecord = {
-        raceKey: selectedPredictionSlotRaceKey,
-        raceId: selectedVenue.raceIds?.[selectedRace.raceNo - 1] ?? "",
-        venue: selectedVenue.venue,
-        date: predictionFeed.date,
-        raceNumber: selectedRace.raceNo,
-        predictionText: predictionSlotDraft,
-        predictionJson,
-        savedAt: new Date().toISOString(),
-      };
-
-      const activeSavedPredictionSlots = prunePredictionSlotsMap(savedPredictionSlots).records;
-      const nextSlots = {
-        ...activeSavedPredictionSlots,
-        [selectedPredictionSlotRaceKey]: record,
-      };
-
-      const slotSaved = saveStoredPredictionSlots(nextSlots);
-      if (!slotSaved) {
-        setPredictionSlotStatus("公開JSONを書き出せませんでした。ブラウザ保存容量の可能性があります");
-        return;
-      }
-
-      setSavedPredictionSlots(nextSlots);
-      downloadPredictionPublicJsonFile(nextSlots);
-
-      setPredictionSlotStatus(
-        `公開JSONを書き出しました：${Object.keys(nextSlots).length}件 / 次に自動push用スクリプトでiPhone側へ反映します`
-      );
-    } catch (error) {
-      console.error("[PredictionPage] public json export failed", error);
-      setPredictionSlotStatus("公開JSONを書き出せませんでした。ブラウザ保存容量の可能性があります");
-    }
+    downloadKeirinPredictionExport(predictionExportBundle.payload);
+    setPredictionExportStatus("ダウンロード済み / PC側取込待ち");
   };
 
   const handlePredictionSlotSave = () => {
@@ -11274,6 +11254,72 @@ const record = normalizePredictionResultRecord({
                 <div style={{ fontSize: "12px", color: "#64748b", lineHeight: 1.75 }}>{item.sub}</div>
               </article>
             ))}
+          </section>
+
+          <section
+            style={{
+              borderRadius: "30px",
+              border: "1px solid #e3d8f4",
+              background: "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(247,242,255,0.98) 100%)",
+              boxShadow: "0 16px 34px rgba(15, 23, 42, 0.05)",
+              padding: "22px 24px",
+              display: "grid",
+              gap: "16px",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.2em", color: "#8c63c7", marginBottom: "7px" }}>
+                  PREDICTION EXPORT
+                </div>
+                <h3 style={{ margin: 0, fontSize: "22px", color: "#081224" }}>当日予想JSONを書き出す</h3>
+                <p style={{ margin: "8px 0 0", color: "#64748b", fontSize: "12px", lineHeight: 1.8 }}>
+                  PC側watcherがダウンロードを検知し、KURARI EXのPrediction KPIへ反映します。
+                </p>
+              </div>
+              <span style={{ alignSelf: "start", borderRadius: "9999px", padding: "7px 12px", background: isPredictionExportPublished ? "#ecfdf5" : "#f4effb", color: isPredictionExportPublished ? "#047857" : "#6d3fc2", border: isPredictionExportPublished ? "1px solid #a7f3d0" : "1px solid #dfd3f2", fontSize: "11px", fontWeight: 900 }}>
+                {isPredictionExportPublished ? "公開JSON反映済み" : predictionExportStatus || "PC側取込待ち"}
+              </span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))", gap: "10px" }}>
+              {[
+                ["対象日", predictionExportSummary.date],
+                ["保存済み予想", `${predictionExportSummary.savedRaceCount}レース`],
+                ["構造化済み", `${predictionExportSummary.structuredRaceCount}レース`],
+                ["raceIdあり", `${predictionExportSummary.raceIdCount}レース`],
+                ["export対象", `${predictionExportSummary.exportRaceCount}レース`],
+                ["export除外", `${predictionExportSummary.excludedRaceCount}レース`],
+              ].map(([label, value]) => (
+                <div key={label} style={{ borderRadius: "17px", border: "1px solid #ebe3f3", background: "rgba(255,255,255,0.9)", padding: "11px 13px" }}>
+                  <div style={{ fontSize: "9px", fontWeight: 900, letterSpacing: "0.12em", color: "#7b8a9d", marginBottom: "5px" }}>{label}</div>
+                  <div style={{ fontSize: "13px", fontWeight: 900, color: "#081224" }}>{value}</div>
+                </div>
+              ))}
+            </div>
+            {predictionExportSummary.excludedRaceCount > 0 ? (
+              <div style={{ fontSize: "11px", color: "#7b6a52", lineHeight: 1.7 }}>
+                除外理由: {Object.entries(predictionExportSummary.excludedReasons).map(([reason, count]) => `${reason} ${count}件`).join(" / ")}
+              </div>
+            ) : null}
+            <button
+              type="button"
+              onClick={handleDailyPredictionExport}
+              disabled={!predictionExportBundle || predictionExportSummary.exportRaceCount === 0}
+              style={{
+                width: "fit-content",
+                border: "none",
+                borderRadius: "9999px",
+                padding: "13px 20px",
+                background: "linear-gradient(135deg, #7a67b8 0%, #526cc8 100%)",
+                color: "white",
+                fontWeight: 900,
+                fontSize: "12px",
+                cursor: predictionExportSummary.exportRaceCount > 0 ? "pointer" : "not-allowed",
+                opacity: predictionExportSummary.exportRaceCount > 0 ? 1 : 0.5,
+              }}
+            >
+              今日の予想JSONをダウンロード
+            </button>
           </section>
 
           {resolvedTodayHitNotifications.length > 0 && (
@@ -11803,26 +11849,6 @@ const record = normalizePredictionResultRecord({
                     />
                   </div>
                   <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-                    <button
-                      type="button"
-                      onClick={handlePredictionPublicJsonExport}
-                      style={{
-                        minWidth: "120px",
-                        border: "1px solid rgba(122,96,194,0.24)",
-                        borderRadius: "9999px",
-                        padding: "12px 16px",
-                        background: "linear-gradient(135deg, #ffffff 0%, #f6f0ff 100%)",
-                        color: "#6542be",
-                        fontWeight: 900,
-                        fontSize: "12px",
-                        letterSpacing: "0.03em",
-                        cursor: "pointer",
-                        boxShadow: "0 10px 20px rgba(103, 96, 184, 0.08)",
-                      }}
-                    >
-                      公開JSONを書き出す
-                    </button>
-
                     <button
                       type="button"
                       onClick={handlePredictionSlotSave}

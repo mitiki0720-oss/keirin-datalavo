@@ -1,19 +1,28 @@
 import path from "node:path";
+import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import { evaluateRace, projectRoot } from "./kurari-ex-history-common.mjs";
 import {
   getArgValue,
   loadDailySource,
+  normalizeVenueName,
+  parsePrediction,
+  predictionCompositeKey,
   predictionCoverageForRaces,
+  predictionRecords,
   readDailyPayload,
   rebuildHistoryMetadata,
+  resolvePredictionInput,
   resolveJstDate,
-  savedPredictionsPath,
   summarizeDailySource,
   todayFeedPath,
   writeArchiveStatus,
   writeDailyPayload,
 } from "./kurari-ex-daily-common.mjs";
+
+function parseJson(text) {
+  return JSON.parse(String(text).replace(/^\uFEFF/u, ""));
+}
 
 function inferredEnrichment(race) {
   if (race.predictionEnrichment) return race.predictionEnrichment;
@@ -111,12 +120,128 @@ export function mergeDailyFacts(existingPayload, candidatePayload) {
   };
 }
 
+export async function enrichExistingDailyFacts(options = {}) {
+  const targetDate = resolveJstDate(options.date ?? "today");
+  const existing = await readDailyPayload(targetDate);
+  if (!existing.payload) {
+    return {
+      status: "missing-facts",
+      message: `daily FACTS does not exist for ${targetDate}`,
+      targetDate,
+      changed: false,
+    };
+  }
+  const predictionInput = await resolvePredictionInput(
+    targetDate,
+    options.predictionsFile ?? "",
+  );
+  console.log(`prediction source: ${predictionInput.source}`);
+  if (!predictionInput.file) {
+    return {
+      status: "missing-predictions",
+      message: `prediction input does not exist for ${targetDate}`,
+      targetDate,
+      predictionSource: predictionInput.source,
+      changed: false,
+    };
+  }
+  const predictions = parseJson(await readFile(predictionInput.file, "utf8"));
+  const lookup = predictionRecords(predictions);
+  if (lookup.ambiguous.length) {
+    throw new Error(`prediction input has ambiguous raceId values: ${lookup.ambiguous.join(", ")}`);
+  }
+  const existingItems = (existing.payload.items ?? []).map(normalizeExistingRace);
+  const existingCoverage = existing.payload.predictionCoverage
+    ?? predictionCoverageForRaces(existingItems);
+  const items = existingItems.map((race) => {
+    if (race.predictionEnrichment?.status === "matched") return race;
+    let record = lookup.byRaceId.get(String(race.raceId ?? "").trim()) ?? null;
+    let matchedBy = record ? "raceId" : null;
+    if (!record) {
+      const composite = predictionCompositeKey(race.date, race.venueName, race.raceNumber);
+      const candidates = (lookup.byComposite.get(composite) ?? []).filter(
+        (candidate) =>
+          String(candidate?.date ?? "") === race.date
+          && normalizeVenueName(candidate?.venue) === normalizeVenueName(race.venueName)
+          && Number(candidate?.raceNumber) === race.raceNumber,
+      );
+      if (candidates.length === 1) {
+        record = candidates[0];
+        matchedBy = "unique-composite-key";
+      }
+    }
+    if (!record) return race;
+    const prediction = parsePrediction(record);
+    const predictionParsed = Boolean(
+      prediction.trifectaTickets.length || prediction.exactaTickets.length,
+    );
+    return {
+      ...race,
+      prediction,
+      predictionEnrichment: { status: "matched", matchedBy },
+      quality: {
+        ...race.quality,
+        predictionParsed,
+        warnings: (race.quality?.warnings ?? []).filter(
+          (warning) => warning !== "saved prediction missing",
+        ),
+      },
+    };
+  });
+  const predictionCoverage = predictionCoverageForRaces(items);
+  if (predictionCoverage.matchedRaceCount < existingCoverage.matchedRaceCount) {
+    throw new Error("prediction coverage would decrease");
+  }
+  const payload = { ...existing.payload, predictionCoverage, items };
+  const changed = JSON.stringify(payload) !== JSON.stringify({
+    ...existing.payload,
+    predictionCoverage: existingCoverage,
+    items: existingItems,
+  });
+  if (options.dryRun || !changed) {
+    return {
+      status: changed ? "ready" : "unchanged",
+      message: `prediction enrichment ${existingCoverage.matchedRaceCount} -> ${predictionCoverage.matchedRaceCount}`,
+      targetDate,
+      predictionSource: predictionInput.source,
+      payload,
+      changed: false,
+    };
+  }
+  await writeDailyPayload(payload);
+  const attemptedAt = new Date().toISOString();
+  await rebuildHistoryMetadata({
+    lastArchiveAttemptAt: attemptedAt,
+    lastArchiveSuccessAt: attemptedAt,
+    lastArchiveDate: targetDate,
+    lastArchiveStatus: `prediction-enrichment-${predictionCoverage.status}`,
+    lastArchiveMessage: `enriched predictions ${existingCoverage.matchedRaceCount}/${predictionCoverage.totalRaceCount} -> ${predictionCoverage.matchedRaceCount}/${predictionCoverage.totalRaceCount}`,
+    lastPredictionCoverageRate: predictionCoverage.coverageRate,
+    lastPredictionMatchedRaceCount: predictionCoverage.matchedRaceCount,
+    lastPredictionTotalRaceCount: predictionCoverage.totalRaceCount,
+    lastPredictionCoverageStatus: predictionCoverage.status,
+    predictionArchiveWarningCount: predictionCoverage.status === "complete" ? 0 : 1,
+  });
+  return {
+    status: "enriched",
+    message: `prediction enrichment ${existingCoverage.matchedRaceCount} -> ${predictionCoverage.matchedRaceCount}`,
+    targetDate,
+    predictionSource: predictionInput.source,
+    changed: true,
+  };
+}
+
 export async function archiveDailyFacts(options = {}) {
   const targetDate = resolveJstDate(options.date ?? "today");
   const dryRun = options.dryRun === true;
+  const predictionInput = await resolvePredictionInput(
+    targetDate,
+    options.predictionsFile ?? "",
+  );
+  console.log(`prediction source: ${predictionInput.source}`);
   const source = await loadDailySource({
     feedFile: options.feedFile ?? todayFeedPath,
-    predictionsFile: options.predictionsFile ?? savedPredictionsPath,
+    predictionsFile: predictionInput.file,
   });
   const summary = summarizeDailySource(source);
   const attemptedAt = new Date().toISOString();
@@ -128,7 +253,14 @@ export async function archiveDailyFacts(options = {}) {
         lastArchiveMessage: message,
       });
     }
-    return { status: "skipped", message, targetDate, summary, changed: false };
+    return {
+      status: "skipped",
+      message,
+      targetDate,
+      summary,
+      predictionSource: predictionInput.source,
+      changed: false,
+    };
   };
 
   if (summary.feedDate !== targetDate) {
@@ -167,6 +299,7 @@ export async function archiveDailyFacts(options = {}) {
       message: `dry-run: result FACTS passed; prediction coverage ${candidatePayload.predictionCoverage.coverageRate}% (${merged.mode})`,
       targetDate,
       summary,
+      predictionSource: predictionInput.source,
       payload: merged.payload,
       changed: false,
     };
@@ -179,6 +312,7 @@ export async function archiveDailyFacts(options = {}) {
       message: `daily FACTS is unchanged for ${targetDate}`,
       targetDate,
       summary,
+      predictionSource: predictionInput.source,
       changed: false,
     };
   }
@@ -205,6 +339,7 @@ export async function archiveDailyFacts(options = {}) {
     message: `archived ${summary.raceCount} result races; predictions ${coverage.matchedRaceCount}/${coverage.totalRaceCount}`,
     targetDate,
     summary,
+    predictionSource: predictionInput.source,
     changed: true,
   };
 }
@@ -219,15 +354,15 @@ async function main() {
     ? path.join(projectRoot, "scripts", "fixtures", "kurari-ex-daily-predictions-partial.json")
     : fixture === "missing"
       ? path.join(projectRoot, "scripts", "fixtures", "kurari-ex-daily-predictions-missing.json")
-      : savedPredictionsPath;
+      : "";
   const result = await archiveDailyFacts({
     date: fixture ? "2026-06-12" : getArgValue(args, "--date", "today"),
     dryRun: fixture ? true : args.includes("--dry-run"),
     onlyIfMissing: args.includes("--only-if-missing"),
     feedFile: path.resolve(getArgValue(args, "--feed", fixtureFeed)),
-    predictionsFile: path.resolve(
-      getArgValue(args, "--predictions", fixturePredictions),
-    ),
+    predictionsFile: fixture
+      ? path.resolve(getArgValue(args, "--predictions", fixturePredictions))
+      : getArgValue(args, "--predictions", ""),
   });
   console.log("[kurari-ex daily FACTS archive]");
   console.log(`date: ${result.targetDate}`);

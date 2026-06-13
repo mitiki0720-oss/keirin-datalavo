@@ -1,4 +1,4 @@
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
   collectFiles,
@@ -26,6 +26,41 @@ export const savedPredictionsPath = path.join(
   "predictions",
   "saved-predictions.generated.json",
 );
+export const dailyPredictionsRoot = path.join(
+  projectRoot,
+  "public",
+  "data",
+  "predictions",
+  "daily",
+);
+
+export function dailyPredictionsPath(date) {
+  return path.join(
+    dailyPredictionsRoot,
+    date.slice(0, 7),
+    `${date}.generated.json`,
+  );
+}
+
+export async function resolvePredictionInput(date, explicitFile = "") {
+  if (explicitFile) {
+    return { file: path.resolve(explicitFile), source: "explicit" };
+  }
+  const dailyFile = dailyPredictionsPath(date);
+  try {
+    await access(dailyFile);
+    return { file: dailyFile, source: "daily" };
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+  try {
+    await access(savedPredictionsPath);
+    return { file: savedPredictionsPath, source: "saved-predictions-fallback" };
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+  return { file: null, source: "missing" };
+}
 
 function parseJson(text) {
   return JSON.parse(String(text).replace(/^\uFEFF/u, ""));
@@ -104,7 +139,34 @@ export function predictionCompositeKey(date, venueName, raceNumber) {
 }
 
 export function predictionRecords(payload) {
+  const dailyRecords = Array.isArray(payload?.items)
+    ? payload.items.map((item) => ({
+        raceId: String(item?.raceId ?? "").trim(),
+        date: item?.date ?? payload.date,
+        venue: item?.venueName,
+        raceNumber: item?.raceNumber,
+        predictionJson: {
+          tickets: [
+            ...(item?.trifectaTickets ?? []).map((combination) => ({
+              betType: "3連単",
+              combination,
+            })),
+            ...(item?.exactaTickets ?? []).map((combination) => ({
+              betType: "2車単",
+              combination,
+            })),
+          ],
+        },
+        predictionMetadata: {
+          confidence: item?.confidence,
+          raceType: item?.raceType,
+          tags: item?.tags,
+          isSpecialRace: item?.isSpecialRace,
+        },
+      }))
+    : [];
   const rawCandidates = [
+    ...dailyRecords,
     ...(Array.isArray(payload.recordList) ? payload.recordList : []),
     ...Object.values(payload.records ?? {}),
   ];
@@ -169,7 +231,7 @@ export function predictionRecords(payload) {
   };
 }
 
-function parsePrediction(record) {
+export function parsePrediction(record) {
   const structured = Array.isArray(record?.predictionJson?.tickets)
     ? record.predictionJson.tickets
     : [];
@@ -203,9 +265,15 @@ function parsePrediction(record) {
   return {
     trifectaTickets: [...new Set(trifectaTickets)].sort(),
     exactaTickets: [...new Set(exactaTickets)].sort(),
-    confidence,
-    raceType,
-    tags: [...new Set(tags)].sort(),
+    confidence: String(record?.predictionMetadata?.confidence ?? confidence).trim(),
+    raceType: String(record?.predictionMetadata?.raceType ?? raceType).trim(),
+    tags: [...new Set([
+      ...tags,
+      ...(Array.isArray(record?.predictionMetadata?.tags)
+        ? record.predictionMetadata.tags.map((tag) => String(tag ?? "").trim())
+        : []),
+    ].filter(Boolean))].sort(),
+    isSpecialRace: record?.predictionMetadata?.isSpecialRace === true,
   };
 }
 
@@ -274,15 +342,16 @@ function isCancelled(venue, race) {
 
 export async function loadDailySource({
   feedFile = todayFeedPath,
-  predictionsFile = savedPredictionsPath,
+  predictionsFile = null,
 } = {}) {
-  const [feedText, predictionsText, identitySources] = await Promise.all([
+  const [feedText, identitySources] = await Promise.all([
     readFile(feedFile, "utf8"),
-    readFile(predictionsFile, "utf8"),
     loadRiderIdentitySources(),
   ]);
   const feed = parseJson(feedText);
-  const predictions = parseJson(predictionsText);
+  const predictions = predictionsFile
+    ? parseJson(await readFile(predictionsFile, "utf8"))
+    : { schemaVersion: 1, date: feed.date, items: [] };
   const predictionLookup = predictionRecords(predictions);
   if (predictionLookup.ambiguous.length) {
     throw new Error(

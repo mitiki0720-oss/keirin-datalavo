@@ -5,7 +5,7 @@ import {
   normalizeVenueName,
   predictionCompositeKey,
   predictionRecords,
-  savedPredictionsPath,
+  resolvePredictionInput,
   todayFeedPath,
 } from "./kurari-ex-daily-common.mjs";
 import { projectRoot, serializeJson } from "./kurari-ex-history-common.mjs";
@@ -79,7 +79,11 @@ function diagnose({
     diagnosis.push("LOCAL_STORAGE_ONLY");
     diagnosis.push("EXPORT_NOT_RUNNING");
   }
-  if (!Array.isArray(predictions?.recordList) && !predictions?.records) {
+  if (
+    !Array.isArray(predictions?.items)
+    && !Array.isArray(predictions?.recordList)
+    && !predictions?.records
+  ) {
     diagnosis.push("WRONG_SOURCE_FILE");
   }
   if (!diagnosis.length) diagnosis.push("OTHER");
@@ -89,13 +93,12 @@ function diagnose({
 async function main() {
   const args = process.argv.slice(2);
   const feedFile = path.resolve(getArgValue(args, "--feed", todayFeedPath));
-  const predictionsFile = path.resolve(
-    getArgValue(args, "--predictions", savedPredictionsPath),
-  );
-  const [feed, predictions] = await Promise.all([
-    readFile(feedFile, "utf8").then(parseJson),
-    readFile(predictionsFile, "utf8").then(parseJson),
-  ]);
+  const feed = await readFile(feedFile, "utf8").then(parseJson);
+  const explicitPredictions = getArgValue(args, "--predictions", "");
+  const predictionInput = await resolvePredictionInput(feed.date, explicitPredictions);
+  const predictions = predictionInput.file
+    ? await readFile(predictionInput.file, "utf8").then(parseJson)
+    : { schemaVersion: 1, date: feed.date, items: [] };
   const feedItems = feedRecords(feed);
   const { lookup, records } = uniquePredictionRecords(predictions);
   const feedRaceIds = new Set(feedItems.map((item) => item.raceId).filter(Boolean));
@@ -152,6 +155,7 @@ async function main() {
   const uniqueCompositeMatchCount = compositeMatchedFeedKeys.size;
   const audit = {
     feedDate: String(feed.date ?? ""),
+    predictionSource: predictionInput.source,
     feedRaceCount: feedItems.length,
     predictionArchiveDate,
     predictionCount: records.length,
@@ -203,6 +207,7 @@ async function main() {
   await writeFile(outputFile, serializeJson(audit), "utf8");
 
   console.log("[keirin saved predictions coverage audit]");
+  console.log(`prediction source: ${predictionInput.source}`);
   for (const [key, value] of Object.entries(audit)) {
     if (key === "examples") continue;
     console.log(`${key}: ${Array.isArray(value) ? value.join(", ") : value}`);
