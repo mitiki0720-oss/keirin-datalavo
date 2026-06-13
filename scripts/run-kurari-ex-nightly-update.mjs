@@ -73,6 +73,8 @@ export async function runNightly(options = {}) {
   if (options.dryRun) return { status: "dry-run", archive };
   if (["exists", "unchanged"].includes(archive.status)) {
     await runScript("check-kurari-ex-compact-history.mjs");
+    await runScript("generate-kurari-ex-matchup-exact.mjs");
+    await runScript("check-kurari-ex-matchup-exact.mjs");
     await runScript("check-kurari-ex-size.mjs");
     return { status: archive.status, archive };
   }
@@ -103,6 +105,8 @@ export async function runNightly(options = {}) {
     ]);
     await publishRiderExact(riderTemp);
     await runScript("check-kurari-ex-rider-exact.mjs");
+    await runScript("generate-kurari-ex-matchup-exact.mjs");
+    await runScript("check-kurari-ex-matchup-exact.mjs");
     await runScript("check-kurari-ex-size.mjs");
   } finally {
     await rm(tempRoot, { recursive: true, force: true });

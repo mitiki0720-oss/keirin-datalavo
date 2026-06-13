@@ -36,7 +36,10 @@
     "update:schedule": "node scripts/updateRaceSchedule.mjs",
     "update:schedule:upcoming": "node scripts/update-keirin-upcoming-schedule.mjs",
     "update:today-races:local": "node scripts/update-today-races.mjs",
-    "update:today-races:write": "node scripts/update-today-races.mjs --write-public"
+    "update:today-races:write": "node scripts/update-today-races.mjs --write-public",
+    "audit:kurari-ex-matchup-coverage": "node scripts/audit-kurari-ex-matchup-coverage.mjs",
+    "generate:kurari-ex-matchup-exact": "node scripts/generate-kurari-ex-matchup-exact.mjs",
+    "check:kurari-ex-matchup-exact": "node scripts/check-kurari-ex-matchup-exact.mjs"
   },
   "dependencies": {
     "cheerio": "^1.0.0",

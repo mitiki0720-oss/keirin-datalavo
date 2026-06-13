@@ -94,7 +94,9 @@ async function summarizePublicChanges() {
     venueExact: count((file) =>
       file.includes("/exact/")
       && !file.includes("/exact/riders/")
+      && !file.includes("/exact/matchups/")
     ),
+    matchupExact: count((file) => file.includes("/exact/matchups/")),
     riderExact: count((file) => file.includes("/exact/riders/")),
     guidance: count((file) => file.includes("/guidance/")),
     seed: count((file) =>
@@ -107,6 +109,7 @@ async function summarizePublicChanges() {
   console.log(`[raw-refresh] unchanged skipped: ${summary.unchangedSkipped}`);
   console.log(`[raw-refresh] daily files changed: ${summary.daily}`);
   console.log(`[raw-refresh] venue exact files changed: ${summary.venueExact}`);
+  console.log(`[raw-refresh] matchup exact files changed: ${summary.matchupExact}`);
   console.log(`[raw-refresh] rider exact files changed: ${summary.riderExact}`);
   console.log(`[raw-refresh] seed files changed: ${summary.seed}`);
   console.log(`[raw-refresh] guidance files changed: ${summary.guidance}`);
@@ -227,6 +230,7 @@ async function runCurrentPublicAudits() {
   await runNode("check-kurari-ex-compact-history.mjs");
   await runNode("check-kurari-ex-compact-history-replay.mjs");
   await runNode("check-kurari-ex-rider-exact.mjs");
+  await runNode("check-kurari-ex-matchup-exact.mjs");
   await runNode("check-kurari-ex-size.mjs");
   console.log("[raw-refresh] parity audits deferred until public regeneration");
 }
@@ -249,6 +253,8 @@ async function regeneratePublicData() {
   ]);
   await runNode("check-kurari-ex-rider-exact-history-parity.mjs");
   await runNode("check-kurari-ex-rider-exact.mjs");
+  await runNode("generate-kurari-ex-matchup-exact.mjs");
+  await runNode("check-kurari-ex-matchup-exact.mjs");
   await runNode("check-kurari-ex-size.mjs");
 }
 
