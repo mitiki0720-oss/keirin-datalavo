@@ -1,4 +1,4 @@
-import { access, mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { access, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import {
   collectFiles,
@@ -6,7 +6,9 @@ import {
   compactHistoryRoot,
   projectRoot,
   serializeJson,
+  writeJson,
 } from "./kurari-ex-history-common.mjs";
+import { writeTextIfChanged } from "./lib/write-json-if-changed.mjs";
 import {
   loadRiderIdentitySources,
   resolveRiderIdentity,
@@ -611,10 +613,12 @@ export async function rebuildHistoryMetadata(archiveFields = {}) {
       ?? previousStatus.predictionArchiveWarningCount
       ?? 0,
   };
-  await Promise.all([
-    writeFile(path.join(compactHistoryRoot, "index.generated.json"), serializeJson(index), "utf8"),
-    writeFile(path.join(compactHistoryRoot, "status.generated.json"), serializeJson(status), "utf8"),
+  const [indexResult, statusResult] = await Promise.all([
+    writeJson(path.join(compactHistoryRoot, "index.generated.json"), index),
+    writeJson(path.join(compactHistoryRoot, "status.generated.json"), status),
   ]);
+  index.generatedAt = indexResult.value.generatedAt;
+  status.generatedAt = statusResult.value.generatedAt;
   return { index, status };
 }
 
@@ -629,14 +633,7 @@ export async function writeDailyPayload(payload) {
     `${payload.date}.generated.json`,
   );
   const content = serializeJson(payload);
-  try {
-    if (await readFile(file, "utf8") === content) return { file, changed: false };
-  } catch (error) {
-    if (error?.code !== "ENOENT") throw error;
-  }
-  await mkdir(path.dirname(file), { recursive: true });
-  await writeFile(file, content, "utf8");
-  return { file, changed: true };
+  return writeTextIfChanged(file, content);
 }
 
 export async function readDailyPayload(date) {

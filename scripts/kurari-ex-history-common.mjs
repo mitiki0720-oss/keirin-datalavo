@@ -1,6 +1,10 @@
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  stableStringify,
+  writeJsonIfChanged,
+} from "./lib/write-json-if-changed.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -589,12 +593,11 @@ export function relativeProjectPath(file) {
 }
 
 export function serializeJson(value) {
-  return `${JSON.stringify(value, null, 2)}\n`;
+  return stableStringify(value);
 }
 
-export async function writeJson(file, value) {
-  await mkdir(path.dirname(file), { recursive: true });
-  await writeFile(file, serializeJson(value), "utf8");
+export async function writeJson(file, value, options = {}) {
+  return writeJsonIfChanged(file, value, options);
 }
 
 export async function readNormalizedRaces() {

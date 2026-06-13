@@ -1,6 +1,7 @@
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { readFile, unlink } from "node:fs/promises";
 import path from "node:path";
 import {
+  collectFiles,
   countMetric,
   exactOutputRoot as defaultExactOutputRoot,
   rateMetric,
@@ -216,14 +217,9 @@ async function main() {
     }
   }
 
-  await Promise.all([
-    rm(path.join(exactOutputRoot, "venues"), { recursive: true, force: true }),
-    rm(path.join(exactOutputRoot, "global"), { recursive: true, force: true }),
-    rm(path.join(exactOutputRoot, "index.generated.json"), { force: true }),
-    rm(path.join(exactOutputRoot, "status.generated.json"), { force: true }),
-  ]);
-  await mkdir(path.join(exactOutputRoot, "venues"), { recursive: true });
   const files = [];
+  const expectedVenueFiles = new Set();
+  let changedDataFileCount = 0;
   let warningCount = 0;
   for (const [venueKey, venueRaces] of [...venueGroups.entries()].sort()) {
     const aggregatePayload = aggregate(venueRaces, generatedAt);
@@ -239,7 +235,10 @@ async function main() {
       ...aggregatePayload,
     };
     const relativePath = `venues/${venueKey}.generated.json`;
-    await writeJson(path.join(exactOutputRoot, relativePath), payload);
+    const target = path.join(exactOutputRoot, relativePath);
+    expectedVenueFiles.add(path.resolve(target));
+    const result = await writeJson(target, payload);
+    changedDataFileCount += Number(result.changed);
     files.push(relativePath);
     warningCount += payload.warnings.length;
   }
@@ -255,7 +254,11 @@ async function main() {
     ...globalAggregate,
   };
   const globalPath = "global/prediction-kpi.generated.json";
-  await writeJson(path.join(exactOutputRoot, globalPath), globalPayload);
+  const globalResult = await writeJson(
+    path.join(exactOutputRoot, globalPath),
+    globalPayload,
+  );
+  changedDataFileCount += Number(globalResult.changed);
   files.unshift(globalPath);
   warningCount += globalPayload.warnings.length;
 
@@ -273,7 +276,22 @@ async function main() {
     ],
     warningCount,
   };
-  await writeJson(path.join(exactOutputRoot, "index.generated.json"), index);
+  const staleVenueFiles = await collectFiles(
+    path.join(exactOutputRoot, "venues"),
+    (file) => file.endsWith(".generated.json"),
+  );
+  for (const file of staleVenueFiles) {
+    if (!expectedVenueFiles.has(path.resolve(file))) {
+      await unlink(file);
+      changedDataFileCount += 1;
+    }
+  }
+  const indexResult = await writeJson(
+    path.join(exactOutputRoot, "index.generated.json"),
+    index,
+    { reuseTimestamps: changedDataFileCount === 0 },
+  );
+  index.generatedAt = indexResult.value.generatedAt;
 
   const outputFiles = [
     { relativePath: "index.generated.json", content: serializeJson(index) },
@@ -284,7 +302,9 @@ async function main() {
     })),
   ];
   for (const file of outputFiles.filter((item) => item.content == null)) {
-    file.content = await readFile(path.join(exactOutputRoot, file.relativePath), "utf8");
+    file.content = (
+      await readFile(path.join(exactOutputRoot, file.relativePath), "utf8")
+    ).replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   }
   const status = {
     schemaVersion: 1,
@@ -302,10 +322,10 @@ async function main() {
   };
   const statusContent = serializeJson(status);
   status.outputBytes += Buffer.byteLength(statusContent);
-  await writeFile(
+  const statusResult = await writeJson(
     path.join(exactOutputRoot, "status.generated.json"),
-    serializeJson(status),
-    "utf8",
+    status,
+    { reuseTimestamps: changedDataFileCount === 0 && !indexResult.changed },
   );
 
   console.log("[kurari-ex venue exact generate]");
@@ -314,6 +334,9 @@ async function main() {
   console.log(`venues: ${venueGroups.size}`);
   console.log(`period: ${index.period.from} to ${index.period.to}`);
   console.log(`warnings: ${warningCount}`);
+  console.log(`files changed: ${
+    changedDataFileCount + Number(indexResult.changed) + Number(statusResult.changed)
+  }`);
   console.log(`output: ${(status.outputBytes / 1024).toFixed(1)} KB`);
 }
 

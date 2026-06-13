@@ -1,10 +1,12 @@
-import { mkdir, readFile, readdir, stat, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readdir, unlink } from "node:fs/promises";
 import path from "node:path";
 import {
   projectRoot,
   readNormalizedRaces,
   serializeJson,
+  writeJson,
 } from "./kurari-ex-history-common.mjs";
+import { writeTextIfChanged } from "./lib/write-json-if-changed.mjs";
 
 const historyRoot = path.join(
   projectRoot,
@@ -123,17 +125,6 @@ function compactRace(race) {
   };
 }
 
-async function writeIfChanged(file, content) {
-  try {
-    if (await readFile(file, "utf8") === content) return false;
-  } catch (error) {
-    if (error?.code !== "ENOENT") throw error;
-  }
-  await mkdir(path.dirname(file), { recursive: true });
-  await writeFile(file, content, "utf8");
-  return true;
-}
-
 async function removeStaleDailyFiles(expectedFiles) {
   async function visit(directory) {
     let entries;
@@ -211,7 +202,7 @@ async function main() {
     const month = date.slice(0, 7);
     const file = path.join(dailyRoot, month, `${date}.generated.json`);
     expectedFiles.add(file);
-    if (await writeIfChanged(file, content)) changedDailyFileCount += 1;
+    if (writeTextIfChanged(file, content).changed) changedDailyFileCount += 1;
     const bytes = Buffer.byteLength(content);
     totalDailyBytes += bytes;
     maxDailyFileBytes = Math.max(maxDailyFileBytes, bytes);
@@ -247,7 +238,11 @@ async function main() {
     totalBytes: totalDailyBytes,
     items: indexItems,
   };
-  await writeFile(path.join(historyRoot, "index.generated.json"), serializeJson(index), "utf8");
+  const indexResult = await writeJson(
+    path.join(historyRoot, "index.generated.json"),
+    index,
+  );
+  index.generatedAt = indexResult.value.generatedAt;
   const status = {
     schemaVersion: 1,
     generatedAt,
@@ -266,7 +261,10 @@ async function main() {
     warningCount: compactRaces.reduce((sum, race) => sum + race.quality.warnings.length, 0),
     prohibitedDetected: false,
   };
-  await writeFile(path.join(historyRoot, "status.generated.json"), serializeJson(status), "utf8");
+  const statusResult = await writeJson(
+    path.join(historyRoot, "status.generated.json"),
+    status,
+  );
 
   console.log("[kurari-ex compact history export]");
   console.log(`days: ${status.dayCount}`);
@@ -275,6 +273,7 @@ async function main() {
   console.log(`settled: ${status.settledRaceCount}`);
   console.log(`cancelled: ${status.cancelledRaceCount}`);
   console.log(`daily files changed: ${changedDailyFileCount}`);
+  console.log(`metadata files changed: ${Number(indexResult.changed) + Number(statusResult.changed)}`);
   console.log(`output: ${(totalDailyBytes / 1024 / 1024).toFixed(2)} MB`);
   console.log(`max daily: ${(maxDailyFileBytes / 1024).toFixed(1)} KB`);
 }

@@ -1,8 +1,9 @@
 import { execFile } from "node:child_process";
-import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rm, unlink } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
+import { writeJsonIfChanged } from "./lib/write-json-if-changed.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
@@ -289,7 +290,10 @@ function uniqueLimited(values, limit = 12) {
   return [...new Set(values.filter(Boolean))].slice(0, limit);
 }
 
-async function collectInputFiles(directory) {
+async function collectInputFiles(
+  directory,
+  predicate = (entry) => /\.(?:txt|md)$/iu.test(entry.name),
+) {
   const files = [];
   async function visit(current) {
     let entries;
@@ -303,7 +307,7 @@ async function collectInputFiles(directory) {
       const target = path.join(current, entry.name);
       if (entry.isSymbolicLink()) continue;
       if (entry.isDirectory()) await visit(target);
-      if (entry.isFile() && /\.(?:txt|md)$/iu.test(entry.name)) files.push(target);
+      if (entry.isFile() && predicate(entry)) files.push(target);
     }
   }
   await visit(directory);
@@ -645,18 +649,54 @@ async function buildOutputs(records, warnings, stats) {
 
 async function writeOutputs(outputs) {
   await mkdir(outputRoot, { recursive: true });
-  await Promise.all([
-    rm(path.join(outputRoot, "venues"), { recursive: true, force: true }),
-    rm(path.join(outputRoot, "guidance"), { recursive: true, force: true }),
-    rm(path.join(outputRoot, "global", "prediction-kpi.generated.json"), { force: true }),
-    rm(path.join(outputRoot, "index.generated.json"), { force: true }),
-    rm(path.join(outputRoot, "status.generated.json"), { force: true }),
-  ]);
-  for (const output of outputs) {
+  const expectedFiles = new Set(
+    outputs.map((output) => path.resolve(outputRoot, output.relativePath)),
+  );
+  let changedDataFileCount = 0;
+  for (const output of outputs.filter(
+    (item) => !["index.generated.json", "status.generated.json"].includes(item.relativePath),
+  )) {
     const target = path.join(outputRoot, output.relativePath);
-    await mkdir(path.dirname(target), { recursive: true });
-    await writeFile(target, output.content, "utf8");
+    const timestampFields = output.relativePath.startsWith("venues/")
+      || output.relativePath.startsWith("guidance/")
+      ? ["updatedAt"]
+      : ["generatedAt"];
+    const result = writeJsonIfChanged(target, JSON.parse(output.content), {
+      timestampFields,
+    });
+    changedDataFileCount += Number(result.changed);
   }
+  for (const directory of ["venues", "guidance"]) {
+    const files = await collectInputFiles(
+      path.join(outputRoot, directory),
+      (entry) => entry.name.endsWith(".generated.json"),
+    );
+    for (const file of files) {
+      if (!expectedFiles.has(path.resolve(file))) {
+        await unlink(file);
+        changedDataFileCount += 1;
+      }
+    }
+  }
+  const indexOutput = outputs.find((item) => item.relativePath === "index.generated.json");
+  const indexResult = writeJsonIfChanged(
+    path.join(outputRoot, indexOutput.relativePath),
+    JSON.parse(indexOutput.content),
+    { reuseTimestamps: changedDataFileCount === 0 },
+  );
+  const statusOutput = outputs.find((item) => item.relativePath === "status.generated.json");
+  const statusResult = writeJsonIfChanged(
+    path.join(outputRoot, statusOutput.relativePath),
+    JSON.parse(statusOutput.content),
+    {
+      timestampFields: ["lastImportAt"],
+      reuseTimestamps: changedDataFileCount === 0 && !indexResult.changed,
+    },
+  );
+  return {
+    changedFileCount:
+      changedDataFileCount + Number(indexResult.changed) + Number(statusResult.changed),
+  };
 }
 
 async function main() {
@@ -739,7 +779,7 @@ async function main() {
     const { outputs, venueCount } = await buildOutputs(records, warnings, stats);
     const outputBytes = calculateOutputBytes(outputs);
 
-    if (!dryRun) await writeOutputs(outputs);
+    const writeResult = dryRun ? null : await writeOutputs(outputs);
 
     console.log("[kurari-ex raw scan]");
     if (extractionResult) {
@@ -762,6 +802,7 @@ async function main() {
     console.log(`period: ${stats.dateFrom ?? "--"} to ${stats.dateTo ?? "--"}`);
     console.log(`warnings: ${warnings.length}`);
     console.log(`output estimate: ${(outputBytes / 1024).toFixed(1)} KB`);
+    if (writeResult) console.log(`files changed: ${writeResult.changedFileCount}`);
     for (const warning of warnings) console.warn(`WARNING: ${warning}`);
   } finally {
     if (temporaryScanRoot) {

@@ -1,9 +1,11 @@
-import { mkdir, rm, stat } from "node:fs/promises";
+import { unlink } from "node:fs/promises";
 import path from "node:path";
 import {
+  collectFiles,
   rateMetric,
   readKurariExRaces,
   relativeProjectPath,
+  serializeJson,
   writeJson,
 } from "./kurari-ex-history-common.mjs";
 import {
@@ -177,10 +179,9 @@ async function main() {
     throw new Error("no safely resolved riders with confirmed starts");
   }
 
-  await rm(riderExactRoot, { recursive: true, force: true });
-  await mkdir(path.join(riderExactRoot, "by-tail"), { recursive: true });
   const generatedAt = requestedGeneratedAt || new Date().toISOString();
   const indexItems = [];
+  const expectedRiderFiles = new Set();
   const qualityCounts = {
     complete: 0,
     partial: 0,
@@ -189,6 +190,7 @@ async function main() {
   };
   let totalBytes = 0;
   let maxFileBytes = 0;
+  let changedDataFileCount = 0;
 
   for (const [registrationNo, entry] of [...observationsByRider.entries()].sort()) {
     const { identity, observations } = entry;
@@ -278,8 +280,10 @@ async function main() {
     const tail = registrationNo.slice(-2);
     const relativeFile = `by-tail/${tail}/${registrationNo}.generated.json`;
     const file = path.join(riderExactRoot, relativeFile);
-    await writeJson(file, payload);
-    const bytes = (await stat(file)).size;
+    expectedRiderFiles.add(path.resolve(file));
+    const result = await writeJson(file, payload);
+    changedDataFileCount += Number(result.changed);
+    const bytes = Buffer.byteLength(serializeJson(result.value));
     totalBytes += bytes;
     maxFileBytes = Math.max(maxFileBytes, bytes);
     indexItems.push({
@@ -295,6 +299,16 @@ async function main() {
       quality,
     });
   }
+  const staleRiderFiles = await collectFiles(
+    path.join(riderExactRoot, "by-tail"),
+    (file) => file.endsWith(".generated.json"),
+  );
+  for (const file of staleRiderFiles) {
+    if (!expectedRiderFiles.has(path.resolve(file))) {
+      await unlink(file);
+      changedDataFileCount += 1;
+    }
+  }
 
   const allDates = [...observationsByRider.values()]
     .flatMap((entry) => entry.observations.map((item) => item.date))
@@ -308,8 +322,13 @@ async function main() {
     period: { from: allDates[0] ?? null, to: allDates.at(-1) ?? null },
     items: indexItems,
   };
-  await writeJson(path.join(riderExactRoot, "index.generated.json"), index);
-  const indexBytes = (await stat(path.join(riderExactRoot, "index.generated.json"))).size;
+  const indexResult = await writeJson(
+    path.join(riderExactRoot, "index.generated.json"),
+    index,
+    { reuseTimestamps: changedDataFileCount === 0 },
+  );
+  index.generatedAt = indexResult.value.generatedAt;
+  const indexBytes = Buffer.byteLength(serializeJson(indexResult.value));
   totalBytes += indexBytes;
 
   const status = {
@@ -324,15 +343,23 @@ async function main() {
     maxFileBytes,
     source: `${source}-history`,
   };
-  await writeJson(path.join(riderExactRoot, "status.generated.json"), status);
-  status.outputBytes += (await stat(path.join(riderExactRoot, "status.generated.json"))).size;
-  await writeJson(path.join(riderExactRoot, "status.generated.json"), status);
+  for (let index = 0; index < 3; index += 1) {
+    status.outputBytes = totalBytes + Buffer.byteLength(serializeJson(status));
+  }
+  const statusResult = await writeJson(
+    path.join(riderExactRoot, "status.generated.json"),
+    status,
+    { reuseTimestamps: changedDataFileCount === 0 && !indexResult.changed },
+  );
 
   console.log("[kurari-ex rider exact generate]");
   console.log(`source: ${source}`);
   console.log(`riders: ${indexItems.length}`);
   console.log(`period: ${index.period.from} to ${index.period.to}`);
   console.log(`quality: ${JSON.stringify(qualityCounts)}`);
+  console.log(`files changed: ${
+    changedDataFileCount + Number(indexResult.changed) + Number(statusResult.changed)
+  }`);
   console.log(`output: ${(status.outputBytes / 1024).toFixed(1)} KB`);
   console.log(`max file: ${(maxFileBytes / 1024).toFixed(1)} KB`);
   console.log(`root: ${relativeProjectPath(riderExactRoot)}`);

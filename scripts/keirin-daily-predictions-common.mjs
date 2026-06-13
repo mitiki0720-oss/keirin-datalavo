@@ -1,10 +1,11 @@
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import {
   collectFiles,
   projectRoot,
   serializeJson,
 } from "./kurari-ex-history-common.mjs";
+import { writeTextIfChanged } from "./lib/write-json-if-changed.mjs";
 
 export const dailyPredictionsRoot = path.join(
   projectRoot,
@@ -137,14 +138,7 @@ export function dailyPredictionFile(date) {
 }
 
 export async function writeIfChanged(file, content) {
-  try {
-    if (await readFile(file, "utf8") === content) return false;
-  } catch (error) {
-    if (error?.code !== "ENOENT") throw error;
-  }
-  await mkdir(path.dirname(file), { recursive: true });
-  await writeFile(file, content, "utf8");
-  return true;
+  return writeTextIfChanged(file, content).changed;
 }
 
 export async function readDailyPredictionFiles() {

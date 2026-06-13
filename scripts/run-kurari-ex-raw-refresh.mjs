@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { cp, mkdir, open, readFile, rm } from "node:fs/promises";
+import { cp, mkdir, open, readFile, readdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
@@ -56,6 +56,61 @@ async function runNode(script, scriptArgs = []) {
 
 async function git(gitArgs, options = {}) {
   return run("git", gitArgs, options);
+}
+
+async function countGeneratedJsonFiles(directory) {
+  let count = 0;
+  async function visit(current) {
+    let entries;
+    try {
+      entries = await readdir(current, { withFileTypes: true });
+    } catch (error) {
+      if (error?.code === "ENOENT") return;
+      throw error;
+    }
+    for (const entry of entries) {
+      const target = path.join(current, entry.name);
+      if (entry.isDirectory()) await visit(target);
+      if (entry.isFile() && entry.name.endsWith(".generated.json")) count += 1;
+    }
+  }
+  await visit(directory);
+  return count;
+}
+
+async function summarizePublicChanges() {
+  const status = await git(["status", "--short", "--", ...publicGitPaths]);
+  const paths = status
+    .split(/\r?\n/u)
+    .filter(Boolean)
+    .map((line) => line.slice(3).replaceAll("\\", "/"));
+  const checked = await countGeneratedJsonFiles(publicRoot);
+  const count = (predicate) => paths.filter(predicate).length;
+  const summary = {
+    checked,
+    semanticChanges: paths.length,
+    unchangedSkipped: Math.max(0, checked - paths.length),
+    daily: count((file) => file.includes("/history/daily/")),
+    venueExact: count((file) =>
+      file.includes("/exact/")
+      && !file.includes("/exact/riders/")
+    ),
+    riderExact: count((file) => file.includes("/exact/riders/")),
+    guidance: count((file) => file.includes("/guidance/")),
+    seed: count((file) =>
+      /kurari-ex\/(?:venues|global)\//u.test(file)
+      || /kurari-ex\/(?:index|status)\.generated\.json$/u.test(file)
+    ),
+  };
+  console.log(`[raw-refresh] generated files checked: ${summary.checked}`);
+  console.log(`[raw-refresh] semantic changes: ${summary.semanticChanges}`);
+  console.log(`[raw-refresh] unchanged skipped: ${summary.unchangedSkipped}`);
+  console.log(`[raw-refresh] daily files changed: ${summary.daily}`);
+  console.log(`[raw-refresh] venue exact files changed: ${summary.venueExact}`);
+  console.log(`[raw-refresh] rider exact files changed: ${summary.riderExact}`);
+  console.log(`[raw-refresh] seed files changed: ${summary.seed}`);
+  console.log(`[raw-refresh] guidance files changed: ${summary.guidance}`);
+  return summary;
 }
 
 function processExists(pid) {
@@ -198,11 +253,12 @@ async function regeneratePublicData() {
 }
 
 async function commitAndPush() {
-  const status = await git(["status", "--short", "--", ...publicGitPaths]);
-  const changedFileCount = status.split(/\r?\n/u).filter(Boolean).length;
-  console.log(`[raw-refresh] public changed files: ${changedFileCount}`);
+  const changeSummary = await summarizePublicChanges();
+  const changedFileCount = changeSummary.semanticChanges;
   if (!changedFileCount) {
-    console.log("[raw-refresh] no public changes");
+    console.log("[raw-refresh] no semantic public changes");
+    console.log("[raw-refresh] commit skipped");
+    console.log("[raw-refresh] push skipped");
     return { changedFileCount, committed: false, pushed: false };
   }
   await git(["add", "--", ...publicGitPaths]);
@@ -268,9 +324,12 @@ async function main() {
   try {
     await regeneratePublicData();
     if (noPush) {
-      const status = await git(["status", "--short", "--", ...publicGitPaths]);
-      const changedFileCount = status.split(/\r?\n/u).filter(Boolean).length;
-      console.log(`[raw-refresh] public changed files: ${changedFileCount}`);
+      const changeSummary = await summarizePublicChanges();
+      if (!changeSummary.semanticChanges) {
+        console.log("[raw-refresh] no semantic public changes");
+      }
+      console.log("[raw-refresh] commit skipped");
+      console.log("[raw-refresh] push skipped");
       console.log("[raw-refresh] no-push completed; git add/commit/push skipped");
       return;
     }
