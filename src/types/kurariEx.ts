@@ -356,3 +356,104 @@ export type KurariExRiderExactInitialData = {
   index: KurariExRiderExactIndex;
   status: KurariExRiderExactStatus;
 };
+
+export type KurariExMatchupQuality =
+  | "sufficient"
+  | "low-sample"
+  | "partial"
+  | string;
+
+export type KurariExMatchupComparableStats = {
+  sharedRaceCount: number;
+  safeComparableRaceCount: number;
+  selfAheadCount: number;
+  opponentAheadCount: number;
+  selfAheadRate: number | null;
+  opponentAheadRate: number | null;
+};
+
+export type KurariExMatchupVenueStats = KurariExMatchupComparableStats & {
+  venueKey: string;
+  venueName: string;
+};
+
+export type KurariExMatchupEntry = KurariExMatchupComparableStats & {
+  pairKey: string;
+  opponentRegistrationNo: string;
+  opponentName: string;
+  unknownOrderCount: number;
+  sameLine: KurariExMatchupComparableStats;
+  otherLine: KurariExMatchupComparableStats;
+  unknownLineRaceCount: number;
+  byVenue: KurariExMatchupVenueStats[];
+  quality: KurariExMatchupQuality;
+};
+
+export type KurariExMatchupExact = {
+  schemaVersion: number;
+  sourceType: "EXACT";
+  generatedAt: string;
+  registrationNo: string;
+  name: string;
+  period: KurariExPeriod;
+  quality: KurariExMatchupQuality;
+  coverage: {
+    distinctOpponentCount: number;
+    sharedRaceCount: number;
+    safeComparableRaceCount: number;
+    unknownOrderRaceCount: number;
+    lineClassifiedRaceCount: number;
+  };
+  matchups: KurariExMatchupEntry[];
+  warnings: string[];
+};
+
+export type KurariExMatchupExactIndexItem = {
+  registrationNo: string;
+  name: string;
+  file: string;
+  quality: KurariExMatchupQuality;
+  distinctOpponentCount: number;
+  sharedRaceCount: number;
+  safeComparableRaceCount: number;
+};
+
+export type KurariExMatchupExactIndex = {
+  schemaVersion: number;
+  sourceType: "EXACT";
+  generatedAt: string;
+  period: KurariExPeriod;
+  riderCount: number;
+  distinctPairCount: number;
+  pairObservationCount: number;
+  safeComparablePairObservationCount: number;
+  qualityCounts: Record<string, number>;
+  items: KurariExMatchupExactIndexItem[];
+};
+
+export type KurariExMatchupExactStatus = {
+  schemaVersion: number;
+  sourceType: "EXACT";
+  historyRaceCount: number;
+  racesWithAtLeastTwoResolvedRiders: number;
+  distinctResolvedRiderCount: number;
+  distinctPairCount: number;
+  pairObservationCount: number;
+  safeComparablePairObservationCount: number;
+  unknownOrderPairObservationCount: number;
+  sameLinePairObservationCount: number;
+  otherLinePairObservationCount: number;
+  unknownLinePairObservationCount: number;
+  riderFileCount: number;
+  totalBytes: number;
+  maxRiderFileBytes: number;
+  warningCount: number;
+  generatedAt: string;
+  period: KurariExPeriod;
+  qualityCounts: Record<string, number>;
+};
+
+export type KurariExMatchupExactInitialData = {
+  index: KurariExMatchupExactIndex;
+  status: KurariExMatchupExactStatus;
+};

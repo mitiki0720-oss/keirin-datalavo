@@ -8,6 +8,10 @@ import type {
   KurariExExactVenueListItem,
   KurariExIndex,
   KurariExInitialData,
+  KurariExMatchupExact,
+  KurariExMatchupExactIndex,
+  KurariExMatchupExactInitialData,
+  KurariExMatchupExactStatus,
   KurariExMetric,
   KurariExPredictionContext,
   KurariExRiderAggregate,
@@ -27,7 +31,9 @@ import type {
 const EX_ROOT = "/data/analytics/kurari-ex";
 const EXACT_ROOT = `${EX_ROOT}/exact`;
 const RIDER_EXACT_ROOT = `${EXACT_ROOT}/riders`;
+const MATCHUP_EXACT_ROOT = `${EXACT_ROOT}/matchups`;
 let riderExactIndexPromise: Promise<KurariExRiderExactIndex> | null = null;
+let matchupExactIndexPromise: Promise<KurariExMatchupExactIndex> | null = null;
 
 const venueNameMap: Record<string, string> = {
   aomori: "青森",
@@ -433,6 +439,33 @@ export async function loadKurariExRiderExactInitialData(): Promise<KurariExRider
 
 export async function loadKurariExRiderExactByFile(file: string): Promise<KurariExRiderExact> {
   return fetchJson<KurariExRiderExact>(file);
+}
+
+export async function loadKurariExMatchupExactIndex(): Promise<KurariExMatchupExactIndex> {
+  if (!matchupExactIndexPromise) {
+    matchupExactIndexPromise = fetchJson<KurariExMatchupExactIndex>(`${MATCHUP_EXACT_ROOT}/index.generated.json`)
+      .catch((error) => {
+        matchupExactIndexPromise = null;
+        throw error;
+      });
+  }
+  return matchupExactIndexPromise;
+}
+
+export async function loadKurariExMatchupExactStatus(): Promise<KurariExMatchupExactStatus> {
+  return fetchJson<KurariExMatchupExactStatus>(`${MATCHUP_EXACT_ROOT}/status.generated.json`);
+}
+
+export async function loadKurariExMatchupExactInitialData(): Promise<KurariExMatchupExactInitialData> {
+  const [index, status] = await Promise.all([
+    loadKurariExMatchupExactIndex(),
+    loadKurariExMatchupExactStatus(),
+  ]);
+  return { index, status };
+}
+
+export async function loadKurariExMatchupExactByFile(file: string): Promise<KurariExMatchupExact> {
+  return fetchJson<KurariExMatchupExact>(file);
 }
 
 export function formatKurariExRiderMetric(metric?: KurariExRiderMetric | null) {

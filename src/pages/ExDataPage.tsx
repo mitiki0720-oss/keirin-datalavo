@@ -5,6 +5,8 @@ import {
   getKurariExRiderQualityLabel,
   loadKurariExExactInitialData,
   loadKurariExInitialData,
+  loadKurariExMatchupExactByFile,
+  loadKurariExMatchupExactInitialData,
   loadKurariExRiderExactByFile,
   loadKurariExRiderExactInitialData,
   loadKurariExVenueBundle,
@@ -14,6 +16,10 @@ import type {
   KurariExExactInitialData,
   KurariExMetric,
   KurariExInitialData,
+  KurariExMatchupComparableStats,
+  KurariExMatchupExact,
+  KurariExMatchupExactIndexItem,
+  KurariExMatchupExactInitialData,
   KurariExVenueBundle,
   KurariExVenueExact,
   KurariExRiderAggregate,
@@ -48,6 +54,24 @@ function formatDate(value?: string | null) {
 
 function valueText(value?: number | null, suffix = "") {
   return Number.isFinite(value) ? `${Number(value).toLocaleString("ja-JP")}${suffix}` : "--";
+}
+
+function formatMatchupRate(value?: number | null) {
+  return Number.isFinite(value) ? `${Number(value).toFixed(1)}%` : "未比較";
+}
+
+function formatMatchupLineStats(stats: KurariExMatchupComparableStats) {
+  if (!stats.safeComparableRaceCount) return "比較なし";
+  return `${formatMatchupRate(stats.selfAheadRate)}（${stats.selfAheadCount}-${stats.opponentAheadCount}）`;
+}
+
+function getMatchupQualityLabel(quality?: string | null) {
+  const labels: Record<string, string> = {
+    sufficient: "SUFFICIENT",
+    "low-sample": "LOW SAMPLE",
+    partial: "PARTIAL",
+  };
+  return quality ? labels[quality] ?? quality.toUpperCase() : "UNKNOWN";
 }
 
 function MetricCard({ label, value, note, warning }: {
@@ -145,7 +169,7 @@ export default function ExDataPage() {
   const [initialStatus, setInitialStatus] = useState<"loading" | "ready" | "error">("loading");
   const [exactInitialData, setExactInitialData] = useState<KurariExExactInitialData | null>(null);
   const [exactInitialStatus, setExactInitialStatus] = useState<"loading" | "ready" | "error">("loading");
-  const [activeView, setActiveView] = useState<"venue" | "player">("venue");
+  const [activeView, setActiveView] = useState<"venue" | "player" | "matchup">("venue");
   const [query, setQuery] = useState("");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [venueCache, setVenueCache] = useState<Record<string, KurariExVenueBundle>>({});
@@ -158,6 +182,12 @@ export default function ExDataPage() {
   const [selectedRiderNo, setSelectedRiderNo] = useState<string | null>(null);
   const [riderCache, setRiderCache] = useState<Record<string, KurariExRiderExact>>({});
   const [riderStatus, setRiderStatus] = useState<Record<string, "loading" | "ready" | "error">>({});
+  const [matchupInitialData, setMatchupInitialData] = useState<KurariExMatchupExactInitialData | null>(null);
+  const [matchupInitialStatus, setMatchupInitialStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [matchupQuery, setMatchupQuery] = useState("");
+  const [selectedMatchupRiderNo, setSelectedMatchupRiderNo] = useState<string | null>(null);
+  const [matchupCache, setMatchupCache] = useState<Record<string, KurariExMatchupExact>>({});
+  const [matchupStatus, setMatchupStatus] = useState<Record<string, "loading" | "ready" | "error">>({});
 
   useEffect(() => {
     let active = true;
@@ -204,6 +234,23 @@ export default function ExDataPage() {
       .catch(() => {
         if (!active) return;
         setExactInitialStatus("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    loadKurariExMatchupExactInitialData()
+      .then((data) => {
+        if (!active) return;
+        setMatchupInitialData(data);
+        setMatchupInitialStatus("ready");
+      })
+      .catch(() => {
+        if (!active) return;
+        setMatchupInitialStatus("error");
       });
     return () => {
       active = false;
@@ -278,6 +325,30 @@ export default function ExDataPage() {
       });
   };
 
+  const filteredMatchupRiders = useMemo(() => {
+    const normalized = normalizeSearchText(matchupQuery);
+    const items = matchupInitialData?.index.items ?? [];
+    if (!normalized) return items;
+    return items.filter((item) => (
+      [item.name, item.registrationNo, item.quality]
+        .some((value) => normalizeSearchText(value).includes(normalized))
+    ));
+  }, [matchupInitialData?.index.items, matchupQuery]);
+
+  const selectMatchupRider = (item: KurariExMatchupExactIndexItem) => {
+    setSelectedMatchupRiderNo(item.registrationNo);
+    if (matchupCache[item.registrationNo] || matchupStatus[item.registrationNo] === "loading") return;
+    setMatchupStatus((current) => ({ ...current, [item.registrationNo]: "loading" }));
+    loadKurariExMatchupExactByFile(item.file)
+      .then((matchup) => {
+        setMatchupCache((current) => ({ ...current, [item.registrationNo]: matchup }));
+        setMatchupStatus((current) => ({ ...current, [item.registrationNo]: "ready" }));
+      })
+      .catch(() => {
+        setMatchupStatus((current) => ({ ...current, [item.registrationNo]: "error" }));
+      });
+  };
+
   const selectedBundle = selectedKey ? venueCache[selectedKey] : null;
   const selectedLoadStatus = selectedKey ? venueStatus[selectedKey] : undefined;
   const selectedExact = selectedKey ? exactVenueCache[selectedKey] : null;
@@ -291,6 +362,12 @@ export default function ExDataPage() {
   );
   const selectedRider = selectedRiderNo ? riderCache[selectedRiderNo] : null;
   const selectedRiderStatus = selectedRiderNo ? riderStatus[selectedRiderNo] : undefined;
+  const matchupSummary = matchupInitialData?.status;
+  const selectedMatchupItem = matchupInitialData?.index.items.find(
+    (item) => item.registrationNo === selectedMatchupRiderNo,
+  );
+  const selectedMatchup = selectedMatchupRiderNo ? matchupCache[selectedMatchupRiderNo] : null;
+  const selectedMatchupStatus = selectedMatchupRiderNo ? matchupStatus[selectedMatchupRiderNo] : undefined;
   const sizeWarning = (status?.outputBytes ?? 0) > 20 * 1024 * 1024;
   const healthMetrics = [
     ["PERIOD", status ? `${status.dateFrom ?? "--"}〜${status.dateTo ?? "--"}` : "--", "source range"],
@@ -353,6 +430,7 @@ export default function ExDataPage() {
         .ex-badge.is-exact { background: #e7f8f0; color: #276b59; }
         .ex-quality { display: inline-flex; padding: 6px 9px; border-radius: 999px; font-size: 9px; font-weight: 950; letter-spacing: .08em; }
         .ex-quality.is-complete { color: #23664c; background: #daf5e8; }
+        .ex-quality.is-sufficient { color: #23664c; background: #daf5e8; }
         .ex-quality.is-partial { color: #315f91; background: #e1efff; }
         .ex-quality.is-low-sample { color: #925711; background: #fff0d3; }
         .ex-quality.is-identity-only { color: #687184; background: #eceef2; }
@@ -395,7 +473,7 @@ export default function ExDataPage() {
           <aside className="ex-phase">
             <div className="ex-eyebrow">CURRENT PHASE</div>
             <strong>SEED + EXACT</strong>
-            <div className="ex-badges"><span className="ex-badge">SEED INSIGHT</span><span className="ex-badge is-exact">{exactInitialStatus === "ready" ? "EXACT ANALYTICS" : "EXACT：未生成"}</span></div>
+            <div className="ex-badges"><span className="ex-badge">SEED INSIGHT</span><span className="ex-badge is-exact">{exactInitialStatus === "ready" ? "EXACT ANALYTICS" : "EXACT：未生成"}</span><span className="ex-badge is-exact">{matchupInitialStatus === "ready" ? "MATCHUP EX" : "MATCHUP：未生成"}</span></div>
           </aside>
         </section>
 
@@ -478,9 +556,11 @@ export default function ExDataPage() {
         <div className="ex-view-tabs" role="tablist" aria-label="EX表示切替">
           <button className={`ex-view-tab${activeView === "venue" ? " is-active" : ""}`} type="button" role="tab" aria-selected={activeView === "venue"} onClick={() => setActiveView("venue")}>VENUE EX</button>
           <button className={`ex-view-tab${activeView === "player" ? " is-active" : ""}`} type="button" role="tab" aria-selected={activeView === "player"} onClick={() => setActiveView("player")}>PLAYER EX</button>
+          <button className={`ex-view-tab${activeView === "matchup" ? " is-active" : ""}`} type="button" role="tab" aria-selected={activeView === "matchup"} onClick={() => setActiveView("matchup")}>MATCHUP EX</button>
         </div>
 
-        {activeView === "venue" ? <section className="ex-workspace">
+        {activeView === "venue" ? (
+          <section className="ex-workspace">
           <aside className="ex-panel ex-section">
             <SectionTitle eyebrow="VENUE EX LIST" title="会場別SEED / EXACT" lead="選択時に個別JSONだけを読み込みます。" />
             <input className="ex-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="会場名を検索" aria-label="会場名を検索" />
@@ -624,7 +704,8 @@ export default function ExDataPage() {
               ) : <EmptyState text={selectedKey ? "この会場のGuidanceはまだ生成されていません。" : "会場を選択するとGuidanceを表示します。"} />}
             </section>
           </div>
-        </section> : (
+          </section>
+        ) : activeView === "player" ? (
           <>
             <section className="ex-panel ex-section">
               <SectionTitle eyebrow="PLAYER EX" title="選手別確定集計" lead="登録番号へ安全に紐付いた選手だけを表示。母数が少ない指標は過信しないでください。" />
@@ -775,8 +856,123 @@ export default function ExDataPage() {
                 ) : null}
               </div>
             </section>
+
+          </>
+        ) : (
+          <>
+            <section className="ex-panel ex-section">
+              <SectionTitle eyebrow="MATCHUP EX" title="選手別対戦成績" lead="同走した相手ごとの自己先着・相手先着を比較します。母数が少ない対戦は参考扱いです。" />
+              <div className="ex-eyebrow">MATCHUP DATA HEALTH</div>
+              <div className="ex-health-grid">
+                <MetricCard label="PUBLISHED RIDERS" value={matchupInitialStatus === "loading" ? "…" : valueText(matchupSummary?.riderFileCount ?? matchupInitialData?.index.riderCount)} />
+                <MetricCard label="DISTINCT PAIRS" value={matchupInitialStatus === "loading" ? "…" : valueText(matchupSummary?.distinctPairCount)} />
+                <MetricCard label="PAIR OBSERVATIONS" value={matchupInitialStatus === "loading" ? "…" : valueText(matchupSummary?.pairObservationCount)} />
+                <MetricCard label="SAFE COMPARABLE" value={matchupInitialStatus === "loading" ? "…" : valueText(matchupSummary?.safeComparablePairObservationCount)} />
+                <MetricCard label="SAME LINE" value={matchupInitialStatus === "loading" ? "…" : valueText(matchupSummary?.sameLinePairObservationCount)} />
+                <MetricCard label="OTHER LINE" value={matchupInitialStatus === "loading" ? "…" : valueText(matchupSummary?.otherLinePairObservationCount)} />
+                <MetricCard label="LOW SAMPLE" value={matchupInitialStatus === "loading" ? "…" : valueText(matchupSummary?.qualityCounts["low-sample"])} warning={(matchupSummary?.qualityCounts["low-sample"] ?? 0) > 0} />
+                <MetricCard label="PARTIAL" value={matchupInitialStatus === "loading" ? "…" : valueText(matchupSummary?.qualityCounts.partial)} />
+              </div>
+              {matchupInitialStatus === "error" ? <EmptyState text="MATCHUP EXのindex / statusを取得できませんでした。" /> : null}
+            </section>
+
+            <section className="ex-workspace">
+              <aside className="ex-panel ex-section">
+                <SectionTitle eyebrow="MATCHUP EX LIST" title="公開選手" lead={`${filteredMatchupRiders.length.toLocaleString("ja-JP")} / ${(matchupInitialData?.index.riderCount ?? 0).toLocaleString("ja-JP")}名`} />
+                <input className="ex-search" value={matchupQuery} onChange={(event) => setMatchupQuery(event.target.value)} placeholder="選手名・登録番号で検索" aria-label="選手名・登録番号で検索" />
+                <div className="ex-venue-list">
+                  {filteredMatchupRiders.map((item) => (
+                    <button key={item.registrationNo} className={`ex-venue-button${selectedMatchupRiderNo === item.registrationNo ? " is-active" : ""}`} type="button" onClick={() => selectMatchupRider(item)}>
+                      <div className="ex-detail-head">
+                        <div>
+                          <strong>{item.name}</strong>
+                          <div className="ex-muted">{item.registrationNo} / 対戦相手 {item.distinctOpponentCount}名</div>
+                        </div>
+                        <span className={`ex-quality is-${item.quality}`}>{getMatchupQualityLabel(item.quality)}</span>
+                      </div>
+                      <div className="ex-muted">共走 {item.sharedRaceCount}R / 比較可能 {item.safeComparableRaceCount}R</div>
+                    </button>
+                  ))}
+                  {matchupInitialStatus === "ready" && filteredMatchupRiders.length === 0 ? <EmptyState text="該当する選手がいません。" /> : null}
+                </div>
+              </aside>
+
+              <div className="ex-detail">
+                <section className="ex-panel ex-section">
+                  <SectionTitle eyebrow="MATCHUP EXACT ANALYTICS" title={selectedMatchup?.name ?? selectedMatchupItem?.name ?? "対戦成績"} />
+                  {!selectedMatchupRiderNo ? <EmptyState text="選手を選択すると、同走相手別の対戦成績を表示します。" /> : null}
+                  {selectedMatchupStatus === "loading" ? <EmptyState text="MATCHUP EXを読み込んでいます。" /> : null}
+                  {selectedMatchupStatus === "error" ? <EmptyState text="この選手のMATCHUP EXデータを取得できませんでした。" /> : null}
+                  {selectedMatchup ? (
+                    <>
+                      <div className="ex-detail-head">
+                        <div>
+                          <div className="ex-eyebrow">REGISTRATION {selectedMatchup.registrationNo}</div>
+                          <h3>{selectedMatchup.name}</h3>
+                          <div className="ex-muted">{selectedMatchup.period.from ?? "--"}〜{selectedMatchup.period.to ?? "--"}</div>
+                        </div>
+                        <div className="ex-badges">
+                          <span className="ex-badge is-exact">MATCHUP EX</span>
+                          <span className={`ex-quality is-${selectedMatchup.quality}`}>{getMatchupQualityLabel(selectedMatchup.quality)}</span>
+                          <span className="ex-badge">OPPONENTS {selectedMatchup.coverage.distinctOpponentCount}</span>
+                        </div>
+                      </div>
+                      {selectedMatchup.quality === "low-sample" || selectedMatchup.coverage.safeComparableRaceCount < 5 ? (
+                        <div className="ex-sample-alert"><strong>LOW SAMPLE / 母数少</strong>対戦母数が少ないため、上下評価を固定せず、展開判断の補助として確認してください。</div>
+                      ) : null}
+                    </>
+                  ) : null}
+                </section>
+
+                {selectedMatchup ? (
+                  <>
+                    <section className="ex-panel ex-section">
+                      <SectionTitle eyebrow="COVERAGE" title="対戦解析範囲" />
+                      <div className="ex-health-grid">
+                        <MetricCard label="OPPONENTS" value={valueText(selectedMatchup.coverage.distinctOpponentCount)} />
+                        <MetricCard label="SHARED RACES" value={valueText(selectedMatchup.coverage.sharedRaceCount)} />
+                        <MetricCard label="SAFE COMPARABLE" value={valueText(selectedMatchup.coverage.safeComparableRaceCount)} />
+                        <MetricCard label="UNKNOWN ORDER" value={valueText(selectedMatchup.coverage.unknownOrderRaceCount)} />
+                        <MetricCard label="LINE CLASSIFIED" value={valueText(selectedMatchup.coverage.lineClassifiedRaceCount)} />
+                      </div>
+                    </section>
+
+                    <section className="ex-panel ex-section">
+                      <SectionTitle eyebrow="OPPONENT TABLE" title="同走相手別" lead="自己先着率は比較可能レースだけで算出します。" />
+                      {selectedMatchup.matchups.length ? (
+                        <div className="ex-table-wrap"><table className="ex-data-table"><thead><tr><th>相手</th><th>共走</th><th>比較可</th><th>自己先着</th><th>相手先着</th><th>自己先着率</th><th>同ライン</th><th>別線</th><th>品質</th></tr></thead><tbody>
+                          {[...selectedMatchup.matchups]
+                            .sort((left, right) => right.safeComparableRaceCount - left.safeComparableRaceCount || right.sharedRaceCount - left.sharedRaceCount || left.opponentName.localeCompare(right.opponentName, "ja"))
+                            .map((row) => (
+                              <tr key={row.pairKey}>
+                                <td>{row.opponentName}<br /><span className="ex-muted">{row.opponentRegistrationNo}</span></td>
+                                <td>{row.sharedRaceCount}</td>
+                                <td>{row.safeComparableRaceCount}</td>
+                                <td>{row.selfAheadCount}</td>
+                                <td>{row.opponentAheadCount}</td>
+                                <td>{formatMatchupRate(row.selfAheadRate)}</td>
+                                <td>{formatMatchupLineStats(row.sameLine)}</td>
+                                <td>{formatMatchupLineStats(row.otherLine)}</td>
+                                <td><span className={`ex-quality is-${row.quality}`}>{getMatchupQualityLabel(row.quality)}</span></td>
+                              </tr>
+                            ))}
+                        </tbody></table></div>
+                      ) : <EmptyState text="同走相手別データはまだありません。" />}
+                    </section>
+
+                    {selectedMatchup.warnings.length ? (
+                      <section className="ex-panel ex-section">
+                        <SectionTitle eyebrow="DATA QUALITY NOTES" title="データ品質上の注意" />
+                        <ul className="ex-guidance-list">{selectedMatchup.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>
+                      </section>
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
+            </section>
           </>
         )}
+
 
         <details className="ex-panel ex-section ex-raw">
           <summary>RAW STATUS / 生成状態を見る</summary>
