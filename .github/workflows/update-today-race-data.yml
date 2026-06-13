@@ -100,6 +100,33 @@ jobs:
             npm run update:today-races:write
           fi
 
+      - name: Validate today race data is not empty
+        run: |
+          node - <<'NODE'
+          const fs = require("node:fs");
+
+          const file = "public/data/races/today.generated.json";
+          const payload = JSON.parse(fs.readFileSync(file, "utf8"));
+
+          const venues = Array.isArray(payload.venues)
+            ? payload.venues
+            : [];
+
+          const races = venues.flatMap((venue) =>
+            Array.isArray(venue.races) ? venue.races : []
+          );
+
+          if (venues.length === 0 || races.length === 0) {
+            throw new Error(
+              `[guard] ${file} is empty: venues=${venues.length}, races=${races.length}`
+            );
+          }
+
+          console.log(
+            `[guard] ${file}: venues=${venues.length}, races=${races.length}`
+          );
+          NODE
+
       - name: Update upcoming race schedule
         if: github.event_name == 'workflow_dispatch' || github.event.schedule == '10 21 * * *'
         run: npm run update:schedule:upcoming

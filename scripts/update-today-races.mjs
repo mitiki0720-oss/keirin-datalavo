@@ -4355,6 +4355,45 @@ async function main() {
     venues,
   };
 
+  const generatedRaceCount = venues.reduce(
+    (total, venue) => total + (Array.isArray(venue.races) ? venue.races.length : 0),
+    0,
+  );
+
+  if (venues.length === 0 || generatedRaceCount === 0) {
+    let previousPayload = null;
+
+    try {
+      previousPayload = JSON.parse(await fs.readFile(OUTPUT_PATH, "utf-8"));
+    } catch {
+      previousPayload = null;
+    }
+
+    const previousVenues = Array.isArray(previousPayload?.venues)
+      ? previousPayload.venues
+      : [];
+
+    const previousRaceCount = previousVenues.reduce(
+      (total, venue) => total + (Array.isArray(venue.races) ? venue.races.length : 0),
+      0,
+    );
+
+    if (
+      previousPayload?.date === todayIso &&
+      previousVenues.length > 0 &&
+      previousRaceCount > 0
+    ) {
+      console.warn(
+        `[guard] Generated race feed is empty for ${todayIso}; keeping previous venues=${previousVenues.length}, races=${previousRaceCount} -> ${OUTPUT_PATH}`,
+      );
+      return;
+    }
+
+    throw new Error(
+      `[guard] Refusing to write empty race feed for ${todayIso}: venues=${venues.length}, races=${generatedRaceCount} -> ${OUTPUT_PATH}`,
+    );
+  }
+
   await fs.mkdir(path.dirname(OUTPUT_PATH), { recursive: true });
   await fs.writeFile(OUTPUT_PATH, JSON.stringify(payload, null, 2), "utf-8");
 
