@@ -8,7 +8,12 @@ on:
     - cron: "0 5 * * *"    # 14:00 JST night odds
     - cron: "0 8 * * *"    # 17:00 JST midnight lineup
     - cron: "0 11 * * *"   # 20:00 JST midnight odds
-    - cron: "*/30 0-14 * * *" # result refresh window (pending races only by script)
+    - cron: "30 0-14 * * *" # result refresh window: half-hour checkpoints
+    - cron: "0 0-2,4-5,7-8,10-11,13-14 * * *" # result refresh window: top-of-hour checkpoints
+    - cron: "0 3 * * *"     # 12:00 JST KEIRIN.JP official checkpoint
+    - cron: "0 6 * * *"     # 15:00 JST KEIRIN.JP official checkpoint
+    - cron: "0 9 * * *"     # 18:00 JST KEIRIN.JP official checkpoint
+    - cron: "0 12 * * *"    # 21:00 JST KEIRIN.JP official checkpoint
     - cron: "47 14 * * *"  # 23:47 JST final result pickup
     - cron: "53 14 * * *"  # 23:53 JST backfill pickup
   workflow_dispatch:
@@ -82,7 +87,7 @@ jobs:
               "0 8 * * *")
                 PHASE_ARG="--phase lineup"
                 ;;
-              "*/30 0-14 * * *")
+              "30 0-14 * * *"|"0 0-2,4-5,7-8,10-11,13-14 * * *"|"0 3 * * *"|"0 6 * * *"|"0 9 * * *"|"0 12 * * *")
                 PHASE_ARG="--phase result"
                 ;;
               "47 14 * * *")
@@ -128,7 +133,7 @@ jobs:
           NODE
 
       - name: Resolve KEIRIN.JP expected result date
-        if: github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.phase == 'final' || github.event.inputs.phase == 'backfill'))
+        if: github.event.schedule == '0 3 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.phase == 'final' || github.event.inputs.phase == 'backfill'))
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "schedule" ]; then
@@ -137,12 +142,20 @@ jobs:
             echo "KEIRIN_JP_EXPECT_DATE=$(TZ=Asia/Tokyo date +%F)" >> "$GITHUB_ENV"
           fi
       - name: Update KEIRIN.JP official results
-        if: github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.phase == 'final' || github.event.inputs.phase == 'backfill'))
+        if: github.event.schedule == '0 3 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.phase == 'final' || github.event.inputs.phase == 'backfill'))
         run: npm run update:keirin-jp-results:write -- --expect-date="$KEIRIN_JP_EXPECT_DATE"
 
       - name: Validate KEIRIN.JP official results
-        if: github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.phase == 'final' || github.event.inputs.phase == 'backfill'))
-        run: npm run check:keirin-jp-results -- --require-complete
+        if: github.event.schedule == '0 3 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.phase == 'final' || github.event.inputs.phase == 'backfill'))
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || \
+             [ "${{ github.event.schedule }}" = "47 14 * * *" ] || \
+             [ "${{ github.event.schedule }}" = "53 14 * * *" ]; then
+            npm run check:keirin-jp-results -- --require-complete
+          else
+            npm run check:keirin-jp-results
+          fi
       - name: Update upcoming race schedule
         if: github.event_name == 'workflow_dispatch' || github.event.schedule == '10 21 * * *'
         run: npm run update:schedule:upcoming
