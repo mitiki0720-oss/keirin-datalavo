@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "tamano",
   "venueName": "玉野",
-  "updatedAt": "2026-06-12",
+  "updatedAt": "2026-06-13",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-25",
-    "to": "2026-06-11"
+    "to": "2026-06-12"
   },
   "quality": {
-    "seedSources": 4,
-    "parsedDateSources": 4,
+    "seedSources": 5,
+    "parsedDateSources": 5,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 4,
-    "raceCount": 33,
-    "trifectaHits": 12,
-    "trifectaHitRate": 36.4,
-    "exactaHits": 1,
-    "exactaHitRate": 3,
+    "sourceCount": 5,
+    "raceCount": 45,
+    "trifectaHits": 14,
+    "trifectaHitRate": 31.1,
+    "exactaHits": 2,
+    "exactaHitRate": 4.4,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 33000,
-    "returnYen": 17750,
-    "recoveryRate": 53.8,
+    "investmentYen": 45000,
+    "returnYen": 23290,
+    "recoveryRate": 51.8,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,63 +38,63 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 4,
+      "evidenceCount": 5,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 4,
+      "evidenceCount": 5,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 4,
+      "evidenceCount": 5,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 3,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 3,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 1,
+      "evidenceCount": 2,
       "confidence": "low",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 1,
+      "evidenceCount": 2,
       "confidence": "low",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 1,
+      "evidenceCount": 2,
       "confidence": "low",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 1,
+      "evidenceCount": 2,
       "confidence": "low",
       "sourceType": "SEED"
     }
@@ -102,19 +102,25 @@
   "seedNotes": {
     "features": [
       "3) 数字から見える開催傾向（当日分のみ）",
-      "[ ] 落車・失格を含むレースは通常傾向から分離したか。"
+      "[ ] 落車・失格を含むレースは通常傾向から分離したか。",
+      "[ ] 故障・落車を含むレースは通常傾向から分離したか。",
+      "先行競合型は「番手頭」だけでなく「自力型の差し頭＋番手追走＋競合相手のB残り」を保護する。5番故障の影響は通常傾向から分離する。"
     ],
     "targets": [
       "2車単：2点（穴狙い）",
       "予想原文は各R 10点固定：3連単8点＋2車単2点 。開催テンプレの旧表記（3連単7＋2車単3）へ無理に変換せず、実際に出した買い目をそのまま保持した。",
       "結果原文では 7R〜12R の 最終判定 と収支欄が pending のまま残っていた。一方、確定着順と払戻欄は記載済みだったため、買い目との再突合を実施した。",
-      "R 区分 確定着順 1着決まり手 買い目判定 回収 判定方法"
+      "R 区分 確定着順 1着決まり手 買い目判定 回収 判定方法",
+      "R 区分 確定着順 1着決まり手 買い目判定 回収",
+      "4. ガールズの追走候補抽出が固定的。 1Rは1吉村・2川原、3Rは2平子の浮上を十分に買い目へ反映できなかった。固定ラインなし戦では、周回位置・S・直後位置を別枠で見る。"
     ],
     "cautions": [],
     "improvements": [
       "4) 詳細summary｜次の予想へ残す改善点",
       "4-3) 次回に使うチェックリスト",
-      "改善点は回収面。的中しても880円のため、🔥🔥を付ける際は的中確度だけでなく配当効率も併記する。"
+      "改善点は回収面。的中しても880円のため、🔥🔥を付ける際は的中確度だけでなく配当効率も併記する。",
+      "🔥🔥群では2R・7R・9Rが的中。次回は「軸の能力」だけでなく、 相手固定の脆弱性・交差型の必要性・風で先行目標が不発になる代替経路 まで確認してから勝負レースを付与する。",
+      "4. ガールズの追走候補抽出が固定的。 1Rは1吉村・2川原、3Rは2平子の浮上を十分に買い目へ反映できなかった。固定ラインなし戦では、周回位置・S・直後位置を別枠で見る。"
     ]
   },
   "predictionGuidance": [

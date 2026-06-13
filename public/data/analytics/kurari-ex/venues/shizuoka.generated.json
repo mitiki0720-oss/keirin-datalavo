@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "shizuoka",
   "venueName": "静岡",
-  "updatedAt": "2026-06-12",
+  "updatedAt": "2026-06-13",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-24",
-    "to": "2026-06-11"
+    "to": "2026-06-12"
   },
   "quality": {
-    "seedSources": 8,
-    "parsedDateSources": 8,
+    "seedSources": 9,
+    "parsedDateSources": 9,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 8,
-    "raceCount": 65,
-    "trifectaHits": 16,
-    "trifectaHitRate": 24.6,
-    "exactaHits": 11,
-    "exactaHitRate": 20.4,
+    "sourceCount": 9,
+    "raceCount": 76,
+    "trifectaHits": 19,
+    "trifectaHitRate": 25,
+    "exactaHits": 12,
+    "exactaHitRate": 18.5,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 65000,
-    "returnYen": 29250,
-    "recoveryRate": 45,
+    "investmentYen": 76000,
+    "returnYen": 37420,
+    "recoveryRate": 49.2,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,63 +38,63 @@
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 8,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 8,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 8,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 8,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 8,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 8,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 8,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 5,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 3,
+      "evidenceCount": 4,
       "confidence": "medium",
       "sourceType": "SEED"
     }
@@ -123,7 +123,10 @@
       "予想タグ： 静岡競輪 F2 チャレンジ予選 三分戦 番手差し 早め捲り 風影響 荒れ注意",
       "単騎6吉田の頭浮上は展開文と買い目06＝6-4-2で警戒できていたが、追走を4松本に固定し過ぎた。結果は6-2-3。単騎頭シナリオでは「有力ライン番手・別線番手」を2・3着へ置く交差構造が必要。",
       "B取得選手は 7R / 11R（63.6%） で車券内に残った。東〜南東の風が7〜11km/hあっても、先行全消しは危険。番手差しだけでなく、逃げ残り・三番手流れ込みを同時に管理すべきだった。",
-      "4-8. データ品質上の注意"
+      "4-8. データ品質上の注意",
+      "霧雨・風ありでも、B取得選手を単純に消すのは危険。 B取得選手は11R中8Rで車券内に残り、1着3R・2着3R・3着2R。先行不利という一方向の補正ではなく、B残り・番手差し・三番手浮上を分解する必要がある。",
+      "展開文と券面の未接続 8R 6佐々木の存在を文章で警戒したが、6頭の券面がない。 展開文で警戒した自力型は頭または2車単へ最低1点反映。",
+      "4. 展開文に書いた警戒選手が券面に存在するか、提出前に機械的に確認する。"
     ],
     "improvements": [
       "監査注記：7Rは結果テキスト上で pending 。結果組み合わせは予想10点に含まれないため、暫定非的中としてサマリへ反映。",
@@ -132,7 +135,10 @@
       "4) Detailed Summary｜今回の予想から得られた改善材料",
       "このレポートは、別プロジェクトで確定した予想10点と結果テキストを開催単位で照合し、次回改善へ使えるように整理したものです。ここでは新しい予想は行いません。",
       "【次回へ残す修正メモ】",
-      "1着軸6番は正解だったが、2着5番を買い目へ入れられなかった。展開文では5番が早めに動く可能性に触れており、シナリオを認識していたのに券面へ反映できていない。Bを取った3番は3着へ残った。"
+      "1着軸6番は正解だったが、2着5番を買い目へ入れられなかった。展開文では5番が早めに動く可能性に触れており、シナリオを認識していたのに券面へ反映できていない。Bを取った3番は3着へ残った。",
+      "このファイルでは新規予想を行わず、事実照合・取り逃し分析・次回改善メモを1枚に集約する。",
+      "3) 詳細Summary｜次回予想へ引き継ぐ要点",
+      "R 成功した設計 次回への転用"
     ]
   },
   "predictionGuidance": [

@@ -2,27 +2,27 @@
   "schemaVersion": 1,
   "venueKey": "takeo",
   "venueName": "武雄",
-  "updatedAt": "2026-06-12",
+  "updatedAt": "2026-06-13",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-13",
-    "to": "2026-05-24"
+    "to": "2026-06-12"
   },
   "quality": {
-    "seedSources": 5,
-    "parsedDateSources": 5,
+    "seedSources": 6,
+    "parsedDateSources": 6,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 5,
-    "raceCount": 45,
-    "trifectaHits": 7,
-    "trifectaHitRate": 15.6,
-    "exactaHits": 3,
-    "exactaHitRate": 6.7,
+    "sourceCount": 6,
+    "raceCount": 54,
+    "trifectaHits": 10,
+    "trifectaHitRate": 18.5,
+    "exactaHits": 5,
+    "exactaHitRate": 9.3,
     "anyTicketHits": null,
     "hitRate": null,
     "investmentYen": 45000,
@@ -38,56 +38,56 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 5,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 5,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 5,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 5,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 4,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 4,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 3,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 1,
+      "evidenceCount": 2,
       "confidence": "low",
       "sourceType": "SEED"
     }
@@ -102,10 +102,20 @@
       "決まり手=逃／B=3が車券内／ 武雄 モーニング 二分戦 長い直線 自在戦 単騎 スジズレ 穴狙い",
       "決まり手=捲／3連単的中／B=7が車券内／ 武雄 モーニング 細切れ 長い直線 前残り 差し 自在戦 スジズレ 穴狙い",
       "タグ： 武雄 モーニング 最終日 三分戦 長い直線 捲り差し 番手差し 前受け スジズレ 中穴狙い",
-      "タグ： 武雄 モーニング 最終日 三分戦 先行ペース 後位競り 長い直線 番手飲み スジズレ 穴狙い"
+      "タグ： 武雄 モーニング 最終日 三分戦 先行ペース 後位競り 長い直線 番手飲み スジズレ 穴狙い",
+      "このレポートは、別プロジェクトで出した実買い目と結果テキストを照合・整形した開催単位の記録です。ここでは新しい買い目を作成していません。",
+      "⚠️ テンプレ標準は「3連単7＋2車単3」ですが、今回の予想原本は全R「3連単8＋2車単2＝10点」です。実買い目を改変せず、そのまま記録しています。",
+      "独立買い目照合（確定済み1R〜8R） 8,000円 3,840円 -4,160円 48.0% 1Rの2車単1-3＝360円も加算"
     ],
-    "cautions": [],
-    "improvements": []
+    "cautions": [
+      "監査注意：3連単1-3-5と2車単1-3がともに一致。結果テキストの払戻欄は二車単360円を含んでいない可能性があります。",
+      "監査注意：結果テキストの最終判定がpending。掲載着順との独立照合では一致買い目なし。"
+    ],
+    "improvements": [
+      "【簡易分析メモ（結果事実＋次回改善）】",
+      "5) 詳細summary｜次回の予想に残す改善点",
+      "9Rでは1番の主導権を本文で認識していたが、1番頭の買い目は1点のみ。本文に書いた主シナリオ・副シナリオが、最低1本ずつ買い目へ反映されているかを最終確認する。"
+    ]
   },
   "predictionGuidance": [
     "級班とレース種別を分けて傾向を評価する",
