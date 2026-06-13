@@ -127,6 +127,22 @@ jobs:
           );
           NODE
 
+      - name: Resolve KEIRIN.JP expected result date
+        if: github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.phase == 'final' || github.event.inputs.phase == 'backfill'))
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "KEIRIN_JP_EXPECT_DATE=$(date -u +%F)" >> "$GITHUB_ENV"
+          else
+            echo "KEIRIN_JP_EXPECT_DATE=$(TZ=Asia/Tokyo date +%F)" >> "$GITHUB_ENV"
+          fi
+      - name: Update KEIRIN.JP official results
+        if: github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.phase == 'final' || github.event.inputs.phase == 'backfill'))
+        run: npm run update:keirin-jp-results:write -- --expect-date="$KEIRIN_JP_EXPECT_DATE"
+
+      - name: Validate KEIRIN.JP official results
+        if: github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.phase == 'final' || github.event.inputs.phase == 'backfill'))
+        run: npm run check:keirin-jp-results -- --require-complete
       - name: Update upcoming race schedule
         if: github.event_name == 'workflow_dispatch' || github.event.schedule == '10 21 * * *'
         run: npm run update:schedule:upcoming
@@ -139,11 +155,6 @@ jobs:
       - name: Commit updated race and notification data
         id: commit_updated_data
         run: |
-          if git diff --quiet public/data/races/today.generated.json public/data/races/upcoming-schedule.generated.json public/data/predictions/saved-predictions.generated.json; then
-            echo "No today race data, upcoming schedule, or Slack notification state changes."
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -151,8 +162,15 @@ jobs:
           git add public/data/races/today.generated.json
           git add public/data/races/upcoming-schedule.generated.json
           git add public/data/predictions/saved-predictions.generated.json
+          git add public/data/races/keirin-jp-results.generated.json
 
-          git commit -m "Update race data, schedule, and Slack notification state"
+          if git diff --cached --quiet; then
+            echo "No today race data, upcoming schedule, KEIRIN.JP official result, or Slack notification state changes."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git commit -m "Update race data, schedule, official results, and Slack notification state"
           git pull --rebase origin main
           git push
           echo "changed=true" >> "$GITHUB_OUTPUT"
