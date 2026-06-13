@@ -16,10 +16,14 @@ $Logs = Join-Path $PrivateRoot "logs"
 $LogFile = Join-Path $Logs "watcher.log"
 $ProcessedHashesFile = Join-Path $Logs "processed-hashes.json"
 $WatcherLockFile = Join-Path $Logs "watcher.lock"
+$AutomationLocksRoot = Join-Path $ProjectRoot "private-input\automation-locks"
+$RepoWriteLockFile = Join-Path $AutomationLocksRoot "keirin-repo-write.lock"
 $LockAcquired = $false
+$RepoWriteLockAcquired = $false
+$RepoWriteLockToken = ""
 $ProcessingHashes = @{}
 
-@($Inbox, $Processed, $Rejected, $Logs) | ForEach-Object {
+@($Inbox, $Processed, $Rejected, $Logs, $AutomationLocksRoot) | ForEach-Object {
   New-Item -ItemType Directory -Force -Path $_ | Out-Null
 }
 
@@ -168,6 +172,83 @@ function Release-WatcherLock {
   }
 }
 
+function Acquire-RepoWriteLock {
+  $deadline = (Get-Date).ToUniversalTime().AddMinutes(10)
+  $waitingLogged = $false
+  while ((Get-Date).ToUniversalTime() -lt $deadline) {
+    if (Test-Path -LiteralPath $RepoWriteLockFile) {
+      try {
+        $existing = Get-Content -LiteralPath $RepoWriteLockFile -Raw -Encoding UTF8 | ConvertFrom-Json
+        $existingProcess = Get-Process -Id ([int]$existing.pid) -ErrorAction SilentlyContinue
+        $startedAt = [DateTimeOffset]::MinValue
+        $validStartedAt = [DateTimeOffset]::TryParse([string]$existing.startedAt, [ref]$startedAt)
+        $stale = (
+          -not $existingProcess -or
+          -not $validStartedAt -or
+          $startedAt.UtcDateTime -lt (Get-Date).ToUniversalTime().AddHours(-6)
+        )
+        if ($stale) {
+          Write-WatcherLog "stale repo write lock recovered"
+          Remove-Item -LiteralPath $RepoWriteLockFile -Force -ErrorAction SilentlyContinue
+          continue
+        }
+        if (-not $waitingLogged) {
+          Write-WatcherLog "waiting for repo write lock: PID $($existing.pid)"
+          $waitingLogged = $true
+        }
+      } catch {
+        Write-WatcherLog "invalid repo write lock recovered"
+        Remove-Item -LiteralPath $RepoWriteLockFile -Force -ErrorAction SilentlyContinue
+        continue
+      }
+      Start-Sleep -Seconds 2
+      continue
+    }
+    $script:RepoWriteLockToken = "$PID-$([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())"
+    $payload = [PSCustomObject]@{
+      schemaVersion = 1
+      pid = $PID
+      token = $script:RepoWriteLockToken
+      owner = "keirin-prediction-export-watcher"
+      startedAt = (Get-Date).ToUniversalTime().ToString("o")
+    } | ConvertTo-Json -Compress
+    try {
+      $stream = [System.IO.File]::Open(
+        $RepoWriteLockFile,
+        [System.IO.FileMode]::CreateNew,
+        [System.IO.FileAccess]::Write,
+        [System.IO.FileShare]::None
+      )
+      try {
+        $bytes = [System.Text.UTF8Encoding]::new($false).GetBytes($payload)
+        $stream.Write($bytes, 0, $bytes.Length)
+      } finally {
+        $stream.Dispose()
+      }
+      $script:RepoWriteLockAcquired = $true
+      Write-WatcherLog "repo write lock acquired"
+      return
+    } catch {
+      Start-Sleep -Milliseconds 500
+    }
+  }
+  throw "timed out waiting for repo write lock"
+}
+
+function Release-RepoWriteLock {
+  if (-not $script:RepoWriteLockAcquired) { return }
+  try {
+    $existing = Get-Content -LiteralPath $RepoWriteLockFile -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ([string]$existing.token -eq $script:RepoWriteLockToken) {
+      Remove-Item -LiteralPath $RepoWriteLockFile -Force
+    }
+  } catch {
+    Write-WatcherLog "repo write lock release warning: $($_.Exception.Message)"
+  }
+  $script:RepoWriteLockAcquired = $false
+  Write-WatcherLog "repo write lock released"
+}
+
 function Invoke-Node {
   param([string[]]$Arguments)
   & node @Arguments
@@ -201,6 +282,7 @@ function Process-PredictionExport {
     }
     $importArgs = @("scripts/import-keirin-daily-predictions.mjs", "--file", $inboxFile)
     if ($DryRun) { $importArgs += "--dry-run" }
+    if (-not $DryRun) { Acquire-RepoWriteLock }
     Push-Location $ProjectRoot
     try {
       Invoke-Node -Arguments $importArgs
@@ -241,6 +323,7 @@ function Process-PredictionExport {
       }
     } finally {
       Pop-Location
+      Release-RepoWriteLock
     }
     if (-not $DryRun) {
       if (Test-Path -LiteralPath $inboxFile) {
