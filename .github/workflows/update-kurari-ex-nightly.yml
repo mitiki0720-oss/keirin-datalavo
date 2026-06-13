@@ -1,14 +1,15 @@
 name: Update KURARI EX nightly
 
 on:
-  # Automatic 23:58 JST scheduling stays disabled until saved predictions
-  # cover the finalized daily feed at the archive threshold.
   workflow_dispatch:
     inputs:
       target_date:
         description: "YYYY-MM-DD, today, or yesterday"
         required: false
         default: "today"
+  schedule:
+    - cron: "58 23 * * *"
+      timezone: "Asia/Tokyo"
 
 permissions:
   contents: write
@@ -35,7 +36,18 @@ jobs:
       - run: git pull --ff-only origin main
 
       - name: Update KURARI EX
-        run: node scripts/run-kurari-ex-nightly-update.mjs --date="${{ github.event.inputs.target_date || 'today' }}"
+        run: |
+          set +e
+          node scripts/run-kurari-ex-nightly-update.mjs \
+            --date="${{ github.event.inputs.target_date || 'today' }}" \
+            --allow-enrichment-upgrade
+          STATUS=$?
+          set -e
+          if [ "$STATUS" -eq 2 ]; then
+            echo "Nightly update safely skipped because the feed is pending or mismatched."
+            exit 0
+          fi
+          exit "$STATUS"
 
       - name: Commit changed KURARI EX data
         run: |
@@ -55,6 +67,7 @@ jobs:
             if git pull --rebase origin main && git push origin main; then
               exit 0
             fi
+            git rebase --abort 2>/dev/null || true
             if [ "$attempt" -eq 2 ]; then
               exit 1
             fi

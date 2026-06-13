@@ -1,13 +1,15 @@
 name: Check KURARI EX nightly stale
 
 on:
-  # Automatic 00:18 JST scheduling stays disabled with the nightly updater.
   workflow_dispatch:
     inputs:
       target_date:
         description: "YYYY-MM-DD, today, or yesterday"
         required: false
         default: "yesterday"
+  schedule:
+    - cron: "18 0 * * *"
+      timezone: "Asia/Tokyo"
 
 permissions:
   contents: write
@@ -40,7 +42,13 @@ jobs:
             echo "KURARI EX is current."
             exit 0
           fi
-          node scripts/run-kurari-ex-nightly-update.mjs --date="$TARGET_DATE" --only-if-missing
+          if ! node scripts/run-kurari-ex-nightly-update.mjs \
+            --date="$TARGET_DATE" \
+            --only-if-missing \
+            --allow-enrichment-upgrade; then
+            echo "Safe retry failed. The target date feed is unavailable, pending, or mismatched."
+            exit 1
+          fi
           node scripts/check-kurari-ex-nightly-stale.mjs --date="$TARGET_DATE"
 
       - name: Commit recovered KURARI EX data
@@ -61,6 +69,7 @@ jobs:
             if git pull --rebase origin main && git push origin main; then
               exit 0
             fi
+            git rebase --abort 2>/dev/null || true
             if [ "$attempt" -eq 2 ]; then
               exit 1
             fi
