@@ -316,6 +316,8 @@ export type KurariExRiderDimension = KurariExRiderAggregate & {
   raceStageLabel?: string;
   weatherCondition?: string;
   weatherLabel?: string;
+  bankLength?: number | null;
+  bankLengthLabel?: string;
 };
 
 export type KurariExRiderExact = {
@@ -348,6 +350,7 @@ export type KurariExRiderExact = {
   byClass: KurariExRiderDimension[];
   byRaceStage: KurariExRiderDimension[];
   byWeather: KurariExRiderDimension[];
+  byBankLength: KurariExRiderDimension[];
   byRole: {
     front: KurariExRiderAggregate | null;
     bante: KurariExRiderAggregate | null;

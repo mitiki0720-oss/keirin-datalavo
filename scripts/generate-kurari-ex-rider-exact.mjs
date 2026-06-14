@@ -114,6 +114,44 @@ function aggregateBy(observations, selector, keyBuilder) {
     .map(([key, aggregate]) => summarizeAggregate(aggregate, keyBuilder(key, observations)));
 }
 
+const bankLengthByVenueKey = {
+  aomori: 400,
+  beppu: 400,
+  gifu: 400,
+  hakodate: 400,
+  hiratsuka: 400,
+  hiroshima: 400,
+  hofu: 333,
+  ito: 333,
+  iwakitaira: 400,
+  keiokaku: 400,
+  kishiwada: 400,
+  kochi: 500,
+  kokura: 400,
+  komatsushima: 400,
+  kumamoto: 500,
+  kurume: 400,
+  maebashi: 333,
+  matsudo: 333,
+  matsusaka: 400,
+  matsuyama: 400,
+  nagoya: 400,
+  nara: 333,
+  odawara: 333,
+  ogaki: 400,
+  omiya: 500,
+  seibuen: 400,
+  shizuoka: 400,
+  takeo: 400,
+  tamano: 400,
+  toride: 400,
+  toyama: 333,
+  toyohashi: 400,
+  utsunomiya: 500,
+  wakayama: 400,
+  yahiko: 400,
+};
+
 const raceStageLabels = {
   qualifying: "予選",
   "semi-final": "準決勝",
@@ -275,6 +313,7 @@ async function main() {
         date: race.date,
         venueKey: race.venueKey,
         venueName: race.venueName,
+        bankLength: bankLengthByVenueKey[race.venueKey] ?? null,
         timeslot: race.timeslot || "unknown",
         raceClass: race.raceClass || "unknown",
         raceStage: classifyRaceStage(race),
@@ -398,6 +437,14 @@ async function main() {
         (weatherCondition) => ({
           weatherCondition,
           weatherLabel: weatherConditionLabels[weatherCondition] ?? weatherCondition,
+        }),
+      ),
+      byBankLength: aggregateBy(
+        observations,
+        (item) => item.bankLength ? String(item.bankLength) : "unknown",
+        (bankLength) => ({
+          bankLength: bankLength === "unknown" ? null : Number(bankLength),
+          bankLengthLabel: bankLength === "unknown" ? "未取得" : `${bankLength}m`,
         }),
       ),
       byRole: {
