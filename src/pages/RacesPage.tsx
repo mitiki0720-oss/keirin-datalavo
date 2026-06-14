@@ -482,6 +482,7 @@ const todayRaces = raceScheduleData
 type LiveRaceRider = {
   carNo: string;
   name: string;
+  registrationNo?: string;
   style: string;
   score: string;
   comment: string;
@@ -509,6 +510,7 @@ type LiveRaceRider = {
   sameTrackYearlyStats?: PredictionRiderStatsSummaryItem | null;
   localFiveYearStats?: PredictionRiderStatsSummaryItem | null;
   kdreamsRiderNote?: string;
+  officialEntrySource?: string;
 };
 
 type LiveRaceOddsPreviewItem = {
@@ -642,6 +644,82 @@ type GeneratedTodayRacesPayload = {
   venues?: LiveTodayVenueItem[];
 };
 
+type KeirinJpOfficialEntryStats = {
+  escapeCount?: number | null;
+  makuriCount?: number | null;
+  sashiCount?: number | null;
+  markCount?: number | null;
+  backCount?: number | null;
+  homeCount?: number | null;
+  startCount?: number | null;
+  winRate?: number | null;
+  quinellaRate?: number | null;
+  trioRate?: number | null;
+};
+
+type KeirinJpOfficialEntry = {
+  carNo?: string;
+  registrationNo?: string;
+  name?: string;
+  prefecture?: string;
+  previousClass?: string;
+  raceClass?: string;
+  style?: string;
+  graduationTerm?: string;
+  age?: number | null;
+  predictionMark?: string;
+  score?: number | null;
+  stats?: KeirinJpOfficialEntryStats;
+  source?: string;
+};
+
+type KeirinJpOfficialLineup = {
+  lineup?: string;
+  source?: string;
+  positions?: Array<{
+    position?: number | null;
+    carNo?: string;
+    className?: string;
+  }>;
+};
+
+type KeirinJpOfficialRace = {
+  raceNumber?: number;
+  entryStatus?: string;
+  lastUpdateTime?: string;
+  raceMeta?: {
+    raceNo?: string;
+    raceNum?: string;
+    raceName?: string;
+    deadlineTime?: string;
+    startTime?: string;
+  };
+  lineup?: string;
+  officialLineup?: KeirinJpOfficialLineup;
+  entries?: KeirinJpOfficialEntry[];
+};
+
+type KeirinJpOfficialVenue = {
+  date?: string;
+  venueCode?: string;
+  venueName?: string;
+  grade?: string;
+  raceName?: string;
+  races?: KeirinJpOfficialRace[];
+};
+
+type KeirinJpOfficialEntriesPayload = {
+  generatedAt?: string;
+  date?: string;
+  venueCount?: number;
+  raceCount?: number;
+  entryRaceCount?: number;
+  totalEntryCount?: number;
+  lineupRaceCount?: number;
+  errorCount?: number;
+  venues?: KeirinJpOfficialVenue[];
+};
+
 const normalizeRacesPageStageVenueName = (value?: string | null) =>
   (value ?? "")
     .normalize("NFKC")
@@ -655,6 +733,12 @@ const GENERATED_TODAY_RACES_URL = toPublicPath("/data/races/today.generated.json
 const GENERATED_TODAY_RACES_URL_CANDIDATES = import.meta.env.DEV
   ? [LOCAL_GENERATED_TODAY_RACES_URL, GENERATED_TODAY_RACES_URL]
   : [GENERATED_TODAY_RACES_URL];
+
+const LOCAL_KEIRIN_JP_ENTRIES_URL = toPublicPath("/scripts/debug/keirin-jp-entries.local.json");
+const KEIRIN_JP_ENTRIES_URL = toPublicPath("/data/races/keirin-jp-entries.generated.json");
+const KEIRIN_JP_ENTRIES_URL_CANDIDATES = import.meta.env.DEV
+  ? [LOCAL_KEIRIN_JP_ENTRIES_URL, KEIRIN_JP_ENTRIES_URL]
+  : [KEIRIN_JP_ENTRIES_URL];
 
 async function fetchGeneratedTodayRacesPayload(dateKey: string) {
   let lastError: unknown = null;
@@ -678,6 +762,30 @@ async function fetchGeneratedTodayRacesPayload(dateKey: string) {
   }
 
   throw lastError ?? new Error("failed to load generated races");
+}
+
+async function fetchKeirinJpEntriesPayload(dateKey: string) {
+  let lastError: unknown = null;
+  const payloads: KeirinJpOfficialEntriesPayload[] = [];
+
+  for (const url of KEIRIN_JP_ENTRIES_URL_CANDIDATES) {
+    try {
+      const response = await fetch(`${url}?date=${dateKey}`, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`failed to load KEIRIN.JP entries: ${response.status}`);
+      }
+      payloads.push(await response.json() as KeirinJpOfficialEntriesPayload);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (payloads.length > 0) {
+    return payloads
+      .sort((a, b) => String(b.date ?? "").localeCompare(String(a.date ?? "")))[0];
+  }
+
+  throw lastError ?? new Error("failed to load KEIRIN.JP entries");
 }
 
 function normalizeGeneratedSession(value: unknown): RaceScheduleItem["session"] {
@@ -872,6 +980,352 @@ function mapStaticRaceToLiveVenue(race: RaceScheduleItem): LiveTodayVenueItem {
   };
 }
 
+function normalizeGeneratedTodayRace(race: LiveRaceDetail): LiveRaceDetail {
+  return {
+    ...race,
+    oddsPreview: Array.isArray(race.oddsPreview)
+      ? race.oddsPreview.filter(
+          (item): item is LiveRaceOddsPreviewItem =>
+            Boolean(item) &&
+            typeof item.combo === "string" &&
+            typeof item.odds === "string"
+        )
+      : [],
+    oddsTrifecta: Array.isArray(race.oddsTrifecta)
+      ? race.oddsTrifecta.filter(
+          (item): item is LiveRaceTrifectaOddsItem =>
+            Boolean(item) &&
+            typeof item.combination === "string" &&
+            typeof item.odds === "number"
+        )
+      : [],
+    riders: Array.isArray(race.riders) ? race.riders : [],
+    resultNote: typeof race.resultNote === "string" ? race.resultNote : "",
+    resultTop3: Array.isArray(race.resultTop3)
+      ? race.resultTop3.filter(
+          (item): item is LiveRaceResultEntry =>
+            Boolean(item) &&
+            typeof item.place === "string" &&
+            typeof item.carNo === "string" &&
+            typeof item.name === "string"
+        )
+      : [],
+    payouts: Array.isArray(race.payouts)
+      ? race.payouts.filter(
+          (item): item is LiveRaceResultPayoutItem =>
+            Boolean(item) &&
+            typeof item.combination === "string" &&
+            typeof item.payout === "string"
+        )
+      : [],
+    result: race.result && typeof race.result === "object"
+      ? {
+          status: race.result.status === "confirmed" ? "confirmed" as const : "pending" as const,
+          finishOrder: Array.isArray(race.result.finishOrder)
+            ? race.result.finishOrder.filter((item): item is string | LiveRaceFinishOrderItem => {
+                if (typeof item === "string") return true;
+                return Boolean(item) && typeof item.rank === "string" && typeof item.carNo === "string" && typeof item.name === "string";
+              })
+            : [],
+          kimarite: typeof race.result.kimarite === "string" ? race.result.kimarite : "",
+          secondKimarite: typeof race.result.secondKimarite === "string" ? race.result.secondKimarite : "",
+          payout2tan: race.result.payout2tan && typeof race.result.payout2tan === "object" && typeof race.result.payout2tan.combination === "string" && typeof race.result.payout2tan.payout === "string"
+            ? race.result.payout2tan as LiveRaceResultPayoutItem
+            : null,
+          payout2fuku: Array.isArray(race.result.payout2fuku)
+            ? race.result.payout2fuku.filter(
+                (item): item is LiveRaceResultPayoutItem => Boolean(item) && typeof item.combination === "string" && typeof item.payout === "string"
+              )
+            : [],
+          payout3tan: race.result.payout3tan && typeof race.result.payout3tan === "object" && typeof race.result.payout3tan.combination === "string" && typeof race.result.payout3tan.payout === "string"
+            ? race.result.payout3tan as LiveRaceResultPayoutItem
+            : null,
+          payout3fuku: race.result.payout3fuku && typeof race.result.payout3fuku === "object" && typeof race.result.payout3fuku.combination === "string" && typeof race.result.payout3fuku.payout === "string"
+            ? race.result.payout3fuku as LiveRaceResultPayoutItem
+            : null,
+          payoutWide: Array.isArray(race.result.payoutWide)
+            ? race.result.payoutWide.filter(
+                (item): item is LiveRaceResultPayoutItem => Boolean(item) && typeof item.combination === "string" && typeof item.payout === "string"
+              )
+            : [],
+          finalizedAt: typeof race.result.finalizedAt === "string" ? race.result.finalizedAt : "",
+          weatherActual: race.result.weatherActual && typeof race.result.weatherActual === "object"
+            ? {
+                weather: typeof race.result.weatherActual.weather === "string" ? race.result.weatherActual.weather : undefined,
+                windDirection: typeof race.result.weatherActual.windDirection === "string" ? race.result.weatherActual.windDirection : undefined,
+                windSpeed: typeof race.result.weatherActual.windSpeed === "string" ? race.result.weatherActual.windSpeed : undefined,
+                temperature: typeof race.result.weatherActual.temperature === "string" ? race.result.weatherActual.temperature : undefined,
+              }
+            : undefined,
+          sLeaderCarNo: typeof race.result.sLeaderCarNo === "string" ? race.result.sLeaderCarNo : "",
+          hLeaderCarNo: typeof race.result.hLeaderCarNo === "string" ? race.result.hLeaderCarNo : "",
+          bLeaderCarNo: typeof race.result.bLeaderCarNo === "string" ? race.result.bLeaderCarNo : "",
+        }
+      : undefined,
+  };
+}
+
+function normalizeGeneratedTodayVenue(item: LiveTodayVenueItem, feedDate: string): LiveTodayVenueItem {
+  const session = normalizeGeneratedSession(item.session);
+  const fallbackRace = findStaticRaceForLiveVenue(item.venue, feedDate, session, item.grade);
+
+  return {
+    ...item,
+    session,
+    title: item.title || fallbackRace?.title || item.venue,
+    grade: normalizeRaceGrade(item.grade || fallbackRace?.grade, item.title || fallbackRace?.title),
+    startDate: item.startDate || fallbackRace?.startDate || "",
+    endDate: item.endDate || fallbackRace?.endDate || "",
+    races: Array.isArray(item.races)
+      ? item.races.map(normalizeGeneratedTodayRace)
+      : [],
+  };
+}
+
+function parseOfficialRaceTimeToMinutes(time?: string | null) {
+  const match = String(time ?? "").match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return null;
+
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
+
+  return hour * 60 + minute;
+}
+
+function inferOfficialVenueSession(venue: KeirinJpOfficialVenue): RaceScheduleItem["session"] {
+  const firstRaceTime = (venue.races ?? [])
+    .map((race) => race.raceMeta?.startTime)
+    .filter((time): time is string => Boolean(time))
+    .sort()[0];
+
+  const minutes = parseOfficialRaceTimeToMinutes(firstRaceTime);
+
+  if (minutes === null) return "day";
+  if (minutes < 900) return "day";
+  if (minutes < 1200) return "night";
+
+  return "midnight";
+}
+
+function formatOfficialEntryNumber(value?: number | string | null) {
+  if (value === null || value === undefined || value === "") return "";
+  const number = Number(value);
+  return Number.isFinite(number) ? String(number) : String(value);
+}
+
+function mapOfficialEntryToLiveRider(entry: KeirinJpOfficialEntry, existing?: LiveRaceRider, forceReplace = false): LiveRaceRider {
+  const stats = entry.stats ?? {};
+  const officialRider: LiveRaceRider = {
+    carNo: String(entry.carNo ?? existing?.carNo ?? ""),
+    name: String(entry.name ?? existing?.name ?? ""),
+    registrationNo: String(entry.registrationNo ?? existing?.registrationNo ?? ""),
+    style: String(entry.style ?? existing?.style ?? ""),
+    score: formatOfficialEntryNumber(entry.score ?? existing?.score),
+    comment: existing?.comment ?? "",
+    prefecture: entry.prefecture ?? existing?.prefecture,
+    age: entry.age ?? existing?.age,
+    term: entry.graduationTerm ?? existing?.term,
+    grade: entry.raceClass ?? existing?.grade,
+    s: stats.startCount ?? existing?.s,
+    b: stats.backCount ?? existing?.b,
+    nige: stats.escapeCount ?? existing?.nige,
+    makuri: stats.makuriCount ?? existing?.makuri,
+    sashi: stats.sashiCount ?? existing?.sashi,
+    mark: stats.markCount ?? existing?.mark,
+    winRate: formatOfficialEntryNumber(stats.winRate ?? existing?.winRate),
+    quinellaRate: formatOfficialEntryNumber(stats.quinellaRate ?? existing?.quinellaRate),
+    trifectaRate: formatOfficialEntryNumber(stats.trioRate ?? existing?.trifectaRate),
+    officialEntrySource: "KEIRIN.JP",
+  };
+
+  if (forceReplace || !existing) {
+    return officialRider;
+  }
+
+  return {
+    ...officialRider,
+    ...existing,
+    carNo: officialRider.carNo || existing.carNo,
+    name: existing.name || officialRider.name,
+    registrationNo: officialRider.registrationNo || existing.registrationNo,
+    style: existing.style || officialRider.style,
+    score: existing.score || officialRider.score,
+    prefecture: existing.prefecture || officialRider.prefecture,
+    age: existing.age ?? officialRider.age,
+    term: existing.term ?? officialRider.term,
+    grade: existing.grade || officialRider.grade,
+    s: existing.s ?? officialRider.s,
+    b: existing.b ?? officialRider.b,
+    nige: existing.nige ?? officialRider.nige,
+    makuri: existing.makuri ?? officialRider.makuri,
+    sashi: existing.sashi ?? officialRider.sashi,
+    mark: existing.mark ?? officialRider.mark,
+    officialEntrySource: "KEIRIN.JP",
+  };
+}
+
+function appendOfficialEntrySourceNote(note?: string, forceReplace = false) {
+  const base = String(note ?? "").trim();
+  const addition = forceReplace
+    ? "KEIRIN.JP公式出走表を主データとして使用"
+    : "KEIRIN.JP公式出走表で補助";
+
+  if (base.includes(addition)) return base;
+  return [base, addition].filter(Boolean).join(" / ");
+}
+
+function mapOfficialRaceToLiveRace(race: KeirinJpOfficialRace): LiveRaceDetail {
+  const raceNumber = Number(race.raceNumber ?? race.raceMeta?.raceNo ?? race.raceMeta?.raceNum ?? 0);
+  const lineup = String(race.lineup || race.officialLineup?.lineup || "");
+
+  return {
+    raceNo: Number.isFinite(raceNumber) ? raceNumber : 0,
+    time: String(race.raceMeta?.startTime ?? ""),
+    title: String(race.raceMeta?.raceName || (raceNumber ? `${raceNumber}R` : "")),
+    lineup,
+    sourceNote: appendOfficialEntrySourceNote("", true),
+    raceOperationStatus: "scheduled",
+    raceOperationSource: "KEIRIN.JP:JSJ006",
+    raceOperationUpdatedAt: race.lastUpdateTime,
+    riders: (race.entries ?? [])
+      .map((entry) => mapOfficialEntryToLiveRider(entry, undefined, true))
+      .filter((rider) => rider.carNo && rider.name),
+  };
+}
+
+function mapOfficialVenueToLiveVenue(venue: KeirinJpOfficialVenue, payloadDate: string): LiveTodayVenueItem {
+  const venueName = String(venue.venueName ?? "");
+  const session = inferOfficialVenueSession(venue);
+  const fallbackRace = findStaticRaceForLiveVenue(venueName, payloadDate, session, venue.grade);
+  const races = (venue.races ?? [])
+    .filter((race) => race.entryStatus === "available")
+    .map(mapOfficialRaceToLiveRace)
+    .sort((left, right) => left.raceNo - right.raceNo);
+
+  return {
+    id: fallbackRace?.id || `keirin-jp-${venue.venueCode || normalizeRacesPageStageVenueName(venueName)}`,
+    venue: venueName,
+    title: fallbackRace?.title || venue.raceName || `${venueName} 出走表`,
+    grade: normalizeRaceGrade(venue.grade || fallbackRace?.grade, fallbackRace?.title || venue.raceName),
+    startDate: fallbackRace?.startDate || payloadDate,
+    endDate: fallbackRace?.endDate || payloadDate,
+    session,
+    hasGirls: races.some((race) => String(race.title ?? "").includes("ガールズ")),
+    note: "KEIRIN.JP公式出走表補助",
+    races,
+  };
+}
+
+function mergeOfficialRaceIntoLiveRace(
+  race: LiveRaceDetail,
+  officialRace: KeirinJpOfficialRace | undefined,
+  forceReplaceRiders: boolean,
+): LiveRaceDetail {
+  if (!officialRace || officialRace.entryStatus !== "available") return race;
+
+  const officialLineup = String(officialRace.lineup || officialRace.officialLineup?.lineup || "");
+  const officialEntries = officialRace.entries ?? [];
+
+  if (!officialEntries.length && !officialLineup) return race;
+
+  const existingByCarNo = new Map(
+    (race.riders ?? []).map((rider) => [String(rider.carNo), rider] as const),
+  );
+
+  const officialRiders = officialEntries
+    .map((entry) => mapOfficialEntryToLiveRider(
+      entry,
+      existingByCarNo.get(String(entry.carNo ?? "")),
+      forceReplaceRiders || !race.riders?.length,
+    ))
+    .filter((rider) => rider.carNo && rider.name);
+
+  return {
+    ...race,
+    time: race.time || String(officialRace.raceMeta?.startTime ?? ""),
+    title: race.title || String(officialRace.raceMeta?.raceName ?? ""),
+    lineup: forceReplaceRiders
+      ? officialLineup || race.lineup
+      : race.lineup || officialLineup,
+    sourceNote: appendOfficialEntrySourceNote(race.sourceNote, forceReplaceRiders),
+    raceOperationSource: race.raceOperationSource || "KEIRIN.JP:JSJ006",
+    raceOperationUpdatedAt: race.raceOperationUpdatedAt || officialRace.lastUpdateTime,
+    riders: officialRiders.length > 0
+      ? officialRiders
+      : race.riders,
+  };
+}
+
+function mergeOfficialVenueIntoLiveVenue(
+  venue: LiveTodayVenueItem,
+  officialVenue: KeirinJpOfficialVenue | undefined,
+  forceReplaceRiders: boolean,
+): LiveTodayVenueItem {
+  if (!officialVenue) return venue;
+
+  const officialByRaceNo = new Map(
+    (officialVenue.races ?? []).map((race) => [Number(race.raceNumber), race] as const),
+  );
+
+  const existingRaces = venue.races ?? [];
+  const existingRaceNumbers = new Set(existingRaces.map((race) => Number(race.raceNo)));
+
+  const mergedRaces = existingRaces.map((race) =>
+    mergeOfficialRaceIntoLiveRace(
+      race,
+      officialByRaceNo.get(Number(race.raceNo)),
+      forceReplaceRiders,
+    ),
+  );
+
+  for (const officialRace of officialVenue.races ?? []) {
+    const raceNumber = Number(officialRace.raceNumber);
+    if (!existingRaceNumbers.has(raceNumber) && officialRace.entryStatus === "available") {
+      mergedRaces.push(mapOfficialRaceToLiveRace(officialRace));
+    }
+  }
+
+  return {
+    ...venue,
+    races: mergedRaces.sort((left, right) => left.raceNo - right.raceNo),
+  };
+}
+
+function mergeOfficialEntriesIntoLiveVenues(
+  venues: LiveTodayVenueItem[],
+  officialPayload: KeirinJpOfficialEntriesPayload | null,
+  dateKey: string,
+  forceReplaceRiders: boolean,
+) {
+  if (!officialPayload || officialPayload.date !== dateKey) return venues;
+
+  const officialVenues = officialPayload.venues ?? [];
+  const usedOfficialVenueNames = new Set<string>();
+
+  const merged = venues.map((venue) => {
+    const officialVenue = officialVenues.find((item) =>
+      normalizeRacesPageStageVenueName(item.venueName) === normalizeRacesPageStageVenueName(venue.venue),
+    );
+
+    if (officialVenue) {
+      usedOfficialVenueNames.add(normalizeRacesPageStageVenueName(officialVenue.venueName));
+    }
+
+    return mergeOfficialVenueIntoLiveVenue(venue, officialVenue, forceReplaceRiders);
+  });
+
+  for (const officialVenue of officialVenues) {
+    const key = normalizeRacesPageStageVenueName(officialVenue.venueName);
+    if (!usedOfficialVenueNames.has(key)) {
+      merged.push(mapOfficialVenueToLiveVenue(officialVenue, dateKey));
+    }
+  }
+
+  return merged;
+}
+
 function useGeneratedTodayRaces() {
   const [generatedTodayRaces, setGeneratedTodayRaces] = useState<LiveTodayVenueItem[]>([]);
   const [generatedAt, setGeneratedAt] = useState<string>("");
@@ -883,113 +1337,46 @@ function useGeneratedTodayRaces() {
     const today = new Date();
     const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
-    fetchGeneratedTodayRacesPayload(dateKey)
-      .then((payload) => {
+    Promise.all([
+      fetchGeneratedTodayRacesPayload(dateKey).catch(() => null),
+      fetchKeirinJpEntriesPayload(dateKey).catch(() => null),
+    ])
+      .then(([payload, officialEntriesPayload]) => {
         if (!isMounted) return;
-        const feedDate = typeof payload.date === "string" && payload.date ? payload.date : dateKey;
-        const venues = Array.isArray(payload.venues)
-          ? payload.venues.map((item) => {
-              const session = normalizeGeneratedSession(item.session);
-              const fallbackRace = findStaticRaceForLiveVenue(item.venue, feedDate, session, item.grade);
-              return {
-                ...item,
-  session,
-  title: item.title || fallbackRace?.title || item.venue,
-  grade: normalizeRaceGrade(item.grade || fallbackRace?.grade, item.title || fallbackRace?.title),
-  startDate: item.startDate || fallbackRace?.startDate || "",
-  endDate: item.endDate || fallbackRace?.endDate || "",
-  races: Array.isArray(item.races)
-                  ? item.races.map((race) => ({
-                      ...race,
-                      oddsPreview: Array.isArray(race.oddsPreview)
-                        ? race.oddsPreview.filter(
-                            (item): item is LiveRaceOddsPreviewItem =>
-                              Boolean(item) &&
-                              typeof item.combo === "string" &&
-                              typeof item.odds === "string"
-                          )
-                        : [],
-                      oddsTrifecta: Array.isArray(race.oddsTrifecta)
-                        ? race.oddsTrifecta.filter(
-                            (item): item is LiveRaceTrifectaOddsItem =>
-                              Boolean(item) &&
-                              typeof item.combination === "string" &&
-                              typeof item.odds === "number"
-                          )
-                        : [],
-                      riders: Array.isArray(race.riders) ? race.riders : [],
-                      resultNote: typeof race.resultNote === "string" ? race.resultNote : "",
-                      resultTop3: Array.isArray(race.resultTop3)
-                        ? race.resultTop3.filter(
-                            (item): item is LiveRaceResultEntry =>
-                              Boolean(item) &&
-                              typeof item.place === "string" &&
-                              typeof item.carNo === "string" &&
-                              typeof item.name === "string"
-                          )
-                        : [],
-                      payouts: Array.isArray(race.payouts)
-                        ? race.payouts.filter(
-                            (item): item is LiveRaceResultPayoutItem =>
-                              Boolean(item) &&
-                              typeof item.combination === "string" &&
-                              typeof item.payout === "string"
-                          )
-                        : [],
-                      result: race.result && typeof race.result === "object"
-                        ? {
-                            status: race.result.status === "confirmed"
-                              ? "confirmed" as const
-                              : "pending" as const,
-                            finishOrder: Array.isArray(race.result.finishOrder)
-                              ? race.result.finishOrder.filter((item): item is string | LiveRaceFinishOrderItem => {
-                                  if (typeof item === "string") return true;
-                                  return Boolean(item) && typeof item.rank === "string" && typeof item.carNo === "string" && typeof item.name === "string";
-                                })
-                              : [],
-                            kimarite: typeof race.result.kimarite === "string" ? race.result.kimarite : "",
-                            secondKimarite: typeof race.result.secondKimarite === "string" ? race.result.secondKimarite : "",
-                            payout2tan: race.result.payout2tan && typeof race.result.payout2tan === "object" && typeof race.result.payout2tan.combination === "string" && typeof race.result.payout2tan.payout === "string"
-                              ? race.result.payout2tan as LiveRaceResultPayoutItem
-                              : null,
-                            payout2fuku: Array.isArray(race.result.payout2fuku)
-                              ? race.result.payout2fuku.filter(
-                                  (item): item is LiveRaceResultPayoutItem => Boolean(item) && typeof item.combination === "string" && typeof item.payout === "string"
-                                )
-                              : [],
-                            payout3tan: race.result.payout3tan && typeof race.result.payout3tan === "object" && typeof race.result.payout3tan.combination === "string" && typeof race.result.payout3tan.payout === "string"
-                              ? race.result.payout3tan as LiveRaceResultPayoutItem
-                              : null,
-                            payout3fuku: race.result.payout3fuku && typeof race.result.payout3fuku === "object" && typeof race.result.payout3fuku.combination === "string" && typeof race.result.payout3fuku.payout === "string"
-                              ? race.result.payout3fuku as LiveRaceResultPayoutItem
-                              : null,
-                            payoutWide: Array.isArray(race.result.payoutWide)
-                              ? race.result.payoutWide.filter(
-                                  (item): item is LiveRaceResultPayoutItem => Boolean(item) && typeof item.combination === "string" && typeof item.payout === "string"
-                                )
-                              : [],
-                            finalizedAt: typeof race.result.finalizedAt === "string" ? race.result.finalizedAt : "",
-                            weatherActual: race.result.weatherActual && typeof race.result.weatherActual === "object"
-                              ? {
-                                  weather: typeof race.result.weatherActual.weather === "string" ? race.result.weatherActual.weather : undefined,
-                                  windDirection: typeof race.result.weatherActual.windDirection === "string" ? race.result.weatherActual.windDirection : undefined,
-                                  windSpeed: typeof race.result.weatherActual.windSpeed === "string" ? race.result.weatherActual.windSpeed : undefined,
-                                  temperature: typeof race.result.weatherActual.temperature === "string" ? race.result.weatherActual.temperature : undefined,
-                                }
-                              : undefined,
-                            sLeaderCarNo: typeof race.result.sLeaderCarNo === "string" ? race.result.sLeaderCarNo : "",
-                            hLeaderCarNo: typeof race.result.hLeaderCarNo === "string" ? race.result.hLeaderCarNo : "",
-                            bLeaderCarNo: typeof race.result.bLeaderCarNo === "string" ? race.result.bLeaderCarNo : "",
-                          }
-                        : undefined,
-                    }))
-                  : [],
-              };
-            })
+
+        const officialFeedIsToday = officialEntriesPayload?.date === dateKey;
+        const feedDate = typeof payload?.date === "string" && payload.date ? payload.date : dateKey;
+
+        const generatedVenues = Array.isArray(payload?.venues)
+          ? payload.venues.map((item) => normalizeGeneratedTodayVenue(item, feedDate))
           : [];
-        setGeneratedTodayRaces(venues.map(normalizeRacesPageVenueWithLeaderMarks));
-        setGeneratedAt(payload.generatedAt ?? "");
-        setGeneratedDate(feedDate);
+
+        const useOfficialAsPrimary =
+          officialFeedIsToday &&
+          (!payload || feedDate !== dateKey || generatedVenues.length === 0);
+
+        const baseVenues = useOfficialAsPrimary && officialEntriesPayload
+          ? (officialEntriesPayload.venues ?? []).map((venue) =>
+              mapOfficialVenueToLiveVenue(venue, dateKey),
+            )
+          : generatedVenues;
+
+        const mergedVenues = mergeOfficialEntriesIntoLiveVenues(
+          baseVenues,
+          officialEntriesPayload,
+          dateKey,
+          useOfficialAsPrimary,
+        );
+
+        setGeneratedTodayRaces(mergedVenues.map(normalizeRacesPageVenueWithLeaderMarks));
+
+        const generatedAtParts = [
+          payload?.generatedAt ? `today:${payload.generatedAt}` : "",
+          officialEntriesPayload?.generatedAt ? `keirin-jp-entries:${officialEntriesPayload.generatedAt}` : "",
+        ].filter(Boolean);
+
+        setGeneratedAt(generatedAtParts.join(" / "));
+        setGeneratedDate(useOfficialAsPrimary && officialEntriesPayload?.date ? officialEntriesPayload.date : feedDate);
       })
       .catch(() => {
         if (!isMounted) return;
