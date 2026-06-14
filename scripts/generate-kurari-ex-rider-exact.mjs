@@ -114,6 +114,45 @@ function aggregateBy(observations, selector, keyBuilder) {
     .map(([key, aggregate]) => summarizeAggregate(aggregate, keyBuilder(key, observations)));
 }
 
+const raceStageLabels = {
+  qualifying: "予選",
+  "semi-final": "準決勝",
+  final: "決勝",
+  consolation: "一般・敗者戦",
+  "seed-special": "特選・シード",
+  unknown: "不明",
+};
+
+const weatherConditionLabels = {
+  sunny: "晴れ",
+  cloudy: "曇り",
+  rain: "雨",
+  snow: "雪",
+  unknown: "不明",
+};
+
+function classifyRaceStage(race) {
+  const text = String(`${race?.raceTitle ?? ""} ${race?.raceClass ?? ""} ${race?.grade ?? ""}`).normalize("NFKC");
+
+  if (/決勝/u.test(text)) return "final";
+  if (/準決/u.test(text)) return "semi-final";
+  if (/一般|特一般|敗者|負け戦/u.test(text)) return "consolation";
+  if (/特選|優秀|選抜|シード/u.test(text)) return "seed-special";
+  if (/予選|特予選/u.test(text)) return "qualifying";
+  return "unknown";
+}
+
+function normalizeWeatherCondition(value) {
+  const text = String(value ?? "").normalize("NFKC").trim();
+
+  if (!text || /不明|未取得|なし/u.test(text)) return "unknown";
+  if (/雪/u.test(text)) return "snow";
+  if (/雨|霧雨/u.test(text)) return "rain";
+  if (/曇|くもり/u.test(text)) return "cloudy";
+  if (/晴|快晴/u.test(text)) return "sunny";
+  return "unknown";
+}
+
 function buildRoleMetric(observations, role) {
   const roleObservations = observations.filter((item) => item.role === role);
   if (!roleObservations.length) return null;
@@ -238,6 +277,8 @@ async function main() {
         venueName: race.venueName,
         timeslot: race.timeslot || "unknown",
         raceClass: race.raceClass || "unknown",
+        raceStage: classifyRaceStage(race),
+        weatherCondition: normalizeWeatherCondition(race.weather?.condition),
         resultParsed: race.quality?.resultParsed === true,
         placement: placement || null,
         winningMethod: placement === 1 ? race.result.first.winningMethod : "",
@@ -342,6 +383,22 @@ async function main() {
         observations,
         (item) => item.raceClass,
         (raceClass) => ({ raceClass }),
+      ),
+      byRaceStage: aggregateBy(
+        observations,
+        (item) => item.raceStage,
+        (raceStage) => ({
+          raceStage,
+          raceStageLabel: raceStageLabels[raceStage] ?? raceStage,
+        }),
+      ),
+      byWeather: aggregateBy(
+        observations,
+        (item) => item.weatherCondition,
+        (weatherCondition) => ({
+          weatherCondition,
+          weatherLabel: weatherConditionLabels[weatherCondition] ?? weatherCondition,
+        }),
       ),
       byRole: {
         front: buildRoleMetric(observations, "front"),

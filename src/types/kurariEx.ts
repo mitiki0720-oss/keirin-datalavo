@@ -312,6 +312,10 @@ export type KurariExRiderDimension = KurariExRiderAggregate & {
   venueName?: string;
   timeslot?: string;
   raceClass?: string;
+  raceStage?: string;
+  raceStageLabel?: string;
+  weatherCondition?: string;
+  weatherLabel?: string;
 };
 
 export type KurariExRiderExact = {
@@ -342,6 +346,8 @@ export type KurariExRiderExact = {
   byVenue: KurariExRiderDimension[];
   byTimeslot: KurariExRiderDimension[];
   byClass: KurariExRiderDimension[];
+  byRaceStage: KurariExRiderDimension[];
+  byWeather: KurariExRiderDimension[];
   byRole: {
     front: KurariExRiderAggregate | null;
     bante: KurariExRiderAggregate | null;
