@@ -369,6 +369,26 @@ export default function ExDataPage() {
   );
   const selectedMatchup = selectedMatchupRiderNo ? matchupCache[selectedMatchupRiderNo] : null;
   const selectedMatchupStatus = selectedMatchupRiderNo ? matchupStatus[selectedMatchupRiderNo] : undefined;
+  const selectedRiderMatchupIndexItem = selectedRiderNo
+    ? matchupInitialData?.index.items.find((item) => item.registrationNo === selectedRiderNo)
+    : undefined;
+  const openSelectedRiderMatchup = () => {
+    if (!selectedRiderNo) return;
+
+    setActiveView("matchup");
+
+    const fallbackQuery = selectedRider?.name ?? selectedRiderItem?.name ?? selectedRiderNo;
+    const matchupItem = matchupInitialData?.index.items.find((item) => item.registrationNo === selectedRiderNo);
+
+    if (matchupItem) {
+      setMatchupQuery("");
+      selectMatchupRider(matchupItem);
+      return;
+    }
+
+    setSelectedMatchupRiderNo(null);
+    setMatchupQuery(fallbackQuery);
+  };
   const selectedMatchupRows = [...(selectedMatchup?.matchups ?? [])]
     .filter((row) => {
       const selfAheadRate = row.selfAheadRate ?? null;
@@ -793,6 +813,19 @@ export default function ExDataPage() {
                           <RiderQualityBadge quality={selectedRider.quality} />
                           <span className="ex-badge">IDENTITY 登録番号解決済み</span>
                           <span className="ex-badge">RESOLUTION {selectedRider.identity.status}</span>
+                          <button
+                            className="ex-badge is-exact"
+                            type="button"
+                            onClick={openSelectedRiderMatchup}
+                            title={selectedRiderMatchupIndexItem ? "MATCHUP EXでこの選手を開く" : "MATCHUP EXで選手名検索を開く"}
+                            style={{
+                              border: "0",
+                              cursor: "pointer",
+                              fontWeight: 900,
+                            }}
+                          >
+                            対戦成績を見る
+                          </button>
                         </div>
                       </div>
                       {selectedRider.quality === "low-sample" || selectedRider.coverage.confirmedStartCount < 5 ? (
