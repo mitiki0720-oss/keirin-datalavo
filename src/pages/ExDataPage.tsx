@@ -895,6 +895,24 @@ export default function ExDataPage() {
                       </section>
                     ) : null}
 
+                    {selectedRider.byRaceStage.length ? (
+                      <section className="ex-panel ex-section">
+                        <SectionTitle eyebrow="BY RACE STAGE" title="レース種別別" />
+                        <div className="ex-table-wrap"><table className="ex-data-table"><thead><tr><th>種別</th><th>出走</th><th>1着</th><th>2着</th><th>3着</th><th>3着以内率</th></tr></thead><tbody>
+                          {selectedRider.byRaceStage.map((row, index) => <tr key={`${row.raceStage}-${index}`}><td>{row.raceStageLabel ?? row.raceStage ?? "未取得"}</td><td>{row.starts ?? "未取得"}</td><td>{row.wins}</td><td>{row.seconds}</td><td>{row.thirds}</td><td>{formatKurariExRiderMetric(row.top3Rate)}</td></tr>)}
+                        </tbody></table></div>
+                      </section>
+                    ) : null}
+
+                    {selectedRider.byWeather.length ? (
+                      <section className="ex-panel ex-section">
+                        <SectionTitle eyebrow="BY WEATHER" title="天候別" />
+                        <div className="ex-table-wrap"><table className="ex-data-table"><thead><tr><th>天候</th><th>出走</th><th>1着</th><th>2着</th><th>3着</th><th>3着以内率</th></tr></thead><tbody>
+                          {selectedRider.byWeather.map((row, index) => <tr key={`${row.weatherCondition}-${index}`}><td>{row.weatherLabel ?? row.weatherCondition ?? "未取得"}</td><td>{row.starts ?? "未取得"}</td><td>{row.wins}</td><td>{row.seconds}</td><td>{row.thirds}</td><td>{formatKurariExRiderMetric(row.top3Rate)}</td></tr>)}
+                        </tbody></table></div>
+                      </section>
+                    ) : null}
+
                     <section className="ex-panel ex-section">
                       <SectionTitle eyebrow="BY ROLE" title="ライン役割別" />
                       {selectedRider.byRole && Object.values(selectedRider.byRole).some(Boolean) ? (
