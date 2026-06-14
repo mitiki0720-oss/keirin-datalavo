@@ -1,5 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import {
+  loadRiderIdentitySources,
+  resolveRiderIdentity,
+} from "./kurari-ex-rider-common.mjs";
 
 const ROOT = process.cwd();
 
@@ -136,6 +140,29 @@ function isResolvedStarter(starter) {
       extractIdentityStatus(starter),
     )
   );
+}
+
+function resolveStarterForMatchup(starter, identitySources) {
+  if (isResolvedStarter(starter)) {
+    return starter;
+  }
+
+  const identity = resolveRiderIdentity(starter, identitySources);
+
+  if (
+    !identity.registrationNo ||
+    !SAFE_IDENTITY_STATUSES.has(identity.status)
+  ) {
+    return null;
+  }
+
+  return {
+    ...starter,
+    registrationNo: identity.registrationNo,
+    identityStatus: identity.status,
+    name: normalizeText(starter?.name || identity.name || identity.card?.name || ""),
+    nameKey: identity.nameKey,
+  };
 }
 
 function createPairKey(
@@ -820,6 +847,8 @@ function createRiderFilePath(
 }
 
 async function main() {
+  const identitySources = await loadRiderIdentitySources();
+
   const historyFiles =
     (await walkFiles(HISTORY_DIR))
       .filter((filePath) =>
@@ -911,9 +940,11 @@ async function main() {
           : [];
 
       const resolvedStarters =
-        starters.filter(
-          isResolvedStarter,
-        );
+        starters
+          .map((starter) =>
+            resolveStarterForMatchup(starter, identitySources),
+          )
+          .filter(Boolean);
 
       for (
         const starter of resolvedStarters
