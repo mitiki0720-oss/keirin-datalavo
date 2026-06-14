@@ -2207,6 +2207,25 @@ const buildRacesPagePredictionCandidates = (
   return { honmei, taikou, ana, profile, ranked: scored };
 };
 
+const isRacesPageOfficialEntryRace = (race?: LiveRaceDetail | null) => {
+  if (!race) return false;
+
+  const note = String(race.sourceNote ?? "");
+  const operationSource = String(race.raceOperationSource ?? "");
+  const hasOfficialRider = (race.riders ?? []).some(
+    (rider) => rider.officialEntrySource === "KEIRIN.JP",
+  );
+
+  return (
+    note.includes("KEIRIN.JP公式出走表") ||
+    operationSource.includes("KEIRIN.JP") ||
+    hasOfficialRider
+  );
+};
+
+const isRacesPageOfficialPrimaryRace = (race?: LiveRaceDetail | null) =>
+  String(race?.sourceNote ?? "").includes("主データとして使用");
+
 export default function RacesPage() {
   const { generatedTodayRaces, generatedAt, generatedDate } = useGeneratedTodayRaces();
   const isMobile = useIsMobile();
@@ -2574,6 +2593,41 @@ const selectedRaceResultCards = [
   const updatedTimeLabel = generatedAt
     ? `更新 ${generatedAt.includes(" ") ? generatedAt.split(" ")[1] : generatedAt}`
     : "更新 --:--:--";
+  const officialEntryVenueNames = sortedTodayVenues
+    .filter((venue) => (venue.races ?? []).some(isRacesPageOfficialEntryRace))
+    .map((venue) => venue.venue)
+    .filter((venue, index, values) => venue && values.indexOf(venue) === index);
+  const officialPrimaryVenueNames = sortedTodayVenues
+    .filter((venue) => (venue.races ?? []).some(isRacesPageOfficialPrimaryRace))
+    .map((venue) => venue.venue)
+    .filter((venue, index, values) => venue && values.indexOf(venue) === index);
+  const officialEntryRaceCount = sortedTodayVenues.reduce(
+    (sum, venue) => sum + (venue.races ?? []).filter(isRacesPageOfficialEntryRace).length,
+    0,
+  );
+  const officialEntryRiderCount = sortedTodayVenues.reduce(
+    (sum, venue) =>
+      sum +
+      (venue.races ?? []).reduce(
+        (raceSum, race) =>
+          isRacesPageOfficialEntryRace(race)
+            ? raceSum + (race.riders ?? []).filter((rider) => rider.officialEntrySource === "KEIRIN.JP").length
+            : raceSum,
+        0,
+      ),
+    0,
+  );
+  const officialEntrySourceLabel = officialPrimaryVenueNames.length > 0
+    ? `Kドリ不調検知 → KEIRIN.JP公式を主データ化 ${officialPrimaryVenueNames.length}場/${officialEntryRaceCount}R`
+    : officialEntryVenueNames.length > 0
+      ? `公式補助中 → KEIRIN.JP出走表 ${officialEntryVenueNames.length}場/${officialEntryRaceCount}R`
+      : "Kドリ基準 → 公式補助なし";
+  const officialEntryVenueLabel = officialEntryVenueNames.length > 0
+    ? `公式補助会場: ${officialEntryVenueNames.join(" / ")}`
+    : "公式補助会場: なし";
+  const officialEntryRiderLabel = officialEntryRiderCount > 0
+    ? `公式補助選手: ${officialEntryRiderCount}名`
+    : "公式補助選手: なし";
   const weatherCardValue: ReactNode = weatherLoading
     ? "天気を取得中…"
     : weatherError
@@ -3583,6 +3637,46 @@ const renderMiniTable = (headers: string[], rows: ReactNode[][]) => (
                   <div style={{ fontSize: "13px", fontWeight: 800, lineHeight: 1.8, color: "#526072" }}>{todayDisplayLabel}</div>
                   <div style={{ fontSize: "13px", fontWeight: 700, lineHeight: 1.8, color: "#526072" }}>{updatedTimeLabel}</div>
                   <div style={{ fontSize: "13px", fontWeight: 700, lineHeight: 1.8, color: "#526072" }}>全{sortedTodayVenues.length}開催</div>
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: "4px",
+                      marginTop: "10px",
+                      padding: "10px 12px",
+                      borderRadius: "16px",
+                      border: officialPrimaryVenueNames.length > 0
+                        ? "1px solid rgba(245,158,11,0.34)"
+                        : officialEntryVenueNames.length > 0
+                          ? "1px solid rgba(37,99,235,0.28)"
+                          : "1px solid rgba(148,163,184,0.22)",
+                      background: officialPrimaryVenueNames.length > 0
+                        ? "rgba(255,247,237,0.78)"
+                        : officialEntryVenueNames.length > 0
+                          ? "rgba(239,246,255,0.76)"
+                          : "rgba(248,250,252,0.68)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "7px",
+                        fontSize: "12px",
+                        fontWeight: 900,
+                        lineHeight: 1.5,
+                        color: officialPrimaryVenueNames.length > 0
+                          ? "#b45309"
+                          : officialEntryVenueNames.length > 0
+                            ? "#1d4ed8"
+                            : "#64748b",
+                      }}
+                    >
+                      <span>{officialPrimaryVenueNames.length > 0 ? "⚠️" : officialEntryVenueNames.length > 0 ? "🛟" : "✅"}</span>
+                      <span>{officialEntrySourceLabel}</span>
+                    </div>
+                    <div style={{ fontSize: "11px", fontWeight: 800, lineHeight: 1.55, color: "#526072" }}>{officialEntryVenueLabel}</div>
+                    <div style={{ fontSize: "11px", fontWeight: 800, lineHeight: 1.55, color: "#526072" }}>{officialEntryRiderLabel}</div>
+                  </div>
                 </div>
 
                 {/* 区切り線 */}
