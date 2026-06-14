@@ -17,6 +17,15 @@ export const riderOverridePath = path.join(
   "mappings",
   "rider-registration-overrides.json",
 );
+export const officialRiderSupplementPath = path.join(
+  projectRoot,
+  "public",
+  "data",
+  "analytics",
+  "kurari-ex",
+  "exact",
+  "official-rider-identity.generated.json",
+);
 export const riderExactRoot = path.join(
   projectRoot,
   "public",
@@ -39,8 +48,19 @@ export function normalizeRegistrationNo(value) {
   return /^\d{6}$/u.test(digits) ? digits : null;
 }
 
+async function loadOfficialRiderSupplement() {
+  try {
+    const payload = JSON.parse(await readFile(officialRiderSupplementPath, "utf8"));
+    return Array.isArray(payload?.items) ? payload.items : [];
+  } catch (error) {
+    if (error?.code === "ENOENT") return [];
+    throw error;
+  }
+}
+
 export async function loadRiderIdentitySources() {
   const playerCards = JSON.parse(await readFile(playerCardIndexPath, "utf8"));
+  const officialSupplementCards = await loadOfficialRiderSupplement();
   let overrides = {};
   try {
     overrides = JSON.parse(await readFile(riderOverridePath, "utf8"));
@@ -50,7 +70,7 @@ export async function loadRiderIdentitySources() {
 
   const cardsByRegistrationNo = new Map();
   const cardsByNameKey = new Map();
-  for (const card of playerCards) {
+  for (const card of [...officialSupplementCards, ...playerCards]) {
     const registrationNo = normalizeRegistrationNo(card.registrationNo ?? card.id);
     const nameKey = normalizeRiderName(card.name);
     if (!registrationNo || !nameKey) continue;
