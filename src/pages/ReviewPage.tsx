@@ -1974,9 +1974,14 @@ export default function ReviewPage() {
   const [calendarMonth, setCalendarMonth] = useState(operationalToday.slice(0, 7));
   const isTodaySelected = selectedDate === operationalToday;
   const isYesterdaySelected = selectedDate === yesterdayReviewDate;
-  const isLocalReviewSelected = isTodaySelected || isYesterdaySelected;
-  const reviewModeLabel = isTodaySelected ? "TODAY REVIEW" : isYesterdaySelected ? "YESTERDAY REVIEW" : "FILE REVIEW";
-  const workbenchLabel = isTodaySelected ? "LIVE WORKBENCH" : isYesterdaySelected ? "YESTERDAY WORKBENCH" : "FILE ARCHIVE";
+  const selectedDateHasReviewFiles = reviewFileIndexItems.some((item) => item.date === selectedDate);
+  const isLocalReviewSelected = (isTodaySelected || isYesterdaySelected) && !selectedDateHasReviewFiles;
+  const reviewModeLabel = isLocalReviewSelected
+    ? (isTodaySelected ? "TODAY REVIEW" : "YESTERDAY REVIEW")
+    : "FILE REVIEW";
+  const workbenchLabel = isLocalReviewSelected
+    ? (isTodaySelected ? "LIVE WORKBENCH" : "YESTERDAY WORKBENCH")
+    : "FILE ARCHIVE";
 
   useEffect(() => {
     setSlotMap(loadPredictionSlots());
