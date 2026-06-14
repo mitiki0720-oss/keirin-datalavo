@@ -133,21 +133,21 @@ jobs:
           NODE
 
       - name: Resolve KEIRIN.JP expected entry date
-        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '10 21 * * *' || github.event.schedule == '0 23 * * *' || github.event.schedule == '0 1 * * *' || github.event.schedule == '0 3 * * *' || github.event.schedule == '0 5 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 8 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 11 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *'
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '10 21 * * *' || github.event.schedule == '0 23 * * *' || github.event.schedule == '0 1 * * *' || github.event.schedule == '0 3 * * *' || github.event.schedule == '0 5 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 8 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 11 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *'
         shell: bash
         run: |
           echo "KEIRIN_JP_EXPECT_ENTRY_DATE=$(TZ=Asia/Tokyo date +%F)" >> "$GITHUB_ENV"
 
       - name: Update KEIRIN.JP official entries
-        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '10 21 * * *' || github.event.schedule == '0 23 * * *' || github.event.schedule == '0 1 * * *' || github.event.schedule == '0 3 * * *' || github.event.schedule == '0 5 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 8 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 11 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *'
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '10 21 * * *' || github.event.schedule == '0 23 * * *' || github.event.schedule == '0 1 * * *' || github.event.schedule == '0 3 * * *' || github.event.schedule == '0 5 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 8 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 11 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *'
         run: npm run update:keirin-jp-entries:write -- --expect-date="$KEIRIN_JP_EXPECT_ENTRY_DATE"
 
       - name: Validate KEIRIN.JP official entries
-        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '10 21 * * *' || github.event.schedule == '0 23 * * *' || github.event.schedule == '0 1 * * *' || github.event.schedule == '0 3 * * *' || github.event.schedule == '0 5 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 8 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 11 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *'
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '10 21 * * *' || github.event.schedule == '0 23 * * *' || github.event.schedule == '0 1 * * *' || github.event.schedule == '0 3 * * *' || github.event.schedule == '0 5 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 8 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 11 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *'
         run: npm run check:keirin-jp-entries -- --expect-date="$KEIRIN_JP_EXPECT_ENTRY_DATE" --require-complete
 
       - name: Resolve KEIRIN.JP expected result date
-        if: github.event.schedule == '0 3 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.phase == 'final' || github.event.inputs.phase == 'backfill'))
+        if: github.event.schedule == '0 3 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.phase == 'final' || github.event.inputs.phase == 'backfill'))
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "schedule" ]; then
@@ -156,11 +156,11 @@ jobs:
             echo "KEIRIN_JP_EXPECT_DATE=$(TZ=Asia/Tokyo date +%F)" >> "$GITHUB_ENV"
           fi
       - name: Update KEIRIN.JP official results
-        if: github.event.schedule == '0 3 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.phase == 'final' || github.event.inputs.phase == 'backfill'))
+        if: github.event.schedule == '0 3 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.phase == 'final' || github.event.inputs.phase == 'backfill'))
         run: npm run update:keirin-jp-results:write -- --expect-date="$KEIRIN_JP_EXPECT_DATE"
 
       - name: Validate KEIRIN.JP official results
-        if: github.event.schedule == '0 3 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.phase == 'final' || github.event.inputs.phase == 'backfill'))
+        if: github.event.schedule == '0 3 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.phase == 'final' || github.event.inputs.phase == 'backfill'))
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] || \
