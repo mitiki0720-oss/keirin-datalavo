@@ -79,6 +79,8 @@ export async function runNightly(options = {}) {
     const generatedAt = historyIndex.generatedAt;
 
     await runScript("update-kurari-ex-official-rider-supplement.mjs");
+    await runScript("update-kurari-ex-rider-master.mjs");
+    await runScript("check-kurari-ex-rider-master.mjs");
     await runScript("generate-kurari-ex-rider-exact.mjs", [
       "--source=history",
       `--generated-at=${generatedAt}`,
@@ -110,6 +112,8 @@ export async function runNightly(options = {}) {
     await runScript("check-kurari-ex-compact-history-replay.mjs");
 
     await runScript("update-kurari-ex-official-rider-supplement.mjs");
+    await runScript("update-kurari-ex-rider-master.mjs");
+    await runScript("check-kurari-ex-rider-master.mjs");
 
     await runScript("generate-kurari-ex-rider-exact.mjs", [
       "--source=history",
