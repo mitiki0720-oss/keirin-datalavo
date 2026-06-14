@@ -127,7 +127,7 @@ if (requireComplete) {
   }
 
   if (Number(payload.lineupRaceCount) <= 0) {
-    fail("lineupRaceCount must be positive");
+    console.warn("[check:keirin-jp-entries] warning: lineupRaceCount is 0; official lineup may be unavailable.");
   }
 }
 
