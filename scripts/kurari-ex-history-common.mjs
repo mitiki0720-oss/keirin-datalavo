@@ -364,6 +364,60 @@ function parseCarPlacement(text, placement) {
   return { carNo, name, winningMethod };
 }
 
+function cleanShbRiderName(value) {
+  return String(value ?? "")
+    .replace(/[（(].*$/u, "")
+    .replace(/\s*\/.*$/u, "")
+    .trim()
+    .replace(/^番$/u, "");
+}
+
+function parseShbMarker(line, marker) {
+  const normalized = normalizeText(line);
+  if (!normalized || /^(?:--|不明|未取得|なし)$/u.test(normalized.trim())) return null;
+
+  const markerPattern = marker === "S"
+    ? /(?:^|[/\s])S\s*[:：]?\s*(\d+)\s*([^/]+)?/u
+    : /(?:^|[/\s])B\s*[:：]?\s*(\d+)\s*([^/]+)?/u;
+  const markerMatch = normalized.match(markerPattern);
+  if (markerMatch) {
+    return {
+      carNo: Number(markerMatch[1]),
+      name: cleanShbRiderName(markerMatch[2] ?? ""),
+    };
+  }
+
+  if (marker === "B") {
+    const bareMatch = normalized.match(/^\s*(\d+)\s*番?\s*([^/（(]*)/u);
+    if (bareMatch) {
+      return {
+        carNo: Number(bareMatch[1]),
+        name: cleanShbRiderName(bareMatch[2] ?? ""),
+      };
+    }
+  }
+
+  return null;
+}
+
+function parseShbRiders(text) {
+  const normalized = normalizeText(text);
+  const candidates = [
+    firstMatch(normalized, [/SHB\s*[:：]\s*([^\n]+)/u, /ＳＨＢ\s*[:：]\s*([^\n]+)/u]),
+    firstMatch(normalized, [/SB\s*[:：]\s*([^\n]+)/u, /ＳＢ\s*[:：]\s*([^\n]+)/u]),
+    firstMatch(normalized, [/SB[（(]Bを取った選手[）)]\s*[:：]\s*([^\n]+)/u, /ＳＢ[（(]Bを取った選手[）)]\s*[:：]\s*([^\n]+)/u]),
+    firstMatch(normalized, [/Bを取った選手\s*[:：]\s*([^\n]+)/u, /Ｂを取った選手\s*[:：]\s*([^\n]+)/u]),
+  ].filter(Boolean);
+
+  for (const line of candidates) {
+    if (/--|不明|未取得|なし/u.test(line)) continue;
+    const sRider = parseShbMarker(line, "S");
+    const bRider = parseShbMarker(line, "B");
+    if (sRider || bRider) return { sRider, bRider };
+  }
+
+  return { sRider: null, bRider: null };
+}
 export function parseResultBlock(text) {
   const normalized = normalizeText(text);
   const order = canonicalCombination(
@@ -396,11 +450,7 @@ export function parseResultBlock(text) {
     /(?:三連単1番人気|最終1番人気オッズ)\s*[:：]\s*([^\n]+)/u,
   ]) ?? "";
   const favoriteOdds = parseNumber(favoriteLine.match(/([\d.]+)\s*倍/u)?.[1]);
-  const bLine = firstMatch(normalized, [
-    /Bを取った選手\s*[:：]\s*([^\n]+)/u,
-    /SHB\s*[:：]\s*([^\n]+)/u,
-  ]) ?? "";
-  const bMatch = bLine.match(/(?:^|[/\s])B\s*[:：]?\s*(\d+)\s*(.*?)(?:\s*\/|$)/u);
+  const shbRiders = parseShbRiders(normalized);
   const windLine = firstMatch(normalized, [/風速\s*[:：]\s*([^\n]+)/u]) ?? "";
   let windSpeedMps = parseNumber(windLine.match(/([\d.]+)\s*m\/s/u)?.[1]);
   if (windSpeedMps == null) {
@@ -425,9 +475,8 @@ export function parseResultBlock(text) {
       combination: canonicalCombination(favoriteLine, 3),
       odds: favoriteOdds,
     },
-    bRider: bMatch
-      ? { carNo: Number(bMatch[1]), name: bMatch[2].trim() }
-      : null,
+    sRider: shbRiders.sRider,
+    bRider: shbRiders.bRider,
     weather: {
       condition: extractLabeledValue(normalized, ["天気", "天候"]) ?? "",
       windDirection: extractLabeledValue(normalized, ["風向", "風向(バック基準)"]) ?? "",
@@ -470,6 +519,7 @@ export function mergeResult(primary, fallback) {
       combination: selected.favoriteTrifecta.combination || other?.favoriteTrifecta?.combination || "",
       odds: selected.favoriteTrifecta.odds ?? other?.favoriteTrifecta?.odds ?? null,
     },
+    sRider: selected.sRider ?? other?.sRider ?? null,
     bRider: selected.bRider ?? other?.bRider ?? null,
     weather: {
       condition: selected.weather.condition || other?.weather?.condition || "",
@@ -660,6 +710,7 @@ export async function readCompactHistoryRaces() {
         const result = {
           ...compact.result,
           status: compact.result?.status === "finished" ? "finished" : "missing",
+          sRider: compact.result?.sRider ?? null,
           bRider: compact.result?.bRider ?? null,
         };
         const evaluated = evaluateRace(result, prediction, lineup);

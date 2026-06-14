@@ -54,6 +54,15 @@ function compactPlacement(placement, includeWinningMethod = false) {
   };
 }
 
+function compactShbRider(rider) {
+  const carNo = Number(rider?.carNo);
+  if (!Number.isFinite(carNo) || carNo <= 0) return null;
+  return {
+    carNo,
+    name: String(rider?.name ?? "").trim(),
+  };
+}
+
 function compactRace(race) {
   const starters = [...(race.starters ?? [])]
     .map(compactStarter)
@@ -98,8 +107,11 @@ function compactRace(race) {
         combination: String(race.result?.favoriteTrifecta?.combination ?? ""),
         odds: race.result?.favoriteTrifecta?.odds ?? null,
       },
-      ...(race.result?.bRider?.carNo
-        ? { bRider: { carNo: race.result.bRider.carNo } }
+      ...(compactShbRider(race.result?.sRider)
+        ? { sRider: compactShbRider(race.result.sRider) }
+        : {}),
+      ...(compactShbRider(race.result?.bRider)
+        ? { bRider: compactShbRider(race.result.bRider) }
         : {}),
     },
     prediction: predictionMatched

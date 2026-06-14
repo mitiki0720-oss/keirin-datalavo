@@ -102,6 +102,7 @@ async function main() {
         trifecta: { combination: "", payoutYen: null },
         exacta: { combination: "", payoutYen: null },
         favoriteTrifecta: { combination: "", odds: null },
+        sRider: null,
         bRider: null,
         weather: { condition: "", windDirection: "", windSpeedMps: null },
       };
@@ -164,6 +165,8 @@ async function main() {
           trifecta: result.trifecta,
           exacta: result.exacta,
           favoriteTrifecta: result.favoriteTrifecta,
+          sRider: result.sRider ?? null,
+          bRider: result.bRider ?? null,
         },
         prediction,
         evaluation: calculated.evaluation,
