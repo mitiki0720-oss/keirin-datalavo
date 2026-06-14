@@ -913,6 +913,14 @@ export default function ExDataPage() {
                       </section>
                     ) : null}
 
+                    {selectedRider.byBankLength.length ? (
+                      <section className="ex-panel ex-section">
+                        <SectionTitle eyebrow="BY BANK LENGTH" title="周長別" />
+                        <div className="ex-table-wrap"><table className="ex-data-table"><thead><tr><th>周長</th><th>出走</th><th>1着</th><th>2着</th><th>3着</th><th>3着以内率</th></tr></thead><tbody>
+                          {selectedRider.byBankLength.map((row, index) => <tr key={`${row.bankLength ?? "unknown"}-${index}`}><td>{row.bankLengthLabel ?? (row.bankLength ? `${row.bankLength}m` : "未取得")}</td><td>{row.starts ?? "未取得"}</td><td>{row.wins}</td><td>{row.seconds}</td><td>{row.thirds}</td><td>{formatKurariExRiderMetric(row.top3Rate)}</td></tr>)}
+                        </tbody></table></div>
+                      </section>
+                    ) : null}
                     <section className="ex-panel ex-section">
                       <SectionTitle eyebrow="BY ROLE" title="ライン役割別" />
                       {selectedRider.byRole && Object.values(selectedRider.byRole).some(Boolean) ? (
