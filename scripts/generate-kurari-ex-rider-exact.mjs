@@ -1,7 +1,8 @@
-import { unlink } from "node:fs/promises";
+import { readFile, unlink } from "node:fs/promises";
 import path from "node:path";
 import {
   collectFiles,
+  exactOutputRoot,
   rateMetric,
   readKurariExRaces,
   relativeProjectPath,
@@ -24,6 +25,7 @@ const getArg = (name, fallback = "") => (
 const source = getArg("--source", "history");
 const riderExactRoot = path.resolve(getArg("--output-root", defaultRiderExactRoot));
 const requestedGeneratedAt = getArg("--generated-at");
+const riderMasterPath = path.join(exactOutputRoot, "rider-master.generated.json");
 
 function emptyAggregate() {
   return {
@@ -136,10 +138,81 @@ function qualityFor(observations) {
   return completeResults && roleEligible ? "complete" : "partial";
 }
 
+function normalizeMasterRegistrationNo(value) {
+  const text = String(value ?? "").replace(/[^\d]/gu, "");
+  return /^\d{6}$/u.test(text) ? text : "";
+}
+
+function normalizeMasterNameKey(value) {
+  return String(value ?? "")
+    .normalize("NFKC")
+    .replace(/\s+/gu, "")
+    .trim();
+}
+
+async function loadRiderMasterItems() {
+  try {
+    const payload = JSON.parse(await readFile(riderMasterPath, "utf8"));
+    return Array.isArray(payload?.items) ? payload.items : [];
+  } catch (error) {
+    if (error?.code === "ENOENT") return [];
+    throw error;
+  }
+}
+
+function identityFromRiderMasterItem(item) {
+  const registrationNo = normalizeMasterRegistrationNo(item.registrationNo);
+  if (!registrationNo) return null;
+
+  const name = item.currentName || item.name || "";
+  const nameKey = item.currentNameKey || item.nameKey || normalizeMasterNameKey(name);
+
+  return {
+    registrationNo,
+    name,
+    nameKey,
+    status: item.status === "active" ? "rider-master-active" : "rider-master",
+    card: {
+      registrationNo,
+      id: registrationNo,
+      name,
+      nameKey,
+      prefecture: item.currentPrefecture || "",
+      class: item.currentClass || "",
+      grade: item.currentClass || "",
+      style: item.currentStyle || "",
+      kana: item.currentKana || "",
+      region: item.currentRegion || "",
+      source: "rider-master",
+      status: item.status || "unknown",
+    },
+  };
+}
+
+function addRiderMasterIdentityOnlyEntries(observationsByRider, riderMasterItems) {
+  let added = 0;
+
+  for (const item of riderMasterItems) {
+    const identity = identityFromRiderMasterItem(item);
+    if (!identity?.registrationNo) continue;
+    if (observationsByRider.has(identity.registrationNo)) continue;
+
+    observationsByRider.set(identity.registrationNo, {
+      identity,
+      observations: [],
+    });
+
+    added += 1;
+  }
+
+  return added;
+}
+
 async function main() {
-  const [{ races, errors }, identitySources] = await Promise.all([
+  const [{ races, errors }, identitySources, riderMasterItems] = await Promise.all([
     readKurariExRaces(source),
     loadRiderIdentitySources(),
+    loadRiderMasterItems(),
   ]);
   if (errors.length) {
     throw new Error(`${source} contains ${errors.length} parse errors`);
@@ -175,8 +248,13 @@ async function main() {
     }
   }
 
+  const identityOnlyRiderCount = addRiderMasterIdentityOnlyEntries(
+    observationsByRider,
+    riderMasterItems,
+  );
+
   if (!observationsByRider.size) {
-    throw new Error("no safely resolved riders with confirmed starts");
+    throw new Error("no safely resolved riders or rider-master identities");
   }
 
   const generatedAt = requestedGeneratedAt || new Date().toISOString();
@@ -319,6 +397,8 @@ async function main() {
     generatedAt,
     sourceType: "EXACT",
     riderCount: indexItems.length,
+    riderMasterCount: riderMasterItems.length,
+    identityOnlyRiderCount,
     period: { from: allDates[0] ?? null, to: allDates.at(-1) ?? null },
     items: indexItems,
   };
@@ -337,6 +417,8 @@ async function main() {
     sourceType: "EXACT",
     normalizedRaceCount: races.length,
     riderCount: indexItems.length,
+    riderMasterCount: riderMasterItems.length,
+    identityOnlyRiderCount,
     qualityCounts,
     outputFileCount: indexItems.length + 2,
     outputBytes: totalBytes,
@@ -355,6 +437,8 @@ async function main() {
   console.log("[kurari-ex rider exact generate]");
   console.log(`source: ${source}`);
   console.log(`riders: ${indexItems.length}`);
+  console.log(`riderMasterCount: ${riderMasterItems.length}`);
+  console.log(`identityOnlyRiderCount: ${identityOnlyRiderCount}`);
   console.log(`period: ${index.period.from} to ${index.period.to}`);
   console.log(`quality: ${JSON.stringify(qualityCounts)}`);
   console.log(`files changed: ${

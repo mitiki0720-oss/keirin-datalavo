@@ -10,7 +10,7 @@ import {
 } from "./kurari-ex-rider-common.mjs";
 
 const individualLimit = 20 * 1024;
-const indexLimit = 300 * 1024;
+const indexLimit = 500 * 1024;
 const totalLimit = 5 * 1024 * 1024;
 const prohibitedKeys = new Set([
   "raw",
@@ -109,7 +109,7 @@ async function main() {
     (file) => !files.some((candidate) => path.resolve(candidate) === file),
   ).length;
   const indexBytes = (await stat(indexPath)).size;
-  if (indexBytes > indexLimit) warnings.push("rider index exceeds 300 KB");
+  if (indexBytes > indexLimit) warnings.push("rider index exceeds 500 KB");
   if (totalBytes > totalLimit) warnings.push("rider exact output exceeds 5 MB");
   const report = {
     riderIndexCount: index.items.length,

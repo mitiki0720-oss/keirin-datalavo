@@ -14,7 +14,7 @@ const thresholds = {
   exactIndex: 100 * 1024,
   exactVenue: 100 * 1024,
   exactTotal: 10 * 1024 * 1024,
-  riderIndex: 300 * 1024,
+  riderIndex: 500 * 1024,
   riderFile: 20 * 1024,
   riderTotal: 5 * 1024 * 1024,
   historyIndex: 200 * 1024,
@@ -96,7 +96,7 @@ async function main() {
       relativePath === "exact/riders/index.generated.json"
       && size > thresholds.riderIndex
     ) {
-      warnings.push(`rider index exceeds 300 KB: ${relativePath} (${formatBytes(size)})`);
+      warnings.push(`rider index exceeds 500 KB: ${relativePath} (${formatBytes(size)})`);
     }
     if (
       /^exact\/riders\/by-tail\/\d{2}\/\d{6}\.generated\.json$/u.test(relativePath)
