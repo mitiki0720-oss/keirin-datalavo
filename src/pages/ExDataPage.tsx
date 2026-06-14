@@ -762,6 +762,7 @@ export default function ExDataPage() {
               <div className="ex-eyebrow">PLAYER DATA HEALTH</div>
               <div className="ex-health-grid">
                 <MetricCard label="PUBLISHED RIDERS" value={riderInitialStatus === "loading" ? "…" : valueText(riderInitialData?.status.riderCount)} />
+                <MetricCard label="素材蓄積中" value={riderInitialStatus === "loading" ? "…" : valueText(riderInitialData?.status.qualityCounts["identity-only"])} warning={(riderInitialData?.status.qualityCounts["identity-only"] ?? 0) > 0} />
                 <MetricCard label="LOW SAMPLE" value={riderInitialStatus === "loading" ? "…" : valueText(riderInitialData?.status.qualityCounts["low-sample"])} warning={(riderInitialData?.status.qualityCounts["low-sample"] ?? 0) > 0} />
                 <MetricCard label="PARTIAL" value={riderInitialStatus === "loading" ? "…" : valueText(riderInitialData?.status.qualityCounts.partial)} />
                 <MetricCard label="COMPLETE" value={riderInitialStatus === "loading" ? "…" : valueText(riderInitialData?.status.qualityCounts.complete)} />
@@ -785,7 +786,7 @@ export default function ExDataPage() {
                         </div>
                         <RiderQualityBadge quality={item.quality} />
                       </div>
-                      <div className="ex-muted">確認出走 {item.confirmedStartCount}R / 役割解析 {item.roleEligibleCount}R</div>
+                      <div className="ex-muted">{item.quality === "identity-only" ? "素材蓄積中 / 登録番号・選手情報のみ" : `確認出走 ${item.confirmedStartCount}R / 役割解析 ${item.roleEligibleCount}R`}</div>
                     </button>
                   ))}
                   {riderInitialStatus === "ready" && filteredRiders.length === 0 ? <EmptyState text="該当する選手がいません。" /> : null}
@@ -805,7 +806,7 @@ export default function ExDataPage() {
                           <div className="ex-eyebrow">REGISTRATION {selectedRider.registrationNo}</div>
                           <h3>{selectedRider.name}</h3>
                           <div className="ex-muted">
-                            {selectedRiderItem?.prefecture || "府県未取得"} / {selectedRiderItem?.class || "級班未取得"} / {selectedRider.period.from ?? "--"}〜{selectedRider.period.to ?? "--"}
+                            {selectedRiderItem?.prefecture || "府県未取得"} / {selectedRiderItem?.class || "級班未取得"} / {selectedRider.quality === "identity-only" ? "素材蓄積中" : `${selectedRider.period.from ?? "--"}〜${selectedRider.period.to ?? "--"}`}
                           </div>
                         </div>
                         <div className="ex-badges">
@@ -828,7 +829,10 @@ export default function ExDataPage() {
                           </button>
                         </div>
                       </div>
-                      {selectedRider.quality === "low-sample" || selectedRider.coverage.confirmedStartCount < 5 ? (
+                      {selectedRider.quality === "identity-only" ? (
+                        <div className="ex-sample-alert"><strong>素材蓄積中</strong>登録番号と選手情報は公開済みです。成績データはまだ蓄積中のため、買い目根拠には使わず、出走確認用として扱ってください。</div>
+                      ) : null}
+                      {selectedRider.quality !== "identity-only" && (selectedRider.quality === "low-sample" || selectedRider.coverage.confirmedStartCount < 5) ? (
                         <div className="ex-sample-alert"><strong>LOW SAMPLE / 母数少</strong>母数が少ないため、確定的な評価には使わず、展開判断の補助として確認してください。</div>
                       ) : null}
                     </>

@@ -478,7 +478,7 @@ export function getKurariExRiderQualityLabel(quality?: KurariExRiderQuality | nu
     complete: "COMPLETE",
     partial: "PARTIAL",
     "low-sample": "LOW SAMPLE",
-    "identity-only": "IDENTITY ONLY",
+    "identity-only": "素材蓄積中",
   };
   return quality ? labels[quality] : "UNKNOWN";
 }
@@ -634,6 +634,7 @@ function buildKurariExRiderCard(
     `### ${entry.carNo}番 ${entry.riderName || exact.name}`,
     `- 登録番号: ${exact.registrationNo}`,
     `- quality: ${getKurariExRiderQualityLabel(exact.quality)}`,
+    ...(exact.quality === "identity-only" ? ["- 状態: 素材蓄積中 / 登録番号・選手情報のみ登録済み", "- 注意: 成績指標は未蓄積のため、買い目根拠には使わない"] : []),
     ...(exact.quality === "low-sample" ? ["- 注意: LOW SAMPLE / 母数少"] : []),
     ...(exact.period.from || exact.period.to ? [`- 対象期間: ${exact.period.from ?? "--"}〜${exact.period.to ?? "--"}`] : []),
     `- 確認出走数: ${exact.coverage.observedRaceCount}`,
