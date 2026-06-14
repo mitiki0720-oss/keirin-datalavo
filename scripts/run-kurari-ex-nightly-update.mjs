@@ -73,6 +73,17 @@ export async function runNightly(options = {}) {
   if (options.dryRun) return { status: "dry-run", archive };
   if (["exists", "unchanged"].includes(archive.status)) {
     await runScript("check-kurari-ex-compact-history.mjs");
+    const historyIndex = JSON.parse(
+      await readFile(path.join(compactHistoryRoot, "index.generated.json"), "utf8"),
+    );
+    const generatedAt = historyIndex.generatedAt;
+
+    await runScript("update-kurari-ex-official-rider-supplement.mjs");
+    await runScript("generate-kurari-ex-rider-exact.mjs", [
+      "--source=history",
+      `--generated-at=${generatedAt}`,
+    ]);
+    await runScript("check-kurari-ex-rider-exact.mjs");
     await runScript("generate-kurari-ex-matchup-exact.mjs");
     await runScript("check-kurari-ex-matchup-exact.mjs");
     await runScript("check-kurari-ex-size.mjs");
@@ -97,6 +108,8 @@ export async function runNightly(options = {}) {
     ]);
     await publishVenueExact(venueTemp);
     await runScript("check-kurari-ex-compact-history-replay.mjs");
+
+    await runScript("update-kurari-ex-official-rider-supplement.mjs");
 
     await runScript("generate-kurari-ex-rider-exact.mjs", [
       "--source=history",
