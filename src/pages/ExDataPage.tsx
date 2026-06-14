@@ -186,6 +186,7 @@ export default function ExDataPage() {
   const [matchupInitialStatus, setMatchupInitialStatus] = useState<"loading" | "ready" | "error">("loading");
   const [matchupQuery, setMatchupQuery] = useState("");
   const [selectedMatchupRiderNo, setSelectedMatchupRiderNo] = useState<string | null>(null);
+  const [matchupFilterMode, setMatchupFilterMode] = useState<"all" | "advantage" | "danger" | "sample">("all");
   const [matchupCache, setMatchupCache] = useState<Record<string, KurariExMatchupExact>>({});
   const [matchupStatus, setMatchupStatus] = useState<Record<string, "loading" | "ready" | "error">>({});
 
@@ -368,6 +369,35 @@ export default function ExDataPage() {
   );
   const selectedMatchup = selectedMatchupRiderNo ? matchupCache[selectedMatchupRiderNo] : null;
   const selectedMatchupStatus = selectedMatchupRiderNo ? matchupStatus[selectedMatchupRiderNo] : undefined;
+  const selectedMatchupRows = [...(selectedMatchup?.matchups ?? [])]
+    .filter((row) => {
+      const selfAheadRate = row.selfAheadRate ?? null;
+      if (matchupFilterMode === "advantage") {
+        return row.safeComparableRaceCount >= 2 && selfAheadRate !== null && selfAheadRate >= 60;
+      }
+      if (matchupFilterMode === "danger") {
+        return row.safeComparableRaceCount >= 2 && selfAheadRate !== null && selfAheadRate <= 40;
+      }
+      if (matchupFilterMode === "sample") {
+        return row.safeComparableRaceCount >= 5;
+      }
+      return true;
+    })
+    .sort((left, right) => {
+      if (matchupFilterMode === "advantage") {
+        return (right.selfAheadRate ?? -1) - (left.selfAheadRate ?? -1) || right.safeComparableRaceCount - left.safeComparableRaceCount || left.opponentName.localeCompare(right.opponentName, "ja");
+      }
+      if (matchupFilterMode === "danger") {
+        return (left.selfAheadRate ?? 101) - (right.selfAheadRate ?? 101) || right.safeComparableRaceCount - left.safeComparableRaceCount || left.opponentName.localeCompare(right.opponentName, "ja");
+      }
+      return right.safeComparableRaceCount - left.safeComparableRaceCount || right.sharedRaceCount - left.sharedRaceCount || left.opponentName.localeCompare(right.opponentName, "ja");
+    });
+  const matchupFilterOptions = [
+    { key: "all" as const, label: "全て", note: "全対戦" },
+    { key: "advantage" as const, label: "得意相手", note: "自己先着60%以上" },
+    { key: "danger" as const, label: "苦手相手", note: "自己先着40%以下" },
+    { key: "sample" as const, label: "母数あり", note: "比較可能5R以上" },
+  ];
   const sizeWarning = (status?.outputBytes ?? 0) > 20 * 1024 * 1024;
   const healthMetrics = [
     ["PERIOD", status ? `${status.dateFrom ?? "--"}〜${status.dateTo ?? "--"}` : "--", "source range"],
@@ -938,11 +968,23 @@ export default function ExDataPage() {
                     </section>
 
                     <section className="ex-panel ex-section">
-                      <SectionTitle eyebrow="OPPONENT TABLE" title="同走相手別" lead="自己先着率は比較可能レースだけで算出します。" />
-                      {selectedMatchup.matchups.length ? (
+                      <SectionTitle eyebrow="OPPONENT TABLE" title="同走相手別" lead={`表示 ${selectedMatchupRows.length.toLocaleString("ja-JP")} / ${selectedMatchup.matchups.length.toLocaleString("ja-JP")}件。自己先着率は比較可能レースだけで算出します。`} />
+                      <div className="ex-view-tabs" style={{ justifyContent: "flex-start", flexWrap: "wrap", marginBottom: 16 }}>
+                        {matchupFilterOptions.map((option) => (
+                          <button
+                            key={option.key}
+                            className={`ex-view-tab${matchupFilterMode === option.key ? " is-active" : ""}`}
+                            type="button"
+                            onClick={() => setMatchupFilterMode(option.key)}
+                            title={option.note}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                      {selectedMatchupRows.length ? (
                         <div className="ex-table-wrap"><table className="ex-data-table"><thead><tr><th>相手</th><th>共走</th><th>比較可</th><th>自己先着</th><th>相手先着</th><th>自己先着率</th><th>同ライン</th><th>別線</th><th>品質</th></tr></thead><tbody>
-                          {[...selectedMatchup.matchups]
-                            .sort((left, right) => right.safeComparableRaceCount - left.safeComparableRaceCount || right.sharedRaceCount - left.sharedRaceCount || left.opponentName.localeCompare(right.opponentName, "ja"))
+                          {selectedMatchupRows
                             .map((row) => (
                               <tr key={row.pairKey}>
                                 <td>{row.opponentName}<br /><span className="ex-muted">{row.opponentRegistrationNo}</span></td>
@@ -957,7 +999,7 @@ export default function ExDataPage() {
                               </tr>
                             ))}
                         </tbody></table></div>
-                      ) : <EmptyState text="同走相手別データはまだありません。" />}
+                      ) : <EmptyState text={selectedMatchup.matchups.length ? "条件に合う同走相手がありません。" : "同走相手別データはまだありません。"} />}
                     </section>
 
                     {selectedMatchup.warnings.length ? (
