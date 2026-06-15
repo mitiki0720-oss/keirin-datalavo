@@ -2289,6 +2289,15 @@ export default function ReviewPage() {
     [filteredReviewFileGroups, selectedVenueName],
   );
 
+  const selectedFileFallbackVenueGroup = useMemo(
+    () => {
+      const targetVenue = selectedReviewFileGroup?.venue ?? selectedVenueName;
+      if (!targetVenue) return null;
+      return filteredVenueGroups.find((group) => normalizeVenueName(group.venue) === normalizeVenueName(targetVenue)) ?? null;
+    },
+    [filteredVenueGroups, selectedReviewFileGroup?.venue, selectedVenueName],
+  );
+
   const selectedDisplayVenueName = isLocalReviewSelected
     ? selectedVenueGroup?.venue
     : selectedReviewFileGroup?.venue;
@@ -2303,9 +2312,15 @@ export default function ReviewPage() {
   const selectedResultCopy = useMemo(
     () => {
       if (isLocalReviewSelected) return selectedVenueGroup ? buildResultCopy(selectedVenueGroup, reviewWeatherActualMap, todayFeed) : "";
-      return selectedReviewFileGroup?.resultText ?? "";
+
+      const fileResultText = selectedReviewFileGroup?.resultText ?? "";
+      if (fileResultText.trim()) return fileResultText;
+
+      return selectedFileFallbackVenueGroup
+        ? buildResultCopy(selectedFileFallbackVenueGroup, reviewWeatherActualMap, todayFeed)
+        : fileResultText;
     },
-    [isLocalReviewSelected, reviewWeatherActualMap, selectedReviewFileGroup, selectedVenueGroup, todayFeed],
+    [isLocalReviewSelected, reviewWeatherActualMap, selectedFileFallbackVenueGroup, selectedReviewFileGroup, selectedVenueGroup, todayFeed],
   );
 
   const selectedReportRecord = useMemo(() => {
@@ -3083,11 +3098,15 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
     onClick={async () => {
       try {
         let copyValue = selectedResultCopy;
+        const latestFeed = isTodaySelected ? await fetchReviewTodayFeed("no-store").catch(() => null) : null;
+        if (latestFeed) setTodayFeed(latestFeed);
+
         if (isLocalReviewSelected && selectedVenueGroup) {
-          const latestFeed = isTodaySelected ? await fetchReviewTodayFeed("no-store").catch(() => null) : null;
-          if (latestFeed) setTodayFeed(latestFeed);
           copyValue = buildResultCopy(selectedVenueGroup, reviewWeatherActualMap, latestFeed ?? todayFeed);
+        } else if (!copyValue.trim() && selectedFileFallbackVenueGroup) {
+          copyValue = buildResultCopy(selectedFileFallbackVenueGroup, reviewWeatherActualMap, latestFeed ?? todayFeed);
         }
+
         await copyText(copyValue);
         setCopyStatus("結果まとめをコピーしました");
       } catch {
