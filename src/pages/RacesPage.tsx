@@ -814,6 +814,30 @@ const formatRacesPageShbRate = (value?: number | null) => {
   return Number.isFinite(number) ? `${Math.round(number)}%` : "--";
 };
 
+const getRacesPageShbPredictionBonus = (entry?: RacesPageShbNameEntry | null) => {
+  if (!entry) {
+    return { adjustedBonus: 0, holeBonus: 0 };
+  }
+
+  const count = Number(entry.count ?? 0);
+  const bCount = Number(entry.bCount ?? 0);
+  const bTop3Rate = Number(entry.bTop3Rate ?? 0);
+  const bOutsideRate = Number(entry.bOutsideRate ?? 0);
+  const sameSAndBCount = Number(entry.sameSAndBCount ?? 0);
+  const sameSAndBRate = Number(entry.sameSAndBRate ?? 0);
+
+  const sampleBonus = count >= 5 ? 0.25 : count >= 3 ? 0.1 : 0;
+  const bPowerBonus = bCount >= 3 && bTop3Rate >= 66 ? 1.0 : bCount >= 2 && bTop3Rate >= 50 ? 0.45 : 0;
+  const stabilityBonus = bCount >= 3 && bOutsideRate <= 20 ? 0.45 : 0;
+  const sameSbBonus = sameSAndBCount >= 2 && sameSAndBRate >= 55 ? 0.3 : 0;
+  const riskPenalty = bCount >= 3 && bOutsideRate >= 45 ? -0.8 : 0;
+
+  const adjustedBonus = sampleBonus + bPowerBonus + stabilityBonus + sameSbBonus + riskPenalty;
+  const holeBonus = Math.max(0, bPowerBonus * 0.45 + stabilityBonus * 0.7 + sameSbBonus * 0.5);
+
+  return { adjustedBonus, holeBonus };
+};
+
 const renderRacesPageShbBadge = (entry?: RacesPageShbNameEntry | null): ReactNode => {
   if (!entry) {
     return (
@@ -2276,8 +2300,8 @@ const getRacesPageLeadBonus = (rider: { name?: string; carNo?: string; style?: s
 };
 
 const buildRacesPagePredictionCandidates = (
-  riders: Array<{ carNo: string; name: string; style: string; score?: string; comment?: string }>,
-  options: { lineup?: string; lead?: string; venueName?: string }
+  riders: Array<{ carNo: string; name: string; style: string; score?: string; comment?: string; registrationNo?: string }>,
+  options: { lineup?: string; lead?: string; venueName?: string; shbNameLookup?: RacesPageShbNameLookup }
 ) => {
   const profile = getRacesPageBankProfile(options.venueName);
   const parseScore = (value?: string) => {
@@ -2295,9 +2319,11 @@ const buildRacesPagePredictionCandidates = (
     const leadBonus = getRacesPageLeadBonus(rider, options.lead);
     const commentText = `${rider.comment ?? ""}${rider.style ?? ""}`;
     const commentBonus = /自力|仕掛|先行|捲|差し|追込/.test(commentText) ? 0.4 : 0;
-    const adjustedScore = numericScore + styleBonus + role.bonus + leadBonus + commentBonus;
-    const holeScore = numericScore * 0.55 + (profile.holeBuckets.includes(bucket) ? 2.4 : 0.6) + (role.tailBonus ? 1.4 : 0) + (bucket === "attack" ? 0.8 : 0);
-    return { ...rider, numericScore, adjustedScore, holeScore, bucket, role };
+    const shb = options.shbNameLookup ? getRacesPageShbEntryForRider(rider, options.shbNameLookup) : undefined;
+    const shbBonus = getRacesPageShbPredictionBonus(shb);
+    const adjustedScore = numericScore + styleBonus + role.bonus + leadBonus + commentBonus + shbBonus.adjustedBonus;
+    const holeScore = numericScore * 0.55 + (profile.holeBuckets.includes(bucket) ? 2.4 : 0.6) + (role.tailBonus ? 1.4 : 0) + (bucket === "attack" ? 0.8 : 0) + shbBonus.holeBonus;
+    return { ...rider, numericScore, adjustedScore, holeScore, bucket, role, shb, shbBonus };
   }).sort((a, b) => b.adjustedScore - a.adjustedScore);
 
   const honmei = scored[0] ?? null;
@@ -2979,6 +3005,7 @@ const selectedRaceResultCards = [
     lineup: selectedRace?.lineup,
     lead: selectedRace?.lead,
     venueName: selectedVenue?.venue,
+    shbNameLookup,
   });
 
   const topCandidate = predictionCandidates.honmei;
