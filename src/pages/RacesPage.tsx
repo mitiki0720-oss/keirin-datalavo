@@ -814,7 +814,11 @@ const formatRacesPageShbRate = (value?: number | null) => {
   return Number.isFinite(number) ? `${Math.round(number)}%` : "--";
 };
 
-const getRacesPageShbPredictionBonus = (entry?: RacesPageShbNameEntry | null) => {
+const getRacesPageShbPredictionBonus = (
+  entry?: RacesPageShbNameEntry | null,
+  role?: { frontBonus?: number; secondaryBonus?: number; tailBonus?: number },
+  bucket?: string
+) => {
   if (!entry) {
     return { adjustedBonus: 0, holeBonus: 0 };
   }
@@ -832,8 +836,36 @@ const getRacesPageShbPredictionBonus = (entry?: RacesPageShbNameEntry | null) =>
   const sameSbBonus = sameSAndBCount >= 2 && sameSAndBRate >= 55 ? 0.3 : 0;
   const riskPenalty = bCount >= 3 && bOutsideRate >= 45 ? -0.8 : 0;
 
-  const adjustedBonus = sampleBonus + bPowerBonus + stabilityBonus + sameSbBonus + riskPenalty;
-  const holeBonus = Math.max(0, bPowerBonus * 0.45 + stabilityBonus * 0.7 + sameSbBonus * 0.5);
+  const isLineFront = Boolean(role?.frontBonus);
+  const isLineSecond = Boolean(role?.secondaryBonus);
+  const isLineTail = Boolean(role?.tailBonus);
+  const isLineUnknown = !isLineFront && !isLineSecond && !isLineTail;
+  const isAttackType = bucket === "front" || bucket === "attack";
+  const isMarkType = bucket === "mark" || bucket === "chase";
+
+  const lineupFrontBonus = isLineFront && isAttackType && bCount >= 2 && bTop3Rate >= 50 ? 0.55 : 0;
+  const lineupFrontRiskPenalty = isLineFront && bCount >= 3 && bOutsideRate >= 45 ? -0.45 : 0;
+  const lineupSecondBonus = isLineSecond && isMarkType && sameSAndBCount >= 2 && sameSAndBRate >= 45 ? 0.4 : 0;
+  const lineupTailBonus = isLineTail && bCount >= 2 && bOutsideRate <= 25 ? 0.25 : 0;
+  const lineupUnknownAttackBonus = isLineUnknown && isAttackType && bCount >= 3 && bTop3Rate >= 66 && bOutsideRate <= 30 ? 0.35 : 0;
+
+  const lineupAdjustedBonus =
+    lineupFrontBonus +
+    lineupFrontRiskPenalty +
+    lineupSecondBonus +
+    lineupTailBonus +
+    lineupUnknownAttackBonus;
+
+  const adjustedBonus = sampleBonus + bPowerBonus + stabilityBonus + sameSbBonus + riskPenalty + lineupAdjustedBonus;
+  const holeBonus = Math.max(
+    0,
+    bPowerBonus * 0.45 +
+      stabilityBonus * 0.7 +
+      sameSbBonus * 0.5 +
+      lineupTailBonus * 1.2 +
+      lineupUnknownAttackBonus * 0.8 +
+      lineupSecondBonus * 0.35
+  );
 
   return { adjustedBonus, holeBonus };
 };
@@ -2320,7 +2352,7 @@ const buildRacesPagePredictionCandidates = (
     const commentText = `${rider.comment ?? ""}${rider.style ?? ""}`;
     const commentBonus = /自力|仕掛|先行|捲|差し|追込/.test(commentText) ? 0.4 : 0;
     const shb = options.shbNameLookup ? getRacesPageShbEntryForRider(rider, options.shbNameLookup) : undefined;
-    const shbBonus = getRacesPageShbPredictionBonus(shb);
+    const shbBonus = getRacesPageShbPredictionBonus(shb, role, bucket);
     const adjustedScore = numericScore + styleBonus + role.bonus + leadBonus + commentBonus + shbBonus.adjustedBonus;
     const holeScore = numericScore * 0.55 + (profile.holeBuckets.includes(bucket) ? 2.4 : 0.6) + (role.tailBonus ? 1.4 : 0) + (bucket === "attack" ? 0.8 : 0) + shbBonus.holeBonus;
     return { ...rider, numericScore, adjustedScore, holeScore, bucket, role, shb, shbBonus };
