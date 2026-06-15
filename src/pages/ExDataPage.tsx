@@ -163,6 +163,59 @@ const timeslotLabels: Record<string, string> = {
   unknown: "未取得",
 };
 
+const SHB_NAME_INDEX_URL = "/data/analytics/kurari-ex/exact/shb-name-index.generated.json";
+
+type KurariExShbNameEntry = {
+  nameKey: string;
+  displayName: string;
+  registrationNo: string | null;
+  quality: string;
+  count: number;
+  bCount: number;
+  sCount: number;
+  sameSAndBCount: number;
+  bTop3Rate: number | null;
+  bOutsideRate: number | null;
+  sameSAndBRate: number | null;
+  venues?: string[];
+  sampleRaceKeys?: string[];
+};
+
+type KurariExShbNameIndex = {
+  summary: {
+    nameKeyCount: number;
+    sameDateCollisionNameKeyCount: number;
+    qualityCounts: Record<string, number>;
+  };
+  items: KurariExShbNameEntry[];
+};
+
+function toExPublicPath(relativePath: string) {
+  const base = import.meta.env.BASE_URL.replace(/\/$/u, "");
+  const normalized = relativePath.startsWith("/") ? relativePath : `/${relativePath}`;
+  return `${base}${normalized}`;
+}
+
+async function loadKurariExShbNameIndex(): Promise<KurariExShbNameIndex> {
+  const response = await fetch(toExPublicPath(SHB_NAME_INDEX_URL), { cache: "no-store" });
+  if (!response.ok) throw new Error(`KURARI EX SHB name index fetch failed: ${response.status}`);
+  return response.json() as Promise<KurariExShbNameIndex>;
+}
+
+function formatShbRate(value?: number | null) {
+  return Number.isFinite(value) ? `${Number(value).toFixed(1)}%` : "--";
+}
+
+function formatShbNameQuality(value?: string | null) {
+  const labels: Record<string, string> = {
+    "registration-resolved": "登録番号解決",
+    "name-daily-safe": "名前安全",
+    "name-collision-risk": "名前衝突注意",
+  };
+  return value ? labels[value] ?? value : "--";
+}
+
+
 export default function ExDataPage() {
   const isMobile = useIsMobile();
   const [initialData, setInitialData] = useState<KurariExInitialData | null>(null);
@@ -189,6 +242,8 @@ export default function ExDataPage() {
   const [matchupFilterMode, setMatchupFilterMode] = useState<"all" | "advantage" | "danger" | "sample">("all");
   const [matchupCache, setMatchupCache] = useState<Record<string, KurariExMatchupExact>>({});
   const [matchupStatus, setMatchupStatus] = useState<Record<string, "loading" | "ready" | "error">>({});
+  const [shbNameIndex, setShbNameIndex] = useState<KurariExShbNameIndex | null>(null);
+  const [shbNameStatus, setShbNameStatus] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
     let active = true;
@@ -257,6 +312,24 @@ export default function ExDataPage() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    loadKurariExShbNameIndex()
+      .then((data) => {
+        if (!active) return;
+        setShbNameIndex(data);
+        setShbNameStatus("ready");
+      })
+      .catch(() => {
+        if (!active) return;
+        setShbNameStatus("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
 
   const allVenues = useMemo(() => {
     const venues = new Map<string, { venueKey: string; venueName: string }>();
@@ -363,6 +436,13 @@ export default function ExDataPage() {
   );
   const selectedRider = selectedRiderNo ? riderCache[selectedRiderNo] : null;
   const selectedRiderStatus = selectedRiderNo ? riderStatus[selectedRiderNo] : undefined;
+  const shbNameByNameKey = useMemo(
+    () => new Map((shbNameIndex?.items ?? []).map((item) => [item.nameKey, item])),
+    [shbNameIndex],
+  );
+  const selectedRiderShb = selectedRider?.nameKey
+    ? shbNameByNameKey.get(selectedRider.nameKey)
+    : undefined;
   const matchupSummary = matchupInitialData?.status;
   const selectedMatchupItem = matchupInitialData?.index.items.find(
     (item) => item.registrationNo === selectedMatchupRiderNo,
@@ -768,6 +848,8 @@ export default function ExDataPage() {
                 <MetricCard label="COMPLETE" value={riderInitialStatus === "loading" ? "…" : valueText(riderInitialData?.status.qualityCounts.complete)} />
                 <MetricCard label="MAX RIDER JSON" value={riderInitialStatus === "loading" ? "…" : formatBytes(riderInitialData?.status.maxFileBytes)} />
                 <MetricCard label="TOTAL RIDER EX" value={riderInitialStatus === "loading" ? "…" : formatBytes(riderInitialData?.status.outputBytes)} />
+                <MetricCard label="SHB NAME KEYS" value={shbNameStatus === "loading" ? "…" : valueText(shbNameIndex?.summary.nameKeyCount)} />
+                <MetricCard label="SHB COLLISION" value={shbNameStatus === "loading" ? "…" : valueText(shbNameIndex?.summary.sameDateCollisionNameKeyCount)} warning={(shbNameIndex?.summary.sameDateCollisionNameKeyCount ?? 0) > 0} />
               </div>
               {riderInitialStatus === "error" ? <EmptyState text="PLAYER EXのindex / statusを取得できませんでした。" /> : null}
             </section>
@@ -855,6 +937,23 @@ export default function ExDataPage() {
                     <section className="ex-panel ex-section">
                       <SectionTitle eyebrow="OVERALL" title="全体成績" lead="未取得と0%を区別して表示します。" />
                       <RiderAggregateCards aggregate={selectedRider.overall} />
+                    </section>
+
+                    <section className="ex-panel ex-section">
+                      <SectionTitle eyebrow="SHB ROLE" title="S/B 先行役割" lead="結果TXTから抽出したS/B。母数少は展開判断の補助として扱ってください。" />
+                      {shbNameStatus === "loading" ? <EmptyState text="SHB名前インデックスを読み込んでいます。" /> : null}
+                      {shbNameStatus === "error" ? <EmptyState text="SHB名前インデックスを取得できませんでした。" /> : null}
+                      {shbNameStatus === "ready" && !selectedRiderShb ? <EmptyState text="この選手のS/B履歴はまだありません。" /> : null}
+                      {selectedRiderShb ? (
+                        <div className="ex-kpi-grid">
+                          <MetricCard label="B回数" value={valueText(selectedRiderShb.bCount)} note="最終バック主導" />
+                          <MetricCard label="B車券内率" value={selectedRiderShb.bCount ? formatShbRate(selectedRiderShb.bTop3Rate) : "--"} note="Bから3着以内" />
+                          <MetricCard label="B着外率" value={selectedRiderShb.bCount ? formatShbRate(selectedRiderShb.bOutsideRate) : "--"} warning={(selectedRiderShb.bOutsideRate ?? 0) >= 40} />
+                          <MetricCard label="S回数" value={valueText(selectedRiderShb.sCount)} note="S取得" />
+                          <MetricCard label="S/B同時" value={valueText(selectedRiderShb.sameSAndBCount)} note={selectedRiderShb.sCount ? formatShbRate(selectedRiderShb.sameSAndBRate) : "--"} />
+                          <MetricCard label="名前解決" value={formatShbNameQuality(selectedRiderShb.quality)} note={selectedRiderShb.registrationNo ? "登録番号 " + selectedRiderShb.registrationNo : "名前キー参照"} />
+                        </div>
+                      ) : null}
                     </section>
 
                     <section className="ex-panel ex-section">
