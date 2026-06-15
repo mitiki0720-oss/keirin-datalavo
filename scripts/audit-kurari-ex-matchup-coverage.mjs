@@ -23,6 +23,7 @@ const OUTPUT_FILE = path.join(
 const SAFE_IDENTITY_STATUSES = new Set([
   "registration-no",
   "unique-player-card-name",
+  "same-registration-name",
   "manual-override",
 ]);
 

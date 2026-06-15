@@ -329,7 +329,7 @@ export type KurariExRiderExact = {
   generatedAt: string;
   period: KurariExPeriod;
   identity: {
-    status: "registration-no" | "unique-player-card-name" | "manual-override";
+    status: "registration-no" | "unique-player-card-name" | "same-registration-name" | "manual-override";
     registrationNoResolved: boolean;
   };
   coverage: {

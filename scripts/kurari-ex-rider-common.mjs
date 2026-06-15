@@ -129,6 +129,24 @@ export function resolveRiderIdentity(starter, sources) {
     };
   }
   if (nameMatches.length > 1) {
+    const registrationNos = [
+      ...new Set(
+        nameMatches
+          .map((card) => normalizeRegistrationNo(card.registrationNo))
+          .filter(Boolean),
+      ),
+    ];
+
+    if (registrationNos.length === 1) {
+      return {
+        registrationNo: registrationNos[0],
+        name: name || nameMatches[0].name,
+        nameKey,
+        status: "same-registration-name",
+        card: nameMatches[0],
+      };
+    }
+
     return {
       registrationNo: null,
       name,

@@ -46,6 +46,7 @@ const DRY_RUN = process.argv.includes("--dry-run");
 const SAFE_IDENTITY_STATUSES = new Set([
   "registration-no",
   "unique-player-card-name",
+  "same-registration-name",
   "manual-override",
 ]);
 
