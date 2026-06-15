@@ -739,6 +739,108 @@ const KEIRIN_JP_ENTRIES_URL = toPublicPath("/data/races/keirin-jp-entries.genera
 const KEIRIN_JP_ENTRIES_URL_CANDIDATES = import.meta.env.DEV
   ? [LOCAL_KEIRIN_JP_ENTRIES_URL, KEIRIN_JP_ENTRIES_URL]
   : [KEIRIN_JP_ENTRIES_URL];
+const SHB_NAME_INDEX_URL = toPublicPath("/data/analytics/kurari-ex/exact/shb-name-index.generated.json");
+
+type RacesPageShbNameEntry = {
+  nameKey: string;
+  displayName?: string | null;
+  registrationNo?: string | null;
+  identityStatus?: string | null;
+  quality?: string | null;
+  count?: number | null;
+  bCount?: number | null;
+  sCount?: number | null;
+  sameSAndBCount?: number | null;
+  bTop3Rate?: number | null;
+  bOutsideRate?: number | null;
+  sameSAndBRate?: number | null;
+};
+
+type RacesPageShbNamePayload = {
+  items?: RacesPageShbNameEntry[];
+};
+
+type RacesPageShbNameLookup = {
+  byNameKey: Record<string, RacesPageShbNameEntry>;
+  byRegistrationNo: Record<string, RacesPageShbNameEntry>;
+};
+
+const EMPTY_RACES_PAGE_SHB_LOOKUP: RacesPageShbNameLookup = {
+  byNameKey: {},
+  byRegistrationNo: {},
+};
+
+const normalizeRacesPageShbNameKey = (value?: string | null) =>
+  String(value ?? "")
+    .normalize("NFKC")
+    .replace(/[\s　]/g, "")
+    .trim();
+
+const buildRacesPageShbLookup = (items: RacesPageShbNameEntry[]): RacesPageShbNameLookup => {
+  const byNameKey: Record<string, RacesPageShbNameEntry> = {};
+  const byRegistrationNo: Record<string, RacesPageShbNameEntry> = {};
+
+  items.forEach((item) => {
+    const nameKey = normalizeRacesPageShbNameKey(item.nameKey || item.displayName);
+    if (nameKey) byNameKey[nameKey] = item;
+
+    const registrationNo = String(item.registrationNo ?? "").trim();
+    if (registrationNo) byRegistrationNo[registrationNo] = item;
+  });
+
+  return { byNameKey, byRegistrationNo };
+};
+
+const getRacesPageShbEntryForRider = (
+  rider: { name?: string; registrationNo?: string },
+  lookup: RacesPageShbNameLookup
+) => {
+  const registrationNo = String(rider.registrationNo ?? "").trim();
+  if (registrationNo && lookup.byRegistrationNo[registrationNo]) {
+    return lookup.byRegistrationNo[registrationNo];
+  }
+
+  const nameKey = normalizeRacesPageShbNameKey(rider.name);
+  return nameKey ? lookup.byNameKey[nameKey] : undefined;
+};
+
+const formatRacesPageShbNumber = (value?: number | null) => {
+  const number = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(number) ? String(number) : "--";
+};
+
+const formatRacesPageShbRate = (value?: number | null) => {
+  const number = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(number) ? `${Math.round(number)}%` : "--";
+};
+
+const renderRacesPageShbBadge = (entry?: RacesPageShbNameEntry | null): ReactNode => {
+  if (!entry) {
+    return (
+      <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "5px 9px", background: "#f8fafc", border: "1px solid #e2e8f0", color: "#94a3b8", fontSize: "11px", fontWeight: 900, whiteSpace: "nowrap" }}>
+        BS --
+      </span>
+    );
+  }
+
+  const chips = [
+    `B ${formatRacesPageShbNumber(entry.bCount)}`,
+    `B3 ${formatRacesPageShbRate(entry.bTop3Rate)}`,
+    `OUT ${formatRacesPageShbRate(entry.bOutsideRate)}`,
+    `S ${formatRacesPageShbNumber(entry.sCount)}`,
+  ];
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap", minWidth: "156px" }}>
+      {chips.map((chip) => (
+        <span key={chip} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "4px 7px", background: "#f8f5ff", border: "1px solid #e7ddfb", color: "#6d55a8", fontSize: "10px", fontWeight: 900, whiteSpace: "nowrap" }}>
+          {chip}
+        </span>
+      ))}
+    </div>
+  );
+};
+
 
 async function fetchGeneratedTodayRacesPayload(dateKey: string) {
   let lastError: unknown = null;
@@ -2255,6 +2357,7 @@ export default function RacesPage() {
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [weatherError, setWeatherError] = useState("");
   const [predictionResultMap, setPredictionResultMap] = useState<PredictionResultMap>(() => loadStoredPredictionResults());
+  const [shbNameLookup, setShbNameLookup] = useState<RacesPageShbNameLookup>(() => EMPTY_RACES_PAGE_SHB_LOOKUP);
 
 
 
@@ -2269,6 +2372,31 @@ export default function RacesPage() {
 
     return () => {
       window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadShbNameIndex = async () => {
+      try {
+        const response = await fetch(`${SHB_NAME_INDEX_URL}?v=${Date.now()}`, { cache: "no-store" });
+        if (!response.ok) return;
+
+        const payload = await response.json() as RacesPageShbNamePayload;
+        const items = Array.isArray(payload.items) ? payload.items : [];
+
+        if (!isActive) return;
+        setShbNameLookup(buildRacesPageShbLookup(items));
+      } catch {
+        if (isActive) setShbNameLookup(EMPTY_RACES_PAGE_SHB_LOOKUP);
+      }
+    };
+
+    loadShbNameIndex();
+
+    return () => {
+      isActive = false;
     };
   }, []);
 
@@ -3194,11 +3322,14 @@ const selectedRaceResultCards = [
   const enhancedRiderRows = selectedRiders.map((rider, index) => {
     const metrics = buildEnhancedRiderMetrics(rider, index);
     const markInfo = riderMarkLookup.get(rider.carNo);
+    const shb = getRacesPageShbEntryForRider(rider, shbNameLookup);
 
     return {
       rider,
       metrics,
       markInfo,
+      shb,
+      shbBadge: renderRacesPageShbBadge(shb),
       profileLine: deriveRiderProfileLine(rider),
       commentLabel: rider.comment?.trim() || "コメント未掲載",
     };
@@ -3282,7 +3413,7 @@ const selectedRaceResultCards = [
     { key: "gpt" as const, label: "GPT素材", sub: "貼り付け用" },
   ];
 
-  const riderCardTableRows = enhancedRiderRows.map(({ rider, metrics, markInfo, profileLine }) => ([
+  const riderCardTableRows = enhancedRiderRows.map(({ rider, metrics, markInfo, profileLine, shbBadge }) => ([
     <span style={{ display: "inline-flex", minWidth: "30px", height: "30px", alignItems: "center", justifyContent: "center", borderRadius: "9999px", background: getKeirinNumberColor(rider.carNo), color: getContrastTextColor(getKeirinNumberColor(rider.carNo)), fontWeight: 900 }}>{rider.carNo}</span>,
     rider.name,
     profileLine,
@@ -3290,6 +3421,7 @@ const selectedRaceResultCards = [
     rider.style || "—",
     metrics.s,
     metrics.b,
+    shbBadge,
     metrics.wins,
     metrics.seconds,
     metrics.thirds,
@@ -4419,7 +4551,7 @@ gap: isMobile ? "10px" : "12px",
                       </div>
                     </div>
                     {renderMiniTable(
-                      ["車", "選手名", "府県・年齢・期別・級班", "競走得点", "脚質", "S", "B", "1着", "2着", "3着", "着外", "勝率", "2連対率", "3連対率", "印"],
+                      ["車", "選手名", "府県・年齢・期別・級班", "競走得点", "脚質", "S", "B", "BS", "1着", "2着", "3着", "着外", "勝率", "2連対率", "3連対率", "印"],
                       riderCardTableRows,
                     )}
                   </div>
