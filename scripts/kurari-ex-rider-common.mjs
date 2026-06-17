@@ -35,6 +35,20 @@ export const riderExactRoot = path.join(
   "exact",
   "riders",
 );
+export const keirinJpEntriesPath = path.join(
+  projectRoot,
+  "public",
+  "data",
+  "races",
+  "keirin-jp-entries.generated.json",
+);
+export const keirinJpResultsPath = path.join(
+  projectRoot,
+  "public",
+  "data",
+  "races",
+  "keirin-jp-results.generated.json",
+);
 
 export function normalizeRiderName(value) {
   return String(value ?? "")
@@ -58,9 +72,86 @@ async function loadOfficialRiderSupplement() {
   }
 }
 
+async function loadKeirinJpFeedIdentityCards() {
+  const files = [
+    { file: keirinJpEntriesPath, source: "keirin-jp-entries" },
+    { file: keirinJpResultsPath, source: "keirin-jp-results" },
+  ];
+
+  const byNameKey = new Map();
+
+  function addRecord(raw, source) {
+    const name = String(raw?.name ?? raw?.riderName ?? raw?.playerName ?? "").trim();
+    const registrationNo = normalizeRegistrationNo(raw?.registrationNo ?? raw?.registrationNumber ?? raw?.regNo);
+    const nameKey = normalizeRiderName(name);
+
+    if (!name || !nameKey || !registrationNo) return;
+
+    const group = byNameKey.get(nameKey) ?? {
+      nameKey,
+      displayName: name,
+      registrations: new Map(),
+      sources: new Set(),
+    };
+
+    if (!group.registrations.has(registrationNo)) {
+      group.registrations.set(registrationNo, {
+        id: registrationNo,
+        registrationNo,
+        name,
+        source,
+        identitySource: "keirin-jp-feed",
+      });
+    }
+
+    group.sources.add(source);
+    byNameKey.set(nameKey, group);
+  }
+
+  function visit(value, source, depth = 0) {
+    if (depth > 12) return;
+
+    if (Array.isArray(value)) {
+      for (const item of value) visit(item, source, depth + 1);
+      return;
+    }
+
+    if (!value || typeof value !== "object") return;
+
+    addRecord(value, source);
+
+    for (const child of Object.values(value)) {
+      visit(child, source, depth + 1);
+    }
+  }
+
+  for (const { file, source } of files) {
+    try {
+      const payload = JSON.parse(await readFile(file, "utf8"));
+      visit(payload, source);
+    } catch (error) {
+      if (error?.code === "ENOENT") continue;
+      throw error;
+    }
+  }
+
+  return [...byNameKey.values()]
+    .filter((group) => group.registrations.size === 1)
+    .map((group) => {
+      const card = [...group.registrations.values()][0];
+      return {
+        ...card,
+        name: card.name || group.displayName,
+        nameKey: group.nameKey,
+        sources: [...group.sources].sort(),
+      };
+    });
+}
+
 export async function loadRiderIdentitySources() {
   const playerCards = JSON.parse(await readFile(playerCardIndexPath, "utf8"));
   const officialSupplementCards = await loadOfficialRiderSupplement();
+  const keirinJpFeedCards = await loadKeirinJpFeedIdentityCards();
   let overrides = {};
   try {
     overrides = JSON.parse(await readFile(riderOverridePath, "utf8"));
@@ -70,15 +161,34 @@ export async function loadRiderIdentitySources() {
 
   const cardsByRegistrationNo = new Map();
   const cardsByNameKey = new Map();
-  for (const card of [...officialSupplementCards, ...playerCards]) {
+  const addIdentityCard = (card) => {
     const registrationNo = normalizeRegistrationNo(card.registrationNo ?? card.id);
     const nameKey = normalizeRiderName(card.name);
-    if (!registrationNo || !nameKey) continue;
+    if (!registrationNo || !nameKey) return null;
+
     const normalizedCard = { ...card, registrationNo, nameKey };
     cardsByRegistrationNo.set(registrationNo, normalizedCard);
+
     const current = cardsByNameKey.get(nameKey) ?? [];
     current.push(normalizedCard);
     cardsByNameKey.set(nameKey, current);
+
+    return normalizedCard;
+  };
+
+  for (const card of [...officialSupplementCards, ...playerCards]) {
+    addIdentityCard(card);
+  }
+
+  for (const card of keirinJpFeedCards) {
+    const registrationNo = normalizeRegistrationNo(card.registrationNo ?? card.id);
+    const nameKey = normalizeRiderName(card.name);
+    if (!registrationNo || !nameKey) continue;
+
+    const current = cardsByNameKey.get(nameKey) ?? [];
+    if (current.length > 0) continue;
+
+    addIdentityCard(card);
   }
 
   const normalizedOverrides = new Map();
@@ -90,6 +200,7 @@ export async function loadRiderIdentitySources() {
 
   return {
     playerCards,
+    keirinJpFeedCards,
     cardsByRegistrationNo,
     cardsByNameKey,
     overrides: normalizedOverrides,
