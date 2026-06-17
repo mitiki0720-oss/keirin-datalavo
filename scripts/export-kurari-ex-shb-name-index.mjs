@@ -35,10 +35,21 @@ function addSet(map, key, value) {
   map.set(key, current);
 }
 
+function hasNoisyRiderNameToken(value) {
+  const text = String(value ?? "");
+  return (
+    /[:;,]/u.test(text)
+    || /\b[SB]\s*[:;]/iu.test(text)
+    || /\d/u.test(text)
+    || text.includes("\u7740")
+  );
+}
+
 function isLikelyRiderName(name, nameKey) {
   const text = String(name ?? "").trim();
   const key = String(nameKey ?? "").trim();
   if (!text || !key) return false;
+  if (hasNoisyRiderNameToken(text) || hasNoisyRiderNameToken(key)) return false;
   if (/^[【[]/.test(text) || /[】\]]/.test(text)) return false;
   if (/^(WEATHER ACTUAL|最終オッズ参考|結果メモ|払戻|全着順|決まり手|天候|風向|風速|気温|降水|基準)$/u.test(key)) return false;
   if (!/[一-龯々〆ヵヶぁ-んァ-ヴー]/u.test(key)) return false;
