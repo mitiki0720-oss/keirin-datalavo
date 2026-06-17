@@ -951,6 +951,49 @@ function normalizeGeneratedSession(value: unknown): RaceScheduleItem["session"] 
   return "day";
 }
 
+const RACES_ALL_REFUND_TEXT = "\u5168\u8fd4\u9084";
+const RACES_CANCEL_TEXT = "\u30ec\u30fc\u30b9\u4e2d\u6b62";
+const RACES_ALL_REFUND_STATUS_LABEL = "\u26a0\ufe0f \u30ec\u30fc\u30b9\u4e2d\u6b62\u30fb\u5168\u8fd4\u9084";
+const RACES_ALL_REFUND_ORDER_LABEL = "\u5168\u8fd4\u9084\uff08\u7740\u9806\u7167\u5408\u306a\u3057\uff09";
+
+function isRacesPageAllRefundRace(race?: LiveRaceDetail | null) {
+  const noteText = String(race?.resultNote ?? "");
+  if (noteText.includes(RACES_ALL_REFUND_TEXT) || noteText.includes(RACES_CANCEL_TEXT)) return true;
+
+  const payoutText = JSON.stringify([
+    race?.payouts,
+    race?.result?.payout2tan,
+    race?.result?.payout2fuku,
+    race?.result?.payout3tan,
+    race?.result?.payout3fuku,
+    race?.result?.payoutWide,
+  ]);
+
+  return payoutText.includes(RACES_ALL_REFUND_TEXT);
+}
+
+function formatRacesPageResultOrderForRace(race: LiveRaceDetail | null | undefined, value?: string[] | null) {
+  if (isRacesPageAllRefundRace(race)) return RACES_ALL_REFUND_ORDER_LABEL;
+  return formatRacesPageResultOrder(value);
+}
+
+function getRacesPageResultLeadText(race: LiveRaceDetail | null | undefined, resultStatus: string) {
+  if (isRacesPageAllRefundRace(race)) return RACES_ALL_REFUND_STATUS_LABEL;
+  return resultStatus === "confirmed" ? "\u81ea\u52d5\u53d6\u5f97\u3057\u305f\u7d50\u679c\u3092\u8868\u793a\u4e2d" : "\u7d50\u679c\u306e\u78ba\u5b9a\u5f85\u3061";
+}
+
+function getRacesPageResultBadgeText(race: LiveRaceDetail | null | undefined, resultStatus: string, finalizedAt?: string) {
+  if (isRacesPageAllRefundRace(race)) return RACES_ALL_REFUND_STATUS_LABEL;
+  if (finalizedAt) return "\u78ba\u5b9a " + finalizedAt;
+  return resultStatus === "confirmed" ? "\u7d50\u679c\u78ba\u5b9a" : "\u672a\u78ba\u5b9a";
+}
+
+function getRacesPageResultSubText(race: LiveRaceDetail | null | undefined, resultStatus: string) {
+  if (isRacesPageAllRefundRace(race)) return RACES_ALL_REFUND_TEXT;
+  return resultStatus === "confirmed" ? "3\u9023\u5358\u7167\u5408\u30ad\u30fc" : "\u672a\u78ba\u5b9a";
+}
+
+
 function formatRacesPageResultOrder(value?: string[] | null) {
   if (!Array.isArray(value) || value.length < 3) return "未確定";
   return value.slice(0, 3).join("-");
@@ -2714,8 +2757,8 @@ const selectedRacePayout3fuku = resolveRacePayoutByBetType(selectedRace as never
 const selectedRaceResultCards = [
   {
     label: "着順",
-    value: formatRacesPageResultOrder(selectedRaceFinishOrder),
-    sub: selectedRaceResultStatus === "confirmed" ? "3連単照合キー" : "未確定",
+    value: formatRacesPageResultOrderForRace(selectedRace, selectedRaceFinishOrder),
+    sub: getRacesPageResultSubText(selectedRace, selectedRaceResultStatus),
   },
   {
     label: "決まり手",
@@ -4321,11 +4364,11 @@ gap: isMobile ? "10px" : "12px",
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", marginBottom: "14px" }}>
                 <div>
                   <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.18em", color: selectedRaceResultStatus === "confirmed" ? "#0f766e" : "#8c63c7", marginBottom: "6px" }}>RESULT</div>
-                  <div style={{ fontSize: "13px", color: "#64748b", fontWeight: 700 }}>{selectedRaceResultStatus === "confirmed" ? "自動取得した結果を表示中" : "結果の確定待ち"}</div>
+                  <div style={{ fontSize: "13px", color: "#64748b", fontWeight: 700 }}>{getRacesPageResultLeadText(selectedRace, selectedRaceResultStatus)}</div>
                 </div>
                 <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", borderRadius: "9999px", padding: "8px 12px", background: "#ffffff", border: selectedRaceResultStatus === "confirmed" ? "1px solid #cfe9d8" : "1px solid #ebe3f3" }}>
                   <span style={{ width: "7px", height: "7px", borderRadius: "9999px", background: selectedRaceResultStatus === "confirmed" ? "#0f766e" : "#7a67b8", display: "inline-block" }} />
-                  <span style={{ fontSize: "11px", fontWeight: 900, color: "#5f6f84" }}>{selectedRaceResult?.finalizedAt ? `確定 ${selectedRaceResult.finalizedAt}` : selectedRaceResultStatus === "confirmed" ? "結果確定" : "未確定"}</span>
+                  <span style={{ fontSize: "11px", fontWeight: 900, color: "#5f6f84" }}>{getRacesPageResultBadgeText(selectedRace, selectedRaceResultStatus, selectedRaceResult?.finalizedAt)}</span>
                 </div>
               </div>
 
@@ -4426,7 +4469,7 @@ gap: isMobile ? "10px" : "12px",
                       ) : null}
                     </div>
                   ) : (
-                    <div style={{ fontSize: "13px", color: "#64748b", lineHeight: 1.8 }}>結果確定後に着順と決まり手を表示します。</div>
+                    <div style={{ fontSize: "13px", color: "#64748b", lineHeight: 1.8 }}>{isRacesPageAllRefundRace(selectedRace) ? "\u30ec\u30fc\u30b9\u4e2d\u6b62\u30fb\u5168\u8fd4\u9084\u306e\u305f\u3081\u3001\u7740\u9806\u30fb\u6c7a\u307e\u308a\u624b\u306e\u7167\u5408\u306f\u3042\u308a\u307e\u305b\u3093\u3002" : "\u7d50\u679c\u78ba\u5b9a\u5f8c\u306b\u7740\u9806\u3068\u6c7a\u307e\u308a\u624b\u3092\u8868\u793a\u3057\u307e\u3059\u3002"}</div>
                   )}
                 </div>
                 <div style={{ borderRadius: "18px", border: "1px solid #ece5f6", background: "#fffefe", padding: "14px" }}>

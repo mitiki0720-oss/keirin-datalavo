@@ -56,6 +56,7 @@ const OUTPUT_PATH = shouldWritePublic ? PUBLIC_OUTPUT_PATH : LOCAL_DEBUG_OUTPUT_
 const OVERRIDE_PATH = path.resolve("scripts/today-races-overrides.json");
 const RACE_SCHEDULE_DATA_PATH = path.resolve("src/data/raceScheduleData.ts");
 const UPCOMING_SCHEDULE_DATA_PATH = path.resolve("public/data/races/upcoming-schedule.generated.json");
+const KEIRIN_JP_RESULTS_PATH = path.resolve("public/data/races/keirin-jp-results.generated.json");
 
 const DEBUG_DIR = path.resolve("scripts");
 const DEBUG_ODDS_DIR = path.join(DEBUG_DIR, "debug");
@@ -4005,6 +4006,138 @@ async function fetchRaceResultWithFallback({ raceId, date, venue, raceNo, detail
   };
 }
 
+
+const KEIRIN_LABEL_KEIRINJO = "\u7af6\u8f2a\u5834";
+const KEIRIN_LABEL_KEIRIN = "\u7af6\u8f2a";
+const ALL_REFUND_TEXT = "\u5168\u8fd4\u9084";
+const ALL_REFUND_NOTE = "\u30ec\u30fc\u30b9\u4e2d\u6b62\u30fb\u5168\u8fd4\u9084\uff08\u516c\u5f0f\u7d50\u679c\u306b\u5168\u8fd4\u9084\u8868\u793a\uff09";
+
+function normalizeOfficialRefundVenueName(value) {
+  return String(value ?? "")
+    .replace(new RegExp(KEIRIN_LABEL_KEIRINJO, "g"), "")
+    .replace(new RegExp(KEIRIN_LABEL_KEIRIN, "g"), "")
+    .replace(/[\\s\u3000]+/g, "")
+    .trim();
+}
+
+function extractOfficialAllRefundPayoutItems(officialRace) {
+  const payouts = officialRace?.payouts;
+  if (!payouts || typeof payouts !== "object") return [];
+
+  const labelMap = [
+    ["quinella", "2\u8eca\u8907"],
+    ["exacta", "2\u8eca\u5358"],
+    ["trio", "3\u9023\u8907"],
+    ["trifecta", "3\u9023\u5358"],
+    ["wide", "\u30ef\u30a4\u30c9"],
+    ["bracketQuinella", "\u67a0\u8907"],
+    ["bracketExacta", "\u67a0\u5358"],
+  ];
+
+  const items = [];
+
+  for (const [key, betType] of labelMap) {
+    const rows = Array.isArray(payouts[key]) ? payouts[key] : [];
+    for (const row of rows) {
+      const display = String(row?.payoutDisplay ?? row?.payout ?? "");
+      if (!display.includes(ALL_REFUND_TEXT)) continue;
+      items.push({
+        betType,
+        combination: ALL_REFUND_TEXT,
+        payout: ALL_REFUND_TEXT,
+        popularity: null,
+      });
+    }
+  }
+
+  return items;
+}
+
+async function loadOfficialAllRefundRaceMap() {
+  let payload = null;
+
+  try {
+    payload = JSON.parse(await fs.readFile(KEIRIN_JP_RESULTS_PATH, "utf-8"));
+  } catch {
+    return new Map();
+  }
+
+  const map = new Map();
+
+  for (const venue of payload?.venues ?? []) {
+    const venueName = normalizeOfficialRefundVenueName(venue?.venueName ?? venue?.name ?? venue?.venue ?? "");
+    if (!venueName) continue;
+
+    for (const race of venue?.races ?? []) {
+      const raceNo = Number(race?.raceNumber ?? race?.raceNo ?? race?.no ?? 0);
+      if (!Number.isFinite(raceNo) || raceNo <= 0) continue;
+
+      const refundPayouts = extractOfficialAllRefundPayoutItems(race);
+      if (refundPayouts.length === 0) continue;
+
+      map.set(venueName + ":" + raceNo, {
+        venueName,
+        raceNo,
+        payouts: refundPayouts,
+        officialStatus: race?.resultStatus ?? "",
+        operationStatus: race?.operationStatus ?? "",
+        raceEnded: race?.raceEnded ?? false,
+        resultCode: race?.resultCode ?? null,
+        lastUpdateTime: race?.lastUpdateTime ?? "",
+      });
+    }
+  }
+
+  return map;
+}
+
+function applyOfficialAllRefundResults(payload, allRefundRaceMap) {
+  if (!payload || !Array.isArray(payload.venues) || allRefundRaceMap.size === 0) {
+    return { appliedCount: 0 };
+  }
+
+  let appliedCount = 0;
+
+  for (const venue of payload.venues) {
+    const venueName = normalizeOfficialRefundVenueName(venue?.venue ?? venue?.venueName ?? venue?.name ?? "");
+    if (!venueName || !Array.isArray(venue.races)) continue;
+
+    for (const race of venue.races) {
+      const raceNo = Number(race?.raceNo ?? race?.raceNumber ?? race?.no ?? 0);
+      if (!Number.isFinite(raceNo) || raceNo <= 0) continue;
+
+      const refund = allRefundRaceMap.get(venueName + ":" + raceNo);
+      if (!refund) continue;
+
+      const nextPayouts = refund.payouts.length > 0 ? refund.payouts : [
+        { betType: "\u5168\u8ced\u5f0f", combination: ALL_REFUND_TEXT, payout: ALL_REFUND_TEXT, popularity: null },
+      ];
+
+      race.resultStatus = "confirmed";
+      race.resultNote = appendNote(race.resultNote, ALL_REFUND_NOTE);
+      race.payouts = nextPayouts;
+
+      race.result = {
+        ...(race.result ?? {}),
+        status: "confirmed",
+        finishOrder: [],
+        kimarite: "",
+        secondKimarite: "",
+        payout2tan: nextPayouts.find((item) => item.betType === "2\u8eca\u5358") ?? null,
+        payout2fuku: nextPayouts.filter((item) => item.betType === "2\u8eca\u8907"),
+        payout3tan: nextPayouts.find((item) => item.betType === "3\u9023\u5358") ?? null,
+        payout3fuku: nextPayouts.find((item) => item.betType === "3\u9023\u8907") ?? null,
+        payoutWide: nextPayouts.filter((item) => item.betType === "\u30ef\u30a4\u30c9"),
+        finalizedAt: refund.lastUpdateTime || race.result?.finalizedAt || "",
+      };
+
+      appliedCount += 1;
+    }
+  }
+
+  return { appliedCount };
+}
+
 async function main() {
   const updatePhase = resolveUpdatePhase();
   const todayIso = getJstTodayIso();
@@ -4355,6 +4488,10 @@ async function main() {
     venues,
   };
 
+  const allRefundRaceMap = await loadOfficialAllRefundRaceMap();
+  const allRefundOverlay = applyOfficialAllRefundResults(payload, allRefundRaceMap);
+  const allRefundAppliedCount = allRefundOverlay.appliedCount;
+
   const generatedRaceCount = venues.reduce(
     (total, venue) => total + (Array.isArray(venue.races) ? venue.races.length : 0),
     0,
@@ -4492,6 +4629,7 @@ async function main() {
   console.log(`[cache] finalized reused=${cacheReusedCount}, skippedIncomplete=${cacheSkippedIncompleteCount}, fetched=${cacheFetchedCount}`);
   console.log(`matched venues=${todayVenues.length}`);
   console.log(`Generated ${venues.length} venues with race details -> ${OUTPUT_PATH}`);
+  console.log(`[official] all-refund applied=${allRefundAppliedCount}`);
   console.log(`parse debug -> ${DEBUG_JSON_PATH}`);
   console.log(`netkeirin sample html -> ${NETKEIRIN_SAMPLE_HTML_PATH}`);
   console.log(`kdreams sample html -> ${KDREAMS_SAMPLE_DETAIL_HTML_PATH}`);

@@ -1460,7 +1460,47 @@ function buildReviewPayoutLines(feedRace?: PredictionRaceItem) {
   return lines.length > 0 ? lines : ["払戻情報なし"];
 }
 
+const REVIEW_ALL_REFUND_TEXT = "\u5168\u8fd4\u9084";
+const REVIEW_CANCEL_TEXT = "\u30ec\u30fc\u30b9\u4e2d\u6b62";
+const REVIEW_ALL_REFUND_STATUS_LABEL = "\u30ec\u30fc\u30b9\u4e2d\u6b62\u30fb\u5168\u8fd4\u9084";
+const REVIEW_ALL_REFUND_ORDER_LABEL = "\u5168\u8fd4\u9084\uff08\u7740\u9806\u7167\u5408\u306a\u3057\uff09";
+const REVIEW_ALL_REFUND_HIT_LABEL = "\u5168\u8fd4\u9084\uff08\u8cfc\u5165\u7121\u52b9\uff09";
+
+function isReviewAllRefundRace(feedRace?: PredictionRaceItem) {
+  const noteText = String(feedRace?.resultNote ?? "");
+  if (noteText.includes(REVIEW_ALL_REFUND_TEXT) || noteText.includes(REVIEW_CANCEL_TEXT)) return true;
+
+  const payoutText = JSON.stringify([
+    feedRace?.payouts,
+    feedRace?.result?.payout2tan,
+    feedRace?.result?.payout2fuku,
+    feedRace?.result?.payout3tan,
+    feedRace?.result?.payout3fuku,
+    feedRace?.result?.payoutWide,
+  ]);
+
+  return payoutText.includes(REVIEW_ALL_REFUND_TEXT);
+}
+
+function getReviewResultStatusLabel(feedRace?: PredictionRaceItem) {
+  if (isReviewAllRefundRace(feedRace)) return REVIEW_ALL_REFUND_STATUS_LABEL;
+  return feedRace?.result?.status ?? feedRace?.resultStatus ?? "\u63a5\u7d9a\u5f85\u3061";
+}
+
+function getReviewResultOrderLabel(feedRace?: PredictionRaceItem, resultOrder?: string) {
+  if (isReviewAllRefundRace(feedRace)) return REVIEW_ALL_REFUND_ORDER_LABEL;
+  return resultOrder || "--";
+}
+
+function getReviewHitStatusLabelForCopy(feedRace?: PredictionRaceItem, hitStatus?: string) {
+  if (isReviewAllRefundRace(feedRace)) return REVIEW_ALL_REFUND_HIT_LABEL;
+  return hitStatus || "pending";
+}
+
+
 function buildReviewFullResultLines(feedRace?: PredictionRaceItem) {
+  if (isReviewAllRefundRace(feedRace)) return ["\u5168\u7740\u9806: \u30ec\u30fc\u30b9\u4e2d\u6b62\u30fb\u5168\u8fd4\u9084\uff08\u7740\u9806\u7167\u5408\u306a\u3057\uff09"];
+
   const entries = getReviewFinishOrderRows(feedRace);
   if (entries.length === 0) return ["全着順: 接続待ち"];
 
@@ -1805,12 +1845,18 @@ function buildResultCopy(
     lines.push(`■ ${group.venue} ${race.raceNumber}R`);
     lines.push(`レース名: ${race.feedRace?.title ?? group.title ?? "レース名未取得"}`);
     lines.push(`発走時刻: ${race.feedRace?.time ?? "--"}`);
-    lines.push(`結果確定: ${race.feedRace?.result?.status ?? race.feedRace?.resultStatus ?? "接続待ち"}`);
-    lines.push(`着順: ${resultOrder}`);
-    lines.push(`3連単照合キー: ${resultOrder}`);
-    lines.push(`最終判定: ${hitStatus}`);
-    lines.push(`的中券種: ${race.resultRecord?.hitBetType ?? "--"}`);
-    lines.push(`的中組み合わせ: ${race.resultRecord?.hitCombination ?? "--"}`);
+    const resultStatusLabel = getReviewResultStatusLabel(race.feedRace);
+    const resultOrderLabel = getReviewResultOrderLabel(race.feedRace, resultOrder);
+    const hitStatusLabel = getReviewHitStatusLabelForCopy(race.feedRace, hitStatus);
+    const hitBetTypeLabel = isReviewAllRefundRace(race.feedRace) ? REVIEW_ALL_REFUND_TEXT : race.resultRecord?.hitBetType ?? "--";
+    const hitCombinationLabel = isReviewAllRefundRace(race.feedRace) ? REVIEW_ALL_REFUND_TEXT : race.resultRecord?.hitCombination ?? "--";
+
+    lines.push("\u7d50\u679c\u78ba\u5b9a: " + resultStatusLabel);
+    lines.push("\u7740\u9806: " + resultOrderLabel);
+    lines.push("3\u9023\u5358\u7167\u5408\u30ad\u30fc: " + (isReviewAllRefundRace(race.feedRace) ? REVIEW_ALL_REFUND_TEXT : resultOrderLabel));
+    lines.push("\u6700\u7d42\u5224\u5b9a: " + hitStatusLabel);
+    lines.push("\u7684\u4e2d\u5238\u7a2e: " + hitBetTypeLabel);
+    lines.push("\u7684\u4e2d\u7d44\u307f\u5408\u308f\u305b: " + hitCombinationLabel);
     lines.push(`投資: ${investment}`);
     lines.push(`払戻: ${payout}`);
     lines.push(`収支: ${profit}`);
