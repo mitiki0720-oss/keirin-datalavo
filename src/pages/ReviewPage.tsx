@@ -509,31 +509,126 @@ function extractReviewHitRatePercentage(source: string) {
   const value = Number(match[1]);
   return Number.isFinite(value) ? value : undefined;
 }
+type ReviewFileCalculatedMetrics = {
+  hitRateValue?: number;
+  roiValue?: number;
+  profit?: number;
+  checkedCount?: number;
+  investment?: number;
+  payout?: number;
+};
+
+const REVIEW_FILE_FINAL_JUDGEMENT_LABEL = "\u6700\u7d42\u5224\u5b9a";
+const REVIEW_FILE_HIT_TEXT = "\u7684\u4e2d";
+const REVIEW_FILE_MISS_TEXT = "\u4e0d\u7684\u4e2d";
+const REVIEW_FILE_ALL_REFUND_TEXT = "\u5168\u8fd4\u9084";
+const REVIEW_FILE_PURCHASE_VOID_TEXT = "\u8cfc\u5165\u7121\u52b9";
+const REVIEW_FILE_INVESTMENT_LABEL = "\u6295\u8cc7";
+const REVIEW_FILE_PAYOUT_LABEL = "\u6255\u623b";
+const REVIEW_FILE_PROFIT_LABEL = "\u53ce\u652f";
+
+function normalizeReviewFileMetricNumber(value: string) {
+  const normalized = value.replace(/,/g, "").replace(/\u2212/g, "-").trim();
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function extractReviewFileNumbersByLabel(source: string, label: string) {
+  const values: number[] = [];
+  for (const line of source.split(/\n+/u)) {
+    const index = line.indexOf(label);
+    if (index < 0) continue;
+    const tail = line.slice(index + label.length);
+    const match = tail.match(/[:?]\s*([+\-\u2212]?[\d,]+)/u);
+    const parsed = normalizeReviewFileMetricNumber(match?.[1] ?? "");
+    if (parsed !== undefined) values.push(parsed);
+  }
+  return values;
+}
+
+function sumReviewFileMetricNumbers(values: number[]) {
+  return values.reduce((total, value) => total + value, 0);
+}
+
+function calculateReviewFileMetricsFromResultText(source: string): ReviewFileCalculatedMetrics {
+  const lines = source.split(/\n+/u);
+  let hitCount = 0;
+  let settledCount = 0;
+
+  for (const line of lines) {
+    if (!line.includes(REVIEW_FILE_FINAL_JUDGEMENT_LABEL)) continue;
+    if (line.includes(REVIEW_FILE_ALL_REFUND_TEXT) || line.includes(REVIEW_FILE_PURCHASE_VOID_TEXT)) continue;
+
+    const normalized = line.toLowerCase();
+    if (line.includes(REVIEW_FILE_MISS_TEXT) || normalized.includes("miss")) {
+      settledCount += 1;
+      continue;
+    }
+
+    if (line.includes(REVIEW_FILE_HIT_TEXT) || normalized.includes("hit")) {
+      hitCount += 1;
+      settledCount += 1;
+    }
+  }
+
+  const investmentValues = extractReviewFileNumbersByLabel(source, REVIEW_FILE_INVESTMENT_LABEL);
+  const payoutValues = extractReviewFileNumbersByLabel(source, REVIEW_FILE_PAYOUT_LABEL);
+  const profitValues = extractReviewFileNumbersByLabel(source, REVIEW_FILE_PROFIT_LABEL);
+
+  const investment = investmentValues.length > 0 ? sumReviewFileMetricNumbers(investmentValues) : undefined;
+  const payout = payoutValues.length > 0 ? sumReviewFileMetricNumbers(payoutValues) : undefined;
+  const directProfit = profitValues.length > 0 ? sumReviewFileMetricNumbers(profitValues) : undefined;
+  const profit = directProfit ?? (investment !== undefined && payout !== undefined ? payout - investment : undefined);
+
+  return {
+    hitRateValue: settledCount > 0 ? (hitCount / settledCount) * 100 : undefined,
+    roiValue: investment !== undefined && investment > 0 && payout !== undefined ? (payout / investment) * 100 : undefined,
+    profit,
+    checkedCount: settledCount > 0 ? settledCount : undefined,
+    investment,
+    payout,
+  };
+}
+
 
 function buildReviewFileCardMetrics(group: ReviewFileVenueGroup): ReviewFileCardMetrics {
-  const source = group.summaryText;
-  const hitRateValue = extractReviewHitRatePercentage(source);
-  const roiValue = extractReviewSummaryPercentage(source, "回収率");
-  const checkedCount = extractReviewSummaryNumber(source, "照合数");
-  const investment = extractReviewSummaryNumber(source, "投資");
-    const payout =
-      extractReviewSummaryNumber(source, "払戻") ??
-      extractReviewSummaryNumber(source, "回収");
-  const profit = extractReviewSummaryNumber(source, "収支") ?? (
-    investment !== undefined && payout !== undefined
-      ? payout - investment
+  const summarySource = group.summaryText;
+  const calculated = summarySource.trim()
+    ? {}
+    : calculateReviewFileMetricsFromResultText(group.resultText);
+
+  const summaryHitRateValue = extractReviewHitRatePercentage(summarySource);
+  const summaryRoiValue = extractReviewSummaryPercentage(summarySource, "\u56de\u53ce\u7387");
+  const summaryCheckedCount = extractReviewSummaryNumber(summarySource, "\u7167\u5408\u6570");
+  const summaryInvestment = extractReviewSummaryNumber(summarySource, "\u6295\u8cc7");
+  const summaryPayout =
+    extractReviewSummaryNumber(summarySource, "\u6255\u623b") ??
+    extractReviewSummaryNumber(summarySource, "\u56de\u53ce");
+  const summaryProfit = extractReviewSummaryNumber(summarySource, "\u53ce\u652f") ?? (
+    summaryInvestment !== undefined && summaryPayout !== undefined
+      ? summaryPayout - summaryInvestment
       : undefined
   );
 
+  const hitRateValue = summaryHitRateValue ?? calculated.hitRateValue;
+  const roiValue = summaryRoiValue ?? calculated.roiValue;
+  const checkedCount = summaryCheckedCount ?? calculated.checkedCount;
+  const profit = summaryProfit ?? calculated.profit;
+
+  const hitSource = summaryHitRateValue !== undefined ? "summary" : calculated.hitRateValue !== undefined ? "\u7d50\u679cTXT" : "\u672a\u767b\u9332";
+  const roiSource = summaryRoiValue !== undefined ? "summary" : calculated.roiValue !== undefined ? "\u7d50\u679cTXT" : "\u672a\u767b\u9332";
+  const profitSource = summaryProfit !== undefined ? "summary" : calculated.profit !== undefined ? "\u7d50\u679cTXT" : "\u672a\u767b\u9332";
+  const checkedSource = summaryCheckedCount !== undefined ? "\u7167\u5408\u30ec\u30fc\u30b9\u6570" : calculated.checkedCount !== undefined ? "\u7d50\u679cTXT\u304b\u3089\u7b97\u51fa" : "\u307e\u3068\u3081TXT\u672a\u767b\u9332";
+
   return {
-    hitRate: hitRateValue !== undefined ? `${hitRateValue.toFixed(1)}%` : "--",
-    hitSub: hitRateValue !== undefined ? "summary" : "未登録",
-    roi: roiValue !== undefined ? `${roiValue.toFixed(1)}%` : "--",
-    roiSub: roiValue !== undefined ? "summary" : "未登録",
+    hitRate: hitRateValue !== undefined ? hitRateValue.toFixed(1) + "%" : "--",
+    hitSub: hitSource,
+    roi: roiValue !== undefined ? roiValue.toFixed(1) + "%" : "--",
+    roiSub: roiSource,
     profit: profit !== undefined ? formatProfit(profit) : "--",
-    profitSub: profit !== undefined ? "summary" : "未登録",
-    checkedCount: checkedCount !== undefined ? `${checkedCount}R` : "--",
-    checkedSub: checkedCount !== undefined ? "照合レース数" : "まとめTXT未登録",
+    profitSub: profitSource,
+    checkedCount: checkedCount !== undefined ? String(checkedCount) + "R" : "--",
+    checkedSub: checkedSource,
     predictionReady: Boolean(group.predictionFile),
     resultReady: Boolean(group.resultFile),
     summaryReady: Boolean(group.summaryFile && group.summaryText.trim()),
