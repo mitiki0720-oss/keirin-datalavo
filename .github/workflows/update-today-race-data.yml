@@ -38,14 +38,20 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
-  group: update-today-race-data
+  group: pages
   cancel-in-progress: false
 
 jobs:
   update-build-deploy:
     runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
 
     steps:
@@ -207,3 +213,17 @@ jobs:
           git push
           echo "changed=true" >> "$GITHUB_OUTPUT"
 
+      - name: Build for GitHub Pages
+        if: steps.commit_updated_data.outputs.changed == 'true'
+        run: npm run build:github
+
+      - name: Upload GitHub Pages artifact
+        if: steps.commit_updated_data.outputs.changed == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+      - name: Deploy to GitHub Pages
+        if: steps.commit_updated_data.outputs.changed == 'true'
+        id: deployment
+        uses: actions/deploy-pages@v4
