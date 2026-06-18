@@ -284,6 +284,69 @@ function buildExactLines(exact: KurariExVenueExact, context?: KurariExPrediction
   return lines;
 }
 
+function isKurariExUsefulMetric(metric?: KurariExMetric | null, minTotal = 20, minRate = 0) {
+  return !!metric && metric.rate != null && metric.total >= minTotal && metric.rate >= minRate;
+}
+
+function buildKurariExPracticalMemo(exact: KurariExVenueExact, context?: KurariExPredictionContext | null) {
+  if (exact.coverage.normalizedRaces < 30) return [];
+
+  const lines: string[] = ["【EX実戦メモ / 採用できるものだけ】"];
+  const checks: string[] = [];
+
+  if (isKurariExUsefulMetric(exact.predictionKpi.thirdOnlyMissRate, 20, 25)) {
+    checks.push("3着だけ抜け率が高い。3着保護を削らず、別線・単騎・ライン3番手を分散する。");
+  }
+  if (isKurariExUsefulMetric(exact.racePattern.sameLineTop2Rate, 20, 60)) {
+    checks.push("同ラインワンツー率が高い。本線ラインの1-2、番手差し逆目を優先確認する。");
+  }
+  if (isKurariExUsefulMetric(exact.racePattern.sameLineTop3Rate, 20, 50)) {
+    checks.push("同ラインスリー率が高い。3番手まで機能するラインは3着に残す。");
+  }
+  if (isKurariExUsefulMetric(exact.racePattern.otherLineThirdRate, 20, 10)) {
+    checks.push("別線3着混入が一定以上。3着を本線内だけで固定しない。");
+  }
+  if (isKurariExUsefulMetric(exact.racePattern.singleThirdRate, 20, 10)) {
+    checks.push("単騎3着が一定以上。単騎・イン溜めの3着差し込みを残す。");
+  }
+  if (isKurariExUsefulMetric(exact.racePattern.escapeWinRate, 30, 40)) {
+    checks.push("逃げ1着率が高め。主導権ラインの押し切りを本線候補に残す。");
+  }
+  if (isKurariExUsefulMetric(exact.racePattern.makuriWinRate, 30, 40)) {
+    checks.push("捲り1着率が高め。別線自力の頭・2着を消しすぎない。");
+  }
+  if (isKurariExUsefulMetric(exact.racePattern.sashiWinRate, 30, 40)) {
+    checks.push("差し1着率が高め。番手差し・3番手強襲・逆目を確認する。");
+  }
+
+  const keys = resolvePredictionDimensionKeys(context);
+  const dimensionLabels = {
+    timeslot: { label: "時間帯", names: { morning: "モーニング", day: "デイ", night: "ナイター", midnight: "ミッド" } },
+    raceClass: { label: "級班", names: { a: "A級", s: "S級", a3: "A3", girls: "ガールズ", other: "その他" } },
+    lineCount: { label: "分戦数", names: { "2": "2分戦", "3": "3分戦", "4+": "4分戦以上" } },
+    windSpeedMps: { label: "風速帯", names: { "0-2": "0〜2m/s", "2-4": "2〜4m/s", "4+": "4m/s以上" } },
+  } as const;
+
+  for (const dimension of Object.keys(keys) as Array<keyof typeof keys>) {
+    const key = keys[dimension];
+    if (!key) continue;
+    const entry = exact.dimensions[dimension][key];
+    if (!entry) continue;
+    const label = dimensionLabels[dimension].label;
+    const name = (dimensionLabels[dimension].names as Record<string, string>)[key] ?? key;
+    if (isKurariExUsefulMetric(entry.racePattern.sameLineTop2Rate, 8, 60)) {
+      checks.push("今回条件EX: " + label + "「" + name + "」は同ライン1-2が強め。ライン決着を軽視しない。");
+    }
+    if (isKurariExUsefulMetric(entry.predictionKpi.thirdOnlyMissRate, 8, 25)) {
+      checks.push("今回条件EX: " + label + "「" + name + "」は3着だけ抜け注意。3着候補を広げる。");
+    }
+  }
+
+  if (!checks.length) return [];
+  lines.push(...uniqueStrings(checks).slice(0, 8).map((item) => "- " + item));
+  return lines;
+}
+
 function buildKurariExPredictionMaterialText(
   venue: KurariExVenue | null,
   guidance: KurariExGuidance | null,
@@ -311,7 +374,11 @@ function buildKurariExPredictionMaterialText(
     ...(exact ? ["EXACTは正規化履歴から機械的に算出した確定集計です。", "母数が少ない指標は過信しないでください。"] : []),
     ...(venue ? ["SEEDは過去Summaryから抽出した初期知識です。"] : []),
   ];
-  if (exact) lines.push("", ...buildExactLines(exact, context));
+  if (exact) {
+    lines.push("", ...buildExactLines(exact, context));
+    const practicalMemo = buildKurariExPracticalMemo(exact, context);
+    if (practicalMemo.length) lines.push("", ...practicalMemo);
+  }
   if (riderMaterial) lines.push("", riderMaterial);
   if (venue) {
     lines.push("", "【会場別SEED】", `- 対象会場: ${venue.venueName}`);
@@ -723,9 +790,26 @@ export function buildKurariExRiderPredictionMaterial(
     "ただし、母数が少ない選手は強い根拠として固定せず、",
     "展開判断の補助として確認してください。",
   ];
+  const usableEntries = entries.filter((entry) =>
+    entry.exact.quality !== "identity-only" && entry.exact.coverage.confirmedStartCount >= 5
+  );
+  if (!usableEntries.length) {
+    return {
+      text: [
+        ...headerLines,
+        "",
+        "【登録選手EXACTからの注意】",
+        "- 今回は確認出走5R以上の選手別EXACTがないため、選手別EXACTは買い目根拠から外してください。",
+        "- LOW SAMPLE選手・素材蓄積中の選手は詳細カードを省略しています。",
+      ].join("\n"),
+      reflectedCount: 0,
+    };
+  }
+
+  const skippedLowSampleCount = entries.length - usableEntries.length;
   const cards: string[] = [];
   const includedEntries: KurariExRiderPredictionEntry[] = [];
-  for (const entry of entries.slice(0, maxRiders)) {
+  for (const entry of usableEntries.slice(0, maxRiders)) {
     const card = buildKurariExRiderCard(entry, context);
     const candidate = [...headerLines, "", ...cards.flatMap((item) => [item, ""]), card].join("\n");
     if (candidate.length > 3150) break;
@@ -738,7 +822,7 @@ export function buildKurariExRiderPredictionMaterial(
       ? entry.exact.byVenue.find((item) => item.venueKey === context.venueKey)
       : null;
     return [
-      entry.exact.coverage.confirmedStartCount < 5 ? "LOW SAMPLEのため過信しない" : "",
+      skippedLowSampleCount > 0 ? "確認出走5R未満・素材蓄積中の選手は詳細カードから除外" : "",
       venue?.starts != null && venue.starts < 3 ? "当場データは母数3R未満のため参考扱い" : "",
       entry.exact.coverage.roleEligibleCount < 3 ? "役割解析可能数が少ないため、番手差し評価を固定しない" : "",
     ];
