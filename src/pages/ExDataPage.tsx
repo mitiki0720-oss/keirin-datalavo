@@ -232,6 +232,7 @@ export default function ExDataPage() {
   const [riderInitialData, setRiderInitialData] = useState<KurariExRiderExactInitialData | null>(null);
   const [riderInitialStatus, setRiderInitialStatus] = useState<"loading" | "ready" | "error">("loading");
   const [riderQuery, setRiderQuery] = useState("");
+  const [riderFilterMode, setRiderFilterMode] = useState<"all" | "practical" | "sample" | "identity">("all");
   const [selectedRiderNo, setSelectedRiderNo] = useState<string | null>(null);
   const [riderCache, setRiderCache] = useState<Record<string, KurariExRiderExact>>({});
   const [riderStatus, setRiderStatus] = useState<Record<string, "loading" | "ready" | "error">>({});
@@ -378,12 +379,21 @@ export default function ExDataPage() {
 
   const filteredRiders = useMemo(() => {
     const normalized = normalizeSearchText(riderQuery);
-    if (!normalized) return riderInitialData?.index.items ?? [];
-    return (riderInitialData?.index.items ?? []).filter((item) => (
-      [item.name, item.nameKey, item.registrationNo, item.prefecture, item.class]
-        .some((value) => normalizeSearchText(value).includes(normalized))
-    ));
-  }, [riderInitialData?.index.items, riderQuery]);
+    return (riderInitialData?.index.items ?? [])
+      .filter((item) => {
+        const matchesQuery = !normalized || [item.name, item.nameKey, item.registrationNo, item.prefecture, item.class]
+          .some((value) => normalizeSearchText(value).includes(normalized));
+        if (!matchesQuery) return false;
+        if (riderFilterMode === "practical") return item.quality !== "identity-only" && item.confirmedStartCount >= 5;
+        if (riderFilterMode === "sample") return item.confirmedStartCount >= 10;
+        if (riderFilterMode === "identity") return item.quality === "identity-only";
+        return true;
+      })
+      .sort((left, right) => {
+        if (riderFilterMode === "identity") return left.name.localeCompare(right.name, "ja");
+        return right.confirmedStartCount - left.confirmedStartCount || right.roleEligibleCount - left.roleEligibleCount || left.name.localeCompare(right.name, "ja");
+      });
+  }, [riderFilterMode, riderInitialData?.index.items, riderQuery]);
 
   const selectRider = (item: KurariExRiderExactIndexItem) => {
     setSelectedRiderNo(item.registrationNo);
@@ -492,6 +502,12 @@ export default function ExDataPage() {
       }
       return right.safeComparableRaceCount - left.safeComparableRaceCount || right.sharedRaceCount - left.sharedRaceCount || left.opponentName.localeCompare(right.opponentName, "ja");
     });
+  const riderFilterOptions = [
+    { key: "all" as const, label: "全て", note: "全公開選手" },
+    { key: "practical" as const, label: "実戦候補", note: "確認出走5R以上かつ素材蓄積中を除外" },
+    { key: "sample" as const, label: "母数あり", note: "確認出走10R以上" },
+    { key: "identity" as const, label: "素材蓄積中", note: "登録番号・選手情報のみ" },
+  ];
   const matchupFilterOptions = [
     { key: "all" as const, label: "全て", note: "全対戦" },
     { key: "advantage" as const, label: "得意相手", note: "自己先着60%以上" },
@@ -858,6 +874,19 @@ export default function ExDataPage() {
               <aside className="ex-panel ex-section">
                 <SectionTitle eyebrow="PLAYER EX LIST" title="公開選手" lead={`${filteredRiders.length.toLocaleString("ja-JP")} / ${(riderInitialData?.index.riderCount ?? 0).toLocaleString("ja-JP")}名`} />
                 <input className="ex-search" value={riderQuery} onChange={(event) => setRiderQuery(event.target.value)} placeholder="選手名・登録番号・府県で検索" aria-label="選手名・登録番号・府県で検索" />
+                <div className="ex-view-tabs" style={{ justifyContent: "flex-start", flexWrap: "wrap" }}>
+                  {riderFilterOptions.map((option) => (
+                    <button
+                      key={option.key}
+                      className={`ex-view-tab${riderFilterMode === option.key ? " is-active" : ""}`}
+                      type="button"
+                      onClick={() => setRiderFilterMode(option.key)}
+                      title={option.note}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
                 <div className="ex-venue-list">
                   {filteredRiders.map((item) => (
                     <button key={item.registrationNo} className={`ex-venue-button${selectedRiderNo === item.registrationNo ? " is-active" : ""}`} type="button" onClick={() => selectRider(item)}>
