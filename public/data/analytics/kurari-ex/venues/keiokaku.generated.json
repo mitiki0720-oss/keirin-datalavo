@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "keiokaku",
   "venueName": "京王閣",
-  "updatedAt": "2026-06-13",
+  "updatedAt": "2026-06-18",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-03",
-    "to": "2026-06-12"
+    "to": "2026-06-17"
   },
   "quality": {
-    "seedSources": 13,
-    "parsedDateSources": 13,
+    "seedSources": 14,
+    "parsedDateSources": 14,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 13,
+    "sourceCount": 14,
     "raceCount": 120,
-    "trifectaHits": 37,
-    "trifectaHitRate": 33.9,
+    "trifectaHits": 41,
+    "trifectaHitRate": 37.6,
     "exactaHits": 4,
     "exactaHitRate": 3.7,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 131000,
-    "returnYen": 84340,
-    "recoveryRate": 64.4,
+    "investmentYen": 143000,
+    "returnYen": 87840,
+    "recoveryRate": 61.4,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,42 +38,42 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 13,
+      "evidenceCount": 14,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 13,
+      "evidenceCount": 14,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 11,
+      "evidenceCount": 12,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 11,
+      "evidenceCount": 12,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 7,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 6,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
@@ -87,14 +87,14 @@
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 4,
+      "evidenceCount": 5,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 3,
+      "evidenceCount": 4,
       "confidence": "medium",
       "sourceType": "SEED"
     }
@@ -124,7 +124,9 @@
       "④-②の1・2着は正確だったが、3着⑦を落とした。購入は 4-2-5／4-2-1／4-2-3 で、予想文では⑦番手残りを警戒していた。典型的な『3着だけ抜け』。また2車単救済が逆目 2-4 のみで、正順 4-2 を救済できなかった。的中率優先なら、3着広げ型レースでは正順2車単を1本入れる余地がある。",
       "5. 入力データ上の不足・注意事項",
       "入力データ上の注意点",
-      "4. 分析チャットへ渡す際の注意"
+      "4. 分析チャットへ渡す際の注意",
+      "A級初日特選は力差が小さく、主軸ライン固定が危険。別線自力を買うなら、その相手を本線の番手だけにせず、もう一方の別線先行・本線3番手まで接続する必要がある。",
+      "判定補正が必要だった点に注意。自動判定pendingは必ず着順キーと買い目を再照合する。予想内容自体は良好。"
     ],
     "improvements": [
       "予想は全体的に噛み合わず（このブロックでは新規の予想修正はしない）",
@@ -136,7 +138,9 @@
       "①石井の逆転は救済できたが、3連単は 1-7-4 までで、実着3着⑤を接続できなかった。⑤は追走型として予想内に認識され、 7-1-5 は購入済み。改善点は、表裏を入れるときに3着保護選手も対称化すること。",
       "新規予想や分析用キャンバス①・②の直接編集は行わず、次回改善に使える事実・誤差・改善ルールを1ファイルに集約しています。",
       "7R以降の気象値は参考扱い。風や路面を因果説明に使う場合は、次回分析チャット側で公式時系列を再確認する。",
-      "次回反映：5車立ての二分戦では、別線番手差しを買う場合に 番手-先行-相手番手 を最低1点検討する。"
+      "次回反映：5車立ての二分戦では、別線番手差しを買う場合に 番手-先行-相手番手 を最低1点検討する。",
+      "このチャットでは新規予想は行わず、実際に出した10点予想と結果の照合・反省・次回改善だけを記録する。",
+      "4. 次回の京王閣F1ナイター向け改善ルール"
     ]
   },
   "predictionGuidance": [

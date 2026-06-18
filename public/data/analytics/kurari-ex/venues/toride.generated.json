@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "toride",
   "venueName": "取手",
-  "updatedAt": "2026-06-13",
+  "updatedAt": "2026-06-18",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-01",
-    "to": "2026-05-10"
+    "to": "2026-06-15"
   },
   "quality": {
-    "seedSources": 5,
-    "parsedDateSources": 5,
+    "seedSources": 8,
+    "parsedDateSources": 8,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 5,
-    "raceCount": 50,
-    "trifectaHits": 11,
-    "trifectaHitRate": 22,
-    "exactaHits": 1,
-    "exactaHitRate": 2,
+    "sourceCount": 8,
+    "raceCount": 71,
+    "trifectaHits": 18,
+    "trifectaHitRate": 25.4,
+    "exactaHits": 3,
+    "exactaHitRate": 4.2,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 50000,
-    "returnYen": 42890,
-    "recoveryRate": 85.8,
+    "investmentYen": 71000,
+    "returnYen": 50040,
+    "recoveryRate": 70.5,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,62 +38,73 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 5,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 5,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 5,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 4,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 3,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 5,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 5,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 5,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "LINE_COHESION",
+      "label": "同ライン決着を評価",
+      "evidenceCount": 3,
+      "confidence": "medium",
       "sourceType": "SEED"
     }
   ],
   "seedNotes": {
-    "features": [],
+    "features": [
+      "結果側の傾向メモ",
+      "軸は5石川。1古屋は近況で予選2着、準決勝3着、特選4着と安定しており、5石川は競走得点90.33で番手から直線勝負ができる。取手の差し優勢傾向を踏まえ、1古屋の仕掛けに乗る5石川の差し切りを重視する。",
+      "軸は4加藤。5梅澤は近況で選抜1着、特選1着と状態が良く、先行残りも濃い。一方で4加藤は差し9回・マーク2回を持ち、取手の番手差し傾向に合う。風4km/hでもライン内で脚を温存できる点が強い。"
+    ],
     "targets": [
       "取り逃しパターン（事実メモ）：結果 6-7-3 を買い目外",
       "⚠️ 本レポートは「予想プロジェクトで出した買い目」と「確定結果」を写経・整形したもの。新規予想は行わない。",
@@ -105,13 +116,27 @@
       "強風（23km/h）下で「逃」決着。 買い目が結果の形に噛み合って回収。",
       "取り逃しパターン（簡易）：上位3人は買い目内だが並び/着順ズレ（順番違い・2着3着入替など）",
       "押さえ：吉田は今節ひと息でも「自分でやる」コメントで、安倍と踏み合わず中団を取れれば一発あり。番手の大西は差し2本・マーク1本で、吉田が先に動けば5頭の穴。保科は前で動く形だが頭固定までは弱く、3着穴中心。櫻井は安倍後位で流れ込み候補だが、低配当回避のため2着3着のズレを重視する。",
-      "本線：南南西10km/hでやや風は出てきたが、極端な消耗戦までは見ない。関東は地元の小畑がB14で主導権を狙い、番手の桑名は競走得点106.41・勝率29.4%・差し6本で決め脚上位。人気は2-7-4、2-7-5、5-1-2へ寄りやすいので、桑名頭だけに寄せず、小畑の押し切りや林の番手捲りを絡めて中穴化する。"
+      "本線：南南西10km/hでやや風は出てきたが、極端な消耗戦までは見ない。関東は地元の小畑がB14で主導権を狙い、番手の桑名は競走得点106.41・勝率29.4%・差し6本で決め脚上位。人気は2-7-4、2-7-5、5-1-2へ寄りやすいので、桑名頭だけに寄せず、小畑の押し切りや林の番手捲りを絡めて中穴化する。",
+      "優先度A：崩れ筋を文章で終わらせず、買い目構造へ接続する"
     ],
     "cautions": [
       "本線：南南東5km/hで風は軽く、逃げイチの小山が主導権を取りやすい。ただし番手の中山は直近4ヶ月で3連対率0.0%と低迷しており、2-6固定は危険。小山がペースで残る形に、差し脚上位の土屋、単騎でシャープな佐山、前々に攻める外崎を絡めて狙う。",
-      "本線：南南西5km/hで風は軽め。人気は久樹が奥村を使う7-4-1、7-4-5へ寄りやすいが、奥村－久樹はややピリッとしない評価もあり、7-4固定は低配当リスクが高い。橋谷はB12・勝率26.3%で先行力があり、番手の松澤は勝率33.3%・2連対率52.3%と差し脚上位。25ラインが主導権を取れば5頭の期待値が高い。"
+      "本線：南南西5km/hで風は軽め。人気は久樹が奥村を使う7-4-1、7-4-5へ寄りやすいが、奥村－久樹はややピリッとしない評価もあり、7-4固定は低配当リスクが高い。橋谷はB12・勝率26.3%で先行力があり、番手の松澤は勝率33.3%・2連対率52.3%と差し脚上位。25ラインが主導権を取れば5頭の期待値が高い。",
+      "0) 入力・記録ルール上の注意",
+      "別線では、6長谷川が早めに抵抗した時の3松崎の差し込みに注意。3着はライン3番手2中川、4番手7伊藤、別線番手3松崎、3番手5永井へ分散する。",
+      "別線では、捲り7回を持つ2榎本の一撃と、6三浦の先行に乗る3坂口の差し込みに注意。3着は中近3番手1木本、別線自力2榎本、北日本番手3坂口へ広げる。",
+      "注意点 ：3堀が失格、6長谷川が落車で、結果として3着7坂田が大差で残った特殊性もある。読み自体は合っていたが、事故・失格込みの再現性は低め。",
+      "注意点 ：1番人気は1-4-7だったが、7松崎が5着。単騎差し込みを厚めにしすぎると、ライン内完結の安定パターンを薄くしてしまうリスクがある。",
+      "注意点 ：払戻470円で、10点運用としては的中しても収支はマイナス。的中率確保には有効だが、回収率を押し上げる買い目ではない。",
+      "注意点 ：払戻310円で、1R同様に的中率確保型。読みの正確さは高いが、回収率改善には寄与しにくい。"
     ],
-    "improvements": []
+    "improvements": [
+      "新しい予想は追加せず、入力された事実を整理し、次回に使うための振り返りだけを記載しています。",
+      "2) 詳細summary｜次回の予想に役立てる改善メモ",
+      "次回は、展開文に別線自力を明記した時点で「その選手が勝つ場合の同ライン追走」を1本確認する。",
+      "今回は、前日6/13と比べると的中率は大きく改善した。",
+      "今後は、低配当本線的中を「読みの確認」とし、収支改善の評価からは分ける。"
+    ]
   },
   "predictionGuidance": [
     "級班とレース種別を分けて傾向を評価する",

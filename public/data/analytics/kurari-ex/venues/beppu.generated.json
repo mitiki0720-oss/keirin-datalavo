@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "beppu",
   "venueName": "別府",
-  "updatedAt": "2026-06-13",
+  "updatedAt": "2026-06-18",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-07",
-    "to": "2026-06-11"
+    "to": "2026-06-17"
   },
   "quality": {
-    "seedSources": 11,
-    "parsedDateSources": 11,
+    "seedSources": 13,
+    "parsedDateSources": 13,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 11,
+    "sourceCount": 13,
     "raceCount": 90,
-    "trifectaHits": 30,
-    "trifectaHitRate": 33.3,
-    "exactaHits": 6,
-    "exactaHitRate": 6.7,
-    "anyTicketHits": 14,
-    "hitRate": 77.8,
-    "investmentYen": 90000,
-    "returnYen": 65410,
-    "recoveryRate": 72.7,
+    "trifectaHits": 40,
+    "trifectaHitRate": 44.4,
+    "exactaHits": 8,
+    "exactaHitRate": 8.9,
+    "anyTicketHits": 26,
+    "hitRate": 144.4,
+    "investmentYen": 114000,
+    "returnYen": 84140,
+    "recoveryRate": 73.8,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,56 +38,56 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 11,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 11,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 10,
+      "evidenceCount": 12,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 10,
+      "evidenceCount": 12,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 7,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 7,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 6,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
@@ -103,7 +103,8 @@
     "features": [
       "2-2) 結果側の傾向メモ",
       "3-3) 展開読みで間違えたポイント",
-      "3-5) 数字で見た開催傾向"
+      "3-5) 数字で見た開催傾向",
+      "4) 別府F1ナイター最終日としての傾向"
     ],
     "targets": [
       "展開メモ（予想側）：主：風が強く踏まされやすい→2637の数的有利でも岡崎(2)が掛け過ぎると失速。土居(1)が脚を溜めて捲り差し気味に台頭、番手の藤原(5)が追走して1-5軸。3着は単騎4の突っ込み・コース取りでズレ狙い。 副：岡崎(2)が主導権を握り切る形なら番手の坂本(6)が直線で抜け出し（6頭）。ただし強風で隊列が伸びると3-7の沖縄勢が追走して3着",
@@ -126,7 +127,10 @@
       "予想タグ： 別府 ナイター F1 A級予選 三分戦 番手差し 捲り差し 風注意 3着荒れ 低配当回避",
       "別府の直線が長くても、弱風前提では「先行全消し」は危険。番手差しを買う場合も、B選手の2着・3着残りを基本線に置く必要がある。",
       "取り逃し・評価：1・2着の番手差し表裏は正解だったが、厚め02を「2-1-4」に固定。実際は別線番手の小川(3)が3着。予想本文では小川(3)を警戒していたため、展開認識ではなく買い目変換の不足。表裏を作る際に3着候補の横展開が必要。",
-      "1・2着の番手差し表裏は正解だったが、厚め02を「2-1-4」に固定。実際は別線番手の小川(3)が3着。予想本文では小川(3)を警戒していたため、展開認識ではなく買い目変換の不足。表裏を作る際に3着候補の横展開が必要。"
+      "1・2着の番手差し表裏は正解だったが、厚め02を「2-1-4」に固定。実際は別線番手の小川(3)が3着。予想本文では小川(3)を警戒していたため、展開認識ではなく買い目変換の不足。表裏を作る際に3着候補の横展開が必要。",
+      "注意：結果側の10R〜12Rは最終判定がpending表示だったが、着順・払戻が掲載済みのため手動照合した",
+      "荒川(7)-岸澤(4)-真崎(2)の関東ラインを厚く見て正解。堀川(5)の当所適性を警戒しつつも、Bで最後は失速する展開を拾えている。ここは“別府の長い直線＋東風8km/hで番手差し”が噛み合った好例。",
+      "ただしB選手は8/12Rで車券内。直線が長いからといってB選手を軽視しすぎるのは危険。特に弱〜中風では、B選手を2〜3着に残す形が必要。"
     ],
     "improvements": [
       "3) 詳細summary｜次回予想へ残す改善メモ",
@@ -136,7 +140,11 @@
       "3-4) 次回に適用するチェックリスト",
       "このTXTを別府分析チャットへアップロードし、後工程で生データ倉庫・構造化サマリへ反映する。",
       "詳細SUMMARY｜次回予想へ残す改善点",
-      "改善：本線の表裏を作る際、3着は「同ライン3番手」「別線番手」「単騎・好位型」の最低2系統へ分ける。"
+      "改善：本線の表裏を作る際、3着は「同ライン3番手」「別線番手」「単騎・好位型」の最低2系統へ分ける。",
+      "5-4. 次回の別府F1ナイターへ向けた改善チェックリスト",
+      "【振り返り・次回改善メモ】",
+      "5) 次回の買い目修正ルール",
+      "決勝は“ライン番手固定”を弱め、自力上位同士の残りを厚めにする。11Rの5-7-2、12Rの1-5-6を次回のモデルケースにする。"
     ]
   },
   "predictionGuidance": [

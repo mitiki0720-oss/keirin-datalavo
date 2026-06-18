@@ -2,22 +2,22 @@
   "schemaVersion": 1,
   "venueKey": "gifu",
   "venueName": "岐阜",
-  "updatedAt": "2026-06-13",
+  "updatedAt": "2026-06-18",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-05",
-    "to": "2026-06-12"
+    "to": "2026-06-14"
   },
   "quality": {
-    "seedSources": 16,
-    "parsedDateSources": 16,
+    "seedSources": 18,
+    "parsedDateSources": 18,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 16,
+    "sourceCount": 18,
     "raceCount": 120,
     "trifectaHits": 28,
     "trifectaHitRate": 25.9,
@@ -38,56 +38,56 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 16,
+      "evidenceCount": 18,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 16,
+      "evidenceCount": 18,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 16,
+      "evidenceCount": 18,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 8,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 6,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 5,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 5,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 5,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
@@ -102,7 +102,9 @@
   "seedNotes": {
     "features": [
       "R 的中2車単 払戻 三連単結果 改善ポイント",
-      "2-3) 当日の結果傾向"
+      "2-3) 当日の結果傾向",
+      "2-2. 結果傾向",
+      "2-1) 結果傾向"
     ],
     "targets": [
       "2車単：2点（穴狙い）",
@@ -131,7 +133,13 @@
       "次回へ残す修正：9車G3で4分戦かつ先行争いが読みにくいレースは、3番手選手の『頭まで』を機械的に消さない。C評価レースとして本線信頼度を下げ、極端な多シナリオ化を避ける判断も必要。映像確認優先度：最優先。",
       "6R 5-7-4 外れ。文章では5橋本の逃げ残りを認識したが、5頭を買い目へ反映できず。",
       "4) Detailed Summary｜次回予想へ残す改善点",
-      "4-2) 次回の10点組成ルール"
+      "4-2) 次回の10点組成ルール",
+      "新しい予想は追加せず、実際に出した10点、実着、払戻、取り逃し、次回改善ルールを事実ベースで整理しています。",
+      "3) Detailed Summary｜次回予想へ残す改善点",
+      "3-3. 次回用の10点組成ルール",
+      "新規予想は行わず、実際に出した10点と結果を突合し、次回予想へ使う改善点を整理しました。",
+      "風が4〜7km/hでも、単純に先行を消すのではなく、番手差し・単騎捲りを同時に置けた点は次回も継続。",
+      "次回は、穴2車単を買う場合、その2車を上位固定して 3着にライン後位・単騎追込み・地元勢 のどれかを1点だけ接続する。"
     ]
   },
   "predictionGuidance": [

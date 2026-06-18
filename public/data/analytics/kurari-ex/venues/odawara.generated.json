@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "odawara",
   "venueName": "小田原",
-  "updatedAt": "2026-06-13",
+  "updatedAt": "2026-06-18",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-10",
-    "to": "2026-06-02"
+    "to": "2026-06-15"
   },
   "quality": {
-    "seedSources": 9,
-    "parsedDateSources": 9,
+    "seedSources": 11,
+    "parsedDateSources": 11,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 9,
-    "raceCount": 78,
-    "trifectaHits": 14,
-    "trifectaHitRate": 17.9,
+    "sourceCount": 11,
+    "raceCount": 92,
+    "trifectaHits": 24,
+    "trifectaHitRate": 26.1,
     "exactaHits": 8,
-    "exactaHitRate": 10.3,
+    "exactaHitRate": 8.7,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 78000,
-    "returnYen": 50730,
-    "recoveryRate": 65,
+    "investmentYen": 92000,
+    "returnYen": 60590,
+    "recoveryRate": 65.9,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,41 +38,103 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "BANTE_SASHI_ALERT",
+      "label": "番手差しを警戒",
+      "evidenceCount": 2,
+      "confidence": "low",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "MAKURI_ALERT",
+      "label": "捲り展開を警戒",
+      "evidenceCount": 2,
+      "confidence": "low",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "OTHER_LINE_ALERT",
+      "label": "別線の浮上を警戒",
+      "evidenceCount": 2,
+      "confidence": "low",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "SOLO_RIDER_ALERT",
+      "label": "単騎の差し込みを警戒",
+      "evidenceCount": 2,
+      "confidence": "low",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "THIRD_PLACE_SPREAD",
+      "label": "3着候補を分散",
+      "evidenceCount": 2,
+      "confidence": "low",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "LINE_COHESION",
+      "label": "同ライン決着を評価",
+      "evidenceCount": 1,
+      "confidence": "low",
       "sourceType": "SEED"
     }
   ],
   "seedNotes": {
-    "features": [],
+    "features": [
+      "5. B選手が強い開催は、逃げ・先行の残りを軸に置く。 今回はB選手5/7車券内で、小田原短直線の基本傾向と一致。"
+    ],
     "targets": [
       "2車単：3点（穴狙い）",
       "テンプレの標準点数表記（3連単7＋2車単3）と今回の予想テキスト（3連単8＋2車単2）が異なるため、実際に出した買い目を優先して記録。",
       "テンプレ標準の点数表記（3連単7＋2車単3）と今回の予想テキスト（3連単8＋2車単2）が異なるため、実際に出した買い目を優先して記録。",
       "小田原7Rとして有効な予想10点：不明",
       "判定：評価対象外（有効な小田原7R予想が添付されていないため）",
-      "重要注記：予想ソース混入のため、小田原7Rは予想精度分析・買い目評価の集計対象から除外推奨。"
+      "重要注記：予想ソース混入のため、小田原7Rは予想精度分析・買い目評価の集計対象から除外推奨。",
+      "良かった点：押さえの『1森の先行残り』を買い目07で保護していたため的中。",
+      "不足：配当350円の超低配当。番手競りズレ狙いを厚くしたが、実際は普通に5-1-4で、穴狙い部分は回収効率を下げた。",
+      "3邊見の力上位は読めていたが、2内海追走ではなく4安達が2着に入った。買い目07の3-4-1で的中。",
+      "的中：1-5-4／払戻 210円／買い目番号：03",
+      "読みの中心を5飯田に置いたが、実戦は4小林が差し切り。買い目04「4-5-1」で拾えたのは良いが、5飯田の頭評価を少し強く見すぎた。",
+      "的中：1-2-7／払戻 2,840円／買い目番号：07"
     ],
-    "cautions": [],
-    "improvements": []
+    "cautions": [
+      "北北東24km/hの強風で、4下山が早めに踏まされる展開リスクを過小評価。1安達-5藤縄ラインの逆転を3着保護止まりにしたのが敗因。",
+      "番手2山田が離れるリスクを見て相手を広げたことが成功。1川本-6秋永の別線残りを拾えた。",
+      "6R：北北東24km/hの強風で、4下山が早めに踏まされる展開リスクを過小評価。1安達-5藤縄ラインの逆転を3着保護止まりにしたのが敗因。"
+    ],
+    "improvements": [
+      "4) 詳細Summary：次回予想へ活かす反省",
+      "次回の改善ルール"
+    ]
   },
   "predictionGuidance": [
     "級班とレース種別を分けて傾向を評価する",
     "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
-    "風向と風速を確認し、先行残りと差し届きを固定評価しない"
+    "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+    "先行軸だけで固定せず、番手差しの逆目を残す",
+    "先行争いがある場合は別線の捲り筋を残す",
+    "本線が崩れた場合の別線頭と別線3着を保護する",
+    "踏み合い時は単騎の差し込みを3着候補に加える",
+    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す"
   ]
 }

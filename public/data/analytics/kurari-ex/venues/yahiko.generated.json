@@ -2,22 +2,22 @@
   "schemaVersion": 1,
   "venueKey": "yahiko",
   "venueName": "弥彦",
-  "updatedAt": "2026-06-13",
+  "updatedAt": "2026-06-18",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-04",
-    "to": "2026-06-12"
+    "to": "2026-06-14"
   },
   "quality": {
-    "seedSources": 13,
-    "parsedDateSources": 13,
+    "seedSources": 15,
+    "parsedDateSources": 15,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 13,
+    "sourceCount": 15,
     "raceCount": 134,
     "trifectaHits": 33,
     "trifectaHitRate": 26.4,
@@ -38,21 +38,21 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 13,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 13,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 12,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
@@ -66,41 +66,43 @@
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 7,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 6,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 6,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 4,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 1,
+      "evidenceCount": 2,
       "confidence": "low",
       "sourceType": "SEED"
     }
   ],
   "seedNotes": {
-    "features": [],
+    "features": [
+      "1-2) 結果傾向のミニ集計"
+    ],
     "targets": [
       "【予想10点の内訳（実買い目写経）】",
       "予想要旨：本線：12が主導権狙いも2車で不安→736が早めに叩く展開で縦脚ある2・3が直線勝負。風強めで踏み合いは短くなりやすく、差し込み主体。",
@@ -124,12 +126,21 @@
       "レースタイプ：TYPE-C｜強力な自力型2車・番手差し警戒型",
       "※4田中は「近畿勢」コメント。競り直後からの伸びを警戒する。",
       "レースタイプ：TYPE-C｜先行一車に近い二分戦・補充自在型の切り込み警戒",
-      "レースタイプ：TYPE-B｜番手軸有力・別線頭とズブズブ警戒型"
+      "レースタイプ：TYPE-B｜番手軸有力・別線頭とズブズブ警戒型",
+      "8Rは野寺楓を警戒していたのに、結果の2-1-5を買えていない。",
+      "ガールズは“警戒コメントを書いた選手”を3着に必ず1点反映する ：8Rの5野寺のようなメモ→買い目落ちを防ぐ。",
+      "最大の反省点。予想文では野寺を警戒していたのに買い目から5を外している。これは分析→買い目変換のミス。ガールズ決勝は「連勝軸＋総合力対抗」の後ろに、2日間連対/好位型を3着で必ず1点残す。"
     ],
     "improvements": [
       "予想済み10点と結果照合用テキストをもとに、開催1枚のキャンバス互換レポートとして整理。新しい予想は行わず、結果事実と次回へ活かす反省summaryを記録。",
       "予想フォーマット：各R 10点（3連単8点＋2車単2点として元ファイル通り反映）",
-      "3) 詳細summary｜次回予想へ活かす反省"
+      "3) 詳細summary｜次回予想へ活かす反省",
+      "新規予想は行わず、結果事実・取り逃し原因・次回へ渡す改善メモを1枚に統合する。",
+      "2) 詳細summary｜次の予想に渡す改善メモ",
+      "次回は、ガールズ戦で「主力頭＋好位型2着＋人気薄追走型3着」を最低1点検討する。",
+      "このレポートでは新しい予想は行わず、事実整理・照合・次回改善summaryだけを記録する。",
+      "3-4. 次回の修正ルール",
+      "ガールズは“警戒コメントを書いた選手”を3着に必ず1点反映する ：8Rの5野寺のようなメモ→買い目落ちを防ぐ。"
     ]
   },
   "predictionGuidance": [

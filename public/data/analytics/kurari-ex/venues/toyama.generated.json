@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "toyama",
   "venueName": "富山",
-  "updatedAt": "2026-06-13",
+  "updatedAt": "2026-06-18",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-01",
-    "to": "2026-05-02"
+    "to": "2026-06-17"
   },
   "quality": {
-    "seedSources": 2,
-    "parsedDateSources": 2,
+    "seedSources": 3,
+    "parsedDateSources": 3,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 2,
-    "raceCount": 22,
-    "trifectaHits": 8,
-    "trifectaHitRate": 36.4,
-    "exactaHits": 4,
+    "sourceCount": 3,
+    "raceCount": 33,
+    "trifectaHits": 13,
+    "trifectaHitRate": 39.4,
+    "exactaHits": 6,
     "exactaHitRate": 18.2,
     "anyTicketHits": 6,
     "hitRate": 54.5,
-    "investmentYen": 22000,
-    "returnYen": 19790,
-    "recoveryRate": 90,
+    "investmentYen": 33000,
+    "returnYen": 29890,
+    "recoveryRate": 90.6,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,81 +38,91 @@
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 3,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 3,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 3,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 3,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 3,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 3,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 3,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 1,
+      "evidenceCount": 2,
       "confidence": "low",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 1,
+      "evidenceCount": 2,
       "confidence": "low",
       "sourceType": "SEED"
     }
   ],
   "seedNotes": {
-    "features": [],
+    "features": [
+      "2) 今回の決まり手・展開傾向"
+    ],
     "targets": [
       "※このレポートは「予想プロジェクトで確定した買い目」と「結果テキスト」をもとに、テンプレの形式へ写経・整形したもの。ここでは新規予想は行わない。",
       "参考（予想側タグ）： 富山 A級チャレンジ 三分戦 細切れ 番手差し 捲り主体 3着ズレ 中穴狙い 北北東風",
       "予想要旨：本線：5がダッシュで一気に出切り（B5）→番手2が差し/抜け出し。富山は直線が効く反面、外ロスが重いので好位～番手の2・4を2着軸、3着は37の突っ込みでズレ狙い。 押さえ：3-7がカマシ気味に主導権（B4）→中団の5-2が捲りで2着以内。146は4がコース取りで2～3着に残す。／結果：4-2-5／決まり手：差／的中：なし",
       "タグ： 富山 A級チャレンジ 三分戦 先行争い 番手差し 捲り差し 3着ズレ 中穴狙い 西風",
       "タグ： 富山 A級チャレンジ 三分戦 地元 補充 決めず 番手差し 3着ズレ 中穴狙い 西風",
-      "タグ： 富山 ガールズ L級 一般 単騎 捲り主体 差し脚 内伸び 3着ズレ 中穴狙い"
+      "タグ： 富山 ガールズ L級 一般 単騎 捲り主体 差し脚 内伸び 3着ズレ 中穴狙い",
+      "補足：元予想テキストの買い目構成は、各Rとも 3連単8点＋2車単2点＝10点 です。テンプレ表現の「3連単7＋2車単3」ではなく、元テキストを優先して転記しています。",
+      "3-4) 次回の買い目配分メモ",
+      "2車単救済は今回有効。ただし外れた7Rのように、安い順目2車単を切るなら、その分3連単の3着接続を厚くする。"
     ],
     "cautions": [
-      "予想要旨：本線：霧雨＋強風（西南西23km/h）で踏み合い消耗→1が主導権取り切る（B10）→番手7の決め脚が直線で抜け出し。3着は本線5に寄せすぎず、別線の4・2や単騎3でズレ狙い。 押さえ：4がカマして主導権（逃げ型）→2が番手で残り、7は外を踏み直して3着まで。強風で隊列が乱れやすく、単騎3の突っ込みも警戒。／結果：7-1-2／決まり手：差／的中：3連"
+      "予想要旨：本線：霧雨＋強風（西南西23km/h）で踏み合い消耗→1が主導権取り切る（B10）→番手7の決め脚が直線で抜け出し。3着は本線5に寄せすぎず、別線の4・2や単騎3でズレ狙い。 押さえ：4がカマして主導権（逃げ型）→2が番手で残り、7は外を踏み直して3着まで。強風で隊列が乱れやすく、単騎3の突っ込みも警戒。／結果：7-1-2／決まり手：差／的中：3連",
+      "注意：このレポートでは新規予想はしていません。添付予想と結果を照合・整形しています。"
     ],
-    "improvements": []
+    "improvements": [
+      "作成目的：予想済み10点と結果テキストの照合、キャンバス①互換ログ化、次回予想に活かす改善summary",
+      "3) 次回予想に活かす detailed summary",
+      "3-3) 展開判断の修正ルール"
+    ]
   },
   "predictionGuidance": [
     "先行軸だけで固定せず、番手差しの逆目を残す",

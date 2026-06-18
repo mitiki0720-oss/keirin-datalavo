@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "nara",
   "venueName": "奈良",
-  "updatedAt": "2026-06-13",
+  "updatedAt": "2026-06-18",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-01",
-    "to": "2026-06-08"
+    "to": "2026-06-15"
   },
   "quality": {
-    "seedSources": 12,
-    "parsedDateSources": 12,
+    "seedSources": 15,
+    "parsedDateSources": 15,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 12,
-    "raceCount": 122,
+    "sourceCount": 15,
+    "raceCount": 133,
     "trifectaHits": 35,
     "trifectaHitRate": 28.7,
     "exactaHits": 9,
     "exactaHitRate": 7.4,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 122000,
-    "returnYen": 83860,
-    "recoveryRate": 68.7,
+    "investmentYen": 133000,
+    "returnYen": 86940,
+    "recoveryRate": 65.4,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,56 +38,63 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 12,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 12,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 12,
-      "confidence": "high",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "THIRD_PLACE_SPREAD",
-      "label": "3着候補を分散",
-      "evidenceCount": 12,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 12,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
-      "tag": "WIND_SENSITIVE",
-      "label": "風条件を確認",
-      "evidenceCount": 11,
+      "tag": "THIRD_PLACE_SPREAD",
+      "label": "3着候補を分散",
+      "evidenceCount": 14,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 10,
+      "evidenceCount": 13,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "WIND_SENSITIVE",
+      "label": "風条件を確認",
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 1,
+      "evidenceCount": 4,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "LINE_COHESION",
+      "label": "同ライン決着を評価",
+      "evidenceCount": 2,
       "confidence": "low",
       "sourceType": "SEED"
     }
@@ -115,22 +122,36 @@
       "自信度（予想時）：🔥（注意付き）",
       "レース型：TYPE-C：並び未掲載・自力2車・雨の差し込み警戒",
       "レース型：TYPE-B：上位3車中心・3着ズレ警戒の全員単騎戦",
-      "レース型：TYPE-B：1着軸は明確・2着3着の順序ズレに注意"
+      "レース型：TYPE-B：1着軸は明確・2着3着の順序ズレに注意",
+      "3R チャレンジ準決勝 4-2-3 × 0円 車券内 飛び 番手離れリスクがある二分戦では、勝ちライン頭＋相手ライン先頭・番手の2着3着戻しを入れる。",
+      "3. B選手は全Rで車券内。 11R中11RでB選手が1〜3着に残った。6/13に続き、奈良デイでは前で踏んだ選手を完全に切る設計は危険。",
+      "番手離れリスクがある時は、勝ちライン頭＋相手ライン番手・先頭の2着3着戻しを確認。",
+      "注意：同名ファイルのマウントが過去開催へ切り替わる挙動があったため、06/15の予想・結果として確認できたファイル検索チャンクを優先して作成。",
+      "5. 出走表・結果側の選手名差異に注意。 前半Rで予想側と結果側に車番名の差異が見られるため、開催レポートでは車番照合を優先し、選手名は結果テキスト準拠で残す。"
     ],
     "improvements": [
       "次回は可能なら、レース映像メモまたは「初手／打鐘／最終ホーム／最終バック」の簡易隊列を追加する。",
       "2-5. 次回用チェックリスト",
-      "次回への反映：並び未掲載でも「唯一の先行型＋差し最上位」の表裏は優先。3着は前団直後へ入りやすい選手を先に置く。"
+      "次回への反映：並び未掲載でも「唯一の先行型＋差し最上位」の表裏は優先。3着は前団直後へ入りやすい選手を先に置く。",
+      "このレポートは、奈良競輪場の開催単位ログです。新しい買い目は作成せず、実際に出した10点予想と確定結果を照合し、次回分析へ渡せる形で整理しています。",
+      "2) 詳細summary｜次回予想へ残す材料",
+      "2-3) 次回へ残す確認ルール",
+      "6/14に添付された予想まとめ・結果照合用をもとに、実際の10点買い（3連単8点＋2車単2点）と確定結果を照合した開催レポート。新規予想は作成せず、次回へ使う改善材料を抽出する。",
+      "次回へ残す修正ルール",
+      "【次回へ残すメモ】",
+      "添付の予想・結果を、開催用キャンバス形式に沿って1枚へ統合。新しい予想は作らず、実際の10点買いと確定結果を照合し、次回へ使える改善点を記録。",
+      "1R チャレンジ一般 1-5-3 3連単01＋2車単10 1,820円 2着 1着差し＋B先行残り＋3番手保護が機能。3連単と2車単の同時的中を集計に反映する。",
+      "【次回へ残す一言】"
     ]
   },
   "predictionGuidance": [
     "級班とレース種別を分けて傾向を評価する",
     "先行争いがある場合は別線の捲り筋を残す",
     "踏み合い時は単騎の差し込みを3着候補に加える",
-    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
     "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
-    "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
     "先行軸だけで固定せず、番手差しの逆目を残す",
+    "風向と風速を確認し、先行残りと差し届きを固定評価しない",
     "本線が崩れた場合の別線頭と別線3着を保護する"
   ]
 }

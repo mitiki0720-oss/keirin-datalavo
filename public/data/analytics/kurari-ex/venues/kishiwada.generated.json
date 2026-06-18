@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "kishiwada",
   "venueName": "岸和田",
-  "updatedAt": "2026-06-13",
+  "updatedAt": "2026-06-18",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-04",
-    "to": "2026-06-02"
+    "to": "2026-06-17"
   },
   "quality": {
-    "seedSources": 11,
-    "parsedDateSources": 11,
+    "seedSources": 12,
+    "parsedDateSources": 12,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 11,
-    "raceCount": 108,
-    "trifectaHits": 23,
-    "trifectaHitRate": 21.3,
+    "sourceCount": 12,
+    "raceCount": 120,
+    "trifectaHits": 25,
+    "trifectaHitRate": 20.8,
     "exactaHits": 10,
-    "exactaHitRate": 9.3,
+    "exactaHitRate": 8.3,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 108000,
-    "returnYen": 68450,
-    "recoveryRate": 63.4,
+    "investmentYen": 120000,
+    "returnYen": 74650,
+    "recoveryRate": 62.2,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,7 +38,21 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 11,
+      "evidenceCount": 12,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "TIME_SLOT_BIAS",
+      "label": "時間帯差を確認",
+      "evidenceCount": 12,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "WIND_SENSITIVE",
+      "label": "風条件を確認",
+      "evidenceCount": 12,
       "confidence": "high",
       "sourceType": "SEED"
     },
@@ -50,57 +64,45 @@
       "sourceType": "SEED"
     },
     {
-      "tag": "TIME_SLOT_BIAS",
-      "label": "時間帯差を確認",
-      "evidenceCount": 11,
-      "confidence": "high",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "WIND_SENSITIVE",
-      "label": "風条件を確認",
-      "evidenceCount": 11,
-      "confidence": "high",
-      "sourceType": "SEED"
-    },
-    {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 8,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 8,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 6,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 1,
+      "evidenceCount": 2,
       "confidence": "low",
       "sourceType": "SEED"
     }
   ],
   "seedNotes": {
-    "features": [],
+    "features": [
+      "3-2. 展開で大きく間違えたポイント"
+    ],
     "targets": [
       "2車単：2点（穴狙い）",
       "三分戦 A級一般 番手差し 先行残り 3着ズレ 穴狙い",
@@ -115,14 +117,22 @@
       "1R A級一般 ○ × 逃 1着 雨・強風下でもB選手を消さずに残した買い目が機能。3-1維持＋別線3着の形。",
       "雨・強風下でもB選手を消さずに残した買い目が機能。3-1維持＋別線3着の形。"
     ],
-    "cautions": [],
-    "improvements": []
+    "cautions": [
+      "5. 超大穴の3番手差しは10点では拾いにくいが、8Rの6渡邉豪大のようなケースは“荒れ警戒メモ”として残す価値がある。 全買い目に入れる必要はないが、G1で3ラインすべてが動く時は、3番手の連対も観察対象。",
+      "取り逃しパターン：3車ラインの3番手が1着まで届く超大穴。10点で完全カバーは難しいが、G1の消耗戦で3番手差しが連対する警戒が足りなかった。1南と9柏野は候補にいたが、6を軸に置く発想がなかった。",
+      "足りなかった点：3車ラインの3番手が1着まで届く超大穴。10点で完全カバーは難しいが、G1の消耗戦で3番手差しが連対する警戒が足りなかった。1南と9柏野は候補にいたが、6を軸に置く発想がなかった。"
+    ],
+    "improvements": [
+      "このレポートでは新規予想は行わず、実際に出した10点と結果を照合し、次回予想へ回すための反省点を整理する。",
+      "3-3. 次回の岸和田G1デイで使う改善ルール",
+      "厚め2点の設計を修正する。 いまは本命ライン・番手差しに寄りがち。次回は「本線1点＋強自力押し切りor逆転頭1点」にする。"
+    ]
   },
   "predictionGuidance": [
     "級班とレース種別を分けて傾向を評価する",
-    "踏み合い時は単騎の差し込みを3着候補に加える",
     "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+    "踏み合い時は単騎の差し込みを3着候補に加える",
     "先行軸だけで固定せず、番手差しの逆目を残す",
     "先行争いがある場合は別線の捲り筋を残す",
     "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",

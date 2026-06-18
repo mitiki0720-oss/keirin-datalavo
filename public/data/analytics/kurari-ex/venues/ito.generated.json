@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "ito",
   "venueName": "伊東",
-  "updatedAt": "2026-06-13",
+  "updatedAt": "2026-06-18",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-11",
-    "to": "2026-06-09"
+    "to": "2026-06-15"
   },
   "quality": {
-    "seedSources": 11,
-    "parsedDateSources": 11,
+    "seedSources": 14,
+    "parsedDateSources": 14,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 11,
-    "raceCount": 122,
+    "sourceCount": 14,
+    "raceCount": 158,
     "trifectaHits": 26,
     "trifectaHitRate": 28.9,
     "exactaHits": 1,
     "exactaHitRate": 1.1,
-    "anyTicketHits": null,
-    "hitRate": null,
-    "investmentYen": 102000,
-    "returnYen": 56490,
-    "recoveryRate": 55.4,
+    "anyTicketHits": 9,
+    "hitRate": 37.5,
+    "investmentYen": 126000,
+    "returnYen": 67360,
+    "recoveryRate": 53.5,
     "kimarite": {
       "escape": 2,
       "makuri": 2,
@@ -38,55 +38,62 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 11,
+      "evidenceCount": 14,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 11,
+      "evidenceCount": 14,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 11,
+      "evidenceCount": 14,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 7,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
+      "evidenceCount": 6,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "LINE_COHESION",
+      "label": "同ライン決着を評価",
       "evidenceCount": 3,
       "confidence": "medium",
       "sourceType": "SEED"
@@ -96,7 +103,8 @@
     "features": [
       "自信度の理由：4高野の機動力が一枚上。4-2の本線は維持しつつ、雨風と伊東ナイターの三着ズレ傾向を踏まえて別線へ広げる。",
       "KEIRIN.JP「月刊競輪WEB｜バンクの特徴」",
-      "4) 詳細summary｜次回予想へ引き継ぐポイント"
+      "4) 詳細summary｜次回予想へ引き継ぐポイント",
+      "最大のポイントは、 北北東23〜25km/h級の強風でもB選手が11/12Rで車券内に残った こと。"
     ],
     "targets": [
       "取り逃しパターン：3着違い（1-2着一致）（近い買い目：3-7-6／3-7-1）",
@@ -117,7 +125,10 @@
       "自信度の理由：3松岡―1牧―4堤の三車ラインが総合力で上位。地元5神尾の先行残りには注意が必要だが、主要な展開は10点内で整理できる。",
       "予想時レースタイプ：TYPE-B｜中心ライン明確・別線の割り込み注意",
       "予想時レースタイプ：TYPE-B｜中心ラインあり・別線捲り注意",
-      "予想時レースタイプ：TYPE-B｜中心ライン明確・単騎の割り込み注意"
+      "予想時レースタイプ：TYPE-B｜中心ライン明確・単騎の割り込み注意",
+      "「伊東は直線差しを警戒する」という整理は必要だが、この日はB選手の押し切りも多かった。 番手差しを厚くしても、主導権選手の順目を削り過ぎない ことが重要。",
+      "5梶原の先行と7川越の中団捲りを中心視。3内田の差し、2内山の番手差し、単騎1大森の浮上を警戒。",
+      "5土田ラインを本線としつつ、6小出の積極策を利す3堂村の差し、7白井ラインの浮上を警戒。"
     ],
     "improvements": [
       "このレポート内では、新規の買い目提案は行いません。次回へ活かすための振り返りルールのみ整理します。",
@@ -125,7 +136,13 @@
       "ルールA：本線崩壊条件を自信度へ反映する",
       "4) 詳細summary｜次回予想へ引き継ぐポイント",
       "ただし、的中した5Rのうち低配当は8Rの490円、9Rの1,370円、2Rの1,480円。的中率は改善したが、収支の余裕は小さい。今後も「当てる設計」と「薄い的中を増やしすぎない設計」の両立が必要。",
-      "4-4) 次回から使う実戦ルール"
+      "4-4) 次回から使う実戦ルール",
+      "3-1) 収支は微勝だが、構造的な改善余地は大きい",
+      "次回も二車単2点は、単なる高配当狙いではなく、 三着が読みにくいレースの1・2着ペア救済 として活用する価値が高い。",
+      "4) 次回予想へ持ち越す改善ルール",
+      "4-6. 次回予想への改善ルール",
+      "今回は二車単0/12R。実際の2車単で近かったのは1R 7-3 、7R 2-7 、10R 1-3 など。三連単で1・2着候補を持っている時は、その順目を二車単に回す方が的中率改善に直結する。",
+      "5) 次回用チェックリスト"
     ]
   },
   "predictionGuidance": [

@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "matsusaka",
   "venueName": "松阪",
-  "updatedAt": "2026-06-13",
+  "updatedAt": "2026-06-18",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-04",
-    "to": "2026-06-09"
+    "to": "2026-06-17"
   },
   "quality": {
-    "seedSources": 10,
-    "parsedDateSources": 10,
+    "seedSources": 12,
+    "parsedDateSources": 12,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 10,
-    "raceCount": 117,
-    "trifectaHits": 31,
-    "trifectaHitRate": 26.5,
+    "sourceCount": 12,
+    "raceCount": 126,
+    "trifectaHits": 33,
+    "trifectaHitRate": 26.2,
     "exactaHits": 7,
-    "exactaHitRate": 6,
+    "exactaHitRate": 5.6,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 115000,
-    "returnYen": 68840,
-    "recoveryRate": 59.9,
+    "investmentYen": 124000,
+    "returnYen": 70150,
+    "recoveryRate": 56.6,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,69 +38,71 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 10,
+      "evidenceCount": 12,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 10,
+      "evidenceCount": 12,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 10,
+      "evidenceCount": 11,
       "confidence": "high",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "SOLO_RIDER_ALERT",
-      "label": "単騎の差し込みを警戒",
-      "evidenceCount": 7,
-      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 6,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 6,
+      "evidenceCount": 8,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "SOLO_RIDER_ALERT",
+      "label": "単騎の差し込みを警戒",
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 6,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 4,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 4,
+      "confidence": "medium",
       "sourceType": "SEED"
     }
   ],
   "seedNotes": {
-    "features": [],
+    "features": [
+      "区分 対象 的中 的中率 回収の特徴"
+    ],
     "targets": [
       "注：予想10点は添付原文どおり 3連単8点＋2車単2点＝計10点 で転記（本チャット側で買い目の増減・再構成はしていません）。",
       "2車単：2点（穴狙い）",
@@ -112,13 +114,18 @@
       "7. 締切前に気象を再取得し、風向変化があれば買い目配分を再点検。",
       "11R S級決勝 5-7-6 ○ 1,150円 差 着外 2車単的中（穴狙い09）",
       "長いラインでは、直線の長さだけで番手差しへ寄せ過ぎず、先頭押し切りと番手差しを対称に残す形が有効。",
-      "3-5. 10点固定の買い目設計案"
+      "3-5. 10点固定の買い目設計案",
+      "8R・9Rは結果テキスト上の最終判定が pending でしたが、着順・払戻は記録済みで、買い目10点には該当しないため、監査上は 不的中／払戻0円 として集計しています。"
     ],
     "cautions": [
       "11R：2番・嶋津拓弥と単騎3番・渡邉豪大を個別に警戒したが、同時浮上の 2-3-7 を作れなかった。",
       "レースタイプ：TYPE-C：差し本線・単騎警戒型",
       "レースタイプ：TYPE-A：強軸中心・別線番手差し警戒型",
-      "低 高配当交差決着の全面追跡 5R 実着 4-3-5 10点固定では広げ過ぎ注意。当所相性が強い時のみ。"
+      "低 高配当交差決着の全面追跡 5R 実着 4-3-5 10点固定では広げ過ぎ注意。当所相性が強い時のみ。",
+      "注意点：8R・9Rのみ結果ファイルの 最終判定 が pending。手動照合ではどちらも予想10点に該当なし。",
+      "注意点：結果テキストのWEATHER ACTUALは全レースで「結果確定済み・天気スナップショット未保存」。よって気象差分分析は、結果本文内の実天気・実風が未保存である前提で行う。",
+      "6Rは6田中誇士の捲り、7Rは3小林申太の捲り残りが結果に直結。予想文では別線を警戒しているのに、買い目では番手差しや本線側に寄せすぎました。",
+      "3. 別線自力を警戒したら、番手だけでなく自力本人の頭も比較。"
     ],
     "improvements": [
       "3-3. 不的中の構造と修正ルール",
@@ -126,16 +133,22 @@
       "修正： 勝負レース🔥では、軸着外の「番手差し＋別線番手＋別線番手」を最低1点。",
       "3) 詳細summary：次回予想へ残すべきこと",
       "次回は高配当を無理に追うより、まず 回収可能だった不的中 を減らすことが重要。特に、交差決着・番手差し逆目・状態の良い単騎の3着介入を保護する。",
-      "3-4. 的中率を上げるための優先修正"
+      "3-4. 的中率を上げるための優先修正",
+      "3-4. 次回に使う実戦チェックリスト",
+      "次回修正：ガールズ2強戦は順逆＋3着位置取り型の4・5保護が有効。ただし人気筋は的中しても薄利なので穴2車単は無理に遠くしすぎない。",
+      "次回修正：地元強軸ガールズは厚め的中が取りやすい一方、配当効率は低い。3連単7点のうち1点は4/5の3着ズレより、2着ズレ高配当へ回しても良い。",
+      "次回ルール： 4車ライン・3車ラインで先頭がBを取る展開なら、3番手の頭を1点だけ検討する。",
+      "次回ルール： 別線自力を『展開ズレ』として評価したら、番手差しだけでなく自力本人の頭・2着も1点確認する。",
+      "次回ルール： ガールズ決勝は軸1着固定時、7番車や低評価車でも『好位追走型』なら3着穴を1点だけ残す。"
     ]
   },
   "predictionGuidance": [
     "級班とレース種別を分けて傾向を評価する",
     "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
-    "踏み合い時は単騎の差し込みを3着候補に加える",
     "先行軸だけで固定せず、番手差しの逆目を残す",
     "先行争いがある場合は別線の捲り筋を残す",
+    "踏み合い時は単騎の差し込みを3着候補に加える",
     "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
     "本線が崩れた場合の別線頭と別線3着を保護する"
   ]
