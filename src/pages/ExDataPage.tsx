@@ -215,6 +215,60 @@ function formatShbNameQuality(value?: string | null) {
   return value ? labels[value] ?? value : "--";
 }
 
+function RiderDecisionMemo({ rider, shb }: { rider: KurariExRiderExact; shb?: KurariExShbNameEntry }) {
+  const starts = rider.coverage.confirmedStartCount;
+  const roleEligible = rider.coverage.roleEligibleCount;
+  const usableNotes = rider.quality === "identity-only"
+    ? ["登録番号と選手情報のみ。買い目根拠ではなく、出走確認用として扱う。"]
+    : [
+        starts >= 10 ? "確認出走10R以上。選手傾向の比較材料として使いやすい。" : starts >= 5 ? "確認出走5R以上。展開判断の補助として使える。" : "母数少。強い根拠にはせず、参考扱い。",
+        "勝率 " + formatKurariExRiderMetric(rider.overall.winRate) + " / 2連対率 " + formatKurariExRiderMetric(rider.overall.top2Rate) + " / 3着以内率 " + formatKurariExRiderMetric(rider.overall.top3Rate),
+      ];
+  const cautionNotes = [
+    starts < 5 ? "確認出走が5R未満。人気・格・並びと合わせて慎重に見る。" : "",
+    roleEligible < 5 ? "役割解析の母数が少ないため、先行/番手/追込評価は固定しすぎない。" : "",
+    rider.warnings.length ? "注意: " + rider.warnings[0] : "",
+  ].filter(Boolean);
+  const sampleNotes = [
+    "確認出走 " + starts.toLocaleString("ja-JP") + "R",
+    "役割解析 " + roleEligible.toLocaleString("ja-JP") + "R",
+    "結果解析 " + rider.coverage.resultParsedCount.toLocaleString("ja-JP") + "R",
+    "会場 " + rider.coverage.venueCount.toLocaleString("ja-JP") + "場",
+  ];
+  const shbNotes = shb
+    ? [
+        "SHB品質 " + formatShbNameQuality(shb.quality),
+        "B側3着内率 " + formatShbRate(shb.bTop3Rate),
+        "B側着外率 " + formatShbRate(shb.bOutsideRate),
+        "S/B同日率 " + formatShbRate(shb.sameSAndBRate),
+      ]
+    : ["SHB名前指標はまだ未取得。"];
+
+  return (
+    <section className="ex-panel ex-section ex-guidance">
+      <SectionTitle eyebrow="BETTING MEMO" title="買い目判断メモ" lead="選手を買い目に入れる前に見る実戦用の要約です。" />
+      <div className="ex-note-grid">
+        <article className="ex-note-card">
+          <h4>使える根拠</h4>
+          <ul>{usableNotes.map((note) => <li key={note}>{note}</li>)}</ul>
+        </article>
+        <article className="ex-note-card">
+          <h4>注意点</h4>
+          <ul>{(cautionNotes.length ? cautionNotes : ["大きな警告はありません。"]).map((note) => <li key={note}>{note}</li>)}</ul>
+        </article>
+        <article className="ex-note-card">
+          <h4>母数</h4>
+          <ul>{sampleNotes.map((note) => <li key={note}>{note}</li>)}</ul>
+        </article>
+        <article className="ex-note-card">
+          <h4>SHB傾向</h4>
+          <ul>{shbNotes.map((note) => <li key={note}>{note}</li>)}</ul>
+        </article>
+      </div>
+    </section>
+  );
+}
+
 
 export default function ExDataPage() {
   const isMobile = useIsMobile();
@@ -980,6 +1034,8 @@ export default function ExDataPage() {
 
                 {selectedRider ? (
                   <>
+                    <RiderDecisionMemo rider={selectedRider} shb={selectedRiderShb} />
+
                     <section className="ex-panel ex-section">
                       <SectionTitle eyebrow="COVERAGE" title="解析範囲" />
                       <div className="ex-health-grid">
