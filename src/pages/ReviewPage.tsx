@@ -1792,6 +1792,7 @@ function buildVenueGroups(
   resultMap: Record<string, PredictionResultRecord>,
   feed: PredictionTodayFeed | null,
   raceResultSnapshotMap: ReviewRaceResultSnapshotMap,
+  fileGroups: ReviewFileVenueGroup[],
 ): VenueReviewGroup[] {
   const slots = Object.values(slotMap).filter((item) => item.date === date && item.predictionText?.trim());
   const feedVenueMap = new Map((feed?.venues ?? []).map((venue) => [normalizeVenueName(venue.venue), venue]));
@@ -1866,6 +1867,72 @@ if (resolvedCurrentSession) current.session = resolvedCurrentSession;
 
 if (!current.title && feedVenue?.title) current.title = feedVenue.title;
 groups.set(key, current);
+  }
+
+  for (const feedVenue of feed?.venues ?? []) {
+    const key = normalizeVenueName(feedVenue.venue);
+    if (groups.has(key)) continue;
+
+    const races = (feedVenue.races ?? []).map((liveFeedRace) => {
+      const snapshotKey = buildReviewRaceResultSnapshotKey(date, feedVenue.venue, liveFeedRace.raceNo);
+      const feedRace = mergeReviewRaceWithSnapshot(liveFeedRace, raceResultSnapshotMap[snapshotKey]);
+      const resultRecord = resultValues
+        .filter(
+          (item) =>
+            normalizeVenueName(item.venue) === key &&
+            item.raceNumber === liveFeedRace.raceNo
+        )
+        .sort((a, b) => (b.savedAt ?? "").localeCompare(a.savedAt ?? ""))[0];
+
+      return {
+        venue: feedVenue.venue,
+        date,
+        raceNumber: liveFeedRace.raceNo,
+        raceKey: `feed:${date}:${key}:${liveFeedRace.raceNo}`,
+        predictionText: "",
+        predictionSummary: "",
+        feedRace,
+        resultRecord,
+      };
+    });
+    const feedResultRecords = races
+      .map((race) => race.resultRecord)
+      .filter((record): record is PredictionResultRecord => Boolean(record));
+
+    groups.set(key, {
+      venue: feedVenue.venue,
+      date,
+      races,
+      grade: feedVenue.grade,
+      session: resolveReviewVenueSession(
+        feedVenue.session,
+        feedVenue.races?.map((race) => race.time) ?? [],
+      ),
+      title: feedVenue.title,
+      startDate: feedVenue.startDate,
+      endDate: feedVenue.endDate,
+      totalInvestment: feedResultRecords.reduce((sum, record) => sum + (record.investment ?? 0), 0),
+      totalPayout: feedResultRecords.reduce((sum, record) => sum + (record.payout ?? 0), 0),
+      settledCount: feedResultRecords.filter(
+        (record) => record.hitStatus === "hit" || record.hitStatus === "miss",
+      ).length,
+      hitCount: feedResultRecords.filter((record) => record.hitStatus === "hit").length,
+    });
+  }
+
+  for (const fileGroup of fileGroups) {
+    const key = normalizeVenueName(fileGroup.venue);
+    if (groups.has(key)) continue;
+
+    groups.set(key, {
+      venue: fileGroup.venue,
+      date,
+      races: [],
+      totalInvestment: 0,
+      totalPayout: 0,
+      settledCount: 0,
+      hitCount: 0,
+    });
   }
 
   return Array.from(groups.values())
@@ -2115,8 +2182,7 @@ export default function ReviewPage() {
   const [calendarMonth, setCalendarMonth] = useState(operationalToday.slice(0, 7));
   const isTodaySelected = selectedDate === operationalToday;
   const isYesterdaySelected = selectedDate === yesterdayReviewDate;
-  const selectedDateHasReviewFiles = reviewFileIndexItems.some((item) => item.date === selectedDate);
-  const isLocalReviewSelected = (isTodaySelected || isYesterdaySelected) && !selectedDateHasReviewFiles;
+  const isLocalReviewSelected = isTodaySelected || isYesterdaySelected;
   const reviewModeLabel = isLocalReviewSelected
     ? (isTodaySelected ? "TODAY REVIEW" : "YESTERDAY REVIEW")
     : "FILE REVIEW";
@@ -2237,17 +2303,12 @@ export default function ReviewPage() {
       resultMap,
       todayFeed && todayFeed.date === selectedDate ? todayFeed : null,
       raceResultSnapshotMap,
+      reviewFileGroups,
     ),
-  [selectedDate, slotMap, resultMap, todayFeed, raceResultSnapshotMap],
+  [selectedDate, slotMap, resultMap, todayFeed, raceResultSnapshotMap, reviewFileGroups],
 );
 
   useEffect(() => {
-    if (isLocalReviewSelected) {
-      setReviewFileGroups([]);
-      setReviewFileLoadStatus("idle");
-      return;
-    }
-
     const targets = reviewFileIndexItems.filter((item) => item.date === selectedDate);
 
     if (targets.length === 0) {
@@ -2292,7 +2353,7 @@ export default function ReviewPage() {
     return () => {
       cancelled = true;
     };
-  }, [isLocalReviewSelected, reviewFileIndexItems, selectedDate]);
+  }, [reviewFileIndexItems, selectedDate]);
 
   useEffect(() => {
     if (venueGroups.length === 0) return;
@@ -2426,8 +2487,14 @@ export default function ReviewPage() {
   );
 
   const selectedReviewFileGroup = useMemo(
-    () => filteredReviewFileGroups.find((group) => group.venue === selectedVenueName) ?? filteredReviewFileGroups[0] ?? null,
-    [filteredReviewFileGroups, selectedVenueName],
+    () => {
+      const matched = filteredReviewFileGroups.find(
+        (group) => normalizeVenueName(group.venue) === normalizeVenueName(selectedVenueName),
+      );
+      if (matched) return matched;
+      return isLocalReviewSelected ? null : filteredReviewFileGroups[0] ?? null;
+    },
+    [filteredReviewFileGroups, isLocalReviewSelected, selectedVenueName],
   );
 
   const selectedFileFallbackVenueGroup = useMemo(
@@ -2445,14 +2512,24 @@ export default function ReviewPage() {
 
   const selectedPredictionCopy = useMemo(
     () => {
-      if (isLocalReviewSelected) return selectedVenueGroup ? buildPredictionCopy(selectedVenueGroup) : "";
+      if (isLocalReviewSelected) {
+        if (selectedVenueGroup?.races.some((race) => race.predictionText.trim())) {
+          return buildPredictionCopy(selectedVenueGroup);
+        }
+        return selectedReviewFileGroup?.predictionText ?? "";
+      }
       return selectedReviewFileGroup?.predictionText ?? "";
     },
     [isLocalReviewSelected, selectedReviewFileGroup, selectedVenueGroup],
   );
   const selectedResultCopy = useMemo(
     () => {
-      if (isLocalReviewSelected) return selectedVenueGroup ? buildResultCopy(selectedVenueGroup, reviewWeatherActualMap, todayFeed) : "";
+      if (isLocalReviewSelected) {
+        if (selectedVenueGroup?.races.length) {
+          return buildResultCopy(selectedVenueGroup, reviewWeatherActualMap, todayFeed);
+        }
+        return selectedReviewFileGroup?.resultText ?? "";
+      }
 
       const fileResultText = selectedReviewFileGroup?.resultText ?? "";
       if (fileResultText.trim()) return fileResultText;
@@ -2687,16 +2764,16 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                       {isTodaySelected ? "TODAY MODE" : isYesterdaySelected ? "YESTERDAY MODE" : "FILE MODE"}
                     </span>
                     <span style={{ borderRadius: "999px", border: `1px solid ${heroTone.border}`, background: heroTone.chip, color: heroTone.text, padding: "8px 12px", fontSize: "11px", fontWeight: 900, letterSpacing: "0.12em" }}>
-                      {isTodaySelected ? "LOCAL STORAGE + TODAY FEED" : isYesterdaySelected ? "LOCAL STORAGE + SNAPSHOT" : "INDEX JSON + TXT + SUMMARY"}
+                      {isTodaySelected ? "LOCAL STORAGE + TODAY FEED + REVIEW FILES" : isYesterdaySelected ? "LOCAL STORAGE + SNAPSHOT + REVIEW FILES" : "INDEX JSON + TXT + SUMMARY"}
                     </span>
                   </div>
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px", marginTop: "260px" }}>
                   <StatCard label="OPERATION DAY" value={formatDateShort(selectedDate)} sub={isTodaySelected ? "本日のレビュー対象日" : isYesterdaySelected ? "昨日のレビュー対象日" : "表示中の保存レビュー日付"} />
-                  <StatCard label="TARGETS" value={isLocalReviewSelected ? `${todaySummary.venueCount}会場 / ${todaySummary.raceCount}R` : `${reviewFileSummary.venueCount}会場`} sub={isTodaySelected ? "当日保存済み予想から作業台を構成" : isYesterdaySelected ? "昨日保存済み予想から作業台を構成" : "index.json に登録された会場ファイルを表示"} />
+                  <StatCard label="TARGETS" value={isLocalReviewSelected ? `${todaySummary.venueCount}会場 / ${todaySummary.raceCount}R` : `${reviewFileSummary.venueCount}会場`} sub={isTodaySelected ? "予想素材・当日フィード・保存ファイルから構成" : isYesterdaySelected ? "昨日の予想素材・スナップショット・保存ファイルから構成" : "index.json に登録された会場ファイルを表示"} />
                   <StatCard label="FILE STATUS" value={isLocalReviewSelected ? `${todaySummary.hitCount}的中 / ${todaySummary.settledCount}照合` : `${reviewFileSummary.loadedTextCount}件読込`} sub={isLocalReviewSelected ? `レポート一時保存 ${reportRecords.length}件` : `登録ファイル ${reviewFileSummary.fileCount}件`} />
-                  <StatCard label="MODE" value={isLocalReviewSelected ? "LOCAL / SNAPSHOT" : "TXT / FETCH"} sub={isTodaySelected ? "当日レビューは localStorage と today.generated.json を利用" : isYesterdaySelected ? "昨日レビューは localStorage と snapshot を利用" : "過去レビューは localStorage に保存しません"} />
+                  <StatCard label="MODE" value={isLocalReviewSelected ? "MERGED SOURCES" : "TXT / FETCH"} sub={isTodaySelected ? "localStorage・today.generated.json・review TXTを統合" : isYesterdaySelected ? "localStorage・snapshot・review TXTを統合" : "過去レビューは localStorage に保存しません"} />
                 </div>
               </div>
 
@@ -2863,9 +2940,9 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
             </div>
             <div style={{ marginTop: "16px", fontSize: "12px", lineHeight: 1.8, color: "#6b7280" }}>
               {isTodaySelected
-                ? "当日分は localStorage と today.generated.json を使います。"
+                ? "当日分は localStorage・today.generated.json・review保存ファイルを統合して表示します。"
                 : isYesterdaySelected
-                  ? "昨日分は localStorage と保存済み snapshot を使います。"
+                  ? "昨日分は localStorage・保存済みsnapshot・review保存ファイルを統合して表示します。"
                   : "過去日付は public/data/reviews/index.json と TXT ファイルを fetch して表示します。"}
             </div>
           </article>
@@ -2887,7 +2964,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
               <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>{isLocalReviewSelected ? "レビュー対象の会場とメモを絞り込む" : "保存ファイルの会場と文面を絞り込む"}</h2>
             </div>
             <div style={{ fontSize: "12px", color: "#6d7687", lineHeight: 1.7, textAlign: "right" }}>
-              <div>{isLocalReviewSelected ? "localStorage に残っている予想と結果だけを対象に、" : "選択日付の保存レビューTXTだけを対象に、"}</div>
+              <div>{isLocalReviewSelected ? "予想素材・当日フィード・保存レビューTXTを対象に、" : "選択日付の保存レビューTXTだけを対象に、"}</div>
               <div>{isLocalReviewSelected ? "会場カードとレポート貼り付け欄を切り替えます。" : "会場カードと表示テキストを切り替えます。"}</div>
             </div>
           </div>
@@ -2983,6 +3060,22 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
       ? sortedVenueGroupsForCards.map((group) => {
           const tone = venueColorMap[group.venue] ?? heroTone;
           const selected = selectedVenueGroup?.venue === group.venue;
+          const fileGroup = reviewFileGroups.find(
+            (item) => normalizeVenueName(item.venue) === normalizeVenueName(group.venue),
+          );
+          const predictionReady =
+            group.races.some((race) => race.predictionText.trim()) ||
+            Boolean(fileGroup?.predictionText.trim());
+          const resultReady =
+            group.races.some((race) =>
+              Boolean(
+                race.resultRecord ||
+                race.feedRace?.resultStatus === "confirmed" ||
+                race.feedRace?.result?.status === "confirmed"
+              )
+            ) ||
+            Boolean(fileGroup?.resultText.trim());
+          const summaryReady = Boolean(fileGroup?.summaryText.trim());
           const profitLoss = group.totalPayout - group.totalInvestment;
           const hitRate = group.settledCount > 0 ? `${((group.hitCount / group.settledCount) * 100).toFixed(1)}%` : "--";
           const hitSub = group.settledCount > 0 ? `${group.hitCount}-${group.settledCount}` : "接続待ち";
@@ -3015,6 +3108,17 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                   </div>
                   <div style={{ fontSize: "22px", fontWeight: 900, color: "#111827", lineHeight: 1.08 }}>
                     {group.venue}
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "9px" }}>
+                    <span style={{ fontSize: "10px", fontWeight: 900, color: predictionReady ? "#7b5be3" : "#8a8fa1", background: predictionReady ? "rgba(123,91,227,0.1)" : "rgba(238, 240, 245, 0.9)", border: `1px solid ${predictionReady ? "rgba(196, 181, 253, 0.8)" : "rgba(219, 223, 232, 0.92)"}`, borderRadius: "999px", padding: "4px 8px" }}>
+                      {predictionReady ? "予想あり" : "予想未登録"}
+                    </span>
+                    <span style={{ fontSize: "10px", fontWeight: 900, color: resultReady ? "#7b5be3" : "#8a8fa1", background: resultReady ? "rgba(123,91,227,0.1)" : "rgba(238, 240, 245, 0.9)", border: `1px solid ${resultReady ? "rgba(196, 181, 253, 0.8)" : "rgba(219, 223, 232, 0.92)"}`, borderRadius: "999px", padding: "4px 8px" }}>
+                      {resultReady ? "結果あり" : "結果なし"}
+                    </span>
+                    <span style={{ fontSize: "10px", fontWeight: 900, color: summaryReady ? "#bf4f7f" : "#8a8fa1", background: summaryReady ? "rgba(244, 122, 164, 0.1)" : "rgba(238, 240, 245, 0.9)", border: `1px solid ${summaryReady ? "rgba(244, 122, 164, 0.26)" : "rgba(219, 223, 232, 0.92)"}`, borderRadius: "999px", padding: "4px 8px" }}>
+                      {summaryReady ? "まとめあり" : "まとめなし"}
+                    </span>
                   </div>
                   <div style={{ fontSize: "12px", color: "#6d7687", marginTop: "7px", lineHeight: 1.6 }}>
                     {group.title ?? "Prediction保存データ読み込み"}
