@@ -240,7 +240,7 @@ export default function ExDataPage() {
   const [matchupInitialStatus, setMatchupInitialStatus] = useState<"loading" | "ready" | "error">("loading");
   const [matchupQuery, setMatchupQuery] = useState("");
   const [selectedMatchupRiderNo, setSelectedMatchupRiderNo] = useState<string | null>(null);
-  const [matchupFilterMode, setMatchupFilterMode] = useState<"all" | "advantage" | "danger" | "sample">("all");
+  const [matchupFilterMode, setMatchupFilterMode] = useState<"all" | "advantage" | "danger" | "sample" | "strong" | "risk" | "sameLine" | "otherLine">("all");
   const [matchupCache, setMatchupCache] = useState<Record<string, KurariExMatchupExact>>({});
   const [matchupStatus, setMatchupStatus] = useState<Record<string, "loading" | "ready" | "error">>({});
   const [shbNameIndex, setShbNameIndex] = useState<KurariExShbNameIndex | null>(null);
@@ -491,6 +491,18 @@ export default function ExDataPage() {
       if (matchupFilterMode === "sample") {
         return row.safeComparableRaceCount >= 5;
       }
+      if (matchupFilterMode === "strong") {
+        return row.safeComparableRaceCount >= 5 && selfAheadRate !== null && selfAheadRate >= 70;
+      }
+      if (matchupFilterMode === "risk") {
+        return row.safeComparableRaceCount >= 5 && selfAheadRate !== null && selfAheadRate <= 30;
+      }
+      if (matchupFilterMode === "sameLine") {
+        return row.sameLine.safeComparableRaceCount >= 2;
+      }
+      if (matchupFilterMode === "otherLine") {
+        return row.otherLine.safeComparableRaceCount >= 2;
+      }
       return true;
     })
     .sort((left, right) => {
@@ -499,6 +511,18 @@ export default function ExDataPage() {
       }
       if (matchupFilterMode === "danger") {
         return (left.selfAheadRate ?? 101) - (right.selfAheadRate ?? 101) || right.safeComparableRaceCount - left.safeComparableRaceCount || left.opponentName.localeCompare(right.opponentName, "ja");
+      }
+      if (matchupFilterMode === "strong") {
+        return (right.selfAheadRate ?? -1) - (left.selfAheadRate ?? -1) || right.safeComparableRaceCount - left.safeComparableRaceCount || left.opponentName.localeCompare(right.opponentName, "ja");
+      }
+      if (matchupFilterMode === "risk") {
+        return (left.selfAheadRate ?? 101) - (right.selfAheadRate ?? 101) || right.safeComparableRaceCount - left.safeComparableRaceCount || left.opponentName.localeCompare(right.opponentName, "ja");
+      }
+      if (matchupFilterMode === "sameLine") {
+        return right.sameLine.safeComparableRaceCount - left.sameLine.safeComparableRaceCount || (right.sameLine.selfAheadRate ?? -1) - (left.sameLine.selfAheadRate ?? -1) || left.opponentName.localeCompare(right.opponentName, "ja");
+      }
+      if (matchupFilterMode === "otherLine") {
+        return right.otherLine.safeComparableRaceCount - left.otherLine.safeComparableRaceCount || (right.otherLine.selfAheadRate ?? -1) - (left.otherLine.selfAheadRate ?? -1) || left.opponentName.localeCompare(right.opponentName, "ja");
       }
       return right.safeComparableRaceCount - left.safeComparableRaceCount || right.sharedRaceCount - left.sharedRaceCount || left.opponentName.localeCompare(right.opponentName, "ja");
     });
@@ -513,6 +537,10 @@ export default function ExDataPage() {
     { key: "advantage" as const, label: "得意相手", note: "自己先着60%以上" },
     { key: "danger" as const, label: "苦手相手", note: "自己先着40%以下" },
     { key: "sample" as const, label: "母数あり", note: "比較可能5R以上" },
+    { key: "strong" as const, label: "強く出る相手", note: "比較可能5R以上かつ自己先着70%以上" },
+    { key: "risk" as const, label: "危険相手", note: "比較可能5R以上かつ自己先着30%以下" },
+    { key: "sameLine" as const, label: "同ライン多め", note: "同ライン比較2R以上" },
+    { key: "otherLine" as const, label: "別線多め", note: "別線比較2R以上" },
   ];
   const sizeWarning = (status?.outputBytes ?? 0) > 20 * 1024 * 1024;
   const healthMetrics = [
