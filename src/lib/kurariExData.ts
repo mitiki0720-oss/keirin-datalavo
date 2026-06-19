@@ -12,6 +12,7 @@ import type {
   KurariExMatchupExactIndex,
   KurariExMatchupExactInitialData,
   KurariExMatchupExactStatus,
+  KurariExMatchupEntry,
   KurariExMetric,
   KurariExPredictionContext,
   KurariExRiderAggregate,
@@ -353,10 +354,11 @@ function buildKurariExPredictionMaterialText(
   exact: KurariExVenueExact | null,
   context: KurariExPredictionContext | null | undefined,
   riderMaterial: string,
+  matchupMaterial: string,
   insightLimit: number,
   guidanceLimit: number,
 ) {
-  if (!venue && !exact && !riderMaterial) {
+  if (!venue && !exact && !riderMaterial && !matchupMaterial) {
     return [
       "[P. KURARI EX DATA / 独自展開指標]",
       "",
@@ -380,6 +382,7 @@ function buildKurariExPredictionMaterialText(
     if (practicalMemo.length) lines.push("", ...practicalMemo);
   }
   if (riderMaterial) lines.push("", riderMaterial);
+  if (matchupMaterial) lines.push("", matchupMaterial);
   if (venue) {
     lines.push("", "【会場別SEED】", `- 対象会場: ${venue.venueName}`);
   }
@@ -428,19 +431,20 @@ export function buildKurariExPredictionMaterial(
   exact: KurariExVenueExact | null = null,
   context?: KurariExPredictionContext | null,
   riderMaterial = "",
+  matchupMaterial = "",
 ): string {
   const venue = bundle?.venue ?? null;
   const guidance = bundle?.guidance ?? null;
-  const maxLength = riderMaterial ? 8000 : 4500;
+  const maxLength = riderMaterial || matchupMaterial ? 9500 : 4500;
   for (let insightLimit = Math.min(8, venue?.seedInsights.length ?? 0); insightLimit >= 0; insightLimit -= 1) {
-    const text = buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, insightLimit, 8);
+    const text = buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, matchupMaterial, insightLimit, 8);
     if (text.length <= maxLength) return text;
   }
   for (let guidanceLimit = 7; guidanceLimit >= 1; guidanceLimit -= 1) {
-    const text = buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, 0, guidanceLimit);
+    const text = buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, matchupMaterial, 0, guidanceLimit);
     if (text.length <= maxLength) return text;
   }
-  return buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, 0, 1).slice(0, maxLength);
+  return buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, matchupMaterial, 0, 1).slice(0, maxLength);
 }
 
 export async function loadKurariExInitialData(): Promise<KurariExInitialData> {
@@ -637,6 +641,185 @@ export function matchKurariExRidersForRace(
     })
     .filter((item): item is KurariExRiderExactMatch => Boolean(item))
     .sort((left, right) => Number(left.carNo) - Number(right.carNo));
+}
+
+export type KurariExMatchupExactMatch = {
+  carNo: string;
+  riderName: string;
+  registrationNo: string;
+  matchMethod: "registrationNo" | "name";
+  indexItem: KurariExMatchupExactIndex["items"][number];
+};
+
+export type KurariExMatchupPredictionEntry = KurariExMatchupExactMatch & {
+  exact: KurariExMatchupExact;
+};
+
+export type KurariExMatchupPredictionMaterial = {
+  text: string;
+  reflectedCount: number;
+};
+
+type KurariExMatchupComparableLike = {
+  safeComparableRaceCount: number;
+  selfAheadRate: number | null;
+  opponentAheadRate: number | null;
+};
+
+const KURARI_EX_MATCHUP_RIDER_MIN_SAFE_RACES = 5;
+const KURARI_EX_MATCHUP_PAIR_MIN_SAFE_RACES = 2;
+
+export function matchKurariExMatchupsForRace(
+  index: KurariExMatchupExactIndex,
+  riders: KurariExRaceRiderLike[],
+): KurariExMatchupExactMatch[] {
+  const byRegistrationNo = new Map(
+    index.items.map((item) => [normalizeKurariExRiderRegistrationNo(item.registrationNo), item]),
+  );
+  const byName = new Map<string, KurariExMatchupExactIndex["items"][number]>();
+  const duplicateNames = new Set<string>();
+
+  for (const item of index.items) {
+    const nameKey = normalizeKurariExRiderName(item.name);
+    if (!nameKey) continue;
+    if (byName.has(nameKey)) {
+      duplicateNames.add(nameKey);
+      byName.delete(nameKey);
+      continue;
+    }
+    if (!duplicateNames.has(nameKey)) byName.set(nameKey, item);
+  }
+
+  const matchedRegistrationNos = new Set<string>();
+  return riders
+    .map((rider): KurariExMatchupExactMatch | null => {
+      const registrationNo = normalizeKurariExRiderRegistrationNo(rider.registrationNo);
+      const registrationMatch = registrationNo ? byRegistrationNo.get(registrationNo) ?? null : null;
+      const nameKey = normalizeKurariExRiderName(rider.fullName || rider.name);
+      const nameMatch = !registrationNo && nameKey ? byName.get(nameKey) ?? null : null;
+      const indexItem = registrationMatch ?? nameMatch;
+      if (!indexItem || matchedRegistrationNos.has(indexItem.registrationNo)) return null;
+      matchedRegistrationNos.add(indexItem.registrationNo);
+      return {
+        carNo: String(rider.carNo),
+        riderName: String(rider.fullName || rider.name || indexItem.name).trim(),
+        registrationNo: indexItem.registrationNo,
+        matchMethod: registrationMatch ? "registrationNo" : "name",
+        indexItem,
+      };
+    })
+    .filter((item): item is KurariExMatchupExactMatch => Boolean(item))
+    .sort((left, right) => Number(left.carNo) - Number(right.carNo));
+}
+
+function formatKurariExMatchupRate(value?: number | null) {
+  return Number.isFinite(value) ? String(Number(value).toFixed(1)) + "%" : "--";
+}
+
+function buildKurariExMatchupLine(
+  label: string,
+  selfName: string,
+  opponentName: string,
+  stats?: KurariExMatchupComparableLike | null,
+) {
+  if (!stats || stats.safeComparableRaceCount < KURARI_EX_MATCHUP_PAIR_MIN_SAFE_RACES) return "";
+  return "- " + label + ": " + stats.safeComparableRaceCount + "R / " + selfName + "?? " + formatKurariExMatchupRate(stats.selfAheadRate) + " / " + opponentName + "?? " + formatKurariExMatchupRate(stats.opponentAheadRate);
+}
+
+function buildKurariExMatchupSignal(
+  selfName: string,
+  opponentName: string,
+  matchup: KurariExMatchupEntry,
+) {
+  const selfAheadRate = matchup.selfAheadRate ?? 0;
+  const opponentAheadRate = matchup.opponentAheadRate ?? 0;
+  if (selfAheadRate >= 65) return selfName + "??????????????????";
+  if (opponentAheadRate >= 65) return opponentName + "??????" + selfName + "?????????";
+  if (selfAheadRate >= 55) return selfName + "??????";
+  if (opponentAheadRate >= 55) return opponentName + "??????";
+  return "???????????????????";
+}
+
+export function buildKurariExMatchupPredictionMaterial(
+  entries: KurariExMatchupPredictionEntry[],
+  state: "ready" | "missing" | "error" = "ready",
+): KurariExMatchupPredictionMaterial {
+  const heading = "???MATCHUP EX / ???????";
+
+  if (state === "error") {
+    return {
+      text: [heading, "MATCHUP EX????????????", "???EXACT????EXACT???????????"].join("\n"),
+      reflectedCount: 0,
+    };
+  }
+
+  if (state === "missing" || entries.length < 2) {
+    return {
+      text: [heading, "?????????????MATCHUP EX???????"].join("\n"),
+      reflectedCount: 0,
+    };
+  }
+
+  const entryByRegistrationNo = new Map(entries.map((entry) => [entry.registrationNo, entry]));
+  const cards: string[] = [];
+  const usedPairKeys = new Set<string>();
+
+  for (const entry of entries) {
+    if (entry.exact.quality !== "sufficient") continue;
+    if ((entry.exact.coverage?.safeComparableRaceCount ?? 0) < KURARI_EX_MATCHUP_RIDER_MIN_SAFE_RACES) continue;
+
+    for (const matchup of entry.exact.matchups ?? []) {
+      const opponent = entryByRegistrationNo.get(matchup.opponentRegistrationNo);
+      if (!opponent) continue;
+      if (matchup.safeComparableRaceCount < KURARI_EX_MATCHUP_PAIR_MIN_SAFE_RACES) continue;
+      if (matchup.quality !== "sufficient" && matchup.safeComparableRaceCount < KURARI_EX_MATCHUP_PAIR_MIN_SAFE_RACES + 1) continue;
+
+      const pairKey = [entry.registrationNo, opponent.registrationNo].sort().join(":");
+      if (usedPairKeys.has(pairKey)) continue;
+      usedPairKeys.add(pairKey);
+
+      const selfName = entry.carNo + "? " + (entry.riderName || entry.exact.name);
+      const opponentName = opponent.carNo + "? " + (opponent.riderName || matchup.opponentName);
+
+      const detailLines = [
+        "### " + selfName + " vs " + opponentName,
+        "- ????: " + matchup.safeComparableRaceCount + "R / " + selfName + "?? " + formatKurariExMatchupRate(matchup.selfAheadRate) + " / " + opponentName + "?? " + formatKurariExMatchupRate(matchup.opponentAheadRate),
+        "- ??: " + buildKurariExMatchupSignal(selfName, opponentName, matchup),
+        buildKurariExMatchupLine("?????", selfName, opponentName, matchup.sameLine),
+        buildKurariExMatchupLine("???", selfName, opponentName, matchup.otherLine),
+      ].filter(Boolean);
+
+      cards.push(detailLines.join("\n"));
+      if (cards.length >= 6) break;
+    }
+    if (cards.length >= 6) break;
+  }
+
+  if (!cards.length) {
+    return {
+      text: [
+        heading,
+        "??????????????????MATCHUP EX???????",
+        "- 1R??????LOW SAMPLE?partial?????????????????????",
+      ].join("\n"),
+      reflectedCount: 0,
+    };
+  }
+
+  const text = fitKurariExMaterialLines(
+    [
+      heading,
+      "",
+      "??:",
+      "- MATCHUP EX??????????????????????",
+      "- ???????????????????????????????????",
+      "- ?????????????????????????????????",
+      ...cards.flatMap((card) => ["", card]),
+    ],
+    2600,
+  );
+
+  return { text, reflectedCount: cards.length };
 }
 
 function formatKurariExRiderAggregate(label: string, aggregate?: KurariExRiderAggregate | null, prefix = "") {

@@ -18,15 +18,19 @@ import {
 } from "../lib/keirinPredictionExport";
 import {
   buildKurariExPredictionMaterial,
+  buildKurariExMatchupPredictionMaterial,
   buildKurariExRiderPredictionMaterial,
   findKurariExExactVenueEntryByVenueName,
   findKurariExVenueEntryByVenueName,
   loadKurariExExactIndex,
   loadKurariExIndex,
   loadKurariExRiderExactByFile,
+  loadKurariExMatchupExactByFile,
+  loadKurariExMatchupExactIndex,
   loadKurariExRiderExactIndex,
   loadKurariExVenueBundle,
   loadKurariExVenueExact,
+  matchKurariExMatchupsForRace,
   matchKurariExRidersForRace,
 } from "../lib/kurariExData";
 import {
@@ -9375,6 +9379,10 @@ export function PredictionPage() {
   const [kurariExRiderExactIndexStatus, setKurariExRiderExactIndexStatus] = useState<"loading" | "ready" | "error">("loading");
   const [kurariExRiderExactCacheVersion, setKurariExRiderExactCacheVersion] = useState(0);
   const [selectedKurariExRiderStatus, setSelectedKurariExRiderStatus] = useState<"idle" | "loading" | "ready" | "missing" | "error">("loading");
+  const [kurariExMatchupExactIndex, setKurariExMatchupExactIndex] = useState<KurariExMatchupExactIndex | null>(null);
+  const [kurariExMatchupExactIndexStatus, setKurariExMatchupExactIndexStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [kurariExMatchupExactCacheVersion, setKurariExMatchupExactCacheVersion] = useState(0);
+  const [selectedKurariExMatchupStatus, setSelectedKurariExMatchupStatus] = useState<"idle" | "loading" | "ready" | "missing" | "error">("loading");
   const [kurariExVenueCache, setKurariExVenueCache] = useState<Record<string, KurariExVenueBundle>>({});
   const [kurariExVenueStatus, setKurariExVenueStatus] = useState<Record<string, "loading" | "ready" | "missing" | "error">>({});
   const [kurariExExactVenueCache, setKurariExExactVenueCache] = useState<Record<string, KurariExVenueExact>>({});
@@ -9385,6 +9393,8 @@ export function PredictionPage() {
   const kurariExExactVenueLoadingRef = useRef<Set<string>>(new Set());
   const kurariExRiderExactCacheRef = useRef<Map<string, KurariExRiderExact>>(new Map());
   const kurariExRiderExactLoadingRef = useRef<Map<string, Promise<KurariExRiderExact>>>(new Map());
+  const kurariExMatchupExactCacheRef = useRef<Map<string, KurariExMatchupExact>>(new Map());
+  const kurariExMatchupExactLoadingRef = useRef<Map<string, Promise<KurariExMatchupExact>>>(new Map());
   const hitNotificationLookup = useMemo(
     () => buildHitNotificationLookup(predictionFeed, savedPredictionSlots, savedPredictionResults),
     [predictionFeed, savedPredictionSlots, savedPredictionResults]
@@ -10624,6 +10634,81 @@ if (
     selectedPredictionMaterialVenue,
   ]);
 
+  const selectedKurariExMatchupMatches = useMemo(
+    () => kurariExMatchupExactIndex
+      ? matchKurariExMatchupsForRace(
+          kurariExMatchupExactIndex,
+          selectedPredictionMaterialRiders.map((rider) => ({
+            carNo: rider.carNo,
+            name: rider.name,
+            fullName: rider.fullName,
+            registrationNo: getPredictionRiderRegistrationNo(rider),
+          })),
+        )
+      : [],
+    [kurariExMatchupExactIndex, selectedPredictionMaterialRiders],
+  );
+
+  useEffect(() => {
+    if (
+      selectedPredictionMaterialVenue &&
+      selectedPredictionMaterialRace &&
+      isPredictionRaceExcludedByOperation(selectedPredictionMaterialVenue, selectedPredictionMaterialRace)
+    ) {
+      setSelectedKurariExMatchupStatus("idle");
+      return;
+    }
+    if (kurariExMatchupExactIndexStatus === "loading") {
+      setSelectedKurariExMatchupStatus("loading");
+      return;
+    }
+    if (kurariExMatchupExactIndexStatus === "error") {
+      setSelectedKurariExMatchupStatus("error");
+      return;
+    }
+    if (selectedKurariExMatchupMatches.length < 2) {
+      setSelectedKurariExMatchupStatus("missing");
+      return;
+    }
+
+    let isActive = true;
+    setSelectedKurariExMatchupStatus("loading");
+    const loadMatchedMatchups = async () => {
+      try {
+        await Promise.all(selectedKurariExMatchupMatches.map(async (match) => {
+          if (kurariExMatchupExactCacheRef.current.has(match.registrationNo)) return;
+          let pending = kurariExMatchupExactLoadingRef.current.get(match.registrationNo);
+          if (!pending) {
+            pending = loadKurariExMatchupExactByFile(match.indexItem.file);
+            kurariExMatchupExactLoadingRef.current.set(match.registrationNo, pending);
+          }
+          try {
+            const exact = await pending;
+            kurariExMatchupExactCacheRef.current.set(match.registrationNo, exact);
+          } finally {
+            kurariExMatchupExactLoadingRef.current.delete(match.registrationNo);
+          }
+        }));
+        if (!isActive) return;
+        setKurariExMatchupExactCacheVersion((current) => current + 1);
+        setSelectedKurariExMatchupStatus("ready");
+      } catch {
+        if (!isActive) return;
+        setSelectedKurariExMatchupStatus("error");
+      }
+    };
+
+    loadMatchedMatchups();
+    return () => {
+      isActive = false;
+    };
+  }, [
+    kurariExMatchupExactIndexStatus,
+    selectedKurariExMatchupMatches,
+    selectedPredictionMaterialRace,
+    selectedPredictionMaterialVenue,
+  ]);
+
   const selectedPredictionRiderContexts = useMemo<PredictionExportRiderContext[]>(() => {
     const nameIndex = new Map<string, PlayerIndexItem[]>();
     predictionPlayerIndex.forEach((item) => {
@@ -10787,6 +10872,31 @@ if (
     selectedPredictionMaterialRace,
     selectedPredictionMaterialVenue,
   ]);
+  const selectedKurariExMatchupEntries = useMemo(() => {
+    void kurariExMatchupExactCacheVersion;
+    return selectedKurariExMatchupMatches.flatMap((match) => {
+      const exact = kurariExMatchupExactCacheRef.current.get(match.registrationNo);
+      return exact ? [{ ...match, exact }] : [];
+    });
+  }, [kurariExMatchupExactCacheVersion, selectedKurariExMatchupMatches]);
+
+  const selectedKurariExMatchupMaterial = useMemo(() => {
+    if (selectedKurariExMatchupStatus === "idle" || selectedKurariExMatchupStatus === "loading") {
+      return { text: "", reflectedCount: 0 };
+    }
+    return buildKurariExMatchupPredictionMaterial(
+      selectedKurariExMatchupEntries,
+      selectedKurariExMatchupStatus === "ready"
+        ? "ready"
+        : selectedKurariExMatchupStatus === "missing"
+          ? "missing"
+          : "error",
+    );
+  }, [
+    selectedKurariExMatchupEntries,
+    selectedKurariExMatchupStatus,
+  ]);
+
   const selectedKurariExBundle = selectedKurariExEntry
     ? kurariExVenueCache[selectedKurariExEntry.venueKey] ?? null
     : null;
@@ -10818,11 +10928,11 @@ if (
           isGirls: selectedPredictionMaterialRace?.isGirls,
           lineup: selectedPredictionMaterialRace?.lineup,
           windSpeedKmh: parsePredictionNumber(selectedWeather?.windSpeedText ?? ""),
-        }, selectedKurariExRiderMaterial.text)
+        }, selectedKurariExRiderMaterial.text, selectedKurariExMatchupMaterial.text)
       : selectedKurariExBothMissing
-        ? buildKurariExPredictionMaterial(null, null, null, selectedKurariExRiderMaterial.text)
+        ? buildKurariExPredictionMaterial(null, null, null, selectedKurariExRiderMaterial.text, selectedKurariExMatchupMaterial.text)
         : "",
-    [selectedKurariExAnyReady, selectedKurariExBothMissing, selectedKurariExBundle, selectedKurariExExact, selectedKurariExRiderMaterial.text, selectedPredictionMaterialRace, selectedPredictionMaterialVenue?.session, selectedWeather?.windSpeedText],
+    [selectedKurariExAnyReady, selectedKurariExBothMissing, selectedKurariExBundle, selectedKurariExExact, selectedKurariExMatchupMaterial.text, selectedKurariExRiderMaterial.text, selectedPredictionMaterialRace, selectedPredictionMaterialVenue?.session, selectedWeather?.windSpeedText],
   );
   const sortedPredictionVenues = useMemo(
     () => [...(predictionFeed?.venues ?? [])].sort(comparePredictionVenues),
