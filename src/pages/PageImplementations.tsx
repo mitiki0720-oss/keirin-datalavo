@@ -48,6 +48,8 @@ import type { MonthlyReviewDigest, MonthlyReviewIndexItem } from "../types/month
 import type {
   KurariExExactIndex,
   KurariExIndex,
+  KurariExMatchupExact,
+  KurariExMatchupExactIndex,
   KurariExRiderExact,
   KurariExRiderExactIndex,
   KurariExVenueBundle,
@@ -9575,6 +9577,24 @@ useEffect(() => {
         if (!isActive) return;
         setKurariExRiderExactIndex(null);
         setKurariExRiderExactIndexStatus("error");
+      });
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+    loadKurariExMatchupExactIndex()
+      .then((index) => {
+        if (!isActive) return;
+        setKurariExMatchupExactIndex(index);
+        setKurariExMatchupExactIndexStatus("ready");
+      })
+      .catch(() => {
+        if (!isActive) return;
+        setKurariExMatchupExactIndex(null);
+        setKurariExMatchupExactIndexStatus("error");
       });
     return () => {
       isActive = false;
