@@ -2,22 +2,22 @@
   "schemaVersion": 1,
   "venueKey": "kokura",
   "venueName": "小倉",
-  "updatedAt": "2026-06-13",
+  "updatedAt": "2026-06-19",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-13",
-    "to": "2026-05-30"
+    "to": "2026-06-18"
   },
   "quality": {
-    "seedSources": 6,
-    "parsedDateSources": 6,
+    "seedSources": 7,
+    "parsedDateSources": 7,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 6,
+    "sourceCount": 7,
     "raceCount": 54,
     "trifectaHits": 12,
     "trifectaHitRate": 26.7,
@@ -38,62 +38,65 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 6,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 6,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 6,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 6,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 4,
+      "evidenceCount": 5,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 4,
+      "evidenceCount": 5,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 4,
+      "evidenceCount": 5,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 4,
       "confidence": "medium",
       "sourceType": "SEED"
     }
   ],
   "seedNotes": {
-    "features": [],
+    "features": [
+      "3-1. 全体傾向",
+      "本線：4峯口司がB8・逃げ7で主導権を握る形。番手1工藤文彦は追走力があり、4がペースを作れば4-1、または小倉の番手差し傾向から1-4の逆転まで見る。3岡本翔はB6で捲り4、近況も一般1着があり、4が早駆けなら中団から捲り差しで迫る。"
+    ],
     "targets": [
       "タグ： 小倉 ミッドナイト ガールズ 単騎戦 主導権 捲り追撃 3着荒れ 穴狙い",
       "取り逃しパターン：1-2着一致（1-3固定）だが3着違い（買い目: 1-3-6）",
@@ -105,10 +108,17 @@
       "9Rは結果テキストの「最終判定」が pending のままだが、着順・払戻は記載済み。買い目03）1-2-5と一致するため、照合上は三連単的中として集計。",
       "このレポートでは新規予想を行わず、入力済みの買い目と確定結果を整形・照合している。",
       "注記：添付の予想テキストは 1R〜8Rまで で終了している。9Rは結果のみ記録し、買い目欄は「不明」とした。",
-      "予想買い目収録範囲：1R〜8R"
+      "予想買い目収録範囲：1R〜8R",
+      "ここでは新規予想は行わず、実際に出した10点買い目と結果の照合、取り逃し要因、次回改善メモを整理する。"
     ],
-    "cautions": [],
-    "improvements": []
+    "cautions": [
+      "押さえ：1右近はS18・B16で前受けから突っ張る可能性があり、4森下の番手差しも警戒。2が後方に置かれると1-4ラインの残りが穴になる。単騎7佐藤は位置取り次第で3着拾い。"
+    ],
+    "improvements": [
+      "ここでは新規予想は行わず、実際に出した10点買い目と結果の照合、取り逃し要因、次回改善メモを整理する。",
+      "ズレの型 該当R 内容 次回対策",
+      "3-3. 次回の小倉ナイターで使う改善ルール"
+    ]
   },
   "predictionGuidance": [
     "級班とレース種別を分けて傾向を評価する",

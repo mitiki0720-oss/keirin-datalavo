@@ -2,22 +2,22 @@
   "schemaVersion": 1,
   "venueKey": "kishiwada",
   "venueName": "岸和田",
-  "updatedAt": "2026-06-18",
+  "updatedAt": "2026-06-19",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-04",
-    "to": "2026-06-17"
+    "to": "2026-06-18"
   },
   "quality": {
-    "seedSources": 12,
-    "parsedDateSources": 12,
+    "seedSources": 13,
+    "parsedDateSources": 13,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 12,
+    "sourceCount": 13,
     "raceCount": 120,
     "trifectaHits": 25,
     "trifectaHitRate": 20.8,
@@ -38,21 +38,28 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 12,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 12,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 12,
+      "evidenceCount": 13,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "BANTE_SASHI_ALERT",
+      "label": "番手差しを警戒",
+      "evidenceCount": 11,
       "confidence": "high",
       "sourceType": "SEED"
     },
@@ -64,30 +71,23 @@
       "sourceType": "SEED"
     },
     {
-      "tag": "BANTE_SASHI_ALERT",
-      "label": "番手差しを警戒",
+      "tag": "MAKURI_ALERT",
+      "label": "捲り展開を警戒",
       "evidenceCount": 10,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
-      "tag": "MAKURI_ALERT",
-      "label": "捲り展開を警戒",
-      "evidenceCount": 9,
-      "confidence": "medium",
-      "sourceType": "SEED"
-    },
-    {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 7,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
@@ -125,15 +125,18 @@
     "improvements": [
       "このレポートでは新規予想は行わず、実際に出した10点と結果を照合し、次回予想へ回すための反省点を整理する。",
       "3-3. 次回の岸和田G1デイで使う改善ルール",
-      "厚め2点の設計を修正する。 いまは本命ライン・番手差しに寄りがち。次回は「本線1点＋強自力押し切りor逆転頭1点」にする。"
+      "厚め2点の設計を修正する。 いまは本命ライン・番手差しに寄りがち。次回は「本線1点＋強自力押し切りor逆転頭1点」にする。",
+      "一方で、外したレースは「軸候補・頭候補は評価していたのに、逃げた先頭の2着/3着残りを置けなかった」ケースが多い。特に4R・8R・9R・11Rは、 捲り頭＋逃げ残り の形を入れていれば大きく改善できた。",
+      "次回修正 ：3坂井を頭で買うなら、別線捲りの8根田と南関番手1松谷を2・3着に置く形（3-8-1/3-1-8）を1点入れる。G1の4分戦は捲り同士の連鎖を残す。",
+      "次回修正 ：穴2車単を買う時は、同じ形の3連単も最低1点作る。今回なら3-6-7、3-6-2。番手差し穴には「別線の格上・SS級・差し脚上位」を3着へ置く。"
     ]
   },
   "predictionGuidance": [
     "級班とレース種別を分けて傾向を評価する",
     "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
-    "踏み合い時は単騎の差し込みを3着候補に加える",
     "先行軸だけで固定せず、番手差しの逆目を残す",
+    "踏み合い時は単騎の差し込みを3着候補に加える",
     "先行争いがある場合は別線の捲り筋を残す",
     "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
     "本線が崩れた場合の別線頭と別線3着を保護する"

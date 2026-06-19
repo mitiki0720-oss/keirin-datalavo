@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "toyama",
   "venueName": "富山",
-  "updatedAt": "2026-06-18",
+  "updatedAt": "2026-06-19",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-01",
-    "to": "2026-06-17"
+    "to": "2026-06-18"
   },
   "quality": {
-    "seedSources": 3,
-    "parsedDateSources": 3,
+    "seedSources": 4,
+    "parsedDateSources": 4,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 3,
-    "raceCount": 33,
-    "trifectaHits": 13,
-    "trifectaHitRate": 39.4,
+    "sourceCount": 4,
+    "raceCount": 44,
+    "trifectaHits": 17,
+    "trifectaHitRate": 38.6,
     "exactaHits": 6,
-    "exactaHitRate": 18.2,
+    "exactaHitRate": 13.6,
     "anyTicketHits": 6,
     "hitRate": 54.5,
-    "investmentYen": 33000,
-    "returnYen": 29890,
-    "recoveryRate": 90.6,
+    "investmentYen": 44000,
+    "returnYen": 40120,
+    "recoveryRate": 91.2,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,41 +38,48 @@
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 4,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 3,
+      "evidenceCount": 4,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 4,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 4,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 3,
+      "evidenceCount": 4,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
+      "evidenceCount": 4,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "OTHER_LINE_ALERT",
+      "label": "別線の浮上を警戒",
       "evidenceCount": 3,
       "confidence": "medium",
       "sourceType": "SEED"
@@ -87,13 +94,6 @@
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 2,
-      "confidence": "low",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "OTHER_LINE_ALERT",
-      "label": "別線の浮上を警戒",
       "evidenceCount": 2,
       "confidence": "low",
       "sourceType": "SEED"
@@ -112,16 +112,23 @@
       "タグ： 富山 ガールズ L級 一般 単騎 捲り主体 差し脚 内伸び 3着ズレ 中穴狙い",
       "補足：元予想テキストの買い目構成は、各Rとも 3連単8点＋2車単2点＝10点 です。テンプレ表現の「3連単7＋2車単3」ではなく、元テキストを優先して転記しています。",
       "3-4) 次回の買い目配分メモ",
-      "2車単救済は今回有効。ただし外れた7Rのように、安い順目2車単を切るなら、その分3連単の3着接続を厚くする。"
+      "2車単救済は今回有効。ただし外れた7Rのように、安い順目2車単を切るなら、その分3連単の3着接続を厚くする。",
+      "注意：このレポート内では新規予想・買い目改変は行わず、元予想の写経・照合・振り返りのみ実施。",
+      "3Rは単騎3浦崎、5Rは単騎2若林、8Rは別線7池田を3着で拾えており、富山333mの「好位・内・別線3着」をケアする型は有効だった。",
+      "レース型：TYPE-D・A級決勝4分戦＋番手差し重視型"
     ],
     "cautions": [
       "予想要旨：本線：霧雨＋強風（西南西23km/h）で踏み合い消耗→1が主導権取り切る（B10）→番手7の決め脚が直線で抜け出し。3着は本線5に寄せすぎず、別線の4・2や単騎3でズレ狙い。 押さえ：4がカマして主導権（逃げ型）→2が番手で残り、7は外を踏み直して3着まで。強風で隊列が乱れやすく、単騎3の突っ込みも警戒。／結果：7-1-2／決まり手：差／的中：3連",
-      "注意：このレポートでは新規予想はしていません。添付予想と結果を照合・整形しています。"
+      "注意：このレポートでは新規予想はしていません。添付予想と結果を照合・整形しています。",
+      "注意：このレポート内では新規予想・買い目改変は行わず、元予想の写経・照合・振り返りのみ実施。",
+      "レース型：TYPE-C・奥出先行＋佐藤差し込み警戒型"
     ],
     "improvements": [
       "作成目的：予想済み10点と結果テキストの照合、キャンバス①互換ログ化、次回予想に活かす改善summary",
       "3) 次回予想に活かす detailed summary",
-      "3-3) 展開判断の修正ルール"
+      "3-3) 展開判断の修正ルール",
+      "3) 次回に向けた総合Summary",
+      "次回富山デイ用チェックリスト"
     ]
   },
   "predictionGuidance": [
@@ -131,7 +138,7 @@
     "踏み合い時は単騎の差し込みを3着候補に加える",
     "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
     "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
-    "風向と風速を確認し、先行残りと差し届きを固定評価しない",
-    "ラインの長さと追走力を確認し、同ライン決着を評価する"
+    "本線が崩れた場合の別線頭と別線3着を保護する",
+    "風向と風速を確認し、先行残りと差し届きを固定評価しない"
   ]
 }

@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "kumamoto",
   "venueName": "熊本",
-  "updatedAt": "2026-06-13",
+  "updatedAt": "2026-06-19",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-07",
-    "to": "2026-05-31"
+    "to": "2026-06-18"
   },
   "quality": {
-    "seedSources": 6,
-    "parsedDateSources": 6,
+    "seedSources": 7,
+    "parsedDateSources": 7,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 6,
-    "raceCount": 69,
-    "trifectaHits": 10,
-    "trifectaHitRate": 14.5,
-    "exactaHits": 2,
-    "exactaHitRate": 2.9,
+    "sourceCount": 7,
+    "raceCount": 78,
+    "trifectaHits": 14,
+    "trifectaHitRate": 17.9,
+    "exactaHits": 3,
+    "exactaHitRate": 3.8,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 68000,
-    "returnYen": 24020,
-    "recoveryRate": 35.3,
+    "investmentYen": 77000,
+    "returnYen": 30330,
+    "recoveryRate": 39.4,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,41 +38,71 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 6,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 6,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 6,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 4,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
+      "evidenceCount": 2,
+      "confidence": "low",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "BANTE_SASHI_ALERT",
+      "label": "番手差しを警戒",
+      "evidenceCount": 1,
+      "confidence": "low",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "LINE_COHESION",
+      "label": "同ライン決着を評価",
+      "evidenceCount": 1,
+      "confidence": "low",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "MAKURI_ALERT",
+      "label": "捲り展開を警戒",
+      "evidenceCount": 1,
+      "confidence": "low",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "OTHER_LINE_ALERT",
+      "label": "別線の浮上を警戒",
       "evidenceCount": 1,
       "confidence": "low",
       "sourceType": "SEED"
     }
   ],
   "seedNotes": {
-    "features": [],
+    "features": [
+      "単騎・格上の2着浮上を拾えた ：8Rは2-1-3で的中。ライン番手3より単騎1伊原を2着へ上げた判断は熊本ミッドの差し・捲り傾向と合っていた。"
+    ],
     "targets": [
       "決まり手：逃。 3連単1番人気＝結果だが買い目外（低配当回避の裏目）。 的中なし。 B=1は1着。",
       "決まり手：逃。 3連単1番人気＝結果だが買い目外（低配当回避の裏目）。 的中なし。 B=5は1着。",
@@ -81,16 +111,28 @@
       "取り逃しパターン：買い目外（着順：5-1-7）",
       "2車単：2点（穴狙い）",
       "取り逃しパターン：実着 5-4-2 は10点買い目外。",
-      "取り逃しパターン：実着 7-3-2 は10点買い目外。"
+      "取り逃しパターン：実着 7-3-2 は10点買い目外。",
+      "実ファイル上の買い目構成：3連単8点＋2車単2点＝10点",
+      "備考：結果ファイル上では7R〜9Rの最終判定が pending でしたが、払戻・着順が掲載されていたため、買い目と手動照合して補正しました。",
+      "1R ガールズ予選1 1-2-6 捲 × - - 0円 1-2までは読めていたが、3着を3枝光・5牧田寄りにしすぎ、6石田を買い目から外したのが致命傷。予想本文では「6石田は3着穴まで」と評価していたのに、実際の10点に反映できていない。"
     ],
-    "cautions": [],
-    "improvements": []
+    "cautions": [
+      "「本文で警戒した穴」を買い目に落とし切れていない ：1Rの6石田は予想文で3着穴と見ていたのに、買い目には入らず1-2-6を取り逃した。"
+    ],
+    "improvements": [
+      "ここでは新規予想は行わず、事実整理・的中照合・次回改善メモのみを記録します。",
+      "1R ガールズ予選1 1-2-6 捲 × - - 0円 1-2までは読めていたが、3着を3枝光・5牧田寄りにしすぎ、6石田を買い目から外したのが致命傷。予想本文では「6石田は3着穴まで」と評価していたのに、実際の10点に反映できていない。",
+      "3) 開催全体の詳細Summary｜次回に活かす反省"
+    ]
   },
   "predictionGuidance": [
     "級班とレース種別を分けて傾向を評価する",
     "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
     "踏み合い時は単騎の差し込みを3着候補に加える",
-    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す"
+    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
+    "先行軸だけで固定せず、番手差しの逆目を残す",
+    "ラインの長さと追走力を確認し、同ライン決着を評価する",
+    "先行争いがある場合は別線の捲り筋を残す"
   ]
 }

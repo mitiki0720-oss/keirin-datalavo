@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "kochi",
   "venueName": "高知",
-  "updatedAt": "2026-06-13",
+  "updatedAt": "2026-06-19",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-04",
-    "to": "2026-06-03"
+    "to": "2026-06-18"
   },
   "quality": {
-    "seedSources": 7,
-    "parsedDateSources": 7,
+    "seedSources": 8,
+    "parsedDateSources": 8,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 7,
-    "raceCount": 59,
-    "trifectaHits": 17,
-    "trifectaHitRate": 28.8,
-    "exactaHits": 2,
-    "exactaHitRate": 3.4,
+    "sourceCount": 8,
+    "raceCount": 68,
+    "trifectaHits": 19,
+    "trifectaHitRate": 27.9,
+    "exactaHits": 4,
+    "exactaHitRate": 5.9,
     "anyTicketHits": 5,
     "hitRate": 55.6,
-    "investmentYen": 59000,
-    "returnYen": 21920,
-    "recoveryRate": 37.2,
+    "investmentYen": 68000,
+    "returnYen": 24510,
+    "recoveryRate": 36,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,56 +38,56 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 7,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 7,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 7,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 7,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 5,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 3,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 3,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 1,
+      "evidenceCount": 2,
       "confidence": "low",
       "sourceType": "SEED"
     }
@@ -95,7 +95,9 @@
   "seedNotes": {
     "features": [
       "B選手は7R中6Rで車券内に残った。西〜西北西の弱風帯（結果テキスト表記3km/h）では、B選手の残りを過度に軽視しないことが次回分析の確認ポイント。",
-      "3Rは欠車・失格を伴う特殊ケース。通常のライン傾向と切り分けて分析側へ渡す。"
+      "3Rは欠車・失格を伴う特殊ケース。通常のライン傾向と切り分けて分析側へ渡す。",
+      "実測コンディション傾向：予想時は北寄り4km/h想定が中心だったが、実測は2〜3km/h中心で、風の負荷は想定より軽め。",
+      "3) 今回の重要Summary：次に活かすポイント"
     ],
     "targets": [
       "※ 結果ファイル上で一部 最終判定: pending がありましたが、予想買い目との照合により当レポート側で「的中／不的中」を確定しています。",
@@ -107,14 +109,19 @@
       "※提供テキスト上の買い目は 3連単8点＋2車単2点＝10点 でした。",
       "このレポートは、別プロジェクトで確定済みの買い目と、添付された結果照合用テキストを整理した開催単位の記録です。",
       "記録上の注意：今回の実際の買い目構成は、全Rとも 3連単8点＋2車単2点＝10点 。マスターテンプレの例示（3連単7点＋2車単3点）へ改変せず、実データを優先して保存。",
-      "2車単：2点（穴狙い・崩れ救済）"
+      "2車単：2点（穴狙い・崩れ救済）",
+      "予想プロジェクトで出した10点買い目と、確定結果を照合した開催レポート。",
+      "次回へ：TYPE-Aで主力3車ラインが明確な時は、安くても2-1-3／1-2-3の本線を残す方針が有効。ただし払戻530円でガミなので、自信度表記には「的中重視・低配当」を明記。"
     ],
     "cautions": [
       "決まり手：ク（1着=ク） / 組み合わせ差し替え（別線・位置取りズレ） / 失格発生（出目歪み注意）",
       "記録上の注意：今回の実際の買い目構成は、全Rとも 3連単8点＋2車単2点＝10点 。マスターテンプレの例示（3連単7点＋2車単3点）へ改変せず、実データを優先して保存。"
     ],
     "improvements": [
-      "B選手は7R中6Rで車券内に残った。西〜西北西の弱風帯（結果テキスト表記3km/h）では、B選手の残りを過度に軽視しないことが次回分析の確認ポイント。"
+      "B選手は7R中6Rで車券内に残った。西〜西北西の弱風帯（結果テキスト表記3km/h）では、B選手の残りを過度に軽視しないことが次回分析の確認ポイント。",
+      "次回は、 2車単で入れた救済筋は、3連単でも1点だけ3着保護に接続する こと。特に「2車単で当たってガミ」のレースは、3着まで見れば回収改善余地がある。",
+      "次回は、 予想風速4km/hでも実測が2km/h台に落ちる可能性 を想定し、極端な「風で止まる」評価を1段階だけ弱める。",
+      "3-3. 3着保護は改善しているが、保護候補の“配置”がまだ甘い"
     ]
   },
   "predictionGuidance": [
