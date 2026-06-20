@@ -726,7 +726,7 @@ export async function readCompactHistoryRaces() {
           timeslot: compact.timeslot ?? "",
           raceClass: compact.raceClass ?? "",
           raceTitle: "",
-          starterCount: compact.starters?.length ?? 0,
+          starterCount: Number.isInteger(compact.starterCount) ? compact.starterCount : (compact.starters?.length ?? 0),
           starters: compact.starters ?? [],
           lineup,
           weather: compact.weather ?? {

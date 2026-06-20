@@ -81,6 +81,7 @@ function compactRace(race) {
     timeslot: String(race.timeslot ?? ""),
     raceClass: String(race.raceClass ?? ""),
     operationStatus: resultStatus,
+    starterCount: Number.isInteger(race.starterCount) ? race.starterCount : starters.length,
     starters,
     lineup: {
       lines: race.lineup?.status === "parsed" ? race.lineup.lines : [],

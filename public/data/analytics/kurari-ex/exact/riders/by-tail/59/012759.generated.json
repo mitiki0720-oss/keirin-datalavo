@@ -4,10 +4,10 @@
   "name": "金山 栄治",
   "nameKey": "金山栄治",
   "sourceType": "EXACT",
-  "generatedAt": "2026-06-18T04:30:34.793Z",
+  "generatedAt": "2026-06-20T05:27:27.641Z",
   "period": {
-    "from": "2026-06-14",
-    "to": "2026-06-14"
+    "from": "2026-06-19",
+    "to": "2026-06-19"
   },
   "identity": {
     "status": "unique-player-card-name",
@@ -17,7 +17,7 @@
     "observedRaceCount": 1,
     "confirmedStartCount": 1,
     "resultParsedCount": 1,
-    "roleEligibleCount": 0,
+    "roleEligibleCount": 1,
     "venueCount": 1
   },
   "overall": {
@@ -71,8 +71,8 @@
   },
   "byVenue": [
     {
-      "venueKey": "gifu",
-      "venueName": "岐阜",
+      "venueKey": "hiratsuka",
+      "venueName": "平塚",
       "starts": 1,
       "wins": 0,
       "seconds": 0,
@@ -136,7 +136,7 @@
   ],
   "byClass": [
     {
-      "raceClass": "S級(6〜",
+      "raceClass": "S級予選",
       "starts": 1,
       "wins": 0,
       "seconds": 0,
@@ -168,8 +168,8 @@
   ],
   "byRaceStage": [
     {
-      "raceStage": "unknown",
-      "raceStageLabel": "不明",
+      "raceStage": "qualifying",
+      "raceStageLabel": "予選",
       "starts": 1,
       "wins": 0,
       "seconds": 0,
@@ -201,8 +201,8 @@
   ],
   "byWeather": [
     {
-      "weatherCondition": "cloudy",
-      "weatherLabel": "曇り",
+      "weatherCondition": "sunny",
+      "weatherLabel": "晴れ",
       "starts": 1,
       "wins": 0,
       "seconds": 0,
@@ -268,12 +268,39 @@
   "byRole": {
     "front": null,
     "bante": null,
-    "third": null,
+    "third": {
+      "starts": 1,
+      "wins": 0,
+      "seconds": 0,
+      "thirds": 0,
+      "outside": 1,
+      "winRate": {
+        "count": 0,
+        "total": 1,
+        "rate": 0,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "top2Rate": {
+        "count": 0,
+        "total": 1,
+        "rate": 0,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "top3Rate": {
+        "count": 0,
+        "total": 1,
+        "rate": 0,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "sourceType": "EXACT"
+    },
     "single": null
   },
   "quality": "low-sample",
   "warnings": [
-    "confirmedStartCount below 5",
-    "role unavailable for some starts"
+    "confirmedStartCount below 5"
   ]
 }
