@@ -2,22 +2,22 @@
   "schemaVersion": 1,
   "venueKey": "keiokaku",
   "venueName": "京王閣",
-  "updatedAt": "2026-06-19",
+  "updatedAt": "2026-06-20",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-03",
-    "to": "2026-06-18"
+    "to": "2026-06-19"
   },
   "quality": {
-    "seedSources": 15,
-    "parsedDateSources": 15,
+    "seedSources": 16,
+    "parsedDateSources": 16,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 15,
+    "sourceCount": 16,
     "raceCount": 132,
     "trifectaHits": 46,
     "trifectaHitRate": 38,
@@ -38,56 +38,56 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 15,
+      "evidenceCount": 16,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 15,
+      "evidenceCount": 16,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 13,
+      "evidenceCount": 14,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 13,
+      "evidenceCount": 14,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 8,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 7,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 6,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
@@ -102,7 +102,8 @@
   "seedNotes": {
     "features": [
       "4. 差し軸の判断は開催傾向と整合。 1着決まり手は差し6R、捲り3R、逃げ2R。差しが 54.5% を占めた。京王閣ナイターで「先行車を消す」のではなく、「先行ラインを残しつつ番手差しを上位へ置く」方針は維持する。",
-      "気象傾向へ反映する前に、7R以降の実風・天候の基準時刻を再確認する。"
+      "気象傾向へ反映する前に、7R以降の実風・天候の基準時刻を再確認する。",
+      "予想文の中では多くの候補を拾えているため、次回は候補追加よりも、 候補同士をどう10点内で接続するか が改善ポイントになる。"
     ],
     "targets": [
       "予想メモ（原文要約）：南南西15km/hの強風で先行は踏まされやすく差し寄り。主導権は6か3、番手差しの2を軸に、自在1の突っ込みと7の直線差しで3着ズレ狙い。",
@@ -128,7 +129,9 @@
       "A級初日特選は力差が小さく、主軸ライン固定が危険。別線自力を買うなら、その相手を本線の番手だけにせず、もう一方の別線先行・本線3番手まで接続する必要がある。",
       "判定補正が必要だった点に注意。自動判定pendingは必ず着順キーと買い目を再照合する。予想内容自体は良好。",
       "注意：添付の9R結果は pending／着順未接続だったため、netkeirinの9R結果（6-5-4、3連単6,710円）で補完。買い目照合では不的中。",
-      "6) データ上の注意"
+      "6) データ上の注意",
+      "予想の軸 TYPE-B・4篠原上位の番手差し警戒型／自信度：🔥🔥🔥",
+      "予想の軸 TYPE-B・4市田ライン中心の番手差し警戒型／自信度：🔥🔥🔥"
     ],
     "improvements": [
       "予想は全体的に噛み合わず（このブロックでは新規の予想修正はしない）",

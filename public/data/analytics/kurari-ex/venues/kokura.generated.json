@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "kokura",
   "venueName": "小倉",
-  "updatedAt": "2026-06-19",
+  "updatedAt": "2026-06-20",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-13",
-    "to": "2026-06-18"
+    "to": "2026-06-19"
   },
   "quality": {
-    "seedSources": 7,
-    "parsedDateSources": 7,
+    "seedSources": 8,
+    "parsedDateSources": 8,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 7,
-    "raceCount": 54,
-    "trifectaHits": 12,
-    "trifectaHitRate": 26.7,
-    "exactaHits": 0,
-    "exactaHitRate": 0,
+    "sourceCount": 8,
+    "raceCount": 65,
+    "trifectaHits": 15,
+    "trifectaHitRate": 26.8,
+    "exactaHits": 2,
+    "exactaHitRate": 3.6,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 45000,
-    "returnYen": 25660,
-    "recoveryRate": 57,
+    "investmentYen": 56000,
+    "returnYen": 31400,
+    "recoveryRate": 56.1,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,7 +38,21 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 7,
+      "evidenceCount": 8,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "TIME_SLOT_BIAS",
+      "label": "時間帯差を確認",
+      "evidenceCount": 8,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "WIND_SENSITIVE",
+      "label": "風条件を確認",
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
@@ -50,45 +64,38 @@
       "sourceType": "SEED"
     },
     {
-      "tag": "TIME_SLOT_BIAS",
-      "label": "時間帯差を確認",
-      "evidenceCount": 7,
-      "confidence": "medium",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "WIND_SENSITIVE",
-      "label": "風条件を確認",
-      "evidenceCount": 7,
-      "confidence": "medium",
-      "sourceType": "SEED"
-    },
-    {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 5,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 5,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 5,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 4,
+      "evidenceCount": 5,
       "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "LINE_COHESION",
+      "label": "同ライン決着を評価",
+      "evidenceCount": 1,
+      "confidence": "low",
       "sourceType": "SEED"
     }
   ],
@@ -112,19 +119,23 @@
       "ここでは新規予想は行わず、実際に出した10点買い目と結果の照合、取り逃し要因、次回改善メモを整理する。"
     ],
     "cautions": [
-      "押さえ：1右近はS18・B16で前受けから突っ張る可能性があり、4森下の番手差しも警戒。2が後方に置かれると1-4ラインの残りが穴になる。単騎7佐藤は位置取り次第で3着拾い。"
+      "押さえ：1右近はS18・B16で前受けから突っ張る可能性があり、4森下の番手差しも警戒。2が後方に置かれると1-4ラインの残りが穴になる。単騎7佐藤は位置取り次第で3着拾い。",
+      "木村3の逃げを軸にしすぎ、柏野1の捲り頭を軽視。強先行は2着に残ったが、別線B型の一撃が頭。準決の強先行固定は危険。"
     ],
     "improvements": [
       "ここでは新規予想は行わず、実際に出した10点買い目と結果の照合、取り逃し要因、次回改善メモを整理する。",
       "ズレの型 該当R 内容 次回対策",
-      "3-3. 次回の小倉ナイターで使う改善ルール"
+      "3-3. 次回の小倉ナイターで使う改善ルール",
+      "9R〜11Rは結果テキスト側の最終判定が pending 表記でしたが、着順・払戻は記載済み。実買い目と再照合し、10Rの3連単＋2車単、11Rの2車単を反映しました。",
+      "2. 次回予想へ向けた詳細SUMMARY",
+      "一方で、特一般・二分戦・地元ラインでは素直なライン決着も残ったため、完全な穴振りではなく、ライン決着1点＋別線番手3着1点のバランスが次回の鍵。"
     ]
   },
   "predictionGuidance": [
     "級班とレース種別を分けて傾向を評価する",
-    "踏み合い時は単騎の差し込みを3着候補に加える",
     "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+    "踏み合い時は単騎の差し込みを3着候補に加える",
     "先行軸だけで固定せず、番手差しの逆目を残す",
     "先行争いがある場合は別線の捲り筋を残す",
     "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",

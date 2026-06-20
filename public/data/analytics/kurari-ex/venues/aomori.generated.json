@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "aomori",
   "venueName": "青森",
-  "updatedAt": "2026-06-19",
+  "updatedAt": "2026-06-20",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-04",
-    "to": "2026-06-18"
+    "to": "2026-06-19"
   },
   "quality": {
-    "seedSources": 16,
-    "parsedDateSources": 16,
+    "seedSources": 17,
+    "parsedDateSources": 17,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 16,
-    "raceCount": 137,
-    "trifectaHits": 49,
-    "trifectaHitRate": 35.8,
-    "exactaHits": 12,
-    "exactaHitRate": 8.8,
+    "sourceCount": 17,
+    "raceCount": 144,
+    "trifectaHits": 50,
+    "trifectaHitRate": 34.7,
+    "exactaHits": 13,
+    "exactaHitRate": 9,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 136600,
-    "returnYen": 113630,
-    "recoveryRate": 83.2,
+    "investmentYen": 143600,
+    "returnYen": 115200,
+    "recoveryRate": 80.2,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,63 +38,63 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 16,
+      "evidenceCount": 17,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 16,
+      "evidenceCount": 17,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 16,
+      "evidenceCount": 17,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 12,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 8,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 7,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 7,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 5,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 5,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     }
@@ -105,7 +105,8 @@
       "4-2. 最終日の最重要ポイント",
       "4-7. 3日間を通して見える暫定傾向",
       "4-2. 最重要ポイント",
-      "6. B選手を頭固定にしすぎず、2・3着残りも設計する。 B選手が車券内に残る傾向は強いが、番手差しや別線頭との混在も多い。"
+      "6. B選手を頭固定にしすぎず、2・3着残りも設計する。 B選手が車券内に残る傾向は強いが、番手差しや別線頭との混在も多い。",
+      "B選手は7/7Rで車券内。 ただしB選手1着は1/7Rのみ。最終日は「主導権を取った選手が残るが、番手・別線・単騎に差される」傾向が強かった。"
     ],
     "targets": [
       "このファイルは「予想プロジェクトで確定した買い目」と「実際の結果テキスト」を、開催単位で整理した 開催レポート です。",
@@ -137,7 +138,8 @@
       "次回へ残す修正：強い頭軸＋別線自力2着を3連単で入れるなら、2車単にも正順の頭軸-別線自力を候補にする。逆転だけでなく、3着不確定時の正順救済を1枠検討する。",
       "次回へ残す修正：3車ラインで本命頭を置く場合、1点は『頭-3番手-番手』を入れる。とくに番手が牽制や追走で脚を使う可能性があるときは、3番手差し込みを軽視しない。",
       "次回へ残す修正：先行型の押し切りを3連単で厚く見るなら、2車単も逆目だけでなく正順救済を検討する。",
-      "次回へ残す修正：4分戦の一般戦では、差し頭－自力先頭のペアを置いた場合、3着は別線先頭・地元番手・単騎まで広げる。"
+      "次回へ残す修正：4分戦の一般戦では、差し頭－自力先頭のペアを置いた場合、3着は別線先頭・地元番手・単騎まで広げる。",
+      "次回へ残す修正：捲り頭＋逃げ残りを置く場合、3着は逃げ番手だけでなく、捲りラインの番手も同時に置く。"
     ]
   },
   "predictionGuidance": [
