@@ -2,22 +2,22 @@
   "schemaVersion": 1,
   "venueKey": "kishiwada",
   "venueName": "岸和田",
-  "updatedAt": "2026-06-20",
+  "updatedAt": "2026-06-21",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-04",
-    "to": "2026-06-19"
+    "to": "2026-06-20"
   },
   "quality": {
-    "seedSources": 14,
-    "parsedDateSources": 14,
+    "seedSources": 15,
+    "parsedDateSources": 15,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 14,
+    "sourceCount": 15,
     "raceCount": 120,
     "trifectaHits": 25,
     "trifectaHitRate": 20.8,
@@ -38,7 +38,14 @@
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 14,
+      "evidenceCount": 15,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "BANTE_SASHI_ALERT",
+      "label": "番手差しを警戒",
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
@@ -57,23 +64,16 @@
       "sourceType": "SEED"
     },
     {
-      "tag": "BANTE_SASHI_ALERT",
-      "label": "番手差しを警戒",
-      "evidenceCount": 12,
-      "confidence": "high",
-      "sourceType": "SEED"
-    },
-    {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 11,
+      "evidenceCount": 12,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 11,
+      "evidenceCount": 12,
       "confidence": "high",
       "sourceType": "SEED"
     },
@@ -87,14 +87,14 @@
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 3,
+      "evidenceCount": 4,
       "confidence": "medium",
       "sourceType": "SEED"
     }
@@ -132,14 +132,17 @@
       "次回修正 ：穴2車単を買う時は、同じ形の3連単も最低1点作る。今回なら3-6-7、3-6-2。番手差し穴には「別線の格上・SS級・差し脚上位」を3着へ置く。",
       "次回メモ ：9-2の大穴方向は見えていたが、関東3車の「9-4-2」直列にできなかった。3番手4恩田の2着、2吉田の3着残りを次回は必ず保護。",
       "次回メモ ：6松井を番手2和田の材料として見たが、本人の逃げ切りを頭に置けなかった。B型の格上自力は「番手差し」だけでなく「逃げ頭」を1点残す。",
-      "次回メモ ：3-8の穴2車単を3連単3-8-7まで伸ばせたのが良かった。今後も穴2車単は同展開の3連単に1点昇格する。"
+      "次回メモ ：3-8の穴2車単を3連単3-8-7まで伸ばせたのが良かった。今後も穴2車単は同展開の3連単に1点昇格する。",
+      "次回は、準決・特選では「本線番手差し」だけでなく、 単騎頭1点／B残り3着1点／別線3番手1点 を必ず残す。",
+      "修正：番手差し頭の時は、 同ライン直列・別線番手・B残り・地元3番手 を分散する。",
+      "4. 次回予想ルール"
     ]
   },
   "predictionGuidance": [
     "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+    "先行軸だけで固定せず、番手差しの逆目を残す",
     "級班とレース種別を分けて傾向を評価する",
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
-    "先行軸だけで固定せず、番手差しの逆目を残す",
     "先行争いがある場合は別線の捲り筋を残す",
     "踏み合い時は単騎の差し込みを3着候補に加える",
     "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",

@@ -2,23 +2,23 @@
   "schemaVersion": 1,
   "venueKey": "matsuyama",
   "venueName": "松山",
-  "updatedAt": "2026-06-20",
+  "updatedAt": "2026-06-21",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-01",
-    "to": "2026-06-19"
+    "to": "2026-06-20"
   },
   "quality": {
-    "seedSources": 13,
-    "parsedDateSources": 13,
+    "seedSources": 14,
+    "parsedDateSources": 14,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 13,
-    "raceCount": 117,
+    "sourceCount": 14,
+    "raceCount": 124,
     "trifectaHits": 11,
     "trifectaHitRate": 10,
     "exactaHits": 6,
@@ -38,34 +38,41 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 13,
+      "evidenceCount": 14,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 13,
+      "evidenceCount": 14,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 12,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 11,
+      "evidenceCount": 12,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
+      "evidenceCount": 9,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "MAKURI_ALERT",
+      "label": "捲り展開を警戒",
       "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
@@ -78,23 +85,16 @@
       "sourceType": "SEED"
     },
     {
-      "tag": "MAKURI_ALERT",
-      "label": "捲り展開を警戒",
-      "evidenceCount": 7,
-      "confidence": "medium",
-      "sourceType": "SEED"
-    },
-    {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 5,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 4,
+      "evidenceCount": 5,
       "confidence": "medium",
       "sourceType": "SEED"
     }
@@ -124,7 +124,8 @@
       "1渡邉の修正が効いてB捲り。6山下も絡んだが、1-6の順序を厚く持てず。",
       "このレポートは、添付された予想10点テキストと結果照合テキストをもとに、開催1日分を1枚に統合したもの。新規予想は行わず、予想と結果の照合・展開反省・次回改善メモを記録する。",
       "次回に向けた改善ルール",
-      "次回改善：強い捲り本線を買う時は、相手先行ラインの番手だけでなく、自力本人の3着残りを優先。特にチャレンジ予選のB二桁選手は、捲られても3着に粘る形を保護。"
+      "次回改善：強い捲り本線を買う時は、相手先行ラインの番手だけでなく、自力本人の3着残りを優先。特にチャレンジ予選のB二桁選手は、捲られても3着に粘る形を保護。",
+      "次回改善：強風×一般戦で単騎差しを評価する読みは継続。2車単は「差し脚上位同士」の裏表を1点だけでも補完。"
     ]
   },
   "predictionGuidance": [
@@ -133,8 +134,8 @@
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
     "先行軸だけで固定せず、番手差しの逆目を残す",
     "踏み合い時は単騎の差し込みを3着候補に加える",
-    "ラインの長さと追走力を確認し、同ライン決着を評価する",
     "先行争いがある場合は別線の捲り筋を残す",
+    "ラインの長さと追走力を確認し、同ライン決着を評価する",
     "本線が崩れた場合の別線頭と別線3着を保護する"
   ]
 }

@@ -8,7 +8,7 @@ const projectRoot = path.resolve(__dirname, "..");
 const reviewsRoot = path.join(projectRoot, "public", "data", "reviews");
 const outputPath = path.join(reviewsRoot, "index.json");
 const dateDirectoryPattern = /^\d{4}-\d{2}-\d{2}$/;
-const reviewFilePattern = /^(?<slug>[a-z0-9-]+)-(?<kind>prediction|result|summary)\.txt$/;
+const reviewFilePattern = /^(?<slug>[a-z0-9-]+)-(?<kind>prediction|result|summary)\.(?<ext>txt|md)$/;
 const reviewSlugAliases = {
   gihu: "gifu",
   hirosima: "hiroshima",
@@ -92,7 +92,7 @@ async function normalizeReviewEntry(date, datePath, entryName) {
     };
   }
 
-  const canonicalFileName = `${canonicalSlug}-${kind}.txt`;
+  const canonicalFileName = `${canonicalSlug}-${kind}.${match.groups.ext}`;
   const fromPath = path.join(datePath, entryName);
   const toPath = path.join(datePath, canonicalFileName);
 
