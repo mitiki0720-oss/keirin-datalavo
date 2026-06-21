@@ -164,6 +164,7 @@ const timeslotLabels: Record<string, string> = {
 };
 
 const SHB_NAME_INDEX_URL = "/data/analytics/kurari-ex/exact/shb-name-index.generated.json";
+const VENUE_SCORE_ANALYSIS_URL = "/data/analytics/kurari-ex/analysis/venue-score.generated.json";
 
 type KurariExShbNameEntry = {
   nameKey: string;
@@ -202,6 +203,39 @@ async function loadKurariExShbNameIndex(): Promise<KurariExShbNameIndex> {
   return response.json() as Promise<KurariExShbNameIndex>;
 }
 
+type KurariExVenueScoreItem = {
+  rank: number;
+  venueKey: string;
+  venueName: string;
+  score: number;
+  rankHint: string;
+  riskLevel: string;
+  period?: { from?: string | null; to?: string | null };
+  kpi?: {
+    sourceCount?: number | null;
+    raceCount?: number | null;
+    trifectaHitRate?: number | null;
+    recoveryRate?: number | null;
+  };
+  topInsights?: Array<{ tag: string; label: string; evidenceCount: number; confidence: string }>;
+};
+
+type KurariExVenueScoreAnalysis = {
+  schemaVersion: number;
+  generatedAt: string;
+  source: string;
+  sourceType: string;
+  period: { from?: string | null; to?: string | null };
+  venueCount: number;
+  inclusionPolicy?: Record<string, string>;
+  items: KurariExVenueScoreItem[];
+};
+
+async function loadKurariExVenueScoreAnalysis(): Promise<KurariExVenueScoreAnalysis> {
+  const response = await fetch(toExPublicPath(VENUE_SCORE_ANALYSIS_URL), { cache: "no-store" });
+  if (!response.ok) throw new Error("KURARI EX venue score analysis fetch failed: " + response.status);
+  return response.json() as Promise<KurariExVenueScoreAnalysis>;
+}
 function formatShbRate(value?: number | null) {
   return Number.isFinite(value) ? `${Number(value).toFixed(1)}%` : "--";
 }
@@ -299,6 +333,8 @@ export default function ExDataPage() {
   const [matchupStatus, setMatchupStatus] = useState<Record<string, "loading" | "ready" | "error">>({});
   const [shbNameIndex, setShbNameIndex] = useState<KurariExShbNameIndex | null>(null);
   const [shbNameStatus, setShbNameStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [venueScoreAnalysis, setVenueScoreAnalysis] = useState<KurariExVenueScoreAnalysis | null>(null);
+  const [venueScoreStatus, setVenueScoreStatus] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
     let active = true;
@@ -379,6 +415,24 @@ export default function ExDataPage() {
       .catch(() => {
         if (!active) return;
         setShbNameStatus("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+
+  useEffect(() => {
+    let active = true;
+    loadKurariExVenueScoreAnalysis()
+      .then((data) => {
+        if (!active) return;
+        setVenueScoreAnalysis(data);
+        setVenueScoreStatus("ready");
+      })
+      .catch(() => {
+        if (!active) return;
+        setVenueScoreStatus("error");
       });
     return () => {
       active = false;
@@ -486,6 +540,13 @@ export default function ExDataPage() {
         setMatchupStatus((current) => ({ ...current, [item.registrationNo]: "error" }));
       });
   };
+
+  const venueScoreItems = useMemo(() => venueScoreAnalysis?.items ?? [], [venueScoreAnalysis]);
+  const sampleShortVenueCount = useMemo(
+    () => venueScoreItems.filter((item) => item.riskLevel === "sample-short").length,
+    [venueScoreItems],
+  );
+
 
   const selectedBundle = selectedKey ? venueCache[selectedKey] : null;
   const selectedLoadStatus = selectedKey ? venueStatus[selectedKey] : undefined;
@@ -687,6 +748,19 @@ export default function ExDataPage() {
         .ex-raw summary { cursor: pointer; font-weight: 900; color: #6552a2; }
         .ex-raw-grid { margin-top: 18px; display: grid; grid-template-columns: repeat(${isMobile ? 1 : 3},minmax(0,1fr)); gap: 9px; }
         .ex-raw-item { padding: 12px 14px; border-radius: 14px; background: #f6f7fb; color: #5b687c; font-size: 12px; overflow-wrap: anywhere; }
+        .ex-analysis { border-color: #d7e6f5; background: linear-gradient(145deg, rgba(252,254,255,.96), rgba(246,248,255,.94), rgba(243,255,250,.9)); }
+        .ex-ranking-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; max-height: 560px; overflow-y: auto; padding-right: 4px; }
+        .ex-ranking-card { cursor: pointer; text-align: left; border: 1px solid #e4e6f1; border-radius: 20px; padding: 16px; background: rgba(255,255,255,.84); color: #233149; display: grid; gap: 9px; box-shadow: 0 10px 22px rgba(70,80,120,.06); }
+        .ex-ranking-card:hover { border-color: #a99adc; background: linear-gradient(135deg,#f8f2ff,#eef9ff); transform: translateY(-1px); }
+        .ex-ranking-card.is-sample { border-color: #efd8ae; background: linear-gradient(145deg,#fffaf1,#ffffff); }
+        .ex-ranking-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .ex-ranking-head span, .ex-ranking-head em { font-size: 10px; font-weight: 950; letter-spacing: .08em; color: #7866b5; font-style: normal; }
+        .ex-ranking-head strong { font-weight: 850; font-size: 20px; line-height: 1.15; font-family: Georgia, "Times New Roman", serif; color: #172239; }
+        .ex-ranking-score { font-weight: 900; font-size: 36px; line-height: 1; font-family: Georgia, "Times New Roman", serif; color: #554294; }
+        .ex-ranking-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+        .ex-ranking-tags span { border-radius: 999px; padding: 4px 8px; background: #f1edff; color: #6552a2; font-size: 10px; font-weight: 900; }
+        @media (max-width: 520px) { .ex-ranking-grid { max-height: none; overflow-y: visible; } }
+
         @media (max-width: 520px) { .ex-health-grid, .ex-kpi-grid { grid-template-columns: 1fr; } }
       `}</style>
 
@@ -786,6 +860,55 @@ export default function ExDataPage() {
           <button className={`ex-view-tab${activeView === "player" ? " is-active" : ""}`} type="button" role="tab" aria-selected={activeView === "player"} onClick={() => setActiveView("player")}>PLAYER EX</button>
           <button className={`ex-view-tab${activeView === "matchup" ? " is-active" : ""}`} type="button" role="tab" aria-selected={activeView === "matchup"} onClick={() => setActiveView("matchup")}>MATCHUP EX</button>
         </div>
+
+        <section className="ex-panel ex-section ex-analysis">
+          <SectionTitle
+            eyebrow="VENUE SCORE ANALYSIS"
+            title="会場カルテランキング"
+            lead="情報が少ない会場も除外せず、sample-shortとして残して育てます。"
+          />
+          {venueScoreStatus === "loading" ? <EmptyState text="会場カルテ分析を読み込んでいます。" /> : null}
+          {venueScoreStatus === "error" ? <EmptyState text="会場カルテ分析を取得できませんでした。" /> : null}
+          {venueScoreAnalysis ? (
+            <>
+              <div className="ex-health-grid">
+                <MetricCard label="ANALYSIS PERIOD" value={venueScoreAnalysis.period.to ?? "--"} note={venueScoreAnalysis.period.from ? venueScoreAnalysis.period.from + " から" : "period"} />
+                <MetricCard label="VENUE SCORES" value={valueText(venueScoreAnalysis.venueCount)} note="全会場を保持" />
+                <MetricCard label="SAMPLE SHORT" value={valueText(sampleShortVenueCount)} note="育成中として残す" warning={sampleShortVenueCount > 0} />
+                <MetricCard label="SOURCE TYPE" value={venueScoreAnalysis.sourceType} note={venueScoreAnalysis.source} />
+              </div>
+              <div className="ex-ranking-grid">
+                {venueScoreItems.map((item) => (
+                  <button
+                    key={item.venueKey}
+                    type="button"
+                    className={"ex-ranking-card" + (item.riskLevel === "sample-short" ? " is-sample" : "")}
+                    onClick={() => {
+                      setActiveView("venue");
+                      selectVenue({ venueKey: item.venueKey, venueName: item.venueName });
+                    }}
+                  >
+                    <div className="ex-ranking-head">
+                      <span>#{item.rank}</span>
+                      <strong>{item.venueName}</strong>
+                      <em>{item.rankHint}</em>
+                    </div>
+                    <div className="ex-ranking-score">{item.score}</div>
+                    <div className="ex-muted">
+                      {item.riskLevel} / 回収率 {valueText(item.kpi?.recoveryRate, "%")} / 3連単率 {valueText(item.kpi?.trifectaHitRate, "%")} / SEED {valueText(item.kpi?.sourceCount)}件
+                    </div>
+                    <div className="ex-ranking-tags">
+                      {(item.topInsights ?? []).slice(0, 2).map((insight) => (
+                        <span key={item.venueKey + "-" + insight.tag}>{insight.label}</span>
+                      ))}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : null}
+        </section>
+
 
         {activeView === "venue" ? (
           <section className="ex-workspace">
