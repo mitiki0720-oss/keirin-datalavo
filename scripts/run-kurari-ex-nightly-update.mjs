@@ -89,6 +89,7 @@ export async function runNightly(options = {}) {
     await runScript("generate-kurari-ex-matchup-exact.mjs");
     await runScript("check-kurari-ex-matchup-exact.mjs");
     await runScript("check-kurari-ex-size.mjs");
+    await runScript("sync-kurari-ex-status-from-history.mjs");
     return { status: archive.status, archive };
   }
 
@@ -125,6 +126,7 @@ export async function runNightly(options = {}) {
     await runScript("generate-kurari-ex-matchup-exact.mjs");
     await runScript("check-kurari-ex-matchup-exact.mjs");
     await runScript("check-kurari-ex-size.mjs");
+    await runScript("sync-kurari-ex-status-from-history.mjs");
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }
