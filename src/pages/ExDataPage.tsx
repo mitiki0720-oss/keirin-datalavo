@@ -165,6 +165,7 @@ const timeslotLabels: Record<string, string> = {
 
 const SHB_NAME_INDEX_URL = "/data/analytics/kurari-ex/exact/shb-name-index.generated.json";
 const VENUE_SCORE_ANALYSIS_URL = "/data/analytics/kurari-ex/analysis/venue-score.generated.json";
+const RIDER_SCORE_ANALYSIS_URL = "/data/analytics/kurari-ex/analysis/rider-score.generated.json";
 
 type KurariExShbNameEntry = {
   nameKey: string;
@@ -240,6 +241,51 @@ function formatShbRate(value?: number | null) {
   return Number.isFinite(value) ? `${Number(value).toFixed(1)}%` : "--";
 }
 
+type KurariExRiderScoreItem = {
+  rank: number;
+  registrationNo: string;
+  name: string;
+  nameKey?: string;
+  prefecture?: string;
+  class?: string;
+  file?: string;
+  score: number;
+  rankHint: string;
+  quality: string;
+  dataStatus: string;
+  coverage?: {
+    observedRaceCount?: number | null;
+    confirmedStartCount?: number | null;
+    roleEligibleCount?: number | null;
+    venueCount?: number | null;
+  };
+  rates?: {
+    winRate?: number | null;
+    top2Rate?: number | null;
+    top3Rate?: number | null;
+  };
+  tags?: string[];
+};
+
+type KurariExRiderScoreAnalysis = {
+  schemaVersion: number;
+  generatedAt: string;
+  source: string;
+  sourceType: string;
+  period: { from?: string | null; to?: string | null };
+  riderCount: number;
+  riderMasterCount: number;
+  identityOnlyRiderCount: number;
+  qualityCounts: Record<string, number>;
+  inclusionPolicy?: Record<string, string>;
+  items: KurariExRiderScoreItem[];
+};
+
+async function loadKurariExRiderScoreAnalysis(): Promise<KurariExRiderScoreAnalysis> {
+  const response = await fetch(toExPublicPath(RIDER_SCORE_ANALYSIS_URL), { cache: "no-store" });
+  if (!response.ok) throw new Error("KURARI EX rider score analysis fetch failed: " + response.status);
+  return response.json() as Promise<KurariExRiderScoreAnalysis>;
+}
 function formatShbNameQuality(value?: string | null) {
   const labels: Record<string, string> = {
     "registration-resolved": "登録番号解決",
@@ -335,6 +381,8 @@ export default function ExDataPage() {
   const [shbNameStatus, setShbNameStatus] = useState<"loading" | "ready" | "error">("loading");
   const [venueScoreAnalysis, setVenueScoreAnalysis] = useState<KurariExVenueScoreAnalysis | null>(null);
   const [venueScoreStatus, setVenueScoreStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [riderScoreAnalysis, setRiderScoreAnalysis] = useState<KurariExRiderScoreAnalysis | null>(null);
+  const [riderScoreStatus, setRiderScoreStatus] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
     let active = true;
@@ -485,6 +533,31 @@ export default function ExDataPage() {
     );
   }, [allVenues, query]);
 
+  useEffect(() => {
+    let active = true;
+    loadKurariExRiderScoreAnalysis()
+      .then((data) => {
+        if (!active) return;
+        setRiderScoreAnalysis(data);
+        setRiderScoreStatus("ready");
+      })
+      .catch(() => {
+        if (!active) return;
+        setRiderScoreStatus("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const riderScoreItems = useMemo(() => riderScoreAnalysis?.items ?? [], [riderScoreAnalysis]);
+  const topRiderScoreItems = useMemo(() => riderScoreItems.slice(0, 30), [riderScoreItems]);
+  const riderScoreByRegistrationNo = useMemo(
+    () => new Map(riderScoreItems.map((item) => [item.registrationNo, item])),
+    [riderScoreItems],
+  );
+
+
   const filteredRiders = useMemo(() => {
     const normalized = normalizeSearchText(riderQuery);
     return (riderInitialData?.index.items ?? [])
@@ -561,6 +634,7 @@ export default function ExDataPage() {
   );
   const selectedRider = selectedRiderNo ? riderCache[selectedRiderNo] : null;
   const selectedRiderStatus = selectedRiderNo ? riderStatus[selectedRiderNo] : undefined;
+  const selectedRiderScore = selectedRiderNo ? riderScoreByRegistrationNo.get(selectedRiderNo) : undefined;
   const shbNameByNameKey = useMemo(
     () => new Map((shbNameIndex?.items ?? []).map((item) => [item.nameKey, item])),
     [shbNameIndex],
@@ -1075,6 +1149,58 @@ export default function ExDataPage() {
               {riderInitialStatus === "error" ? <EmptyState text="PLAYER EXのindex / statusを取得できませんでした。" /> : null}
             </section>
 
+            <section className="ex-panel ex-section ex-analysis">
+              <SectionTitle
+                eyebrow="PLAYER SCORE ANALYSIS"
+                title="選手カルテランキング"
+                lead="全選手を残し、complete / partial / low-sample / identity-only を育成状態として表示します。"
+              />
+              {riderScoreStatus === "loading" ? <EmptyState text="選手カルテ分析を読み込んでいます。" /> : null}
+              {riderScoreStatus === "error" ? <EmptyState text="選手カルテ分析を取得できませんでした。" /> : null}
+              {riderScoreAnalysis ? (
+                <>
+                  <div className="ex-health-grid">
+                    <MetricCard label="RIDER SCORES" value={valueText(riderScoreAnalysis.riderCount)} note="全選手を保持" />
+                    <MetricCard label="COMPLETE" value={valueText(riderScoreAnalysis.qualityCounts.complete)} />
+                    <MetricCard label="LOW SAMPLE" value={valueText(riderScoreAnalysis.qualityCounts["low-sample"])} warning={(riderScoreAnalysis.qualityCounts["low-sample"] ?? 0) > 0} />
+                    <MetricCard label="IDENTITY ONLY" value={valueText(riderScoreAnalysis.qualityCounts["identity-only"])} warning={(riderScoreAnalysis.qualityCounts["identity-only"] ?? 0) > 0} />
+                  </div>
+                  <div className="ex-ranking-grid">
+                    {topRiderScoreItems.map((item) => (
+                      <button
+                        key={item.registrationNo}
+                        type="button"
+                        className={"ex-ranking-card" + (item.quality === "low-sample" || item.quality === "identity-only" ? " is-sample" : "")}
+                        onClick={() => {
+                          const riderItem = riderInitialData?.index.items.find((candidate) => candidate.registrationNo === item.registrationNo);
+                          if (riderItem) {
+                            setActiveView("player");
+                            selectRider(riderItem);
+                          }
+                        }}
+                      >
+                        <div className="ex-ranking-head">
+                          <span>#{item.rank}</span>
+                          <strong>{item.name}</strong>
+                          <em>{item.rankHint}</em>
+                        </div>
+                        <div className="ex-ranking-score">{item.score}</div>
+                        <div className="ex-muted">
+                          {item.quality} / {item.dataStatus} / 3着内率 {valueText(item.rates?.top3Rate, "%")} / 確認 {valueText(item.coverage?.confirmedStartCount)}R
+                        </div>
+                        <div className="ex-ranking-tags">
+                          {(item.tags ?? []).slice(0, 3).map((tag) => (
+                            <span key={item.registrationNo + "-" + tag}>{tag}</span>
+                          ))}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : null}
+            </section>
+
+
             <section className="ex-workspace">
               <aside className="ex-panel ex-section">
                 <SectionTitle eyebrow="PLAYER EX LIST" title="公開選手" lead={`${filteredRiders.length.toLocaleString("ja-JP")} / ${(riderInitialData?.index.riderCount ?? 0).toLocaleString("ja-JP")}名`} />
@@ -1112,6 +1238,15 @@ export default function ExDataPage() {
               <div className="ex-detail">
                 <section className="ex-panel ex-section">
                   <SectionTitle eyebrow="PLAYER EXACT ANALYTICS" title={selectedRider?.name ?? selectedRiderItem?.name ?? "選手別確定集計"} />
+
+                  {selectedRiderScore ? (
+                    <div className="ex-health-grid" style={{ marginBottom: 16 }}>
+                      <MetricCard label="KURARI SCORE" value={valueText(selectedRiderScore.score)} note={selectedRiderScore.rankHint} />
+                      <MetricCard label="DATA STATUS" value={selectedRiderScore.dataStatus} note={selectedRiderScore.quality} warning={selectedRiderScore.quality !== "complete"} />
+                      <MetricCard label="TOP2 RATE" value={valueText(selectedRiderScore.rates?.top2Rate, "%")} />
+                      <MetricCard label="TOP3 RATE" value={valueText(selectedRiderScore.rates?.top3Rate, "%")} />
+                    </div>
+                  ) : null}
                   {!selectedRiderNo ? <EmptyState text="選手を選択すると、KURARI EX EXACTが表示されます。" /> : null}
                   {selectedRiderStatus === "loading" ? <EmptyState text="選手別EXACTを読み込んでいます。" /> : null}
                   {selectedRiderStatus === "error" ? <EmptyState text="この選手のEXACTデータを取得できませんでした。" /> : null}
