@@ -1,0 +1,770 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-21T11:53:59.647Z",
+  "source": "kurari-ex-rider-score-v1",
+  "sourceType": "EXACT_RIDER_SCORE",
+  "period": {
+    "from": "2026-05-09",
+    "to": "2026-06-19"
+  },
+  "riderCount": 1216,
+  "qualityCounts": {
+    "complete": 56,
+    "partial": 120,
+    "low-sample": 954,
+    "identity-only": 86
+  },
+  "inclusionPolicy": {
+    "riders": "include-all-known-riders",
+    "sparseDataHandling": "keep-and-mark-as-identity-only-low-sample-or-growing",
+    "deletionPolicy": "never-drop-low-sample-riders"
+  },
+  "guidance": [
+    {
+      "title": "全選手を保持",
+      "body": "complete / partial / low-sample / identity-only をすべて残す。"
+    },
+    {
+      "title": "低サンプルは削除しない",
+      "body": "confirmedStartCount が少ない選手も low-sample-growing として育てる。"
+    },
+    {
+      "title": "予想への使い方",
+      "body": "TOP3_CANDIDATE は3着保護、TOP2_CANDIDATE は2着候補、ROLE_MISSING は注意扱いにする。"
+    }
+  ],
+  "topRiders": [
+    {
+      "rank": 1,
+      "registrationNo": "015891",
+      "name": "野中 龍之介",
+      "score": 100,
+      "rankHint": "A",
+      "quality": "complete",
+      "dataStatus": "complete",
+      "top2Rate": 57.1,
+      "top3Rate": 71.4
+    },
+    {
+      "rank": 2,
+      "registrationNo": "014072",
+      "name": "伊藤 之人",
+      "score": 100,
+      "rankHint": "A",
+      "quality": "complete",
+      "dataStatus": "complete",
+      "top2Rate": 50,
+      "top3Rate": 66.7
+    },
+    {
+      "rank": 3,
+      "registrationNo": "015381",
+      "name": "岩谷拓磨",
+      "score": 100,
+      "rankHint": "A",
+      "quality": "complete",
+      "dataStatus": "complete",
+      "top2Rate": 66.7,
+      "top3Rate": 83.3
+    },
+    {
+      "rank": 4,
+      "registrationNo": "015884",
+      "name": "秋山 太洋",
+      "score": 100,
+      "rankHint": "A",
+      "quality": "complete",
+      "dataStatus": "complete",
+      "top2Rate": 50,
+      "top3Rate": 66.7
+    },
+    {
+      "rank": 5,
+      "registrationNo": "014945",
+      "name": "中井俊亮",
+      "score": 96,
+      "rankHint": "A",
+      "quality": "complete",
+      "dataStatus": "complete",
+      "top2Rate": 33.3,
+      "top3Rate": 66.7
+    },
+    {
+      "rank": 6,
+      "registrationNo": "015889",
+      "name": "大本 隆也",
+      "score": 93,
+      "rankHint": "A",
+      "quality": "complete",
+      "dataStatus": "complete",
+      "top2Rate": 33.3,
+      "top3Rate": 66.7
+    },
+    {
+      "rank": 7,
+      "registrationNo": "015043",
+      "name": "大矢 崇弘",
+      "score": 92,
+      "rankHint": "A",
+      "quality": "complete",
+      "dataStatus": "complete",
+      "top2Rate": 40,
+      "top3Rate": 60
+    },
+    {
+      "rank": 8,
+      "registrationNo": "013118",
+      "name": "山内 卓也",
+      "score": 86,
+      "rankHint": "A",
+      "quality": "complete",
+      "dataStatus": "complete",
+      "top2Rate": 40,
+      "top3Rate": 40
+    },
+    {
+      "rank": 9,
+      "registrationNo": "012982",
+      "name": "上原 直樹",
+      "score": 85,
+      "rankHint": "A",
+      "quality": "complete",
+      "dataStatus": "complete",
+      "top2Rate": 33.3,
+      "top3Rate": 50
+    },
+    {
+      "rank": 10,
+      "registrationNo": "014349",
+      "name": "佐藤 純嘉",
+      "score": 85,
+      "rankHint": "A",
+      "quality": "complete",
+      "dataStatus": "complete",
+      "top2Rate": 33.3,
+      "top3Rate": 50
+    },
+    {
+      "rank": 11,
+      "registrationNo": "015516",
+      "name": "木村皆斗",
+      "score": 85,
+      "rankHint": "A",
+      "quality": "complete",
+      "dataStatus": "complete",
+      "top2Rate": 40,
+      "top3Rate": 40
+    },
+    {
+      "rank": 12,
+      "registrationNo": "014016",
+      "name": "石塚孝幸",
+      "score": 84,
+      "rankHint": "A",
+      "quality": "complete",
+      "dataStatus": "complete",
+      "top2Rate": 14.3,
+      "top3Rate": 42.9
+    },
+    {
+      "rank": 13,
+      "registrationNo": "014489",
+      "name": "高鍋 邦彰",
+      "score": 83,
+      "rankHint": "A",
+      "quality": "complete",
+      "dataStatus": "complete",
+      "top2Rate": 33.3,
+      "top3Rate": 33.3
+    },
+    {
+      "rank": 14,
+      "registrationNo": "014691",
+      "name": "東矢 昇太",
+      "score": 82,
+      "rankHint": "A",
+      "quality": "complete",
+      "dataStatus": "complete",
+      "top2Rate": 40,
+      "top3Rate": 40
+    },
+    {
+      "rank": 15,
+      "registrationNo": "015744",
+      "name": "橋本 宇宙",
+      "score": 82,
+      "rankHint": "A",
+      "quality": "complete",
+      "dataStatus": "complete",
+      "top2Rate": 40,
+      "top3Rate": 40
+    },
+    {
+      "rank": 16,
+      "registrationNo": "015923",
+      "name": "右近 陸人",
+      "score": 82,
+      "rankHint": "A",
+      "quality": "complete",
+      "dataStatus": "complete",
+      "top2Rate": 40,
+      "top3Rate": 40
+    },
+    {
+      "rank": 17,
+      "registrationNo": "014835",
+      "name": "窓場千加頼",
+      "score": 78,
+      "rankHint": "B",
+      "quality": "partial",
+      "dataStatus": "partial-growing",
+      "top2Rate": 42.9,
+      "top3Rate": 57.1
+    },
+    {
+      "rank": 18,
+      "registrationNo": "013802",
+      "name": "大林 亮介",
+      "score": 78,
+      "rankHint": "B",
+      "quality": "partial",
+      "dataStatus": "partial-growing",
+      "top2Rate": 50,
+      "top3Rate": 66.7
+    },
+    {
+      "rank": 19,
+      "registrationNo": "014267",
+      "name": "一ノ瀬 匠",
+      "score": 78,
+      "rankHint": "B",
+      "quality": "partial",
+      "dataStatus": "partial-growing",
+      "top2Rate": 50,
+      "top3Rate": 66.7
+    },
+    {
+      "rank": 20,
+      "registrationNo": "015383",
+      "name": "原井 博斗",
+      "score": 78,
+      "rankHint": "B",
+      "quality": "partial",
+      "dataStatus": "partial-growing",
+      "top2Rate": 50,
+      "top3Rate": 66.7
+    },
+    {
+      "rank": 21,
+      "registrationNo": "015814",
+      "name": "岩井 芯",
+      "score": 78,
+      "rankHint": "B",
+      "quality": "partial",
+      "dataStatus": "partial-growing",
+      "top2Rate": 66.7,
+      "top3Rate": 66.7
+    },
+    {
+      "rank": 22,
+      "registrationNo": "015870",
+      "name": "畑崎 大輝",
+      "score": 78,
+      "rankHint": "B",
+      "quality": "partial",
+      "dataStatus": "partial-growing",
+      "top2Rate": 50,
+      "top3Rate": 66.7
+    },
+    {
+      "rank": 23,
+      "registrationNo": "015883",
+      "name": "吉田 夢希斗",
+      "score": 78,
+      "rankHint": "B",
+      "quality": "partial",
+      "dataStatus": "partial-growing",
+      "top2Rate": 50,
+      "top3Rate": 66.7
+    },
+    {
+      "rank": 24,
+      "registrationNo": "013642",
+      "name": "西岡 正一",
+      "score": 78,
+      "rankHint": "B",
+      "quality": "complete",
+      "dataStatus": "complete",
+      "top2Rate": 40,
+      "top3Rate": 40
+    },
+    {
+      "rank": 25,
+      "registrationNo": "014270",
+      "name": "小原 将通",
+      "score": 78,
+      "rankHint": "B",
+      "quality": "partial",
+      "dataStatus": "partial-growing",
+      "top2Rate": 40,
+      "top3Rate": 80
+    },
+    {
+      "rank": 26,
+      "registrationNo": "014594",
+      "name": "太田 剛司",
+      "score": 78,
+      "rankHint": "B",
+      "quality": "partial",
+      "dataStatus": "partial-growing",
+      "top2Rate": 40,
+      "top3Rate": 80
+    },
+    {
+      "rank": 27,
+      "registrationNo": "014682",
+      "name": "原田研太朗",
+      "score": 78,
+      "rankHint": "B",
+      "quality": "partial",
+      "dataStatus": "partial-growing",
+      "top2Rate": 60,
+      "top3Rate": 60
+    },
+    {
+      "rank": 28,
+      "registrationNo": "014956",
+      "name": "小川 賢人",
+      "score": 78,
+      "rankHint": "B",
+      "quality": "partial",
+      "dataStatus": "partial-growing",
+      "top2Rate": 40,
+      "top3Rate": 60
+    },
+    {
+      "rank": 29,
+      "registrationNo": "015492",
+      "name": "永禮 美瑠",
+      "score": 78,
+      "rankHint": "B",
+      "quality": "partial",
+      "dataStatus": "partial-growing",
+      "top2Rate": 60,
+      "top3Rate": 100
+    },
+    {
+      "rank": 30,
+      "registrationNo": "015651",
+      "name": "中川 聖大",
+      "score": 78,
+      "rankHint": "B",
+      "quality": "partial",
+      "dataStatus": "partial-growing",
+      "top2Rate": 40,
+      "top3Rate": 80
+    }
+  ],
+  "sampleRiders": [
+    {
+      "registrationNo": "013765",
+      "name": "海老根 恵太",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 4
+    },
+    {
+      "registrationNo": "013961",
+      "name": "松村 友和",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 4
+    },
+    {
+      "registrationNo": "015368",
+      "name": "井坂 泰誓",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 4
+    },
+    {
+      "registrationNo": "015406",
+      "name": "吉岡 詩織",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 4
+    },
+    {
+      "registrationNo": "015483",
+      "name": "谷元 奎心",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 4
+    },
+    {
+      "registrationNo": "015666",
+      "name": "畠山 ひすい",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 4
+    },
+    {
+      "registrationNo": "015669",
+      "name": "河内 桜雪",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 4
+    },
+    {
+      "registrationNo": "015853",
+      "name": "中島 瞳",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 4
+    },
+    {
+      "registrationNo": "015873",
+      "name": "十文字 悠真",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 4
+    },
+    {
+      "registrationNo": "012879",
+      "name": "石井 毅",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "014139",
+      "name": "小田倉 勇二",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "014144",
+      "name": "石川 雅望",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "014174",
+      "name": "柴崎淳",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "014246",
+      "name": "森川 大輔",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "014377",
+      "name": "岩本俊介",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "014658",
+      "name": "馬場 和広",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "014992",
+      "name": "楠野 史尭",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "015039",
+      "name": "吉田拓矢",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "015061",
+      "name": "取鳥雄吾",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "015096",
+      "name": "大石 剣士",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "015356",
+      "name": "杉浦侑吾",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "015370",
+      "name": "城戸 俊潔",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "015386",
+      "name": "阪本 和也",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "015414",
+      "name": "大森 光明",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "015520",
+      "name": "桑名 僚也",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "015543",
+      "name": "福元 啓太",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "015555",
+      "name": "林 昌幸",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "015613",
+      "name": "滝本 幸正",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "015734",
+      "name": "岡崎 陸登",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "015762",
+      "name": "高橋 美沙紀",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "015778",
+      "name": "小堀 敢太",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "015868",
+      "name": "市田 龍生都",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "015872",
+      "name": "池田 充槻",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "015874",
+      "name": "角田 吏",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "015876",
+      "name": "三神 遼矢",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "015919",
+      "name": "藤田 楓",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "015930",
+      "name": "野津 宏介",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 3
+    },
+    {
+      "registrationNo": "012193",
+      "name": "井手 尚治",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 2
+    },
+    {
+      "registrationNo": "012242",
+      "name": "穴井 利久",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 2
+    },
+    {
+      "registrationNo": "013378",
+      "name": "小田桐 義継",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 2
+    },
+    {
+      "registrationNo": "013962",
+      "name": "南修二",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 2
+    },
+    {
+      "registrationNo": "014031",
+      "name": "筒井 裕哉",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 2
+    },
+    {
+      "registrationNo": "014276",
+      "name": "坂本 敏也",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 2
+    },
+    {
+      "registrationNo": "014728",
+      "name": "三好 恵一郎",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 2
+    },
+    {
+      "registrationNo": "014838",
+      "name": "古性優作",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 2
+    },
+    {
+      "registrationNo": "014842",
+      "name": "川本 琢也",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 2
+    },
+    {
+      "registrationNo": "014869",
+      "name": "泉谷 元樹",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 2
+    },
+    {
+      "registrationNo": "014980",
+      "name": "田原 宥明",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 2
+    },
+    {
+      "registrationNo": "014984",
+      "name": "會澤 龍",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 2
+    },
+    {
+      "registrationNo": "015037",
+      "name": "鈴木竜士",
+      "score": 58,
+      "quality": "low-sample",
+      "dataStatus": "low-sample-growing",
+      "confirmedStartCount": 2
+    }
+  ]
+}

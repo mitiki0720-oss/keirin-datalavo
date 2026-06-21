@@ -91,6 +91,8 @@ export async function runNightly(options = {}) {
     await runScript("check-kurari-ex-size.mjs");
     await runScript("sync-kurari-ex-status-from-history.mjs");
     await runScript("generate-kurari-ex-analysis.mjs");
+    await runScript("generate-kurari-ex-rider-score.mjs");
+    await runScript("generate-kurari-ex-rider-tags-guidance.mjs");
     return { status: archive.status, archive };
   }
 
@@ -129,6 +131,8 @@ export async function runNightly(options = {}) {
     await runScript("check-kurari-ex-size.mjs");
     await runScript("sync-kurari-ex-status-from-history.mjs");
     await runScript("generate-kurari-ex-analysis.mjs");
+    await runScript("generate-kurari-ex-rider-score.mjs");
+    await runScript("generate-kurari-ex-rider-tags-guidance.mjs");
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }
