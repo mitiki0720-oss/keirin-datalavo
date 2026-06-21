@@ -2,27 +2,27 @@
   "schemaVersion": 1,
   "venueKey": "takeo",
   "venueName": "武雄",
-  "updatedAt": "2026-06-18",
+  "updatedAt": "2026-06-21",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-13",
-    "to": "2026-06-14"
+    "to": "2026-06-21"
   },
   "quality": {
-    "seedSources": 8,
-    "parsedDateSources": 8,
+    "seedSources": 9,
+    "parsedDateSources": 9,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 8,
-    "raceCount": 72,
-    "trifectaHits": 18,
-    "trifectaHitRate": 25,
-    "exactaHits": 8,
-    "exactaHitRate": 11.1,
+    "sourceCount": 9,
+    "raceCount": 81,
+    "trifectaHits": 20,
+    "trifectaHitRate": 24.7,
+    "exactaHits": 10,
+    "exactaHitRate": 12.3,
     "anyTicketHits": null,
     "hitRate": null,
     "investmentYen": 45000,
@@ -38,7 +38,21 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 8,
+      "evidenceCount": 9,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "TIME_SLOT_BIAS",
+      "label": "時間帯差を確認",
+      "evidenceCount": 9,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "WIND_SENSITIVE",
+      "label": "風条件を確認",
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
@@ -50,44 +64,30 @@
       "sourceType": "SEED"
     },
     {
-      "tag": "TIME_SLOT_BIAS",
-      "label": "時間帯差を確認",
-      "evidenceCount": 8,
-      "confidence": "medium",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "WIND_SENSITIVE",
-      "label": "風条件を確認",
-      "evidenceCount": 8,
-      "confidence": "medium",
-      "sourceType": "SEED"
-    },
-    {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 6,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 6,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 5,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 4,
+      "evidenceCount": 5,
       "confidence": "medium",
       "sourceType": "SEED"
     },
@@ -121,20 +121,24 @@
       "監査注意：三連単2-1-3と二車単2-1がともに一致。結果テキストの払戻欄は二車単320円を含んでいない可能性があります。",
       "B選手が車券内へ残ったのは 8R／9R（88.9%） 。この開催ではB選手の残りが強く、B選手を機械的に切る組み立ては危険だった。",
       "監査注意：三連単4-1-3と二車単4-1がともに一致。結果テキストの払戻欄は二車単1,050円を含んでいない可能性があります。",
-      "レース型（予想原本）：TYPE-D・決勝の強力二分戦＋単騎警戒型"
+      "レース型（予想原本）：TYPE-D・決勝の強力二分戦＋単騎警戒型",
+      "監査注意：3連単2-1-6と2車単2-1がともに一致。原本判定はpendingのため、独立照合でのみ回収へ反映。",
+      "レース型（予想原本）：TYPE-C・先行二枚の番手差し警戒型",
+      "6. 全R pending時の自動照合依存が危険"
     ],
     "improvements": [
       "【簡易分析メモ（結果事実＋次回改善）】",
       "5) 詳細summary｜次回の予想に残す改善点",
       "9Rでは1番の主導権を本文で認識していたが、1番頭の買い目は1点のみ。本文に書いた主シナリオ・副シナリオが、最低1本ずつ買い目へ反映されているかを最終確認する。",
-      "5-4) 次回用の実務チェックリスト"
+      "5-4) 次回用の実務チェックリスト",
+      "監査注意：3連単2-1-6と2車単2-1がともに一致。原本判定はpendingのため、独立照合でのみ回収へ反映。"
     ]
   },
   "predictionGuidance": [
     "級班とレース種別を分けて傾向を評価する",
-    "踏み合い時は単騎の差し込みを3着候補に加える",
     "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+    "踏み合い時は単騎の差し込みを3着候補に加える",
     "先行軸だけで固定せず、番手差しの逆目を残す",
     "先行争いがある場合は別線の捲り筋を残す",
     "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",

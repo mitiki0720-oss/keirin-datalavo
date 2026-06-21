@@ -7,27 +7,27 @@
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-01",
-    "to": "2026-06-20"
+    "to": "2026-06-21"
   },
   "quality": {
-    "seedSources": 14,
-    "parsedDateSources": 14,
+    "seedSources": 15,
+    "parsedDateSources": 15,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 14,
+    "sourceCount": 15,
     "raceCount": 132,
-    "trifectaHits": 35,
-    "trifectaHitRate": 26.5,
-    "exactaHits": 5,
-    "exactaHitRate": 3.8,
+    "trifectaHits": 38,
+    "trifectaHitRate": 28.8,
+    "exactaHits": 6,
+    "exactaHitRate": 4.5,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 144000,
-    "returnYen": 109130,
-    "recoveryRate": 75.8,
+    "investmentYen": 156000,
+    "returnYen": 113590,
+    "recoveryRate": 72.8,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,28 +38,28 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 14,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 14,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 13,
+      "evidenceCount": 14,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 11,
+      "evidenceCount": 12,
       "confidence": "high",
       "sourceType": "SEED"
     },
@@ -71,6 +71,13 @@
       "sourceType": "SEED"
     },
     {
+      "tag": "BANTE_SASHI_ALERT",
+      "label": "番手差しを警戒",
+      "evidenceCount": 8,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
       "evidenceCount": 8,
@@ -78,24 +85,17 @@
       "sourceType": "SEED"
     },
     {
-      "tag": "BANTE_SASHI_ALERT",
-      "label": "番手差しを警戒",
-      "evidenceCount": 7,
-      "confidence": "medium",
-      "sourceType": "SEED"
-    },
-    {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 5,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 3,
+      "confidence": "medium",
       "sourceType": "SEED"
     }
   ],
@@ -117,7 +117,9 @@
     ],
     "cautions": [
       "予想時の理由：①辻田―⑤服部―②亀井―⑦高森の4車ラインが優位。①は直近6走で4勝・2着1回と安定。ただし天気・風データが欠損しているため、強い風補正は掛けず、B9の③小泉による先行争いと捲り残りを厚めに警戒する。",
-      "レースタイプ：TYPE-C｜①鈴木軸だが、北日本ラインの逆転に注意"
+      "レースタイプ：TYPE-C｜①鈴木軸だが、北日本ラインの逆転に注意",
+      "注意：ユーザー文は「F2」指定だが、添付テキスト内の開催表記は全R F1 。本レポートは添付データを正として F1デイ最終日 で記録。",
+      "③堤の2着、⑦橋本の3着までは近いが、②谷田の頭を2-4・2-4-3でしか扱えず、失格で4が消えた後の2-3-7を保護できなかった。小嶋絡みはリスクが高く、番手②を頭にするなら相手は主力③⑦へ戻すべき。"
     ],
     "improvements": [
       "後工程では、この開催レポートを別の平塚分析チャットへ渡して反映する。",
@@ -125,7 +127,8 @@
       "【次回改善メモ】",
       "5. 次回予想への改善ルール",
       "2. 本文で「3着なら一考」と書いた選手は、必ず買い目へ反映する。",
-      "次回は「雨なら3番手を厚く」「差し頭なら2着に単騎・別線主力を混ぜる」「低配当本線は点数を削る」の3点を徹底する。"
+      "次回は「雨なら3番手を厚く」「差し頭なら2着に単騎・別線主力を混ぜる」「低配当本線は点数を削る」の3点を徹底する。",
+      "次回予想への改善ルール"
     ]
   },
   "predictionGuidance": [
@@ -134,8 +137,8 @@
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
     "踏み合い時は単騎の差し込みを3着候補に加える",
     "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
-    "先行争いがある場合は別線の捲り筋を残す",
     "先行軸だけで固定せず、番手差しの逆目を残す",
+    "先行争いがある場合は別線の捲り筋を残す",
     "本線が崩れた場合の別線頭と別線3着を保護する"
   ]
 }

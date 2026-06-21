@@ -7,17 +7,17 @@
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-04",
-    "to": "2026-06-20"
+    "to": "2026-06-21"
   },
   "quality": {
-    "seedSources": 15,
-    "parsedDateSources": 15,
+    "seedSources": 16,
+    "parsedDateSources": 16,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 15,
+    "sourceCount": 16,
     "raceCount": 120,
     "trifectaHits": 25,
     "trifectaHitRate": 20.8,
@@ -38,14 +38,21 @@
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 15,
+      "evidenceCount": 16,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 13,
+      "evidenceCount": 14,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "WIND_SENSITIVE",
+      "label": "風条件を確認",
+      "evidenceCount": 14,
       "confidence": "high",
       "sourceType": "SEED"
     },
@@ -57,37 +64,30 @@
       "sourceType": "SEED"
     },
     {
-      "tag": "WIND_SENSITIVE",
-      "label": "風条件を確認",
-      "evidenceCount": 13,
-      "confidence": "high",
-      "sourceType": "SEED"
-    },
-    {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 12,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 12,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 11,
+      "evidenceCount": 12,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 10,
+      "evidenceCount": 11,
       "confidence": "high",
       "sourceType": "SEED"
     },
@@ -141,8 +141,8 @@
   "predictionGuidance": [
     "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
     "先行軸だけで固定せず、番手差しの逆目を残す",
-    "級班とレース種別を分けて傾向を評価する",
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+    "級班とレース種別を分けて傾向を評価する",
     "先行争いがある場合は別線の捲り筋を残す",
     "踏み合い時は単騎の差し込みを3着候補に加える",
     "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
