@@ -331,6 +331,15 @@ function getRiderCategoryUseLabel(item: KurariExRiderCategoryItem) {
   return "確認";
 }
 
+function getRiderCategoryUseRank(item: KurariExRiderCategoryItem) {
+  const label = getRiderCategoryUseLabel(item);
+  if (label === "頭候補") return 1;
+  if (label === "連軸") return 2;
+  if (label === "3着保護") return 3;
+  if (label === "確認") return 4;
+  return 5;
+}
+
 async function loadKurariExRiderCategoryAnalysis(): Promise<KurariExRiderCategoryAnalysis> {
   const response = await fetch(toExPublicPath(RIDER_CATEGORY_ANALYSIS_URL), { cache: "no-store" });
   if (!response.ok) throw new Error("KURARI EX rider category analysis fetch failed: " + response.status);
@@ -1421,7 +1430,7 @@ export default function ExDataPage() {
                     {Object.entries(riderCategoryAnalysis.dimensions).map(([dimensionKey, dimension]) => (
                       <article className="ex-category-card" key={dimensionKey}>
                         <h4>{dimension.label}</h4>
-                        {dimension.items.slice(0, 6).map((item) => (
+                        {[...dimension.items].sort((a, b) => getRiderCategoryUseRank(a) - getRiderCategoryUseRank(b) || b.starts - a.starts).slice(0, 6).map((item) => (
                           <div className="ex-category-row" key={item.key}>
                             <span>
                               {item.label} / {valueText(item.starts)}走 {item.quality === "low-sample" ? <span className="ex-low-sample">母数少</span> : null}
