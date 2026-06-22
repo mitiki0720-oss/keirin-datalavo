@@ -1161,6 +1161,46 @@ export default function ExDataPage() {
         </section>
 
         <section className="ex-panel ex-section">
+          <SectionTitle eyebrow="EX ANALYSIS COVERAGE" title="分析項目チェックリスト" lead="実装済み・一部・蓄積予定・fake禁止を分けて管理します。" />
+          <div className="ex-subsection">
+            <div className="ex-eyebrow">COVERAGE MAP</div>
+            <div className="ex-legend">
+              {[
+                ["☑ 実装済み", "条件別EXACT", "競輪場別 / 時間帯別 / グレード別 / レース種目別 / 周長 / 天候 / 着順別は、現在のPLAYER CATEGORY ANALYSISで利用できます。"],
+                ["☑ 一部実装", "位置別・日程別", "ライン先頭 / 番手 / 3番手以降 / 単騎はrole集計で扱います。競り・細かい日程判定は未確定項目として管理します。"],
+                ["☐ 蓄積予定", "今後増やす分析", "車番別 / グレード×レース種目 / 見なし直線 / 同県選手同乗時 / 同一ライン / ライン長別 / ライン決着率を追加候補にします。"],
+                ["☒ fake禁止", "展開動作系", "かまし成功率 / つっぱり成功率 / ちぎり率 / ちぎられ率 / 飛びつき成功率 / 競りの勝率は、判定元が揃うまで未生成のまま扱います。"],
+              ].map(([status, title, description]) => (
+                <article key={title}>
+                  <strong>{status}</strong>
+                  <h3>{title}</h3>
+                  <p>{description}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+          <div className="ex-subsection">
+            <div className="ex-eyebrow">NEXT ANALYSIS CANDIDATES</div>
+            <div className="ex-legend">
+              {[
+                ["車番別", "内枠有利・外枠穴・車番ごとの勝率/2連対/3連対を確認する。"],
+                ["グレード×レース種目", "F1準決・F2決勝・敗者戦など、開催格と番組条件を掛け合わせる。"],
+                ["見なし直線", "会場マスタを使い、短走路/長走路で先行残り・差し傾向を確認する。"],
+                ["ライン決着率", "同ライン1-2着 / 同ライン1-2-3着を集計し、本線厚め判断に使う。"],
+                ["番手差し率", "番手が1着まで抜けるか、2着まで残るかを買い目設計に使う。"],
+                ["直近トレンド", "直近5走/10走で調子上げ・調子落ちを見分ける。"],
+              ].map(([title, description]) => (
+                <article key={title}>
+                  <strong>BACKLOG</strong>
+                  <h3>{title}</h3>
+                  <p>{description}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+          <div className="ex-empty">POLICY: 未確定指標は推定で補完しません。正確に蓄積できるデータだけをEXACTとして昇格します。</div>
+        </section>
+        <section className="ex-panel ex-section">
           <SectionTitle eyebrow="QUALITY LEGEND" title="データ品質の4段階" lead="SEEDとEXACTを分離して公開しています。" />
           <div className="ex-legend">
             {[
