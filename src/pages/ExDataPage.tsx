@@ -1406,6 +1406,9 @@ export default function ExDataPage() {
               />
               {riderCategoryStatus === "loading" ? <EmptyState text="条件別選手分析を読み込んでいます。" /> : null}
               {riderCategoryStatus === "error" ? <EmptyState text="条件別選手分析を取得できませんでした。" /> : null}
+              <div className="ex-muted">
+                ラベル基準: 頭候補=勝率20%以上 / 連軸=2連対率40%以上 / 3着保護=3着以内率55%以上 / 確認=通常確認 / 参考=母数少
+              </div>
               {riderCategoryAnalysis ? (
                 <>
                   <div className="ex-health-grid">
