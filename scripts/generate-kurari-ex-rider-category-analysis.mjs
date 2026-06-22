@@ -106,7 +106,7 @@ for (const file of walk(RIDER_DIR)) {
     for (const item of rider.byRaceStage || []) {
       add(raceStage, item.raceStage, item.raceStageLabel || item.raceStage || "\u4e0d\u660e", item);
     }
- 
+
     for (const item of rider.byWeather || []) {
       add(weather, item.weatherCondition, item.weatherLabel || item.weatherCondition || "\u4e0d\u660e", item);
     }
@@ -186,8 +186,4 @@ console.log("skipped:", skipped);
 console.log("confirmed starts:", confirmedStarts);
 console.log("venue items:", output.dimensions.venue.items.length);
 console.log("timeslot items:", output.dimensions.timeslot.items.length);
-
-
-
-
 
