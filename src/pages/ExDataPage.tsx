@@ -1437,26 +1437,35 @@ export default function ExDataPage() {
                           useRank: getRiderCategoryUseRank(item),
                         })),
                       )
-                      .filter((entry) => entry.useRank <= 3)
-                      .sort((a, b) => a.useRank - b.useRank || b.item.starts - a.item.starts)
-                      .slice(0, 9);
-                    return practicalItems.length ? (
+                      .filter((entry) => entry.useRank <= 3);
+                    const practicalGroups = (["頭候補", "連軸", "3着保護"] as const)
+                      .map((label) => ({
+                        label,
+                        items: practicalItems
+                          .filter((entry) => entry.useLabel === label)
+                          .sort((a, b) => b.item.starts - a.item.starts)
+                          .slice(0, 3),
+                      }))
+                      .filter((group) => group.items.length > 0);
+                    return practicalGroups.length ? (
                       <div className="ex-category-grid">
-                        <article className="ex-category-card">
-                          <h4>実戦候補まとめ</h4>
-                          <div className="ex-muted">全カテゴリ横断で、頭候補・連軸・3着保護を優先表示します。</div>
-                          {practicalItems.map((entry) => (
-                            <div className="ex-category-row" key={`${entry.dimensionKey}-${entry.item.key}`}>
-                              <span>
-                                {entry.dimensionLabel}: {entry.item.label} / {valueText(entry.item.starts)}走
-                                <span className="ex-badge">{entry.useLabel}</span>
-                              </span>
-                              <span>
-                                勝 {Number.isFinite(entry.item.winRate) ? `${Number(entry.item.winRate).toFixed(1)}%` : "--"} / 2連 {Number.isFinite(entry.item.top2Rate) ? `${Number(entry.item.top2Rate).toFixed(1)}%` : "--"} / 3内 {Number.isFinite(entry.item.top3Rate) ? `${Number(entry.item.top3Rate).toFixed(1)}%` : "--"}
-                              </span>
-                            </div>
-                          ))}
-                        </article>
+                        {practicalGroups.map((group) => (
+                          <article className="ex-category-card" key={group.label}>
+                            <h4>実戦候補まとめ / {group.label}</h4>
+                            <div className="ex-muted">全カテゴリ横断で、{group.label}を最大3件まで優先表示します。</div>
+                            {group.items.map((entry) => (
+                              <div className="ex-category-row" key={`${group.label}-${entry.dimensionKey}-${entry.item.key}`}>
+                                <span>
+                                  {entry.dimensionLabel}: {entry.item.label} / {valueText(entry.item.starts)}走
+                                  <span className="ex-badge">{entry.useLabel}</span>
+                                </span>
+                                <span>
+                                  勝 {Number.isFinite(entry.item.winRate) ? `${Number(entry.item.winRate).toFixed(1)}%` : "--"} / 2連 {Number.isFinite(entry.item.top2Rate) ? `${Number(entry.item.top2Rate).toFixed(1)}%` : "--"} / 3内 {Number.isFinite(entry.item.top3Rate) ? `${Number(entry.item.top3Rate).toFixed(1)}%` : "--"}
+                                </span>
+                              </div>
+                            ))}
+                          </article>
+                        ))}
                       </div>
                     ) : null;
                   })()}
