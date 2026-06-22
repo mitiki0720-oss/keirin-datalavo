@@ -323,6 +323,22 @@ type KurariExRiderCategoryAnalysis = {
   unsupportedExactMetrics?: Array<{ label: string; status: string; reason: string }>;
 };
 
+function getRiderCategoryGeneratedAgeHours(generatedAt: string | null | undefined) {
+  const generatedTime = Date.parse(generatedAt ?? "");
+  if (!Number.isFinite(generatedTime)) return null;
+  return (Date.now() - generatedTime) / 36e5;
+}
+
+function isRiderCategoryGeneratedStale(generatedAt: string | null | undefined) {
+  const ageHours = getRiderCategoryGeneratedAgeHours(generatedAt);
+  return ageHours === null || ageHours > 36;
+}
+
+function getRiderCategoryGeneratedNote(generatedAt: string | null | undefined) {
+  const ageHours = getRiderCategoryGeneratedAgeHours(generatedAt);
+  if (ageHours === null) return "生成時刻を確認できません";
+  return ageHours > 36 ? "36時間超 / 更新注意" : "自動生成時刻";
+}
 function getRiderCategoryUseLabel(item: KurariExRiderCategoryItem) {
   if (item.quality === "low-sample" || item.starts < 5) return "参考";
   if (Number.isFinite(item.winRate) && Number(item.winRate) >= 20) return "頭候補";
@@ -1425,8 +1441,13 @@ export default function ExDataPage() {
                     <MetricCard label="CONFIRMED STARTS" value={valueText(riderCategoryAnalysis.coverage.confirmedStartCount)} />
                     <MetricCard label="READ RIDERS" value={valueText(riderCategoryAnalysis.coverage.riderFilesRead)} />
                     <MetricCard label="SKIPPED" value={valueText(riderCategoryAnalysis.coverage.riderFilesSkipped)} warning={(riderCategoryAnalysis.coverage.riderFilesSkipped ?? 0) > 0} />
-                    <MetricCard label="GENERATED AT" value={riderCategoryAnalysis.generatedAt ? new Date(riderCategoryAnalysis.generatedAt).toLocaleString("ja-JP") : "--"} note="自動生成時刻" />
+                    <MetricCard label="GENERATED AT" value={riderCategoryAnalysis.generatedAt ? new Date(riderCategoryAnalysis.generatedAt).toLocaleString("ja-JP") : "--"} note={getRiderCategoryGeneratedNote(riderCategoryAnalysis.generatedAt)} warning={isRiderCategoryGeneratedStale(riderCategoryAnalysis.generatedAt)} />
                   </div>
+                  {isRiderCategoryGeneratedStale(riderCategoryAnalysis.generatedAt) ? (
+                    <div className="ex-sample-alert">
+                      <strong>UPDATE CHECK / 更新注意</strong>条件別選手分析の生成時刻が古い可能性があります。nightly更新の失敗またはPages反映遅延を確認してください。
+                    </div>
+                  ) : null}
                   {(() => {
                     const practicalItems = Object.entries(riderCategoryAnalysis.dimensions)
                       .flatMap(([dimensionKey, dimension]) =>
