@@ -1425,6 +1425,7 @@ export default function ExDataPage() {
                     <MetricCard label="CONFIRMED STARTS" value={valueText(riderCategoryAnalysis.coverage.confirmedStartCount)} />
                     <MetricCard label="READ RIDERS" value={valueText(riderCategoryAnalysis.coverage.riderFilesRead)} />
                     <MetricCard label="SKIPPED" value={valueText(riderCategoryAnalysis.coverage.riderFilesSkipped)} warning={(riderCategoryAnalysis.coverage.riderFilesSkipped ?? 0) > 0} />
+                    <MetricCard label="GENERATED AT" value={riderCategoryAnalysis.generatedAt ? new Date(riderCategoryAnalysis.generatedAt).toLocaleString("ja-JP") : "--"} note="自動生成時刻" />
                   </div>
                   {(() => {
                     const practicalItems = Object.entries(riderCategoryAnalysis.dimensions)
