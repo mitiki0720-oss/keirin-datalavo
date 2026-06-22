@@ -323,6 +323,14 @@ type KurariExRiderCategoryAnalysis = {
   unsupportedExactMetrics?: Array<{ label: string; status: string; reason: string }>;
 };
 
+function getRiderCategoryUseLabel(item: KurariExRiderCategoryItem) {
+  if (item.quality === "low-sample" || item.starts < 5) return "参考";
+  if (Number.isFinite(item.winRate) && Number(item.winRate) >= 20) return "頭候補";
+  if (Number.isFinite(item.top2Rate) && Number(item.top2Rate) >= 40) return "連軸";
+  if (Number.isFinite(item.top3Rate) && Number(item.top3Rate) >= 55) return "3着保護";
+  return "確認";
+}
+
 async function loadKurariExRiderCategoryAnalysis(): Promise<KurariExRiderCategoryAnalysis> {
   const response = await fetch(toExPublicPath(RIDER_CATEGORY_ANALYSIS_URL), { cache: "no-store" });
   if (!response.ok) throw new Error("KURARI EX rider category analysis fetch failed: " + response.status);
@@ -1412,7 +1420,10 @@ export default function ExDataPage() {
                         <h4>{dimension.label}</h4>
                         {dimension.items.slice(0, 6).map((item) => (
                           <div className="ex-category-row" key={item.key}>
-                            <span>{item.label} / {valueText(item.starts)}走 {item.quality === "low-sample" ? <span className="ex-low-sample">母数少</span> : null}</span>
+                            <span>
+                              {item.label} / {valueText(item.starts)}走 {item.quality === "low-sample" ? <span className="ex-low-sample">母数少</span> : null}
+                              <span className="ex-badge">{getRiderCategoryUseLabel(item)}</span>
+                            </span>
                             <span>
                               勝 {Number.isFinite(item.winRate) ? `${Number(item.winRate).toFixed(1)}%` : "--"} / 2連 {Number.isFinite(item.top2Rate) ? `${Number(item.top2Rate).toFixed(1)}%` : "--"} / 3内 {Number.isFinite(item.top3Rate) ? `${Number(item.top3Rate).toFixed(1)}%` : "--"}
                             </span>
