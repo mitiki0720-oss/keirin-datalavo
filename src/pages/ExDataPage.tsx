@@ -1430,6 +1430,9 @@ export default function ExDataPage() {
                     {Object.entries(riderCategoryAnalysis.dimensions).map(([dimensionKey, dimension]) => (
                       <article className="ex-category-card" key={dimensionKey}>
                         <h4>{dimension.label}</h4>
+                        <div className="ex-muted">
+                          頭候補 {dimension.items.filter((item) => getRiderCategoryUseLabel(item) === "頭候補").length} / 連軸 {dimension.items.filter((item) => getRiderCategoryUseLabel(item) === "連軸").length} / 3着保護 {dimension.items.filter((item) => getRiderCategoryUseLabel(item) === "3着保護").length}
+                        </div>
                         {[...dimension.items].sort((a, b) => getRiderCategoryUseRank(a) - getRiderCategoryUseRank(b) || b.starts - a.starts).slice(0, 6).map((item) => (
                           <div className="ex-category-row" key={item.key}>
                             <span>
