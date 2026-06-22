@@ -133,6 +133,7 @@ export async function runNightly(options = {}) {
     await runScript("generate-kurari-ex-analysis.mjs");
     await runScript("generate-kurari-ex-rider-score.mjs");
     await runScript("generate-kurari-ex-rider-tags-guidance.mjs");
+await runScript("generate-kurari-ex-today-recommendation.mjs");
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }
