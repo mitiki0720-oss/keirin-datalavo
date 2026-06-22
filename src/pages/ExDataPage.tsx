@@ -166,6 +166,7 @@ const timeslotLabels: Record<string, string> = {
 const SHB_NAME_INDEX_URL = "/data/analytics/kurari-ex/exact/shb-name-index.generated.json";
 const VENUE_SCORE_ANALYSIS_URL = "/data/analytics/kurari-ex/analysis/venue-score.generated.json";
 const RIDER_SCORE_ANALYSIS_URL = "/data/analytics/kurari-ex/analysis/rider-score.generated.json";
+const TODAY_RECOMMENDATION_URL = "/data/analytics/kurari-ex/analysis/today-recommendation.generated.json";
 
 type KurariExShbNameEntry = {
   nameKey: string;
@@ -286,6 +287,69 @@ async function loadKurariExRiderScoreAnalysis(): Promise<KurariExRiderScoreAnaly
   if (!response.ok) throw new Error("KURARI EX rider score analysis fetch failed: " + response.status);
   return response.json() as Promise<KurariExRiderScoreAnalysis>;
 }
+
+type KurariExTodayVenue = {
+  venueKey: string;
+  venueName: string;
+  score?: number | null;
+  rankHint?: string | null;
+  riskLevel?: string | null;
+  raceCount?: number | null;
+  recoveryRate?: number | null;
+  trifectaHitRate?: number | null;
+  sourceCount?: number | null;
+  memo?: string | null;
+  actions?: Array<{ priority?: number | null; text: string; sourceType?: string | null }>;
+  tags?: Array<{ tag: string; label: string; evidenceCount?: number | null; confidence?: string | null }>;
+};
+
+type KurariExTodayRider = {
+  rank?: number | null;
+  registrationNo: string;
+  name: string;
+  prefecture?: string | null;
+  class?: string | null;
+  score?: number | null;
+  rankHint?: string | null;
+  confirmedStartCount?: number | null;
+  winRate?: number | null;
+  top2Rate?: number | null;
+  top3Rate?: number | null;
+  tags?: string[];
+  memo?: string | null;
+};
+
+type KurariExTodayRecommendation = {
+  schemaVersion: number;
+  generatedAt: string;
+  source: string;
+  sourceType: string;
+  period?: { from?: string | null; to?: string | null };
+  sourceStatus?: {
+    inputFileCount?: number | null;
+    predictionFileCount?: number | null;
+    resultFileCount?: number | null;
+    summaryFileCount?: number | null;
+    completeTripletCount?: number | null;
+    venueCount?: number | null;
+    riderCount?: number | null;
+  };
+  sections: {
+    battleVenues: KurariExTodayVenue[];
+    thirdGuardVenues: KurariExTodayVenue[];
+    windCautionVenues: KurariExTodayVenue[];
+    lowSampleVenues: KurariExTodayVenue[];
+    topRiders: KurariExTodayRider[];
+    globalTags: Array<{ tag: string; label: string; venueCount?: number | null; evidenceCount?: number | null; highConfidenceVenueCount?: number | null }>;
+    predictionMemo: string[];
+  };
+};
+
+async function loadKurariExTodayRecommendation(): Promise<KurariExTodayRecommendation> {
+  const response = await fetch(toExPublicPath(TODAY_RECOMMENDATION_URL), { cache: "no-store" });
+  if (!response.ok) throw new Error("KURARI EX today recommendation fetch failed: " + response.status);
+  return response.json() as Promise<KurariExTodayRecommendation>;
+}
 function formatShbNameQuality(value?: string | null) {
   const labels: Record<string, string> = {
     "registration-resolved": "登録番号解決",
@@ -383,6 +447,8 @@ export default function ExDataPage() {
   const [venueScoreStatus, setVenueScoreStatus] = useState<"loading" | "ready" | "error">("loading");
   const [riderScoreAnalysis, setRiderScoreAnalysis] = useState<KurariExRiderScoreAnalysis | null>(null);
   const [riderScoreStatus, setRiderScoreStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [todayRecommendation, setTodayRecommendation] = useState<KurariExTodayRecommendation | null>(null);
+  const [todayRecommendationStatus, setTodayRecommendationStatus] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
     let active = true;
@@ -481,6 +547,24 @@ export default function ExDataPage() {
       .catch(() => {
         if (!active) return;
         setVenueScoreStatus("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+
+  useEffect(() => {
+    let active = true;
+    loadKurariExTodayRecommendation()
+      .then((data) => {
+        if (!active) return;
+        setTodayRecommendation(data);
+        setTodayRecommendationStatus("ready");
+      })
+      .catch(() => {
+        if (!active) return;
+        setTodayRecommendationStatus("error");
       });
     return () => {
       active = false;
@@ -818,6 +902,14 @@ export default function ExDataPage() {
         .ex-note-card h4 { margin: 0 0 10px; color: #6451a1; font-size: 12px; letter-spacing: .12em; }
         .ex-note-card ul, .ex-guidance-list { margin: 0; padding-left: 20px; color: #59677d; line-height: 1.8; font-size: 13px; }
         .ex-guidance { border: 1px solid #dce9e4; background: linear-gradient(145deg,rgba(249,255,252,.96),rgba(240,249,255,.94)); }
+        .ex-today { border-color: #d9e5ff; background: linear-gradient(145deg, rgba(255,255,255,.96), rgba(244,248,255,.95), rgba(240,255,249,.9)); }
+        .ex-recommend-grid { display: grid; grid-template-columns: repeat(\${isMobile ? 1 : 3}, minmax(0,1fr)); gap: 12px; }
+        .ex-recommend-card { min-width: 0; padding: 18px; border-radius: 20px; border: 1px solid #e3e8f5; background: rgba(255,255,255,.86); }
+        .ex-recommend-card.is-main { border-color: #cfc5f4; background: linear-gradient(145deg,#fff,#f5f0ff); }
+        .ex-recommend-card h4 { margin: 0 0 10px; color: #59499c; font-size: 12px; letter-spacing: .12em; }
+        .ex-recommend-list { margin: 0; padding-left: 18px; display: grid; gap: 8px; color: #59677d; line-height: 1.65; font-size: 12px; }
+        .ex-recommend-list li strong { color: #26344d; margin-right: 5px; }
+        .ex-recommend-list li span { color: #718096; }
         .ex-empty { padding: 28px; border: 1px dashed #cbc7df; border-radius: 20px; color: #78859a; background: rgba(255,255,255,.48); line-height: 1.8; }
         .ex-raw summary { cursor: pointer; font-weight: 900; color: #6552a2; }
         .ex-raw-grid { margin-top: 18px; display: grid; grid-template-columns: repeat(${isMobile ? 1 : 3},minmax(0,1fr)); gap: 9px; }
@@ -858,6 +950,95 @@ export default function ExDataPage() {
             <EmptyState text="KURARI EX DATAはまだ生成されていません。private-inputへ原本を追加し、importスクリプトを実行してください。" />
           </section>
         ) : null}
+
+        <section className="ex-panel ex-section ex-today">
+          <SectionTitle
+            eyebrow="TODAY RECOMMENDATION"
+            title={"\u4eca\u65e5\u306e\u63a8\u5968\u30e1\u30e2"}
+            lead={todayRecommendation ? (todayRecommendation.period?.from ?? "--") + "\u301c" + (todayRecommendation.period?.to ?? "--") + " / " + todayRecommendation.sourceType : "\u4e88\u60f3\u4f5c\u6210\u524d\u306b\u898b\u308b\u8981\u70b9\u3092\u8868\u793a\u3057\u307e\u3059\u3002"}
+          />
+          {todayRecommendationStatus === "loading" ? <EmptyState text={"\u4eca\u65e5\u306e\u63a8\u5968\u30e1\u30e2\u3092\u8aad\u307f\u8fbc\u3093\u3067\u3044\u307e\u3059\u3002"} /> : null}
+          {todayRecommendationStatus === "error" ? <EmptyState text={"\u4eca\u65e5\u306e\u63a8\u5968\u30e1\u30e2\u3092\u53d6\u5f97\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f\u3002"} /> : null}
+          {todayRecommendation ? (
+            <>
+              <div className="ex-health-grid">
+                <MetricCard label={"\u52dd\u8ca0\u5019\u88dc"} value={valueText(todayRecommendation.sections.battleVenues.length)} note="score ranking" />
+                <MetricCard label={"3\u7740\u4fdd\u8b77"} value={valueText(todayRecommendation.sections.thirdGuardVenues.length)} note="third guard" />
+                <MetricCard label={"\u98a8\u6ce8\u610f"} value={valueText(todayRecommendation.sections.windCautionVenues.length)} note="wind sensitive" />
+                <MetricCard label={"\u6ce8\u76ee\u9078\u624b"} value={valueText(todayRecommendation.sections.topRiders.length)} note="rider score" />
+              </div>
+              <div className="ex-recommend-grid">
+                <article className="ex-recommend-card is-main">
+                  <h4>{"\u52dd\u8ca0\u3057\u3084\u3059\u3044\u4f1a\u5834"}</h4>
+                  <ul className="ex-recommend-list">
+                    {todayRecommendation.sections.battleVenues.slice(0, 5).map((item) => (
+                      <li key={item.venueKey}>
+                        <strong>{item.venueName}</strong>
+                        <span>score {item.score ?? "--"} / {item.memo}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+                <article className="ex-recommend-card">
+                  <h4>{"3\u7740\u4fdd\u8b77\u304c\u5fc5\u8981\u306a\u4f1a\u5834"}</h4>
+                  <ul className="ex-recommend-list">
+                    {todayRecommendation.sections.thirdGuardVenues.slice(0, 5).map((item) => (
+                      <li key={item.venueKey}>
+                        <strong>{item.venueName}</strong>
+                        <span>{item.tags?.slice(0, 2).map((tag) => tag.label).join(" / ") || item.memo}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+                <article className="ex-recommend-card">
+                  <h4>{"\u4e88\u60f3\u4f5c\u6210\u30e1\u30e2"}</h4>
+                  <ul className="ex-recommend-list">
+                    {todayRecommendation.sections.predictionMemo.slice(0, 5).map((memo) => (
+                      <li key={memo}>{memo}</li>
+                    ))}
+                  </ul>
+                </article>
+              </div>
+              <div className="ex-recommend-grid">
+                <article className="ex-recommend-card">
+                  <h4>{"\u98a8\u6761\u4ef6\u306e\u6ce8\u610f"}</h4>
+                  <ul className="ex-recommend-list">
+                    {todayRecommendation.sections.windCautionVenues.slice(0, 5).map((item) => (
+                      <li key={item.venueKey}>
+                        <strong>{item.venueName}</strong>
+                        <span>{item.memo}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+                <article className="ex-recommend-card">
+                  <h4>{"\u4f4e\u30b5\u30f3\u30d7\u30eb\u6ce8\u610f"}</h4>
+                  {todayRecommendation.sections.lowSampleVenues.length ? (
+                    <ul className="ex-recommend-list">
+                      {todayRecommendation.sections.lowSampleVenues.slice(0, 5).map((item) => (
+                        <li key={item.venueKey}>
+                          <strong>{item.venueName}</strong>
+                          <span>{item.sourceCount ?? "--"} sources / {item.memo}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : <div className="ex-muted">sample-short??</div>}
+                </article>
+                <article className="ex-recommend-card">
+                  <h4>{"\u9078\u624b\u30ab\u30eb\u30c6\u4e0a\u4f4d"}</h4>
+                  <ul className="ex-recommend-list">
+                    {todayRecommendation.sections.topRiders.slice(0, 5).map((item) => (
+                      <li key={item.registrationNo}>
+                        <strong>{item.name}</strong>
+                        <span>score {item.score ?? "--"} / 3\u7740\u5185 {item.top3Rate ?? "--"}%</span>
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              </div>
+            </>
+          ) : null}
+        </section>
 
         <section className="ex-panel ex-section">
           <SectionTitle eyebrow="DATA HEALTH" title="公開データの生成状態" lead={`最終取込 ${formatDate(status?.lastImportAt)}`} />
