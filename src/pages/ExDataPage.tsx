@@ -1390,8 +1390,44 @@ export default function ExDataPage() {
               </div>
               {riderInitialStatus === "error" ? <EmptyState text="PLAYER EXのindex / statusを取得できませんでした。" /> : null}
             </section>
-
             <section className="ex-panel ex-section ex-analysis">
+              <SectionTitle
+                eyebrow="PLAYER CATEGORY ANALYSIS"
+                title="条件別選手ランキング"
+                lead="会場・時間帯・級班・レース種別・天候・周長・ライン役割ごとのEXACT集計です。"
+              />
+              {riderCategoryStatus === "loading" ? <EmptyState text="条件別選手分析を読み込んでいます。" /> : null}
+              {riderCategoryStatus === "error" ? <EmptyState text="条件別選手分析を取得できませんでした。" /> : null}
+              {riderCategoryAnalysis ? (
+                <>
+                  <div className="ex-health-grid">
+                    <MetricCard label="SOURCE TYPE" value={riderCategoryAnalysis.sourceType} note={riderCategoryAnalysis.sampleUnit} />
+                    <MetricCard label="CONFIRMED STARTS" value={valueText(riderCategoryAnalysis.coverage.confirmedStartCount)} />
+                    <MetricCard label="READ RIDERS" value={valueText(riderCategoryAnalysis.coverage.riderFilesRead)} />
+                    <MetricCard label="SKIPPED" value={valueText(riderCategoryAnalysis.coverage.riderFilesSkipped)} warning={(riderCategoryAnalysis.coverage.riderFilesSkipped ?? 0) > 0} />
+                  </div>
+                  <div className="ex-category-grid">
+                    {Object.entries(riderCategoryAnalysis.dimensions).map(([dimensionKey, dimension]) => (
+                      <article className="ex-category-card" key={dimensionKey}>
+                        <h4>{dimension.label}</h4>
+                        {dimension.items.slice(0, 6).map((item) => (
+                          <div className="ex-category-row" key={item.key}>
+                            <span>{item.label} / {valueText(item.starts)}走 {item.quality === "low-sample" ? <span className="ex-low-sample">母数少</span> : null}</span>
+                            <span>{Number.isFinite(item.top3Rate) ? `${Number(item.top3Rate).toFixed(1)}%` : "--"}</span>
+                          </div>
+                        ))}
+                      </article>
+                    ))}
+                  </div>
+                  {riderCategoryAnalysis.unsupportedExactMetrics?.length ? (
+                    <div className="ex-muted">
+                      未生成指標: {riderCategoryAnalysis.unsupportedExactMetrics.map((item) => item.label).join(" / ")}
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
+            </section>
+<section className="ex-panel ex-section ex-analysis">
               <SectionTitle
                 eyebrow="PLAYER SCORE ANALYSIS"
                 title="選手カルテランキング"
