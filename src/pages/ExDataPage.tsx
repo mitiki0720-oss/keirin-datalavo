@@ -1413,7 +1413,9 @@ export default function ExDataPage() {
                         {dimension.items.slice(0, 6).map((item) => (
                           <div className="ex-category-row" key={item.key}>
                             <span>{item.label} / {valueText(item.starts)}走 {item.quality === "low-sample" ? <span className="ex-low-sample">母数少</span> : null}</span>
-                            <span>{Number.isFinite(item.top3Rate) ? `${Number(item.top3Rate).toFixed(1)}%` : "--"}</span>
+                            <span>
+                              勝 {Number.isFinite(item.winRate) ? `${Number(item.winRate).toFixed(1)}%` : "--"} / 2連 {Number.isFinite(item.top2Rate) ? `${Number(item.top2Rate).toFixed(1)}%` : "--"} / 3内 {Number.isFinite(item.top3Rate) ? `${Number(item.top3Rate).toFixed(1)}%` : "--"}
+                            </span>
                           </div>
                         ))}
                       </article>
