@@ -166,6 +166,7 @@ const timeslotLabels: Record<string, string> = {
 const SHB_NAME_INDEX_URL = "/data/analytics/kurari-ex/exact/shb-name-index.generated.json";
 const VENUE_SCORE_ANALYSIS_URL = "/data/analytics/kurari-ex/analysis/venue-score.generated.json";
 const RIDER_SCORE_ANALYSIS_URL = "/data/analytics/kurari-ex/analysis/rider-score.generated.json";
+const RIDER_CATEGORY_ANALYSIS_URL = "/data/analytics/kurari-ex/analysis/rider-category-analysis.generated.json";
 const TODAY_RECOMMENDATION_URL = "/data/analytics/kurari-ex/analysis/today-recommendation.generated.json";
 
 type KurariExShbNameEntry = {
@@ -286,6 +287,46 @@ async function loadKurariExRiderScoreAnalysis(): Promise<KurariExRiderScoreAnaly
   const response = await fetch(toExPublicPath(RIDER_SCORE_ANALYSIS_URL), { cache: "no-store" });
   if (!response.ok) throw new Error("KURARI EX rider score analysis fetch failed: " + response.status);
   return response.json() as Promise<KurariExRiderScoreAnalysis>;
+}
+
+type KurariExRiderCategoryItem = {
+  key: string;
+  label: string;
+  starts: number;
+  wins: number;
+  seconds: number;
+  thirds: number;
+  outside: number;
+  winRate: number | null;
+  top2Rate: number | null;
+  top3Rate: number | null;
+  quality: string;
+};
+
+type KurariExRiderCategoryDimension = {
+  label: string;
+  sourcePath: string;
+  items: KurariExRiderCategoryItem[];
+};
+
+type KurariExRiderCategoryAnalysis = {
+  schemaVersion: number;
+  generatedAt: string;
+  sourceType: string;
+  sampleUnit: string;
+  coverage: {
+    riderFilesRead: number;
+    riderFilesSkipped: number;
+    confirmedStartCount: number;
+  };
+  dimensions: Record<string, KurariExRiderCategoryDimension>;
+  unsupportedExactMetrics?: Array<{ label: string; status: string; reason: string }>;
+};
+
+async function loadKurariExRiderCategoryAnalysis(): Promise<KurariExRiderCategoryAnalysis> {
+  const response = await fetch(toExPublicPath(RIDER_CATEGORY_ANALYSIS_URL), { cache: "no-store" });
+  if (!response.ok) throw new Error("KURARI EX rider category analysis fetch failed: " + response.status);
+  return response.json() as Promise<KurariExRiderCategoryAnalysis>;
 }
 
 type KurariExTodayVenue = {
@@ -447,6 +488,8 @@ export default function ExDataPage() {
   const [venueScoreStatus, setVenueScoreStatus] = useState<"loading" | "ready" | "error">("loading");
   const [riderScoreAnalysis, setRiderScoreAnalysis] = useState<KurariExRiderScoreAnalysis | null>(null);
   const [riderScoreStatus, setRiderScoreStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [riderCategoryAnalysis, setRiderCategoryAnalysis] = useState<KurariExRiderCategoryAnalysis | null>(null);
+  const [riderCategoryStatus, setRiderCategoryStatus] = useState<"loading" | "ready" | "error">("loading");
   const [todayRecommendation, setTodayRecommendation] = useState<KurariExTodayRecommendation | null>(null);
   const [todayRecommendationStatus, setTodayRecommendationStatus] = useState<"loading" | "ready" | "error">("loading");
 
@@ -628,6 +671,23 @@ export default function ExDataPage() {
       .catch(() => {
         if (!active) return;
         setRiderScoreStatus("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    loadKurariExRiderCategoryAnalysis()
+      .then((data) => {
+        if (!active) return;
+        setRiderCategoryAnalysis(data);
+        setRiderCategoryStatus("ready");
+      })
+      .catch(() => {
+        if (!active) return;
+        setRiderCategoryStatus("error");
       });
     return () => {
       active = false;
@@ -1320,6 +1380,7 @@ export default function ExDataPage() {
                 <MetricCard label="PUBLISHED RIDERS" value={riderInitialStatus === "loading" ? "…" : valueText(riderInitialData?.status.riderCount)} />
                 <MetricCard label="素材蓄積中" value={riderInitialStatus === "loading" ? "…" : valueText(riderInitialData?.status.qualityCounts["identity-only"])} warning={(riderInitialData?.status.qualityCounts["identity-only"] ?? 0) > 0} />
                 <MetricCard label="LOW SAMPLE" value={riderInitialStatus === "loading" ? "…" : valueText(riderInitialData?.status.qualityCounts["low-sample"])} warning={(riderInitialData?.status.qualityCounts["low-sample"] ?? 0) > 0} />
+                <MetricCard label="CATEGORY ANALYSIS" value={riderCategoryStatus === "loading" ? "…" : riderCategoryStatus === "error" ? "取得不可" : valueText(Object.keys(riderCategoryAnalysis?.dimensions ?? {}).length)} note="条件別EXACT" warning={riderCategoryStatus === "error"} />
                 <MetricCard label="PARTIAL" value={riderInitialStatus === "loading" ? "…" : valueText(riderInitialData?.status.qualityCounts.partial)} />
                 <MetricCard label="COMPLETE" value={riderInitialStatus === "loading" ? "…" : valueText(riderInitialData?.status.qualityCounts.complete)} />
                 <MetricCard label="MAX RIDER JSON" value={riderInitialStatus === "loading" ? "…" : formatBytes(riderInitialData?.status.maxFileBytes)} />
