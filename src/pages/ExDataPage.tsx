@@ -735,8 +735,8 @@ export default function ExDataPage() {
   const healthMetrics = [
     ["PERIOD", status ? `${status.dateFrom ?? "--"}〜${status.dateTo ?? "--"}` : "--", "source range"],
     ["INPUT FILES", valueText(status?.rawInputFileCount), "raw scan"],
-    ["????", valueText(status?.predictionFileCount), "classified"],
-    ["????", valueText(status?.resultFileCount), "classified"],
+    ["公開予測", valueText(status?.predictionFileCount), "classified"],
+    ["公開実測", valueText(status?.resultFileCount), "classified"],
     ["SUMMARIES", valueText(status?.summaryFileCount), "SEED source"],
     ["VENUES", valueText(status?.venueCount), "generated"],
     ["COMPLETE", valueText(status?.completeTripletCount), "triplets"],
@@ -875,8 +875,8 @@ export default function ExDataPage() {
                 ["EXACT FILES", valueText(exactStatus?.outputFileCount), "public JSON"],
                 ["EXACT SIZE", formatBytes(exactStatus?.outputBytes), "lightweight"],
                 ["LINEUP PARSED", valueText(exactGlobal?.coverage.lineupParsed), "available"],
-                ["????", valueText(exactGlobal?.coverage.predictionParsed), "available"],
-                ["????", valueText(exactGlobal?.coverage.resultParsed), "available"],
+                ["公開予測", valueText(exactGlobal?.coverage.predictionParsed), "available"],
+                ["公開実測", valueText(exactGlobal?.coverage.resultParsed), "available"],
               ].map(([label, value, note]) => <MetricCard key={label} label={label} value={exactInitialStatus === "loading" ? "…" : value} note={note} />)}
             </div>
           </div>
@@ -1072,8 +1072,8 @@ export default function ExDataPage() {
                   </div>
                   <div className="ex-health-grid">
                     <MetricCard label="NORMALIZED" value={valueText(selectedExact.coverage.normalizedRaces)} />
-                    <MetricCard label="????" value={valueText(selectedExact.coverage.predictionParsed)} note="prediction parsed" />
-                    <MetricCard label="????" value={valueText(selectedExact.coverage.resultParsed)} note="result parsed" />
+                    <MetricCard label="公開予測" value={valueText(selectedExact.coverage.predictionParsed)} note="prediction parsed" />
+                    <MetricCard label="公開実測" value={valueText(selectedExact.coverage.resultParsed)} note="result parsed" />
                     <MetricCard label="LINEUP PARSED" value={valueText(selectedExact.coverage.lineupParsed)} />
                   </div>
                   <div className="ex-subsection"><div className="ex-eyebrow">EXACT KPI</div><div className="ex-kpi-grid">
