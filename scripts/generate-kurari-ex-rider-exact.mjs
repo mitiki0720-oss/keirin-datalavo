@@ -321,6 +321,7 @@ async function main() {
         resultParsed: race.quality?.resultParsed === true,
         placement: placement || null,
         winningMethod: placement === 1 ? race.result.first.winningMethod : "",
+        carNo: String(starter.carNo || "unknown"),
         role: resolveLineupRole(race, starter.carNo),
         roleEligible: resolveLineupRole(race, starter.carNo) != null,
       });
@@ -417,6 +418,14 @@ async function main() {
         observations,
         (item) => item.timeslot,
         (timeslot) => ({ timeslot }),
+      ),
+      byCarNo: aggregateBy(
+        observations,
+        (item) => item.carNo || "unknown",
+        (carNo) => ({
+          carNo,
+          carNoLabel: carNo === "unknown" ? "未取得" : `${carNo}番車`,
+        }),
       ),
       byClass: aggregateBy(
         observations,

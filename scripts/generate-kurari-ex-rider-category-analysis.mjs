@@ -1,4 +1,4 @@
-﻿import fs from "node:fs";
+import fs from "node:fs";
 import path from "node:path";
 
 const ROOT = process.cwd();
@@ -75,6 +75,7 @@ function roleLabel(value) {
 
 const venue = new Map();
 const timeslot = new Map();
+const carNo = new Map();
 const raceClass = new Map();
 const raceStage = new Map();
 const weather = new Map();
@@ -97,6 +98,10 @@ for (const file of walk(RIDER_DIR)) {
 
     for (const item of rider.byTimeslot || []) {
       add(timeslot, item.timeslot, timeslotLabel(item.timeslot), item);
+    }
+
+    for (const item of rider.byCarNo || []) {
+      add(carNo, item.carNo, item.carNoLabel || `${item.carNo}番車`, item);
     }
 
     for (const item of rider.byClass || []) {
@@ -144,6 +149,11 @@ const output = {
       sourcePath: "exact/riders/*/byTimeslot",
       items: finish(timeslot),
     },
+    carNo: {
+      label: "車番別",
+      sourcePath: "exact/riders/*/byCarNo",
+      items: finish(carNo),
+    },
     raceClass: {
       label: "級班・レース種目別",
       sourcePath: "exact/riders/*/byClass",
@@ -186,4 +196,5 @@ console.log("skipped:", skipped);
 console.log("confirmed starts:", confirmedStarts);
 console.log("venue items:", output.dimensions.venue.items.length);
 console.log("timeslot items:", output.dimensions.timeslot.items.length);
+console.log("carNo items:", output.dimensions.carNo.items.length);
 
