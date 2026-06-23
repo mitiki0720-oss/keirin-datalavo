@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "yahiko",
   "venueName": "弥彦",
-  "updatedAt": "2026-06-18",
+  "updatedAt": "2026-06-23",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-04",
-    "to": "2026-06-14"
+    "to": "2026-06-23"
   },
   "quality": {
-    "seedSources": 15,
-    "parsedDateSources": 15,
+    "seedSources": 17,
+    "parsedDateSources": 17,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 15,
-    "raceCount": 134,
-    "trifectaHits": 33,
-    "trifectaHitRate": 26.4,
-    "exactaHits": 8,
-    "exactaHitRate": 6.4,
-    "anyTicketHits": 20,
-    "hitRate": 44.4,
-    "investmentYen": 134000,
-    "returnYen": 54590,
-    "recoveryRate": 40.7,
+    "sourceCount": 17,
+    "raceCount": 156,
+    "trifectaHits": 42,
+    "trifectaHitRate": 28.6,
+    "exactaHits": 10,
+    "exactaHitRate": 6.8,
+    "anyTicketHits": 23,
+    "hitRate": 41.1,
+    "investmentYen": 155000,
+    "returnYen": 88300,
+    "recoveryRate": 57,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,70 +38,74 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 15,
+      "evidenceCount": 17,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 15,
+      "evidenceCount": 17,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 13,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 11,
+      "evidenceCount": 12,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 8,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 8,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 6,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 3,
+      "confidence": "medium",
       "sourceType": "SEED"
     }
   ],
   "seedNotes": {
     "features": [
-      "1-2) 結果傾向のミニ集計"
+      "1-2) 結果傾向のミニ集計",
+      "【決まり手・展開傾向メモ】",
+      "修正ポイント：4車ラインの先頭4瀧本が残らない分岐では、1-3の差し連動と5前川の3着をセットで保護する。",
+      "修正ポイント：番手差しを狙う時、同ライン3番手の4平田まで2着・3着へ上げる。3-4-5を最低1点検討。",
+      "修正ポイント：6-3を2車単で買うなら、6-3-4のライン直列3連単も必ず入れる。"
     ],
     "targets": [
       "【予想10点の内訳（実買い目写経）】",
@@ -140,7 +144,10 @@
       "次回は、ガールズ戦で「主力頭＋好位型2着＋人気薄追走型3着」を最低1点検討する。",
       "このレポートでは新しい予想は行わず、事実整理・照合・次回改善summaryだけを記録する。",
       "3-4. 次回の修正ルール",
-      "ガールズは“警戒コメントを書いた選手”を3着に必ず1点反映する ：8Rの5野寺のようなメモ→買い目落ちを防ぐ。"
+      "ガールズは“警戒コメントを書いた選手”を3着に必ず1点反映する ：8Rの5野寺のようなメモ→買い目落ちを防ぐ。",
+      "3) 次回に向けた重点summary（かなり重要）",
+      "ただし、それを本命頭・本命2着と接続できていないRが多く、ここが最大の改善点。",
+      "弥彦デイの強風日は、前の選手が脚を削られる分、3番手・4番手・5番手の浮上が起きる。ここは次回から必ず1点以上入れる。"
     ]
   },
   "predictionGuidance": [

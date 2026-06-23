@@ -2,22 +2,22 @@
   "schemaVersion": 1,
   "venueKey": "keiokaku",
   "venueName": "京王閣",
-  "updatedAt": "2026-06-20",
+  "updatedAt": "2026-06-23",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-03",
-    "to": "2026-06-19"
+    "to": "2026-06-23"
   },
   "quality": {
-    "seedSources": 16,
-    "parsedDateSources": 16,
+    "seedSources": 17,
+    "parsedDateSources": 17,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 16,
+    "sourceCount": 17,
     "raceCount": 132,
     "trifectaHits": 46,
     "trifectaHitRate": 38,
@@ -38,21 +38,21 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 16,
+      "evidenceCount": 17,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 16,
+      "evidenceCount": 17,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 14,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
@@ -66,35 +66,35 @@
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 10,
+      "evidenceCount": 11,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 8,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 7,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 4,
+      "evidenceCount": 5,
       "confidence": "medium",
       "sourceType": "SEED"
     }

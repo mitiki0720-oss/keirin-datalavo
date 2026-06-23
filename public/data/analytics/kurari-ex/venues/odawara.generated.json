@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "odawara",
   "venueName": "小田原",
-  "updatedAt": "2026-06-18",
+  "updatedAt": "2026-06-23",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-10",
-    "to": "2026-06-15"
+    "to": "2026-06-23"
   },
   "quality": {
-    "seedSources": 11,
-    "parsedDateSources": 11,
+    "seedSources": 13,
+    "parsedDateSources": 13,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 11,
-    "raceCount": 92,
-    "trifectaHits": 24,
-    "trifectaHitRate": 26.1,
-    "exactaHits": 8,
-    "exactaHitRate": 8.7,
+    "sourceCount": 13,
+    "raceCount": 116,
+    "trifectaHits": 30,
+    "trifectaHitRate": 25.9,
+    "exactaHits": 10,
+    "exactaHitRate": 8.6,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 92000,
-    "returnYen": 60590,
-    "recoveryRate": 65.9,
+    "investmentYen": 116000,
+    "returnYen": 89820,
+    "recoveryRate": 77.4,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,70 +38,73 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 11,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 11,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 11,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 4,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 4,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 4,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 4,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 3,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 1,
+      "evidenceCount": 2,
       "confidence": "low",
       "sourceType": "SEED"
     }
   ],
   "seedNotes": {
     "features": [
-      "5. B選手が強い開催は、逃げ・先行の残りを軸に置く。 今回はB選手5/7車券内で、小田原短直線の基本傾向と一致。"
+      "5. B選手が強い開催は、逃げ・先行の残りを軸に置く。 今回はB選手5/7車券内で、小田原短直線の基本傾向と一致。",
+      "3) 当日傾向サマリ",
+      "今日の最大特徴は、1番人気三連単が12Rすべて飛んだこと。人気本線を厚く置いたレースほど苦しく、別線・単騎・ラインまたぎの2〜3着を拾えたレースだけが回収につながった。",
+      "気象傾向：前半は南東〜南南東の強めの風（11〜13km/h）。後半は南〜南南西で5〜8km/h。"
     ],
     "targets": [
       "2車単：3点（穴狙い）",
@@ -124,7 +127,12 @@
     ],
     "improvements": [
       "4) 詳細Summary：次回予想へ活かす反省",
-      "次回の改善ルール"
+      "次回の改善ルール",
+      "次回メモ：四分戦で主力自力が頭になるなら、相手は自分の番手だけでなく、別線主力ラインの2車も2・3着に置く。",
+      "次回メモ：好調自在が頭で決まる時ほど、番手が崩れるケースを1点は持つ。F1デイのA級予選は、単騎や別線先頭が2・3着に入りやすい。",
+      "次回メモ：Bが強い選手を本線にしても、Sを取った別線自力が捲り頭になるパターンは必ず保護する。",
+      "次回はA級一般の3車ライン直列人気は点数圧縮か見送り候補。",
+      "【次回予想に活かすルール】"
     ]
   },
   "predictionGuidance": [

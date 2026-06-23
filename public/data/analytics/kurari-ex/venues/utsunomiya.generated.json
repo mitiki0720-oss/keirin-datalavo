@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "utsunomiya",
   "venueName": "宇都宮",
-  "updatedAt": "2026-06-21",
+  "updatedAt": "2026-06-23",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-08",
-    "to": "2026-06-21"
+    "to": "2026-06-23"
   },
   "quality": {
-    "seedSources": 17,
-    "parsedDateSources": 17,
+    "seedSources": 19,
+    "parsedDateSources": 19,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 17,
-    "raceCount": 174,
+    "sourceCount": 19,
+    "raceCount": 192,
     "trifectaHits": 27,
     "trifectaHitRate": 19.3,
     "exactaHits": 7,
     "exactaHitRate": 5,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 142000,
-    "returnYen": 119690,
-    "recoveryRate": 84.3,
+    "investmentYen": 144000,
+    "returnYen": 138030,
+    "recoveryRate": 95.9,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,63 +38,63 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 17,
+      "evidenceCount": 19,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 17,
+      "evidenceCount": 19,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 17,
+      "evidenceCount": 19,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 14,
+      "evidenceCount": 16,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 10,
+      "evidenceCount": 12,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 8,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 7,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 7,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 3,
+      "evidenceCount": 5,
       "confidence": "medium",
       "sourceType": "SEED"
     }
@@ -102,7 +102,9 @@
   "seedNotes": {
     "features": [
       "【次回へ残すポイント】",
-      "今回の改善ポイントは明確。"
+      "今回の改善ポイントは明確。",
+      "そのため、今回の気象学習は弱風傾向として参考にはできるが、細かい時刻別補正には使いにくい。",
+      "今回のレース傾向としては、強風補正ではなく通常の宇都宮補正でよい。"
     ],
     "targets": [
       "的中組み合わせ：3-1-7（買い目 05）／払戻 3,160円",
@@ -128,7 +130,9 @@
       "入力データ上の注意事項",
       "三分戦で各ライン先頭の力量差が小さい場合は、TYPE-C（交差決着警戒）として扱う。",
       "TYPE-C（細切れ・交差警戒）：5R・7R",
-      "注意：予想時の気象見立ては、実測値として扱わない。"
+      "注意：予想時の気象見立ては、実測値として扱わない。",
+      "注意点：9RのWEATHER ACTUAL欄は、発走23:20に対して基準時刻が20:40/21:00表記になっており、結果ファイル内で時刻整合性に不一致がある。気象条件の学習では9Rの気象は参考扱いにする。",
+      "注意点1：8R・9Rは結果ファイル上でpending表記が残っているため、確定着順・払戻欄と予想10点を手動照合した。"
     ],
     "improvements": [
       "次回は、的中率評価と回収率評価を混ぜないことが重要。",
@@ -141,7 +145,8 @@
       "次回の結果保存では、可能なら次を残す。",
       "次回のガールズ予選では、",
       "次回は自信度🔥🔥🔥でも、低配当想定なら以下を区別する。",
-      "予想時点でこの強風をどこまで反映できていたかが重要。"
+      "予想時点でこの強風をどこまで反映できていたかが重要。",
+      "2-1. 的中率は回復、回収率も前日より大きく改善"
     ]
   },
   "predictionGuidance": [

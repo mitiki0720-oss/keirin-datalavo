@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "ito",
   "venueName": "伊東",
-  "updatedAt": "2026-06-18",
+  "updatedAt": "2026-06-23",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-11",
-    "to": "2026-06-15"
+    "to": "2026-06-23"
   },
   "quality": {
-    "seedSources": 14,
-    "parsedDateSources": 14,
+    "seedSources": 15,
+    "parsedDateSources": 15,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 14,
-    "raceCount": 158,
+    "sourceCount": 15,
+    "raceCount": 165,
     "trifectaHits": 26,
     "trifectaHitRate": 28.9,
     "exactaHits": 1,
     "exactaHitRate": 1.1,
-    "anyTicketHits": 9,
-    "hitRate": 37.5,
-    "investmentYen": 126000,
-    "returnYen": 67360,
-    "recoveryRate": 53.5,
+    "anyTicketHits": 13,
+    "hitRate": 41.9,
+    "investmentYen": 133000,
+    "returnYen": 74190,
+    "recoveryRate": 55.8,
     "kimarite": {
       "escape": 2,
       "makuri": 2,
@@ -38,55 +38,55 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 14,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 14,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 14,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 10,
+      "evidenceCount": 11,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 6,
-      "confidence": "medium",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "MAKURI_ALERT",
-      "label": "捲り展開を警戒",
-      "evidenceCount": 6,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 6,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
+      "evidenceCount": 7,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "MAKURI_ALERT",
+      "label": "捲り展開を警戒",
       "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
@@ -151,8 +151,8 @@
     "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
     "先行軸だけで固定せず、番手差しの逆目を残す",
-    "先行争いがある場合は別線の捲り筋を残す",
     "本線が崩れた場合の別線頭と別線3着を保護する",
-    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す"
+    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
+    "先行争いがある場合は別線の捲り筋を残す"
   ]
 }

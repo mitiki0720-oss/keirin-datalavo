@@ -2,27 +2,27 @@
   "schemaVersion": 1,
   "venueKey": "takeo",
   "venueName": "武雄",
-  "updatedAt": "2026-06-21",
+  "updatedAt": "2026-06-23",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-13",
-    "to": "2026-06-21"
+    "to": "2026-06-23"
   },
   "quality": {
-    "seedSources": 9,
-    "parsedDateSources": 9,
+    "seedSources": 11,
+    "parsedDateSources": 11,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 9,
+    "sourceCount": 11,
     "raceCount": 81,
-    "trifectaHits": 20,
-    "trifectaHitRate": 24.7,
-    "exactaHits": 10,
-    "exactaHitRate": 12.3,
+    "trifectaHits": 24,
+    "trifectaHitRate": 29.6,
+    "exactaHits": 13,
+    "exactaHitRate": 16,
     "anyTicketHits": null,
     "hitRate": null,
     "investmentYen": 45000,
@@ -38,20 +38,34 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
+      "evidenceCount": 11,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "BANTE_SASHI_ALERT",
+      "label": "番手差しを警戒",
+      "evidenceCount": 9,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "MAKURI_ALERT",
+      "label": "捲り展開を警戒",
       "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
@@ -59,43 +73,29 @@
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 8,
-      "confidence": "medium",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "BANTE_SASHI_ALERT",
-      "label": "番手差しを警戒",
-      "evidenceCount": 7,
-      "confidence": "medium",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "MAKURI_ALERT",
-      "label": "捲り展開を警戒",
-      "evidenceCount": 7,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 6,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 5,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 3,
+      "confidence": "medium",
       "sourceType": "SEED"
     }
   ],
@@ -124,23 +124,28 @@
       "レース型（予想原本）：TYPE-D・決勝の強力二分戦＋単騎警戒型",
       "監査注意：3連単2-1-6と2車単2-1がともに一致。原本判定はpendingのため、独立照合でのみ回収へ反映。",
       "レース型（予想原本）：TYPE-C・先行二枚の番手差し警戒型",
-      "6. 全R pending時の自動照合依存が危険"
+      "6. 全R pending時の自動照合依存が危険",
+      "レース型：TYPE-B・細中先行軸＋番手差し警戒型",
+      "レース型：TYPE-B・下沖先行軸＋番手差し警戒型",
+      "レース型：TYPE-C・決勝三分戦の番手差し＋別線番手警戒型"
     ],
     "improvements": [
       "【簡易分析メモ（結果事実＋次回改善）】",
       "5) 詳細summary｜次回の予想に残す改善点",
       "9Rでは1番の主導権を本文で認識していたが、1番頭の買い目は1点のみ。本文に書いた主シナリオ・副シナリオが、最低1本ずつ買い目へ反映されているかを最終確認する。",
       "5-4) 次回用の実務チェックリスト",
-      "監査注意：3連単2-1-6と2車単2-1がともに一致。原本判定はpendingのため、独立照合でのみ回収へ反映。"
+      "監査注意：3連単2-1-6と2車単2-1がともに一致。原本判定はpendingのため、独立照合でのみ回収へ反映。",
+      "掲載結果はpendingだが、結果は1-2-3で08）1-2-3が三連単一致。1松本の武雄適性と2久樹の差し込みを押さえた形が的中。原本判定がpendingのため独立照合で回収へ反映する必要あり。",
+      "5-4. 次回用チェックリスト"
     ]
   },
   "predictionGuidance": [
     "級班とレース種別を分けて傾向を評価する",
     "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
-    "踏み合い時は単騎の差し込みを3着候補に加える",
     "先行軸だけで固定せず、番手差しの逆目を残す",
     "先行争いがある場合は別線の捲り筋を残す",
+    "踏み合い時は単騎の差し込みを3着候補に加える",
     "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
     "本線が崩れた場合の別線頭と別線3着を保護する"
   ]

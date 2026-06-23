@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "gifu",
   "venueName": "岐阜",
-  "updatedAt": "2026-06-18",
+  "updatedAt": "2026-06-23",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-05",
-    "to": "2026-06-14"
+    "to": "2026-06-23"
   },
   "quality": {
-    "seedSources": 18,
-    "parsedDateSources": 18,
+    "seedSources": 20,
+    "parsedDateSources": 20,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 18,
+    "sourceCount": 20,
     "raceCount": 120,
-    "trifectaHits": 28,
-    "trifectaHitRate": 25.9,
+    "trifectaHits": 33,
+    "trifectaHitRate": 30.6,
     "exactaHits": 10,
     "exactaHitRate": 9.3,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 108000,
-    "returnYen": 62620,
-    "recoveryRate": 58,
+    "investmentYen": 115000,
+    "returnYen": 63900,
+    "recoveryRate": 55.6,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,64 +38,64 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 18,
+      "evidenceCount": 20,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 18,
+      "evidenceCount": 20,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 18,
+      "evidenceCount": 20,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 10,
+      "evidenceCount": 12,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 8,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 7,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 7,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 7,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 1,
-      "confidence": "low",
+      "evidenceCount": 3,
+      "confidence": "medium",
       "sourceType": "SEED"
     }
   ],
@@ -104,7 +104,8 @@
       "R 的中2車単 払戻 三連単結果 改善ポイント",
       "2-3) 当日の結果傾向",
       "2-2. 結果傾向",
-      "2-1) 結果傾向"
+      "2-1) 結果傾向",
+      "実天候傾向：北西の強風。実風速は9〜13km/hで、全Rが強風補正対象。"
     ],
     "targets": [
       "2車単：2点（穴狙い）",
@@ -125,7 +126,9 @@
       "ただし、風速を理由に逃げを機械的に消すのは危険。4Rの7福田、9Rの5松崎は逃げ切り。",
       "良かった点：3貴志ラインの浮上自体は警戒できており、予想買い目07に 9-3-4 を置いていた。結果の3名（4・9・3）は拾えていた。",
       "別線警戒：5野田の捲り差し、9天田の番手差し",
-      "1番人気は12R中11R飛んだが、機械的な人気消しは危険。"
+      "1番人気は12R中11R飛んだが、機械的な人気消しは危険。",
+      "注意：新しい予想は追加せず、添付データ内の予想・結果・払戻を事実ベースで整理した。",
+      "特に準決勝は、番手選手の脚力が上がるため、目標残り固定は危険。"
     ],
     "improvements": [
       "次回へ残す修正：G3一予選で先行ラインの3番手に伸び脚・近況G3実績がある場合、ライン内決着を 番手-先行-3番手 だけでなく 3番手-番手-先行 まで点検する。映像確認優先度：高。",

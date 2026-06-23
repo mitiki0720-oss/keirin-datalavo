@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "kurume",
   "venueName": "久留米",
-  "updatedAt": "2026-06-13",
+  "updatedAt": "2026-06-23",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-01",
-    "to": "2026-06-07"
+    "to": "2026-06-23"
   },
   "quality": {
-    "seedSources": 8,
-    "parsedDateSources": 8,
+    "seedSources": 10,
+    "parsedDateSources": 10,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 8,
-    "raceCount": 80,
-    "trifectaHits": 19,
-    "trifectaHitRate": 23.8,
-    "exactaHits": 18,
-    "exactaHitRate": 26.5,
+    "sourceCount": 10,
+    "raceCount": 104,
+    "trifectaHits": 21,
+    "trifectaHitRate": 20.2,
+    "exactaHits": 20,
+    "exactaHitRate": 21.7,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 80000,
-    "returnYen": 46890,
-    "recoveryRate": 58.6,
+    "investmentYen": 104000,
+    "returnYen": 69690,
+    "recoveryRate": 67,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,27 +38,57 @@
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 8,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 8,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 7,
+      "evidenceCount": 9,
       "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "BANTE_SASHI_ALERT",
+      "label": "番手差しを警戒",
+      "evidenceCount": 2,
+      "confidence": "low",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "MAKURI_ALERT",
+      "label": "捲り展開を警戒",
+      "evidenceCount": 2,
+      "confidence": "low",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "OTHER_LINE_ALERT",
+      "label": "別線の浮上を警戒",
+      "evidenceCount": 2,
+      "confidence": "low",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "SOLO_RIDER_ALERT",
+      "label": "単騎の差し込みを警戒",
+      "evidenceCount": 2,
+      "confidence": "low",
       "sourceType": "SEED"
     }
   ],
   "seedNotes": {
-    "features": [],
+    "features": [
+      "久留米ナイターの雨では、逃げが完全に不利というより「頭は差されるが2〜3着に残る」傾向が強い。B選手の3着固定を増やす。"
+    ],
     "targets": [
       "⚠️ このレポートは 予想は行いません （外部で確定した買い目＋結果の整理のみ）。",
       "回収：2,180円（※的中した買い目の払戻合算）",
@@ -66,16 +96,30 @@
       "このレポートは、別プロジェクトで確定した予想買い目と結果テキストを整理した開催単位レポートです。ここでは新規予想を行いません。",
       "実際の買い目構成：各R 10点（3連単8点＋2車単2点）",
       "R 的中券種 的中買い目 決まり手 3連単結果 3連単人気 投資 回収 収支",
-      "10R：元結果テキストは「3連単 2-7-3＝2,840円」のみを払戻として記録しています。実際の10点買い目には「09）2-7（二車単）」も含まれるため、手動照合では二車単1,520円も的中です。"
+      "10R：元結果テキストは「3連単 2-7-3＝2,840円」のみを払戻として記録しています。実際の10点買い目には「09）2-7（二車単）」も含まれるため、手動照合では二車単1,520円も的中です。",
+      "買い目構成：各R 10点（3連単8点＋2車単2点）",
+      "結果テキストでは9R〜12Rの最終判定が pending になっています。払戻表は記載されているため、予想買い目と手動照合しました。",
+      "買い目設計が『本線2車＋分散3着』に寄りすぎ、実際に残ったB選手やライン3番手を買い目内で接続できないケースが多かった。",
+      "4Rは3中原の強さを軸にしつつ、1櫻木を2着に置く補完が機能し、3-1-7の3連単を的中。A級準決では勢いある自力＋状態良い別線を絡める設計が有効だった。",
+      "4）次回の買い目ルール提案"
     ],
     "cautions": [
       "レースタイプ：混戦・崩れ警戒型（TYPE-D）"
     ],
-    "improvements": []
+    "improvements": [
+      "総括・次回に向けた改善summary",
+      "4）次回の買い目ルール提案",
+      "5）次回の久留米ナイターで重視すること"
+    ]
   },
   "predictionGuidance": [
     "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
-    "級班とレース種別を分けて傾向を評価する"
+    "級班とレース種別を分けて傾向を評価する",
+    "先行軸だけで固定せず、番手差しの逆目を残す",
+    "先行争いがある場合は別線の捲り筋を残す",
+    "本線が崩れた場合の別線頭と別線3着を保護する",
+    "踏み合い時は単騎の差し込みを3着候補に加える",
+    "総括・次回に向けた改善summary"
   ]
 }
