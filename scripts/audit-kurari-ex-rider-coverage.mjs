@@ -25,6 +25,108 @@ function uniqueExamples(values, limit = 30) {
   return examples;
 }
 
+
+function groupUnresolvedNames(values) {
+  const grouped = new Map();
+
+  for (const item of values) {
+    const nameKey = item.nameKey || normalizeRiderName(item.name);
+    if (!nameKey) continue;
+
+    if (!grouped.has(nameKey)) {
+      grouped.set(nameKey, {
+        nameKey,
+        displayName: item.name || nameKey,
+        observationCount: 0,
+        raceKeys: new Set(),
+        carNos: new Set(),
+        examples: [],
+      });
+    }
+
+    const entry = grouped.get(nameKey);
+    entry.observationCount += 1;
+    if (item.raceKey) entry.raceKeys.add(item.raceKey);
+    if (item.carNo !== undefined && item.carNo !== null) {
+      entry.carNos.add(String(item.carNo));
+    }
+    if (entry.examples.length < 5) {
+      entry.examples.push({
+        raceKey: item.raceKey,
+        carNo: item.carNo,
+        name: item.name,
+      });
+    }
+  }
+
+  return Array.from(grouped.values())
+    .map((entry) => ({
+      nameKey: entry.nameKey,
+      displayName: entry.displayName,
+      observationCount: entry.observationCount,
+      raceCount: entry.raceKeys.size,
+      carNos: Array.from(entry.carNos).sort((a, b) => Number(a) - Number(b)),
+      sampleRaceKeys: Array.from(entry.raceKeys).sort().slice(0, 10),
+      examples: entry.examples,
+      coverageStatus: "unresolved-registration-no",
+      sourceType: "AUDIT_EXACT",
+    }))
+    .sort((left, right) => {
+      if (right.observationCount !== left.observationCount) {
+        return right.observationCount - left.observationCount;
+      }
+      return left.nameKey.localeCompare(right.nameKey, "ja");
+    });
+}
+
+function groupAmbiguousNames(values) {
+  const grouped = new Map();
+
+  for (const item of values) {
+    const nameKey = item.nameKey || normalizeRiderName(item.name);
+    if (!nameKey) continue;
+
+    if (!grouped.has(nameKey)) {
+      grouped.set(nameKey, {
+        nameKey,
+        displayName: item.name || nameKey,
+        observationCount: 0,
+        candidates: new Set(),
+        observations: [],
+      });
+    }
+
+    const entry = grouped.get(nameKey);
+    entry.observationCount += 1;
+    for (const candidate of item.candidates || []) {
+      entry.candidates.add(candidate);
+    }
+    entry.observations.push({
+      raceKey: item.raceKey,
+      carNo: item.carNo,
+      name: item.name,
+      candidates: item.candidates || [],
+    });
+  }
+
+  return Array.from(grouped.values())
+    .map((entry) => ({
+      nameKey: entry.nameKey,
+      displayName: entry.displayName,
+      observationCount: entry.observationCount,
+      candidates: Array.from(entry.candidates).sort(),
+      observations: entry.observations,
+      coverageStatus: "ambiguous-registration-no",
+      sourceType: "AUDIT_EXACT",
+    }))
+    .sort((left, right) => {
+      if (right.observationCount !== left.observationCount) {
+        return right.observationCount - left.observationCount;
+      }
+      return left.nameKey.localeCompare(right.nameKey, "ja");
+    });
+}
+
 function normalizePodiumName(value) {
   return normalizeRiderName(
     String(value ?? "")
@@ -91,9 +193,14 @@ async function main() {
     (race) => Array.isArray(race.starters) && race.starters.length > 0,
   ).length;
   const racesWithCompleteStarterArray = races.filter(isCompleteStarterArray).length;
+  const unresolvedNames = groupUnresolvedNames(unresolved);
+  const ambiguousNames = groupAmbiguousNames(ambiguous);
+
   const report = {
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
+    sourceType: "AUDIT_EXACT",
+    coverageStatus: "audit-only-fake-prohibited",
     normalizedRaceCount: races.length,
     racesWithStarterArray,
     racesWithCompleteStarterArray,
@@ -118,6 +225,27 @@ async function main() {
     unresolvedNameCount: new Set(unresolved.map((item) => item.nameKey)).size,
     ambiguousNameCount: new Set(ambiguous.map((item) => item.nameKey)).size,
     eligiblePublicRiderCount: resolvedRegistrationNos.size,
+    unresolvedObservationCount: unresolved.length,
+    ambiguousObservationCount: ambiguous.length,
+    registrationNoCoverage: {
+      totalRaceCount: races.length,
+      racesWithAnyRegistrationNo: races.filter(
+        (race) => Array.isArray(race.starters)
+          && race.starters.some((starter) => Boolean(starter.registrationNo)),
+      ).length,
+      racesWithCompleteRegistrationNo: races.filter(
+        (race) => isCompleteStarterArray(race)
+          && race.starters.every((starter) => Boolean(starter.registrationNo)),
+      ).length,
+    },
+    topUnresolvedNames: unresolvedNames.slice(0, 50),
+    unresolvedNames,
+    ambiguousNames,
+    policy: {
+      fakeProhibited: true,
+      unresolvedHandling: "do-not-infer-registration-no",
+      note: "登録番号を一意に確認できない選手は推定補完せず、監査対象として保持する。",
+    },
     warnings: [
       ...(racesWithStarterArray === 0 ? ["no starter arrays found"] : []),
       ...(unresolved.length ? [`${unresolved.length} starter observations unresolved`] : []),
@@ -126,9 +254,54 @@ async function main() {
     unresolvedExamples: uniqueExamples(unresolved),
     ambiguousExamples: uniqueExamples(ambiguous),
   };
+  const publicReport = {
+    schemaVersion: report.schemaVersion,
+    generatedAt: report.generatedAt,
+    sourceType: report.sourceType,
+    coverageStatus: report.coverageStatus,
+    normalizedRaceCount: report.normalizedRaceCount,
+    racesWithStarterArray: report.racesWithStarterArray,
+    racesWithCompleteStarterArray: report.racesWithCompleteStarterArray,
+    racesWithAnyRegistrationNo: report.racesWithAnyRegistrationNo,
+    racesWithCompleteRegistrationNo: report.racesWithCompleteRegistrationNo,
+    racesWithParsedLineup: report.racesWithParsedLineup,
+    roleEligibleRaceCount: report.roleEligibleRaceCount,
+    distinctStarterNameCount: report.distinctStarterNameCount,
+    distinctPodiumNameCount: report.distinctPodiumNameCount,
+    playerCardIndexCount: report.playerCardIndexCount,
+    directRegistrationMatchCount: report.directRegistrationMatchCount,
+    uniqueNameFallbackMatchCount: report.uniqueNameFallbackMatchCount,
+    manualOverrideMatchCount: report.manualOverrideMatchCount,
+    unresolvedNameCount: report.unresolvedNameCount,
+    unresolvedObservationCount: report.unresolvedObservationCount,
+    ambiguousNameCount: report.ambiguousNameCount,
+    ambiguousObservationCount: report.ambiguousObservationCount,
+    eligiblePublicRiderCount: report.eligiblePublicRiderCount,
+    registrationNoCoverage: report.registrationNoCoverage,
+    warnings: report.warnings,
+    topUnresolvedNames: report.topUnresolvedNames,
+    unresolvedNames: report.unresolvedNames,
+    ambiguousNames: report.ambiguousNames,
+    unresolvedExamples: report.unresolvedExamples,
+    ambiguousExamples: report.ambiguousExamples,
+    policy: report.policy,
+  };
+
   await writeJson(
     path.join(normalizedRoot, "rider-coverage-audit.generated.json"),
     report,
+  );
+  await writeJson(
+    path.join(
+      process.cwd(),
+      "public",
+      "data",
+      "analytics",
+      "kurari-ex",
+      "audit",
+      "rider-coverage-audit.generated.json",
+    ),
+    publicReport,
   );
 
   console.log("[kurari-ex rider coverage audit]");
