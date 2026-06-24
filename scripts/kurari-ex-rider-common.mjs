@@ -17,6 +17,11 @@ export const riderOverridePath = path.join(
   "mappings",
   "rider-registration-overrides.json",
 );
+export const riderPublicOverridePath = path.join(
+  projectRoot,
+  "scripts",
+  "kurari-ex-rider-registration-overrides.json",
+);
 export const riderRaceOverridePath = path.join(
   projectRoot,
   "scripts",
@@ -164,6 +169,13 @@ export async function loadRiderIdentitySources() {
     if (error?.code !== "ENOENT") throw error;
   }
 
+  let publicOverrides = {};
+  try {
+    publicOverrides = JSON.parse(await readFile(riderPublicOverridePath, "utf8"));
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+
   let raceOverrides = {};
   try {
     raceOverrides = JSON.parse(await readFile(riderRaceOverridePath, "utf8"));
@@ -204,7 +216,7 @@ export async function loadRiderIdentitySources() {
   }
 
   const normalizedOverrides = new Map();
-  for (const [name, registrationNoValue] of Object.entries(overrides)) {
+  for (const [name, registrationNoValue] of Object.entries({ ...publicOverrides, ...overrides })) {
     const nameKey = normalizeRiderName(name);
     const registrationNo = normalizeRegistrationNo(registrationNoValue);
     if (nameKey && registrationNo) normalizedOverrides.set(nameKey, registrationNo);
