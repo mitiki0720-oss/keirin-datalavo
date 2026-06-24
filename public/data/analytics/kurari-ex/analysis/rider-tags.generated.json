@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-24T07:08:37.633Z",
+  "generatedAt": "2026-06-24T10:08:26.441Z",
   "source": "kurari-ex-rider-score-v1",
   "sourceType": "EXACT_RIDER_SCORE",
   "period": {
     "from": "2026-05-09",
     "to": "2026-06-23"
   },
-  "riderCount": 1214,
+  "riderCount": 1216,
   "qualityCounts": {
     "complete": 48,
-    "partial": 361,
-    "low-sample": 744,
-    "identity-only": 61
+    "partial": 363,
+    "low-sample": 746,
+    "identity-only": 59
   },
   "inclusionPolicy": {
     "riders": "include-all-known-riders",
@@ -25,7 +25,7 @@
       "tag": "ROLE_MISSING",
       "label": "役割欠損あり",
       "memo": "ライン・役割情報が一部不足している。",
-      "riderCount": 818
+      "riderCount": 822
     },
     {
       "tag": "CONFIRMED_START_SHORT",
@@ -37,7 +37,7 @@
       "tag": "LOW_SAMPLE_GROWING",
       "label": "低サンプル育成中",
       "memo": "出走数が少ないため、消さずに育成中として保持する。",
-      "riderCount": 744
+      "riderCount": 746
     },
     {
       "tag": "TOP3_CANDIDATE",
@@ -55,13 +55,13 @@
       "tag": "PARTIAL_DATA",
       "label": "部分データ",
       "memo": "一部データ不足があるため評価を弱めて扱う。",
-      "riderCount": 361
+      "riderCount": 363
     },
     {
       "tag": "IDENTITY_ONLY_GROWING",
       "label": "IDのみ育成中",
       "memo": "選手IDのみ保持。出走実績が入ったら評価を育てる。",
-      "riderCount": 61
+      "riderCount": 59
     },
     {
       "tag": "COMPLETE_PROFILE",

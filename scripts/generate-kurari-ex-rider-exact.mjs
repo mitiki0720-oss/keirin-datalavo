@@ -299,7 +299,7 @@ async function main() {
   for (const race of races) {
     if (!isCompleteStarterArray(race)) continue;
     for (const starter of race.starters) {
-      const identity = resolveRiderIdentity(starter, identitySources);
+      const identity = resolveRiderIdentity(starter, identitySources, race);
       if (!identity.registrationNo || ["unresolved", "ambiguous"].includes(identity.status)) {
         continue;
       }

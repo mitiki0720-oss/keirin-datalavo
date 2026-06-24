@@ -158,12 +158,12 @@ async function main() {
     for (const starter of Array.isArray(race.starters) ? race.starters : []) {
       const nameKey = normalizeRiderName(starter.nameKey ?? starter.name);
       if (nameKey) starterNames.add(nameKey);
-      const identity = resolveRiderIdentity(starter, identitySources);
+      const identity = resolveRiderIdentity(starter, identitySources, race);
       if (identity.status === "registration-no") directRegistrationMatches.add(nameKey);
       if (identity.status === "unique-player-card-name") {
         uniqueNameFallbackMatches.add(nameKey);
       }
-      if (identity.status === "manual-override") manualOverrideMatches.add(nameKey);
+      if (["manual-override", "race-manual-override"].includes(identity.status)) manualOverrideMatches.add(nameKey);
       if (identity.registrationNo) resolvedRegistrationNos.add(identity.registrationNo);
       if (identity.status === "unresolved") {
         unresolved.push({

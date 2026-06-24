@@ -17,6 +17,11 @@ export const riderOverridePath = path.join(
   "mappings",
   "rider-registration-overrides.json",
 );
+export const riderRaceOverridePath = path.join(
+  projectRoot,
+  "scripts",
+  "kurari-ex-rider-race-overrides.json",
+);
 export const officialRiderSupplementPath = path.join(
   projectRoot,
   "public",
@@ -159,6 +164,13 @@ export async function loadRiderIdentitySources() {
     if (error?.code !== "ENOENT") throw error;
   }
 
+  let raceOverrides = {};
+  try {
+    raceOverrides = JSON.parse(await readFile(riderRaceOverridePath, "utf8"));
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+
   const cardsByRegistrationNo = new Map();
   const cardsByNameKey = new Map();
   const addIdentityCard = (card) => {
@@ -198,19 +210,45 @@ export async function loadRiderIdentitySources() {
     if (nameKey && registrationNo) normalizedOverrides.set(nameKey, registrationNo);
   }
 
+  const normalizedRaceOverrides = new Map();
+  for (const [key, registrationNoValue] of Object.entries(raceOverrides)) {
+    const registrationNo = normalizeRegistrationNo(registrationNoValue);
+    if (key && registrationNo) normalizedRaceOverrides.set(String(key), registrationNo);
+  }
+
   return {
     playerCards,
     keirinJpFeedCards,
     cardsByRegistrationNo,
     cardsByNameKey,
     overrides: normalizedOverrides,
+    raceOverrides: normalizedRaceOverrides,
   };
 }
 
-export function resolveRiderIdentity(starter, sources) {
+export function resolveRiderIdentity(starter, sources, race = null) {
   const name = String(starter?.name ?? "").trim();
   const nameKey = normalizeRiderName(starter?.nameKey ?? name);
   const directRegistrationNo = normalizeRegistrationNo(starter?.registrationNo);
+  const raceOverrideKey = race?.raceKey && starter?.carNo != null
+    ? `${race.raceKey}#${starter.carNo}`
+    : null;
+  const raceOverrideRegistrationNo = raceOverrideKey
+    ? sources.raceOverrides?.get(raceOverrideKey)
+    : null;
+
+  if (raceOverrideRegistrationNo) {
+    const card = sources.cardsByRegistrationNo.get(raceOverrideRegistrationNo) ?? null;
+    return {
+      registrationNo: raceOverrideRegistrationNo,
+      name: name || card?.name || "",
+      nameKey: nameKey || card?.nameKey || "",
+      status: "race-manual-override",
+      card,
+      overrideKey: raceOverrideKey,
+    };
+  }
+
   if (directRegistrationNo) {
     const card = sources.cardsByRegistrationNo.get(directRegistrationNo) ?? null;
     const recordedStatus = [

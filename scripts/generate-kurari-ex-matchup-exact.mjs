@@ -143,12 +143,12 @@ function isResolvedStarter(starter) {
   );
 }
 
-function resolveStarterForMatchup(starter, identitySources) {
+function resolveStarterForMatchup(starter, identitySources, race = null) {
   if (isResolvedStarter(starter)) {
     return starter;
   }
 
-  const identity = resolveRiderIdentity(starter, identitySources);
+  const identity = resolveRiderIdentity(starter, identitySources, race);
 
   if (
     !identity.registrationNo ||
@@ -943,7 +943,7 @@ async function main() {
       const resolvedStarters =
         starters
           .map((starter) =>
-            resolveStarterForMatchup(starter, identitySources),
+            resolveStarterForMatchup(starter, identitySources, race),
           )
           .filter(Boolean);
 
