@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-24T10:50:30.909Z",
+  "generatedAt": "2026-06-24T11:54:29.528Z",
   "source": "kurari-ex-rider-score-v1",
   "sourceType": "EXACT_RIDER_SCORE",
   "period": {
     "from": "2026-05-09",
     "to": "2026-06-23"
   },
-  "riderCount": 1219,
+  "riderCount": 1239,
   "qualityCounts": {
-    "complete": 48,
-    "partial": 366,
+    "complete": 52,
+    "partial": 382,
     "low-sample": 746,
     "identity-only": 59
   },
@@ -25,7 +25,7 @@
       "tag": "ROLE_MISSING",
       "label": "役割欠損あり",
       "memo": "ライン・役割情報が一部不足している。",
-      "riderCount": 825
+      "riderCount": 841
     },
     {
       "tag": "CONFIRMED_START_SHORT",
@@ -43,19 +43,19 @@
       "tag": "TOP3_CANDIDATE",
       "label": "3着候補",
       "memo": "3連対率が高く、3着保護候補に使える。",
-      "riderCount": 637
+      "riderCount": 646
     },
     {
       "tag": "TOP2_CANDIDATE",
       "label": "2着候補",
       "memo": "2連対率が一定以上で、2着候補に使える。",
-      "riderCount": 601
+      "riderCount": 609
     },
     {
       "tag": "PARTIAL_DATA",
       "label": "部分データ",
       "memo": "一部データ不足があるため評価を弱めて扱う。",
-      "riderCount": 366
+      "riderCount": 382
     },
     {
       "tag": "IDENTITY_ONLY_GROWING",
@@ -67,7 +67,7 @@
       "tag": "COMPLETE_PROFILE",
       "label": "分析可能",
       "memo": "出走実績があり、条件別評価に使いやすい。",
-      "riderCount": 48
+      "riderCount": 52
     }
   ]
 }
