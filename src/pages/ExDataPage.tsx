@@ -168,6 +168,7 @@ const VENUE_SCORE_ANALYSIS_URL = "/data/analytics/kurari-ex/analysis/venue-score
 const RIDER_SCORE_ANALYSIS_URL = "/data/analytics/kurari-ex/analysis/rider-score.generated.json";
 const RIDER_CATEGORY_ANALYSIS_URL = "/data/analytics/kurari-ex/analysis/rider-category-analysis.generated.json";
 const TODAY_RECOMMENDATION_URL = "/data/analytics/kurari-ex/analysis/today-recommendation.generated.json";
+const RIDER_COVERAGE_AUDIT_URL = "/data/analytics/kurari-ex/audit/rider-coverage-audit.generated.json";
 
 type KurariExShbNameEntry = {
   nameKey: string;
@@ -362,6 +363,51 @@ async function loadKurariExRiderCategoryAnalysis(): Promise<KurariExRiderCategor
   return response.json() as Promise<KurariExRiderCategoryAnalysis>;
 }
 
+
+type KurariExRiderCoverageAuditName = {
+  nameKey: string;
+  displayName: string;
+  observationCount: number;
+  raceCount?: number;
+  carNos?: string[];
+  sampleRaceKeys?: string[];
+  candidates?: string[];
+  coverageStatus?: string;
+  sourceType?: string;
+};
+
+type KurariExRiderCoverageAudit = {
+  schemaVersion: number;
+  generatedAt: string;
+  sourceType: string;
+  coverageStatus: string;
+  normalizedRaceCount: number;
+  racesWithStarterArray: number;
+  racesWithCompleteStarterArray: number;
+  racesWithAnyRegistrationNo: number;
+  racesWithCompleteRegistrationNo: number;
+  eligiblePublicRiderCount: number;
+  unresolvedNameCount: number;
+  unresolvedObservationCount: number;
+  ambiguousNameCount: number;
+  ambiguousObservationCount: number;
+  topUnresolvedNames: KurariExRiderCoverageAuditName[];
+  unresolvedNames: KurariExRiderCoverageAuditName[];
+  ambiguousNames: KurariExRiderCoverageAuditName[];
+  warnings?: string[];
+  policy?: {
+    fakeProhibited?: boolean;
+    unresolvedHandling?: string;
+    note?: string;
+  };
+};
+
+async function loadKurariExRiderCoverageAudit(): Promise<KurariExRiderCoverageAudit> {
+  const response = await fetch(toExPublicPath(RIDER_COVERAGE_AUDIT_URL), { cache: "no-store" });
+  if (!response.ok) throw new Error("KURARI EX rider coverage audit fetch failed: " + response.status);
+  return response.json() as Promise<KurariExRiderCoverageAudit>;
+}
+
 type KurariExTodayVenue = {
   venueKey: string;
   venueName: string;
@@ -523,6 +569,8 @@ export default function ExDataPage() {
   const [riderScoreStatus, setRiderScoreStatus] = useState<"loading" | "ready" | "error">("loading");
   const [riderCategoryAnalysis, setRiderCategoryAnalysis] = useState<KurariExRiderCategoryAnalysis | null>(null);
   const [riderCategoryStatus, setRiderCategoryStatus] = useState<"loading" | "ready" | "error">("loading");
+    const [riderCoverageAudit, setRiderCoverageAudit] = useState<KurariExRiderCoverageAudit | null>(null);
+    const [riderCoverageAuditStatus, setRiderCoverageAuditStatus] = useState<"loading" | "ready" | "error">("loading");
   const [todayRecommendation, setTodayRecommendation] = useState<KurariExTodayRecommendation | null>(null);
   const [todayRecommendationStatus, setTodayRecommendationStatus] = useState<"loading" | "ready" | "error">("loading");
 
@@ -725,7 +773,24 @@ export default function ExDataPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, []);    useEffect(() => {
+      let active = true;
+      loadKurariExRiderCoverageAudit()
+        .then((data) => {
+          if (!active) return;
+          setRiderCoverageAudit(data);
+          setRiderCoverageAuditStatus("ready");
+        })
+        .catch(() => {
+          if (!active) return;
+          setRiderCoverageAuditStatus("error");
+        });
+      return () => {
+        active = false;
+      };
+    }, []);
+
+
 
   const riderScoreItems = useMemo(() => riderScoreAnalysis?.items ?? [], [riderScoreAnalysis]);
   const topRiderScoreItems = useMemo(() => riderScoreItems.slice(0, 30), [riderScoreItems]);
@@ -1454,6 +1519,10 @@ export default function ExDataPage() {
                 <MetricCard label="素材蓄積中" value={riderInitialStatus === "loading" ? "…" : valueText(riderInitialData?.status.qualityCounts["identity-only"])} warning={(riderInitialData?.status.qualityCounts["identity-only"] ?? 0) > 0} />
                 <MetricCard label="LOW SAMPLE" value={riderInitialStatus === "loading" ? "…" : valueText(riderInitialData?.status.qualityCounts["low-sample"])} warning={(riderInitialData?.status.qualityCounts["low-sample"] ?? 0) > 0} />
                 <MetricCard label="CATEGORY ANALYSIS" value={riderCategoryStatus === "loading" ? "…" : riderCategoryStatus === "error" ? "取得不可" : valueText(Object.keys(riderCategoryAnalysis?.dimensions ?? {}).length)} note="条件別EXACT" warning={riderCategoryStatus === "error"} />
+                <MetricCard label="RESOLVED RIDERS" value={riderCoverageAuditStatus === "loading" ? "…" : riderCoverageAuditStatus === "error" ? "取得不可" : valueText(riderCoverageAudit?.eligiblePublicRiderCount)} note="audit exact" warning={riderCoverageAuditStatus === "error"} />
+                <MetricCard label="未解決選手名" value={riderCoverageAuditStatus === "loading" ? "…" : riderCoverageAuditStatus === "error" ? "取得不可" : valueText(riderCoverageAudit?.unresolvedNameCount)} note={riderCoverageAudit ? valueText(riderCoverageAudit.unresolvedObservationCount) + " observations" : "registration no"} warning={(riderCoverageAudit?.unresolvedNameCount ?? 0) > 0 || riderCoverageAuditStatus === "error"} />
+                <MetricCard label="曖昧選手名" value={riderCoverageAuditStatus === "loading" ? "…" : riderCoverageAuditStatus === "error" ? "取得不可" : valueText(riderCoverageAudit?.ambiguousNameCount)} note={riderCoverageAudit ? valueText(riderCoverageAudit.ambiguousObservationCount) + " observations" : "manual check"} warning={(riderCoverageAudit?.ambiguousNameCount ?? 0) > 0 || riderCoverageAuditStatus === "error"} />
+                <MetricCard label="登録番号完全R" value={riderCoverageAuditStatus === "loading" ? "…" : riderCoverageAuditStatus === "error" ? "取得不可" : valueText(riderCoverageAudit?.racesWithCompleteRegistrationNo)} note={riderCoverageAudit ? "of " + valueText(riderCoverageAudit.normalizedRaceCount) + " races" : "coverage"} />
                 <MetricCard label="PARTIAL" value={riderInitialStatus === "loading" ? "…" : valueText(riderInitialData?.status.qualityCounts.partial)} />
                 <MetricCard label="COMPLETE" value={riderInitialStatus === "loading" ? "…" : valueText(riderInitialData?.status.qualityCounts.complete)} />
                 <MetricCard label="MAX RIDER JSON" value={riderInitialStatus === "loading" ? "…" : formatBytes(riderInitialData?.status.maxFileBytes)} />
@@ -1461,6 +1530,15 @@ export default function ExDataPage() {
                 <MetricCard label="SHB NAME KEYS" value={shbNameStatus === "loading" ? "…" : valueText(shbNameIndex?.summary.nameKeyCount)} />
                 <MetricCard label="SHB COLLISION" value={shbNameStatus === "loading" ? "…" : valueText(shbNameIndex?.summary.sameDateCollisionNameKeyCount)} warning={(shbNameIndex?.summary.sameDateCollisionNameKeyCount ?? 0) > 0} />
               </div>
+              {riderCoverageAuditStatus === "error" ? <EmptyState text="RIDER COVERAGE AUDITを取得できませんでした。" /> : null}
+              {riderCoverageAudit ? (
+                <div className="ex-sample-alert">
+                  <strong>RIDER COVERAGE AUDIT / 選手データ網羅率</strong>
+                  選手ファイル生成漏れは0件。未解決選手名は登録番号を一意に確認できないため、fake補完せず監査対象として保持しています。
+                  {riderCoverageAudit.ambiguousNames.length ? " 曖昧候補: " + riderCoverageAudit.ambiguousNames.map((item) => item.displayName + " [" + (item.candidates ?? []).join(" / ") + "]").join(" / ") : ""}
+                  {riderCoverageAudit.topUnresolvedNames.length ? " 未解決上位: " + riderCoverageAudit.topUnresolvedNames.slice(0, 3).map((item) => item.displayName + " " + item.observationCount + "件").join(" / ") : ""}
+                </div>
+              ) : null}
               {riderInitialStatus === "error" ? <EmptyState text="PLAYER EXのindex / statusを取得できませんでした。" /> : null}
             </section>
             <section className="ex-panel ex-section ex-analysis">
