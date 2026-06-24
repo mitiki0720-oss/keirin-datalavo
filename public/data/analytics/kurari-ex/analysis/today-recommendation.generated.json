@@ -1,20 +1,20 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-22T02:08:57.981Z",
+  "generatedAt": "2026-06-24T07:08:38.218Z",
   "source": "kurari-ex-today-recommendation-v1",
   "sourceType": "SEED_ANALYSIS_PLUS_RIDER_SCORE",
   "period": {
     "from": "2026-05-01",
-    "to": "2026-06-21"
+    "to": "2026-06-23"
   },
   "sourceStatus": {
-    "inputFileCount": 1129,
-    "predictionFileCount": 377,
-    "resultFileCount": 377,
-    "summaryFileCount": 375,
-    "completeTripletCount": 375,
+    "inputFileCount": 1177,
+    "predictionFileCount": 393,
+    "resultFileCount": 393,
+    "summaryFileCount": 391,
+    "completeTripletCount": 391,
     "venueCount": 35,
-    "riderCount": 1216
+    "riderCount": 1214
   },
   "sections": {
     "battleVenues": [
@@ -52,6 +52,39 @@
         ]
       },
       {
+        "venueKey": "keiokaku",
+        "venueName": "京王閣",
+        "score": 85,
+        "rankHint": "A",
+        "riskLevel": "positive",
+        "raceCount": 132,
+        "recoveryRate": 65.5,
+        "trifectaHitRate": 38,
+        "memo": "score上位。まず展開予想の軸候補として確認。",
+        "actions": [
+          {
+            "priority": 1,
+            "text": "級班とレース種別を分けて傾向を評価する",
+            "sourceType": "predictionGuidance"
+          },
+          {
+            "priority": 2,
+            "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+            "sourceType": "predictionGuidance"
+          },
+          {
+            "priority": 3,
+            "text": "踏み合い時は単騎の差し込みを3着候補に加える",
+            "sourceType": "predictionGuidance"
+          },
+          {
+            "priority": 4,
+            "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+            "sourceType": "predictionGuidance"
+          }
+        ]
+      },
+      {
         "venueKey": "ogaki",
         "venueName": "大垣",
         "score": 85,
@@ -80,39 +113,6 @@
           {
             "priority": 4,
             "text": "踏み合い時は単騎の差し込みを3着候補に加える",
-            "sourceType": "predictionGuidance"
-          }
-        ]
-      },
-      {
-        "venueKey": "keiokaku",
-        "venueName": "京王閣",
-        "score": 84,
-        "rankHint": "A",
-        "riskLevel": "positive",
-        "raceCount": 132,
-        "recoveryRate": 65.5,
-        "trifectaHitRate": 38,
-        "memo": "score上位。まず展開予想の軸候補として確認。",
-        "actions": [
-          {
-            "priority": 1,
-            "text": "級班とレース種別を分けて傾向を評価する",
-            "sourceType": "predictionGuidance"
-          },
-          {
-            "priority": 2,
-            "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
-            "sourceType": "predictionGuidance"
-          },
-          {
-            "priority": 3,
-            "text": "踏み合い時は単騎の差し込みを3着候補に加える",
-            "sourceType": "predictionGuidance"
-          },
-          {
-            "priority": 4,
-            "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
             "sourceType": "predictionGuidance"
           }
         ]
@@ -255,8 +255,8 @@
         "score": 79,
         "rankHint": "B",
         "riskLevel": "positive",
-        "raceCount": 174,
-        "recoveryRate": 84.3,
+        "raceCount": 192,
+        "recoveryRate": 95.9,
         "trifectaHitRate": 19.3,
         "memo": "score上位。まず展開予想の軸候補として確認。",
         "actions": [
@@ -283,14 +283,14 @@
         ]
       },
       {
-        "venueKey": "hakodate",
-        "venueName": "函館",
-        "score": 75,
+        "venueKey": "gifu",
+        "venueName": "岐阜",
+        "score": 78,
         "rankHint": "B",
-        "riskLevel": "watch",
-        "raceCount": 253,
-        "recoveryRate": 69.9,
-        "trifectaHitRate": 18.6,
+        "riskLevel": "caution",
+        "raceCount": 120,
+        "recoveryRate": 55.6,
+        "trifectaHitRate": 30.6,
         "memo": "score上位。まず展開予想の軸候補として確認。",
         "actions": [
           {
@@ -316,14 +316,14 @@
         ]
       },
       {
-        "venueKey": "ito",
-        "venueName": "伊東",
-        "score": 74,
+        "venueKey": "yahiko",
+        "venueName": "弥彦",
+        "score": 76,
         "rankHint": "B",
         "riskLevel": "caution",
-        "raceCount": 158,
-        "recoveryRate": 53.5,
-        "trifectaHitRate": 28.9,
+        "raceCount": 156,
+        "recoveryRate": 57,
+        "trifectaHitRate": 28.6,
         "memo": "score上位。まず展開予想の軸候補として確認。",
         "actions": [
           {
@@ -333,12 +333,12 @@
           },
           {
             "priority": 2,
-            "text": "踏み合い時は単騎の差し込みを3着候補に加える",
+            "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
             "sourceType": "predictionGuidance"
           },
           {
             "priority": 3,
-            "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+            "text": "踏み合い時は単騎の差し込みを3着候補に加える",
             "sourceType": "predictionGuidance"
           },
           {
@@ -401,28 +401,28 @@
         ]
       },
       {
-        "venueKey": "aomori",
-        "venueName": "青森",
-        "score": 86,
-        "rankHint": "A",
-        "riskLevel": "positive",
+        "venueKey": "hakodate",
+        "venueName": "函館",
+        "score": 75,
+        "rankHint": "B",
+        "riskLevel": "watch",
         "tags": [
           {
             "tag": "SOLO_RIDER_ALERT",
             "label": "単騎の差し込みを警戒",
-            "evidenceCount": 13,
+            "evidenceCount": 15,
             "confidence": "high"
           },
           {
             "tag": "THIRD_PLACE_SPREAD",
             "label": "3着候補を分散",
-            "evidenceCount": 9,
-            "confidence": "medium"
+            "evidenceCount": 12,
+            "confidence": "high"
           },
           {
             "tag": "BANTE_SASHI_ALERT",
             "label": "番手差しを警戒",
-            "evidenceCount": 8,
+            "evidenceCount": 6,
             "confidence": "medium"
           }
         ],
@@ -451,28 +451,78 @@
         ]
       },
       {
-        "venueKey": "hakodate",
-        "venueName": "函館",
-        "score": 75,
+        "venueKey": "gifu",
+        "venueName": "岐阜",
+        "score": 78,
         "rankHint": "B",
-        "riskLevel": "watch",
+        "riskLevel": "caution",
         "tags": [
           {
             "tag": "SOLO_RIDER_ALERT",
             "label": "単騎の差し込みを警戒",
-            "evidenceCount": 14,
+            "evidenceCount": 12,
             "confidence": "high"
           },
           {
             "tag": "THIRD_PLACE_SPREAD",
             "label": "3着候補を分散",
-            "evidenceCount": 11,
+            "evidenceCount": 10,
             "confidence": "high"
           },
           {
             "tag": "BANTE_SASHI_ALERT",
             "label": "番手差しを警戒",
-            "evidenceCount": 5,
+            "evidenceCount": 9,
+            "confidence": "medium"
+          }
+        ],
+        "memo": "3着を本線だけで固定しない。別線・単騎・番手差しを保護。",
+        "actions": [
+          {
+            "priority": 1,
+            "text": "級班とレース種別を分けて傾向を評価する",
+            "sourceType": "predictionGuidance"
+          },
+          {
+            "priority": 2,
+            "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+            "sourceType": "predictionGuidance"
+          },
+          {
+            "priority": 3,
+            "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+            "sourceType": "predictionGuidance"
+          },
+          {
+            "priority": 4,
+            "text": "踏み合い時は単騎の差し込みを3着候補に加える",
+            "sourceType": "predictionGuidance"
+          }
+        ]
+      },
+      {
+        "venueKey": "aomori",
+        "venueName": "青森",
+        "score": 86,
+        "rankHint": "A",
+        "riskLevel": "positive",
+        "tags": [
+          {
+            "tag": "SOLO_RIDER_ALERT",
+            "label": "単騎の差し込みを警戒",
+            "evidenceCount": 13,
+            "confidence": "high"
+          },
+          {
+            "tag": "THIRD_PLACE_SPREAD",
+            "label": "3着候補を分散",
+            "evidenceCount": 9,
+            "confidence": "medium"
+          },
+          {
+            "tag": "BANTE_SASHI_ALERT",
+            "label": "番手差しを警戒",
+            "evidenceCount": 8,
             "confidence": "medium"
           }
         ],
@@ -524,6 +574,50 @@
             "label": "番手差しを警戒",
             "evidenceCount": 8,
             "confidence": "medium"
+          }
+        ],
+        "memo": "3着を本線だけで固定しない。別線・単騎・番手差しを保護。",
+        "actions": [
+          {
+            "priority": 1,
+            "text": "級班とレース種別を分けて傾向を評価する",
+            "sourceType": "predictionGuidance"
+          },
+          {
+            "priority": 2,
+            "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+            "sourceType": "predictionGuidance"
+          },
+          {
+            "priority": 3,
+            "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+            "sourceType": "predictionGuidance"
+          },
+          {
+            "priority": 4,
+            "text": "踏み合い時は単騎の差し込みを3着候補に加える",
+            "sourceType": "predictionGuidance"
+          }
+        ]
+      },
+      {
+        "venueKey": "utsunomiya",
+        "venueName": "宇都宮",
+        "score": 79,
+        "rankHint": "B",
+        "riskLevel": "positive",
+        "tags": [
+          {
+            "tag": "SOLO_RIDER_ALERT",
+            "label": "単騎の差し込みを警戒",
+            "evidenceCount": 16,
+            "confidence": "high"
+          },
+          {
+            "tag": "BANTE_SASHI_ALERT",
+            "label": "番手差しを警戒",
+            "evidenceCount": 12,
+            "confidence": "high"
           }
         ],
         "memo": "3着を本線だけで固定しない。別線・単騎・番手差しを保護。",
@@ -645,110 +739,60 @@
         ]
       },
       {
-        "venueKey": "gifu",
-        "venueName": "岐阜",
-        "score": 69,
+        "venueKey": "keiokaku",
+        "venueName": "京王閣",
+        "score": 85,
+        "rankHint": "A",
+        "riskLevel": "positive",
+        "tags": [
+          {
+            "tag": "SOLO_RIDER_ALERT",
+            "label": "単騎の差し込みを警戒",
+            "evidenceCount": 15,
+            "confidence": "high"
+          },
+          {
+            "tag": "BANTE_SASHI_ALERT",
+            "label": "番手差しを警戒",
+            "evidenceCount": 10,
+            "confidence": "high"
+          }
+        ],
+        "memo": "3着を本線だけで固定しない。別線・単騎・番手差しを保護。",
+        "actions": [
+          {
+            "priority": 1,
+            "text": "級班とレース種別を分けて傾向を評価する",
+            "sourceType": "predictionGuidance"
+          },
+          {
+            "priority": 2,
+            "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+            "sourceType": "predictionGuidance"
+          },
+          {
+            "priority": 3,
+            "text": "踏み合い時は単騎の差し込みを3着候補に加える",
+            "sourceType": "predictionGuidance"
+          },
+          {
+            "priority": 4,
+            "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+            "sourceType": "predictionGuidance"
+          }
+        ]
+      },
+      {
+        "venueKey": "yahiko",
+        "venueName": "弥彦",
+        "score": 76,
         "rankHint": "B",
         "riskLevel": "caution",
         "tags": [
           {
             "tag": "SOLO_RIDER_ALERT",
             "label": "単騎の差し込みを警戒",
-            "evidenceCount": 10,
-            "confidence": "high"
-          },
-          {
-            "tag": "THIRD_PLACE_SPREAD",
-            "label": "3着候補を分散",
-            "evidenceCount": 8,
-            "confidence": "medium"
-          },
-          {
-            "tag": "BANTE_SASHI_ALERT",
-            "label": "番手差しを警戒",
-            "evidenceCount": 7,
-            "confidence": "medium"
-          }
-        ],
-        "memo": "3着を本線だけで固定しない。別線・単騎・番手差しを保護。",
-        "actions": [
-          {
-            "priority": 1,
-            "text": "級班とレース種別を分けて傾向を評価する",
-            "sourceType": "predictionGuidance"
-          },
-          {
-            "priority": 2,
-            "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
-            "sourceType": "predictionGuidance"
-          },
-          {
-            "priority": 3,
-            "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
-            "sourceType": "predictionGuidance"
-          },
-          {
-            "priority": 4,
-            "text": "踏み合い時は単騎の差し込みを3着候補に加える",
-            "sourceType": "predictionGuidance"
-          }
-        ]
-      },
-      {
-        "venueKey": "ogaki",
-        "venueName": "大垣",
-        "score": 85,
-        "rankHint": "A",
-        "riskLevel": "positive",
-        "tags": [
-          {
-            "tag": "BANTE_SASHI_ALERT",
-            "label": "番手差しを警戒",
-            "evidenceCount": 12,
-            "confidence": "high"
-          },
-          {
-            "tag": "SOLO_RIDER_ALERT",
-            "label": "単騎の差し込みを警戒",
-            "evidenceCount": 12,
-            "confidence": "high"
-          }
-        ],
-        "memo": "3着を本線だけで固定しない。別線・単騎・番手差しを保護。",
-        "actions": [
-          {
-            "priority": 1,
-            "text": "先行軸だけで固定せず、番手差しの逆目を残す",
-            "sourceType": "predictionGuidance"
-          },
-          {
-            "priority": 2,
-            "text": "級班とレース種別を分けて傾向を評価する",
-            "sourceType": "predictionGuidance"
-          },
-          {
-            "priority": 3,
-            "text": "先行争いがある場合は別線の捲り筋を残す",
-            "sourceType": "predictionGuidance"
-          },
-          {
-            "priority": 4,
-            "text": "踏み合い時は単騎の差し込みを3着候補に加える",
-            "sourceType": "predictionGuidance"
-          }
-        ]
-      },
-      {
-        "venueKey": "utsunomiya",
-        "venueName": "宇都宮",
-        "score": 79,
-        "rankHint": "B",
-        "riskLevel": "positive",
-        "tags": [
-          {
-            "tag": "SOLO_RIDER_ALERT",
-            "label": "単騎の差し込みを警戒",
-            "evidenceCount": 14,
+            "evidenceCount": 15,
             "confidence": "high"
           },
           {
@@ -756,50 +800,6 @@
             "label": "番手差しを警戒",
             "evidenceCount": 10,
             "confidence": "high"
-          }
-        ],
-        "memo": "3着を本線だけで固定しない。別線・単騎・番手差しを保護。",
-        "actions": [
-          {
-            "priority": 1,
-            "text": "級班とレース種別を分けて傾向を評価する",
-            "sourceType": "predictionGuidance"
-          },
-          {
-            "priority": 2,
-            "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
-            "sourceType": "predictionGuidance"
-          },
-          {
-            "priority": 3,
-            "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
-            "sourceType": "predictionGuidance"
-          },
-          {
-            "priority": 4,
-            "text": "踏み合い時は単騎の差し込みを3着候補に加える",
-            "sourceType": "predictionGuidance"
-          }
-        ]
-      },
-      {
-        "venueKey": "keiokaku",
-        "venueName": "京王閣",
-        "score": 84,
-        "rankHint": "A",
-        "riskLevel": "positive",
-        "tags": [
-          {
-            "tag": "SOLO_RIDER_ALERT",
-            "label": "単騎の差し込みを警戒",
-            "evidenceCount": 14,
-            "confidence": "high"
-          },
-          {
-            "tag": "BANTE_SASHI_ALERT",
-            "label": "番手差しを警戒",
-            "evidenceCount": 9,
-            "confidence": "medium"
           }
         ],
         "memo": "3着を本線だけで固定しない。別線・単騎・番手差しを保護。",
@@ -859,6 +859,36 @@
         ]
       },
       {
+        "venueKey": "keiokaku",
+        "venueName": "京王閣",
+        "score": 85,
+        "rankHint": "A",
+        "riskLevel": "positive",
+        "memo": "風向・風速で先行残り/差し届きの評価を固定しない。",
+        "actions": [
+          {
+            "priority": 1,
+            "text": "級班とレース種別を分けて傾向を評価する",
+            "sourceType": "predictionGuidance"
+          },
+          {
+            "priority": 2,
+            "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+            "sourceType": "predictionGuidance"
+          },
+          {
+            "priority": 3,
+            "text": "踏み合い時は単騎の差し込みを3着候補に加える",
+            "sourceType": "predictionGuidance"
+          },
+          {
+            "priority": 4,
+            "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+            "sourceType": "predictionGuidance"
+          }
+        ]
+      },
+      {
         "venueKey": "ogaki",
         "venueName": "大垣",
         "score": 85,
@@ -884,36 +914,6 @@
           {
             "priority": 4,
             "text": "踏み合い時は単騎の差し込みを3着候補に加える",
-            "sourceType": "predictionGuidance"
-          }
-        ]
-      },
-      {
-        "venueKey": "keiokaku",
-        "venueName": "京王閣",
-        "score": 84,
-        "rankHint": "A",
-        "riskLevel": "positive",
-        "memo": "風向・風速で先行残り/差し届きの評価を固定しない。",
-        "actions": [
-          {
-            "priority": 1,
-            "text": "級班とレース種別を分けて傾向を評価する",
-            "sourceType": "predictionGuidance"
-          },
-          {
-            "priority": 2,
-            "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
-            "sourceType": "predictionGuidance"
-          },
-          {
-            "priority": 3,
-            "text": "踏み合い時は単騎の差し込みを3着候補に加える",
-            "sourceType": "predictionGuidance"
-          },
-          {
-            "priority": 4,
-            "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
             "sourceType": "predictionGuidance"
           }
         ]
@@ -1009,6 +1009,66 @@
         ]
       },
       {
+        "venueKey": "gifu",
+        "venueName": "岐阜",
+        "score": 78,
+        "rankHint": "B",
+        "riskLevel": "caution",
+        "memo": "風向・風速で先行残り/差し届きの評価を固定しない。",
+        "actions": [
+          {
+            "priority": 1,
+            "text": "級班とレース種別を分けて傾向を評価する",
+            "sourceType": "predictionGuidance"
+          },
+          {
+            "priority": 2,
+            "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+            "sourceType": "predictionGuidance"
+          },
+          {
+            "priority": 3,
+            "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+            "sourceType": "predictionGuidance"
+          },
+          {
+            "priority": 4,
+            "text": "踏み合い時は単騎の差し込みを3着候補に加える",
+            "sourceType": "predictionGuidance"
+          }
+        ]
+      },
+      {
+        "venueKey": "yahiko",
+        "venueName": "弥彦",
+        "score": 76,
+        "rankHint": "B",
+        "riskLevel": "caution",
+        "memo": "風向・風速で先行残り/差し届きの評価を固定しない。",
+        "actions": [
+          {
+            "priority": 1,
+            "text": "級班とレース種別を分けて傾向を評価する",
+            "sourceType": "predictionGuidance"
+          },
+          {
+            "priority": 2,
+            "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+            "sourceType": "predictionGuidance"
+          },
+          {
+            "priority": 3,
+            "text": "踏み合い時は単騎の差し込みを3着候補に加える",
+            "sourceType": "predictionGuidance"
+          },
+          {
+            "priority": 4,
+            "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+            "sourceType": "predictionGuidance"
+          }
+        ]
+      },
+      {
         "venueKey": "hakodate",
         "venueName": "函館",
         "score": 75,
@@ -1064,66 +1124,6 @@
           {
             "priority": 4,
             "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
-            "sourceType": "predictionGuidance"
-          }
-        ]
-      },
-      {
-        "venueKey": "gifu",
-        "venueName": "岐阜",
-        "score": 69,
-        "rankHint": "B",
-        "riskLevel": "caution",
-        "memo": "風向・風速で先行残り/差し届きの評価を固定しない。",
-        "actions": [
-          {
-            "priority": 1,
-            "text": "級班とレース種別を分けて傾向を評価する",
-            "sourceType": "predictionGuidance"
-          },
-          {
-            "priority": 2,
-            "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
-            "sourceType": "predictionGuidance"
-          },
-          {
-            "priority": 3,
-            "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
-            "sourceType": "predictionGuidance"
-          },
-          {
-            "priority": 4,
-            "text": "踏み合い時は単騎の差し込みを3着候補に加える",
-            "sourceType": "predictionGuidance"
-          }
-        ]
-      },
-      {
-        "venueKey": "kishiwada",
-        "venueName": "岸和田",
-        "score": 68,
-        "rankHint": "B",
-        "riskLevel": "caution",
-        "memo": "風向・風速で先行残り/差し届きの評価を固定しない。",
-        "actions": [
-          {
-            "priority": 1,
-            "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
-            "sourceType": "predictionGuidance"
-          },
-          {
-            "priority": 2,
-            "text": "先行軸だけで固定せず、番手差しの逆目を残す",
-            "sourceType": "predictionGuidance"
-          },
-          {
-            "priority": 3,
-            "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
-            "sourceType": "predictionGuidance"
-          },
-          {
-            "priority": 4,
-            "text": "級班とレース種別を分けて傾向を評価する",
             "sourceType": "predictionGuidance"
           }
         ]
@@ -1194,16 +1194,16 @@
     "topRiders": [
       {
         "rank": 1,
-        "registrationNo": "015891",
-        "name": "野中 龍之介",
-        "prefecture": "神奈川",
+        "registrationNo": "014184",
+        "name": "池田 良",
+        "prefecture": "広 島",
         "class": "S2",
         "score": 100,
         "rankHint": "A",
-        "confirmedStartCount": 7,
-        "winRate": 42.9,
-        "top2Rate": 57.1,
-        "top3Rate": 71.4,
+        "confirmedStartCount": 6,
+        "winRate": 16.7,
+        "top2Rate": 50,
+        "top3Rate": 83.3,
         "tags": [
           "COMPLETE_PROFILE",
           "TOP3_CANDIDATE",
@@ -1213,14 +1213,14 @@
       },
       {
         "rank": 2,
-        "registrationNo": "014072",
-        "name": "伊藤 之人",
-        "prefecture": "",
-        "class": "",
+        "registrationNo": "014472",
+        "name": "坂口晃輔",
+        "prefecture": "三重",
+        "class": "S級1班",
         "score": 100,
         "rankHint": "A",
         "confirmedStartCount": 6,
-        "winRate": 50,
+        "winRate": 33.3,
         "top2Rate": 50,
         "top3Rate": 66.7,
         "tags": [
@@ -1251,16 +1251,16 @@
       },
       {
         "rank": 4,
-        "registrationNo": "015884",
-        "name": "秋山 太洋",
-        "prefecture": "",
-        "class": "",
+        "registrationNo": "015663",
+        "name": "松本 秀之慎",
+        "prefecture": "熊 本",
+        "class": "S2",
         "score": 100,
         "rankHint": "A",
         "confirmedStartCount": 6,
         "winRate": 16.7,
-        "top2Rate": 50,
-        "top3Rate": 66.7,
+        "top2Rate": 66.7,
+        "top3Rate": 83.3,
         "tags": [
           "COMPLETE_PROFILE",
           "TOP3_CANDIDATE",
@@ -1270,6 +1270,82 @@
       },
       {
         "rank": 5,
+        "registrationNo": "015557",
+        "name": "梶原 大地",
+        "prefecture": "福 岡",
+        "class": "A2",
+        "score": 100,
+        "rankHint": "A",
+        "confirmedStartCount": 5,
+        "winRate": 40,
+        "top2Rate": 60,
+        "top3Rate": 80,
+        "tags": [
+          "COMPLETE_PROFILE",
+          "TOP3_CANDIDATE",
+          "TOP2_CANDIDATE"
+        ],
+        "memo": "選手カルテ上位。出走表に出たら相手・軸候補として確認。"
+      },
+      {
+        "rank": 6,
+        "registrationNo": "015734",
+        "name": "岡崎 陸登",
+        "prefecture": "愛 媛",
+        "class": "A1",
+        "score": 100,
+        "rankHint": "A",
+        "confirmedStartCount": 5,
+        "winRate": 20,
+        "top2Rate": 60,
+        "top3Rate": 100,
+        "tags": [
+          "COMPLETE_PROFILE",
+          "TOP3_CANDIDATE",
+          "TOP2_CANDIDATE"
+        ],
+        "memo": "選手カルテ上位。出走表に出たら相手・軸候補として確認。"
+      },
+      {
+        "rank": 7,
+        "registrationNo": "015197",
+        "name": "川口 雄太",
+        "prefecture": "徳 島",
+        "class": "S2",
+        "score": 99,
+        "rankHint": "A",
+        "confirmedStartCount": 6,
+        "winRate": 33.3,
+        "top2Rate": 33.3,
+        "top3Rate": 66.7,
+        "tags": [
+          "COMPLETE_PROFILE",
+          "TOP3_CANDIDATE",
+          "TOP2_CANDIDATE"
+        ],
+        "memo": "選手カルテ上位。出走表に出たら相手・軸候補として確認。"
+      },
+      {
+        "rank": 8,
+        "registrationNo": "015168",
+        "name": "染谷 幸喜",
+        "prefecture": "千 葉",
+        "class": "S2",
+        "score": 98,
+        "rankHint": "A",
+        "confirmedStartCount": 5,
+        "winRate": 20,
+        "top2Rate": 60,
+        "top3Rate": 60,
+        "tags": [
+          "COMPLETE_PROFILE",
+          "TOP3_CANDIDATE",
+          "TOP2_CANDIDATE"
+        ],
+        "memo": "選手カルテ上位。出走表に出たら相手・軸候補として確認。"
+      },
+      {
+        "rank": 9,
         "registrationNo": "014945",
         "name": "中井俊亮",
         "prefecture": "奈良",
@@ -1288,17 +1364,17 @@
         "memo": "選手カルテ上位。出走表に出たら相手・軸候補として確認。"
       },
       {
-        "rank": 6,
-        "registrationNo": "015889",
-        "name": "大本 隆也",
+        "rank": 10,
+        "registrationNo": "015697",
+        "name": "熊崎 麻人",
         "prefecture": "",
         "class": "",
-        "score": 93,
+        "score": 96,
         "rankHint": "A",
-        "confirmedStartCount": 6,
-        "winRate": 0,
-        "top2Rate": 33.3,
-        "top3Rate": 66.7,
+        "confirmedStartCount": 5,
+        "winRate": 40,
+        "top2Rate": 40,
+        "top3Rate": 60,
         "tags": [
           "COMPLETE_PROFILE",
           "TOP3_CANDIDATE",
@@ -1307,7 +1383,7 @@
         "memo": "選手カルテ上位。出走表に出たら相手・軸候補として確認。"
       },
       {
-        "rank": 7,
+        "rank": 11,
         "registrationNo": "015043",
         "name": "大矢 崇弘",
         "prefecture": "東 京",
@@ -1326,7 +1402,45 @@
         "memo": "選手カルテ上位。出走表に出たら相手・軸候補として確認。"
       },
       {
-        "rank": 8,
+        "rank": 12,
+        "registrationNo": "012963",
+        "name": "荻野 哲",
+        "prefecture": "",
+        "class": "",
+        "score": 90,
+        "rankHint": "A",
+        "confirmedStartCount": 5,
+        "winRate": 0,
+        "top2Rate": 40,
+        "top3Rate": 60,
+        "tags": [
+          "COMPLETE_PROFILE",
+          "TOP3_CANDIDATE",
+          "TOP2_CANDIDATE"
+        ],
+        "memo": "選手カルテ上位。出走表に出たら相手・軸候補として確認。"
+      },
+      {
+        "rank": 13,
+        "registrationNo": "013188",
+        "name": "山田 幸司",
+        "prefecture": "神奈川",
+        "class": "A1",
+        "score": 88,
+        "rankHint": "A",
+        "confirmedStartCount": 5,
+        "winRate": 20,
+        "top2Rate": 20,
+        "top3Rate": 60,
+        "tags": [
+          "COMPLETE_PROFILE",
+          "TOP3_CANDIDATE",
+          "TOP2_CANDIDATE"
+        ],
+        "memo": "選手カルテ上位。出走表に出たら相手・軸候補として確認。"
+      },
+      {
+        "rank": 14,
         "registrationNo": "013118",
         "name": "山内 卓也",
         "prefecture": "愛 知",
@@ -1345,17 +1459,17 @@
         "memo": "選手カルテ上位。出走表に出たら相手・軸候補として確認。"
       },
       {
-        "rank": 9,
-        "registrationNo": "012982",
-        "name": "上原 直樹",
-        "prefecture": "",
-        "class": "",
-        "score": 85,
+        "rank": 15,
+        "registrationNo": "014808",
+        "name": "村上 貴彦",
+        "prefecture": "栃 木",
+        "class": "A2",
+        "score": 86,
         "rankHint": "A",
-        "confirmedStartCount": 6,
-        "winRate": 0,
-        "top2Rate": 33.3,
-        "top3Rate": 50,
+        "confirmedStartCount": 5,
+        "winRate": 40,
+        "top2Rate": 40,
+        "top3Rate": 40,
         "tags": [
           "COMPLETE_PROFILE",
           "TOP3_CANDIDATE",
@@ -1364,17 +1478,17 @@
         "memo": "選手カルテ上位。出走表に出たら相手・軸候補として確認。"
       },
       {
-        "rank": 10,
-        "registrationNo": "014349",
-        "name": "佐藤 純嘉",
-        "prefecture": "",
-        "class": "",
-        "score": 85,
+        "rank": 16,
+        "registrationNo": "014988",
+        "name": "伊早坂 駿一",
+        "prefecture": "茨 城",
+        "class": "A2",
+        "score": 86,
         "rankHint": "A",
-        "confirmedStartCount": 6,
-        "winRate": 0,
-        "top2Rate": 33.3,
-        "top3Rate": 50,
+        "confirmedStartCount": 5,
+        "winRate": 40,
+        "top2Rate": 40,
+        "top3Rate": 40,
         "tags": [
           "COMPLETE_PROFILE",
           "TOP3_CANDIDATE",
@@ -1383,7 +1497,7 @@
         "memo": "選手カルテ上位。出走表に出たら相手・軸候補として確認。"
       },
       {
-        "rank": 11,
+        "rank": 17,
         "registrationNo": "015516",
         "name": "木村皆斗",
         "prefecture": "茨城",
@@ -1402,29 +1516,11 @@
         "memo": "選手カルテ上位。出走表に出たら相手・軸候補として確認。"
       },
       {
-        "rank": 12,
-        "registrationNo": "014016",
-        "name": "石塚孝幸",
+        "rank": 18,
+        "registrationNo": "015047",
+        "name": "加藤 健一",
         "prefecture": "神奈川",
-        "class": "S級1班",
-        "score": 84,
-        "rankHint": "A",
-        "confirmedStartCount": 7,
-        "winRate": 14.3,
-        "top2Rate": 14.3,
-        "top3Rate": 42.9,
-        "tags": [
-          "COMPLETE_PROFILE",
-          "TOP3_CANDIDATE"
-        ],
-        "memo": "選手カルテ上位。出走表に出たら相手・軸候補として確認。"
-      },
-      {
-        "rank": 13,
-        "registrationNo": "014489",
-        "name": "高鍋 邦彰",
-        "prefecture": "",
-        "class": "",
+        "class": "A3",
         "score": 83,
         "rankHint": "A",
         "confirmedStartCount": 6,
@@ -1439,9 +1535,28 @@
         "memo": "選手カルテ上位。出走表に出たら相手・軸候補として確認。"
       },
       {
-        "rank": 14,
-        "registrationNo": "014691",
-        "name": "東矢 昇太",
+        "rank": 19,
+        "registrationNo": "013705",
+        "name": "佐藤 有輝",
+        "prefecture": "",
+        "class": "",
+        "score": 82,
+        "rankHint": "A",
+        "confirmedStartCount": 5,
+        "winRate": 20,
+        "top2Rate": 40,
+        "top3Rate": 40,
+        "tags": [
+          "COMPLETE_PROFILE",
+          "TOP3_CANDIDATE",
+          "TOP2_CANDIDATE"
+        ],
+        "memo": "選手カルテ上位。出走表に出たら相手・軸候補として確認。"
+      },
+      {
+        "rank": 20,
+        "registrationNo": "014199",
+        "name": "松岡 孔明",
         "prefecture": "熊 本",
         "class": "S2",
         "score": 82,
@@ -1456,118 +1571,6 @@
           "TOP2_CANDIDATE"
         ],
         "memo": "選手カルテ上位。出走表に出たら相手・軸候補として確認。"
-      },
-      {
-        "rank": 15,
-        "registrationNo": "015744",
-        "name": "橋本 宇宙",
-        "prefecture": "佐 賀",
-        "class": "S2",
-        "score": 82,
-        "rankHint": "A",
-        "confirmedStartCount": 5,
-        "winRate": 20,
-        "top2Rate": 40,
-        "top3Rate": 40,
-        "tags": [
-          "COMPLETE_PROFILE",
-          "TOP3_CANDIDATE",
-          "TOP2_CANDIDATE"
-        ],
-        "memo": "選手カルテ上位。出走表に出たら相手・軸候補として確認。"
-      },
-      {
-        "rank": 16,
-        "registrationNo": "015923",
-        "name": "右近 陸人",
-        "prefecture": "",
-        "class": "",
-        "score": 82,
-        "rankHint": "A",
-        "confirmedStartCount": 5,
-        "winRate": 20,
-        "top2Rate": 40,
-        "top3Rate": 40,
-        "tags": [
-          "COMPLETE_PROFILE",
-          "TOP3_CANDIDATE",
-          "TOP2_CANDIDATE"
-        ],
-        "memo": "選手カルテ上位。出走表に出たら相手・軸候補として確認。"
-      },
-      {
-        "rank": 24,
-        "registrationNo": "013642",
-        "name": "西岡 正一",
-        "prefecture": "和歌山",
-        "class": "S2",
-        "score": 78,
-        "rankHint": "B",
-        "confirmedStartCount": 5,
-        "winRate": 0,
-        "top2Rate": 40,
-        "top3Rate": 40,
-        "tags": [
-          "COMPLETE_PROFILE",
-          "TOP3_CANDIDATE",
-          "TOP2_CANDIDATE"
-        ],
-        "memo": "選手カルテ上位。出走表に出たら相手・軸候補として確認。"
-      },
-      {
-        "rank": 32,
-        "registrationNo": "015886",
-        "name": "中川 飛隆",
-        "prefecture": "",
-        "class": "",
-        "score": 78,
-        "rankHint": "B",
-        "confirmedStartCount": 5,
-        "winRate": 0,
-        "top2Rate": 40,
-        "top3Rate": 40,
-        "tags": [
-          "COMPLETE_PROFILE",
-          "TOP3_CANDIDATE",
-          "TOP2_CANDIDATE"
-        ],
-        "memo": "選手カルテ上位。出走表に出たら相手・軸候補として確認。"
-      },
-      {
-        "rank": 33,
-        "registrationNo": "015915",
-        "name": "柏野 健吾",
-        "prefecture": "岡 山",
-        "class": "A3",
-        "score": 78,
-        "rankHint": "B",
-        "confirmedStartCount": 5,
-        "winRate": 0,
-        "top2Rate": 40,
-        "top3Rate": 40,
-        "tags": [
-          "COMPLETE_PROFILE",
-          "TOP3_CANDIDATE",
-          "TOP2_CANDIDATE"
-        ],
-        "memo": "選手カルテ上位。出走表に出たら相手・軸候補として確認。"
-      },
-      {
-        "rank": 35,
-        "registrationNo": "015036",
-        "name": "尾形 鉄馬",
-        "prefecture": "宮 城",
-        "class": "S2",
-        "score": 77,
-        "rankHint": "B",
-        "confirmedStartCount": 7,
-        "winRate": 14.3,
-        "top2Rate": 14.3,
-        "top3Rate": 28.6,
-        "tags": [
-          "COMPLETE_PROFILE"
-        ],
-        "memo": "選手カルテ上位。出走表に出たら相手・軸候補として確認。"
       }
     ],
     "globalTags": [
@@ -1575,42 +1578,42 @@
         "tag": "TIME_SLOT_BIAS",
         "label": "時間帯差を確認",
         "venueCount": 35,
-        "evidenceCount": 374,
-        "highConfidenceVenueCount": 17
+        "evidenceCount": 390,
+        "highConfidenceVenueCount": 19
       },
       {
         "tag": "CLASS_CONTEXT",
         "label": "級班条件を分離",
         "venueCount": 35,
-        "evidenceCount": 370,
-        "highConfidenceVenueCount": 17
+        "evidenceCount": 386,
+        "highConfidenceVenueCount": 18
       },
       {
         "tag": "WIND_SENSITIVE",
         "label": "風条件を確認",
         "venueCount": 35,
-        "evidenceCount": 342,
-        "highConfidenceVenueCount": 15
+        "evidenceCount": 356,
+        "highConfidenceVenueCount": 17
       },
       {
         "tag": "SOLO_RIDER_ALERT",
         "label": "単騎の差し込みを警戒",
-        "venueCount": 34,
-        "evidenceCount": 290,
+        "venueCount": 35,
+        "evidenceCount": 305,
         "highConfidenceVenueCount": 14
       },
       {
         "tag": "BANTE_SASHI_ALERT",
         "label": "番手差しを警戒",
-        "venueCount": 34,
-        "evidenceCount": 230,
-        "highConfidenceVenueCount": 7
+        "venueCount": 35,
+        "evidenceCount": 246,
+        "highConfidenceVenueCount": 9
       },
       {
         "tag": "MAKURI_ALERT",
         "label": "捲り展開を警戒",
-        "venueCount": 33,
-        "evidenceCount": 221,
+        "venueCount": 34,
+        "evidenceCount": 235,
         "highConfidenceVenueCount": 6
       }
     ],

@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-21T11:53:59.647Z",
+  "generatedAt": "2026-06-24T07:08:37.633Z",
   "source": "kurari-ex-rider-score-v1",
   "sourceType": "EXACT_RIDER_SCORE",
   "period": {
     "from": "2026-05-09",
-    "to": "2026-06-19"
+    "to": "2026-06-23"
   },
-  "riderCount": 1216,
+  "riderCount": 1214,
   "qualityCounts": {
-    "complete": 56,
-    "partial": 120,
-    "low-sample": 954,
-    "identity-only": 86
+    "complete": 48,
+    "partial": 361,
+    "low-sample": 744,
+    "identity-only": 61
   },
   "inclusionPolicy": {
     "riders": "include-all-known-riders",
@@ -22,52 +22,52 @@
   "tagCount": 8,
   "items": [
     {
+      "tag": "ROLE_MISSING",
+      "label": "役割欠損あり",
+      "memo": "ライン・役割情報が一部不足している。",
+      "riderCount": 818
+    },
+    {
       "tag": "CONFIRMED_START_SHORT",
       "label": "出走数不足",
       "memo": "confirmedStartCount が5未満。",
-      "riderCount": 1040
+      "riderCount": 805
     },
     {
       "tag": "LOW_SAMPLE_GROWING",
       "label": "低サンプル育成中",
       "memo": "出走数が少ないため、消さずに育成中として保持する。",
-      "riderCount": 954
-    },
-    {
-      "tag": "ROLE_MISSING",
-      "label": "役割欠損あり",
-      "memo": "ライン・役割情報が一部不足している。",
-      "riderCount": 574
+      "riderCount": 744
     },
     {
       "tag": "TOP3_CANDIDATE",
       "label": "3着候補",
       "memo": "3連対率が高く、3着保護候補に使える。",
-      "riderCount": 569
+      "riderCount": 635
     },
     {
       "tag": "TOP2_CANDIDATE",
       "label": "2着候補",
       "memo": "2連対率が一定以上で、2着候補に使える。",
-      "riderCount": 527
+      "riderCount": 599
     },
     {
       "tag": "PARTIAL_DATA",
       "label": "部分データ",
       "memo": "一部データ不足があるため評価を弱めて扱う。",
-      "riderCount": 120
+      "riderCount": 361
     },
     {
       "tag": "IDENTITY_ONLY_GROWING",
       "label": "IDのみ育成中",
       "memo": "選手IDのみ保持。出走実績が入ったら評価を育てる。",
-      "riderCount": 86
+      "riderCount": 61
     },
     {
       "tag": "COMPLETE_PROFILE",
       "label": "分析可能",
       "memo": "出走実績があり、条件別評価に使いやすい。",
-      "riderCount": 56
+      "riderCount": 48
     }
   ]
 }
