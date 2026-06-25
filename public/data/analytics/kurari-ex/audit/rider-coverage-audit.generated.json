@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-24T22:38:08.247Z",
+  "generatedAt": "2026-06-24T23:02:31.064Z",
   "sourceType": "AUDIT_EXACT",
   "coverageStatus": "audit-only-fake-prohibited",
   "normalizedRaceCount": 3861,
@@ -15,917 +15,21 @@
   "playerCardIndexCount": 216,
   "directRegistrationMatchCount": 49,
   "uniqueNameFallbackMatchCount": 1107,
-  "manualOverrideMatchCount": 164,
-  "unresolvedNameCount": 609,
-  "unresolvedObservationCount": 1577,
+  "manualOverrideMatchCount": 184,
+  "unresolvedNameCount": 589,
+  "unresolvedObservationCount": 1487,
   "ambiguousNameCount": 0,
   "ambiguousObservationCount": 0,
-  "eligiblePublicRiderCount": 1321,
+  "eligiblePublicRiderCount": 1341,
   "registrationNoCoverage": {
     "totalRaceCount": 3861,
     "racesWithAnyRegistrationNo": 901,
     "racesWithCompleteRegistrationNo": 400
   },
   "warnings": [
-    "1577 starter observations unresolved"
+    "1487 starter observations unresolved"
   ],
   "topUnresolvedNames": [
-    {
-      "nameKey": "藤井優希",
-      "displayName": "藤井 優希",
-      "observationCount": 5,
-      "raceCount": 5,
-      "carNos": [
-        "1",
-        "3",
-        "4",
-        "5"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-09:hofu:9",
-        "2026-06-10:hofu:11",
-        "2026-06-17:keiokaku:2",
-        "2026-06-18:keiokaku:2",
-        "2026-06-19:keiokaku:3"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-09:hofu:9",
-          "carNo": 5,
-          "name": "藤井 優希"
-        },
-        {
-          "raceKey": "2026-06-10:hofu:11",
-          "carNo": 1,
-          "name": "藤井 優希"
-        },
-        {
-          "raceKey": "2026-06-17:keiokaku:2",
-          "carNo": 4,
-          "name": "藤井 優希"
-        },
-        {
-          "raceKey": "2026-06-18:keiokaku:2",
-          "carNo": 1,
-          "name": "藤井 優希"
-        },
-        {
-          "raceKey": "2026-06-19:keiokaku:3",
-          "carNo": 3,
-          "name": "藤井 優希"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "南和夫",
-      "displayName": "南 和夫",
-      "observationCount": 5,
-      "raceCount": 5,
-      "carNos": [
-        "1",
-        "4",
-        "5",
-        "6"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-10:aomori:6",
-        "2026-06-11:aomori:4",
-        "2026-06-12:aomori:2",
-        "2026-06-17:toyama:1",
-        "2026-06-18:toyama:1"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-10:aomori:6",
-          "carNo": 5,
-          "name": "南 和夫"
-        },
-        {
-          "raceKey": "2026-06-11:aomori:4",
-          "carNo": 6,
-          "name": "南 和夫"
-        },
-        {
-          "raceKey": "2026-06-12:aomori:2",
-          "carNo": 4,
-          "name": "南 和夫"
-        },
-        {
-          "raceKey": "2026-06-17:toyama:1",
-          "carNo": 6,
-          "name": "南 和夫"
-        },
-        {
-          "raceKey": "2026-06-18:toyama:1",
-          "carNo": 1,
-          "name": "南 和夫"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "白濱一平",
-      "displayName": "白濱 一平",
-      "observationCount": 5,
-      "raceCount": 5,
-      "carNos": [
-        "1",
-        "2",
-        "3",
-        "4",
-        "5"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-10:aomori:3",
-        "2026-06-11:aomori:7",
-        "2026-06-12:aomori:5",
-        "2026-06-17:toyama:3",
-        "2026-06-18:toyama:3"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-10:aomori:3",
-          "carNo": 4,
-          "name": "白濱 一平"
-        },
-        {
-          "raceKey": "2026-06-11:aomori:7",
-          "carNo": 5,
-          "name": "白濱 一平"
-        },
-        {
-          "raceKey": "2026-06-12:aomori:5",
-          "carNo": 3,
-          "name": "白濱 一平"
-        },
-        {
-          "raceKey": "2026-06-17:toyama:3",
-          "carNo": 2,
-          "name": "白濱 一平"
-        },
-        {
-          "raceKey": "2026-06-18:toyama:3",
-          "carNo": 1,
-          "name": "白濱 一平"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "武田良太",
-      "displayName": "武田 良太",
-      "observationCount": 5,
-      "raceCount": 5,
-      "carNos": [
-        "1",
-        "4",
-        "5",
-        "7"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-09:maebashi:2",
-        "2026-06-10:maebashi:2",
-        "2026-06-11:maebashi:1",
-        "2026-06-18:kumamoto:4",
-        "2026-06-19:kumamoto:5"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-09:maebashi:2",
-          "carNo": 4,
-          "name": "武田 良太"
-        },
-        {
-          "raceKey": "2026-06-10:maebashi:2",
-          "carNo": 5,
-          "name": "武田 良太"
-        },
-        {
-          "raceKey": "2026-06-11:maebashi:1",
-          "carNo": 1,
-          "name": "武田 良太"
-        },
-        {
-          "raceKey": "2026-06-18:kumamoto:4",
-          "carNo": 7,
-          "name": "武田良太"
-        },
-        {
-          "raceKey": "2026-06-19:kumamoto:5",
-          "carNo": 7,
-          "name": "武田良太"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "木下章",
-      "displayName": "木下章",
-      "observationCount": 5,
-      "raceCount": 5,
-      "carNos": [
-        "2",
-        "3",
-        "4",
-        "6"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-10:utsunomiya:1",
-        "2026-06-11:utsunomiya:1",
-        "2026-06-17:aomori:3",
-        "2026-06-18:aomori:4",
-        "2026-06-19:aomori:3"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-10:utsunomiya:1",
-          "carNo": 3,
-          "name": "木下章"
-        },
-        {
-          "raceKey": "2026-06-11:utsunomiya:1",
-          "carNo": 4,
-          "name": "木下 章"
-        },
-        {
-          "raceKey": "2026-06-17:aomori:3",
-          "carNo": 4,
-          "name": "木下 章"
-        },
-        {
-          "raceKey": "2026-06-18:aomori:4",
-          "carNo": 6,
-          "name": "木下 章"
-        },
-        {
-          "raceKey": "2026-06-19:aomori:3",
-          "carNo": 2,
-          "name": "木下 章"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "野見泰要",
-      "displayName": "野見 泰要",
-      "observationCount": 5,
-      "raceCount": 5,
-      "carNos": [
-        "1",
-        "3",
-        "5",
-        "7"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-10:hofu:2",
-        "2026-06-12:keiokaku:2",
-        "2026-06-17:aomori:5",
-        "2026-06-18:aomori:1",
-        "2026-06-19:aomori:6"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-10:hofu:2",
-          "carNo": 5,
-          "name": "野見 泰要"
-        },
-        {
-          "raceKey": "2026-06-12:keiokaku:2",
-          "carNo": 3,
-          "name": "野見 泰要"
-        },
-        {
-          "raceKey": "2026-06-17:aomori:5",
-          "carNo": 1,
-          "name": "野見 泰要"
-        },
-        {
-          "raceKey": "2026-06-18:aomori:1",
-          "carNo": 5,
-          "name": "野見 泰要"
-        },
-        {
-          "raceKey": "2026-06-19:aomori:6",
-          "carNo": 7,
-          "name": "野見 泰要"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "野津宏介",
-      "displayName": "野津 宏介",
-      "observationCount": 5,
-      "raceCount": 5,
-      "carNos": [
-        "1",
-        "2",
-        "3"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-10:utsunomiya:3",
-        "2026-06-11:utsunomiya:8",
-        "2026-06-19:matsuyama:7",
-        "2026-06-20:matsuyama:7",
-        "2026-06-21:matsuyama:6"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-10:utsunomiya:3",
-          "carNo": 1,
-          "name": "野津 宏介"
-        },
-        {
-          "raceKey": "2026-06-11:utsunomiya:8",
-          "carNo": 1,
-          "name": "野津 宏介"
-        },
-        {
-          "raceKey": "2026-06-19:matsuyama:7",
-          "carNo": 1,
-          "name": "野津 宏介"
-        },
-        {
-          "raceKey": "2026-06-20:matsuyama:7",
-          "carNo": 3,
-          "name": "野津 宏介"
-        },
-        {
-          "raceKey": "2026-06-21:matsuyama:6",
-          "carNo": 2,
-          "name": "野津 宏介"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "龍門慎太郎",
-      "displayName": "龍門 慎太郎",
-      "observationCount": 5,
-      "raceCount": 5,
-      "carNos": [
-        "1",
-        "3",
-        "4",
-        "5"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-10:aomori:2",
-        "2026-06-11:aomori:7",
-        "2026-06-12:aomori:6",
-        "2026-06-17:toyama:2",
-        "2026-06-18:toyama:1"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-10:aomori:2",
-          "carNo": 4,
-          "name": "龍門 慎太郎"
-        },
-        {
-          "raceKey": "2026-06-11:aomori:7",
-          "carNo": 3,
-          "name": "龍門 慎太郎"
-        },
-        {
-          "raceKey": "2026-06-12:aomori:6",
-          "carNo": 1,
-          "name": "龍門 慎太郎"
-        },
-        {
-          "raceKey": "2026-06-17:toyama:2",
-          "carNo": 5,
-          "name": "龍門 慎太郎"
-        },
-        {
-          "raceKey": "2026-06-18:toyama:1",
-          "carNo": 4,
-          "name": "龍門 慎太郎"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "鈴木浩太",
-      "displayName": "鈴木浩太",
-      "observationCount": 5,
-      "raceCount": 5,
-      "carNos": [
-        "2",
-        "4",
-        "5",
-        "6",
-        "7"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-09:iwakitaira:11",
-        "2026-06-10:iwakitaira:9",
-        "2026-06-17:keiokaku:7",
-        "2026-06-18:keiokaku:12",
-        "2026-06-19:keiokaku:8"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-09:iwakitaira:11",
-          "carNo": 6,
-          "name": "鈴木浩太"
-        },
-        {
-          "raceKey": "2026-06-10:iwakitaira:9",
-          "carNo": 7,
-          "name": "鈴木 浩太"
-        },
-        {
-          "raceKey": "2026-06-17:keiokaku:7",
-          "carNo": 5,
-          "name": "鈴木 浩太"
-        },
-        {
-          "raceKey": "2026-06-18:keiokaku:12",
-          "carNo": 2,
-          "name": "鈴木 浩太"
-        },
-        {
-          "raceKey": "2026-06-19:keiokaku:8",
-          "carNo": 4,
-          "name": "鈴木 浩太"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "與古田龍門",
-      "displayName": "與古田 龍門",
-      "observationCount": 5,
-      "raceCount": 5,
-      "carNos": [
-        "1",
-        "2",
-        "3",
-        "4"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-09:hofu:3",
-        "2026-06-10:hofu:3",
-        "2026-06-18:kokura:1",
-        "2026-06-19:kokura:4",
-        "2026-06-20:kokura:2"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-09:hofu:3",
-          "carNo": 1,
-          "name": "與古田 龍門"
-        },
-        {
-          "raceKey": "2026-06-10:hofu:3",
-          "carNo": 3,
-          "name": "與古田 龍門"
-        },
-        {
-          "raceKey": "2026-06-18:kokura:1",
-          "carNo": 1,
-          "name": "與古田龍門"
-        },
-        {
-          "raceKey": "2026-06-19:kokura:4",
-          "carNo": 2,
-          "name": "與古田龍門"
-        },
-        {
-          "raceKey": "2026-06-20:kokura:2",
-          "carNo": 4,
-          "name": "與古田龍門"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "阿部功",
-      "displayName": "阿部 功",
-      "observationCount": 4,
-      "raceCount": 4,
-      "carNos": [
-        "1",
-        "5",
-        "6"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-10:ogaki:3",
-        "2026-06-17:keiokaku:1",
-        "2026-06-18:keiokaku:1",
-        "2026-06-19:keiokaku:1"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-10:ogaki:3",
-          "carNo": 1,
-          "name": "阿部 功"
-        },
-        {
-          "raceKey": "2026-06-17:keiokaku:1",
-          "carNo": 1,
-          "name": "阿部 功"
-        },
-        {
-          "raceKey": "2026-06-18:keiokaku:1",
-          "carNo": 6,
-          "name": "阿部 功"
-        },
-        {
-          "raceKey": "2026-06-19:keiokaku:1",
-          "carNo": 5,
-          "name": "阿部 功"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "伊原克彦",
-      "displayName": "伊原 克彦",
-      "observationCount": 4,
-      "raceCount": 4,
-      "carNos": [
-        "1",
-        "2",
-        "4",
-        "7"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-10:ogaki:4",
-        "2026-06-18:kumamoto:8",
-        "2026-06-19:kumamoto:8",
-        "2026-06-20:kumamoto:6"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-10:ogaki:4",
-          "carNo": 7,
-          "name": "伊原 克彦"
-        },
-        {
-          "raceKey": "2026-06-18:kumamoto:8",
-          "carNo": 1,
-          "name": "伊原克彦"
-        },
-        {
-          "raceKey": "2026-06-19:kumamoto:8",
-          "carNo": 4,
-          "name": "伊原克彦"
-        },
-        {
-          "raceKey": "2026-06-20:kumamoto:6",
-          "carNo": 2,
-          "name": "伊原克彦"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "伊藤健詞",
-      "displayName": "伊藤健詞",
-      "observationCount": 4,
-      "raceCount": 4,
-      "carNos": [
-        "1",
-        "2",
-        "5",
-        "7"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-09:iwakitaira:5",
-        "2026-06-10:iwakitaira:4",
-        "2026-06-17:toyama:10",
-        "2026-06-18:toyama:7"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-09:iwakitaira:5",
-          "carNo": 5,
-          "name": "伊藤健詞"
-        },
-        {
-          "raceKey": "2026-06-10:iwakitaira:4",
-          "carNo": 2,
-          "name": "伊藤健詞"
-        },
-        {
-          "raceKey": "2026-06-17:toyama:10",
-          "carNo": 7,
-          "name": "伊藤 健詞"
-        },
-        {
-          "raceKey": "2026-06-18:toyama:7",
-          "carNo": 1,
-          "name": "伊藤 健詞"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "伊藤彰規",
-      "displayName": "伊藤 彰規",
-      "observationCount": 4,
-      "raceCount": 4,
-      "carNos": [
-        "3",
-        "4",
-        "7"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-10:shizuoka:8",
-        "2026-06-18:kokura:7",
-        "2026-06-19:kokura:8",
-        "2026-06-20:kokura:6"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-10:shizuoka:8",
-          "carNo": 4,
-          "name": "伊藤 彰規"
-        },
-        {
-          "raceKey": "2026-06-18:kokura:7",
-          "carNo": 7,
-          "name": "伊藤彰規"
-        },
-        {
-          "raceKey": "2026-06-19:kokura:8",
-          "carNo": 3,
-          "name": "伊藤彰規"
-        },
-        {
-          "raceKey": "2026-06-20:kokura:6",
-          "carNo": 7,
-          "name": "伊藤彰規"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "稲川翔",
-      "displayName": "稲川 翔",
-      "observationCount": 4,
-      "raceCount": 4,
-      "carNos": [
-        "1",
-        "2",
-        "7",
-        "8"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-18:kishiwada:11",
-        "2026-06-19:kishiwada:8",
-        "2026-06-20:kishiwada:8",
-        "2026-06-21:kishiwada:10"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-18:kishiwada:11",
-          "carNo": 7,
-          "name": "稲川 翔"
-        },
-        {
-          "raceKey": "2026-06-19:kishiwada:8",
-          "carNo": 2,
-          "name": "稲川 翔"
-        },
-        {
-          "raceKey": "2026-06-20:kishiwada:8",
-          "carNo": 1,
-          "name": "稲川 翔"
-        },
-        {
-          "raceKey": "2026-06-21:kishiwada:10",
-          "carNo": 8,
-          "name": "稲川 翔"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "宇根秀俊",
-      "displayName": "宇根 秀俊",
-      "observationCount": 4,
-      "raceCount": 4,
-      "carNos": [
-        "2",
-        "3",
-        "4",
-        "5"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-09:hofu:7",
-        "2026-06-10:hofu:6",
-        "2026-06-17:toyama:10",
-        "2026-06-18:toyama:7"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-09:hofu:7",
-          "carNo": 2,
-          "name": "宇根 秀俊"
-        },
-        {
-          "raceKey": "2026-06-10:hofu:6",
-          "carNo": 4,
-          "name": "宇根 秀俊"
-        },
-        {
-          "raceKey": "2026-06-17:toyama:10",
-          "carNo": 3,
-          "name": "宇根 秀俊"
-        },
-        {
-          "raceKey": "2026-06-18:toyama:7",
-          "carNo": 5,
-          "name": "宇根 秀俊"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "浦川尊明",
-      "displayName": "浦川 尊明",
-      "observationCount": 4,
-      "raceCount": 4,
-      "carNos": [
-        "2",
-        "3",
-        "4",
-        "7"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-13:yahiko:8",
-        "2026-06-19:hiratsuka:5",
-        "2026-06-20:hiratsuka:3",
-        "2026-06-21:hiratsuka:11"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-13:yahiko:8",
-          "carNo": 3,
-          "name": "浦川 尊明"
-        },
-        {
-          "raceKey": "2026-06-19:hiratsuka:5",
-          "carNo": 4,
-          "name": "浦川 尊明"
-        },
-        {
-          "raceKey": "2026-06-20:hiratsuka:3",
-          "carNo": 2,
-          "name": "浦川 尊明"
-        },
-        {
-          "raceKey": "2026-06-21:hiratsuka:11",
-          "carNo": 7,
-          "name": "浦川 尊明"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "岡本翔",
-      "displayName": "岡本 翔",
-      "observationCount": 4,
-      "raceCount": 4,
-      "carNos": [
-        "3",
-        "4",
-        "5"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-10:ogaki:4",
-        "2026-06-18:kokura:7",
-        "2026-06-19:kokura:7",
-        "2026-06-20:kokura:6"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-10:ogaki:4",
-          "carNo": 5,
-          "name": "岡本 翔"
-        },
-        {
-          "raceKey": "2026-06-18:kokura:7",
-          "carNo": 3,
-          "name": "岡本翔"
-        },
-        {
-          "raceKey": "2026-06-19:kokura:7",
-          "carNo": 4,
-          "name": "岡本翔"
-        },
-        {
-          "raceKey": "2026-06-20:kokura:6",
-          "carNo": 5,
-          "name": "岡本翔"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "河端朋之",
-      "displayName": "河端 朋之",
-      "observationCount": 4,
-      "raceCount": 4,
-      "carNos": [
-        "1",
-        "5",
-        "6",
-        "8"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-17:kishiwada:10",
-        "2026-06-19:kishiwada:6",
-        "2026-06-20:kishiwada:10",
-        "2026-06-21:kishiwada:12"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-17:kishiwada:10",
-          "carNo": 5,
-          "name": "河端 朋之"
-        },
-        {
-          "raceKey": "2026-06-19:kishiwada:6",
-          "carNo": 1,
-          "name": "河端 朋之"
-        },
-        {
-          "raceKey": "2026-06-20:kishiwada:10",
-          "carNo": 6,
-          "name": "河端 朋之"
-        },
-        {
-          "raceKey": "2026-06-21:kishiwada:12",
-          "carNo": 8,
-          "name": "河端 朋之"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "柿本大貴",
-      "displayName": "柿本大貴",
-      "observationCount": 4,
-      "raceCount": 4,
-      "carNos": [
-        "4",
-        "6"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-09:iwakitaira:6",
-        "2026-06-10:iwakitaira:6",
-        "2026-06-15:beppu:11",
-        "2026-06-17:beppu:5"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-09:iwakitaira:6",
-          "carNo": 4,
-          "name": "柿本大貴"
-        },
-        {
-          "raceKey": "2026-06-10:iwakitaira:6",
-          "carNo": 6,
-          "name": "柿本大貴"
-        },
-        {
-          "raceKey": "2026-06-15:beppu:11",
-          "carNo": 6,
-          "name": "柿本 大貴"
-        },
-        {
-          "raceKey": "2026-06-17:beppu:5",
-          "carNo": 6,
-          "name": "柿本 大貴"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
     {
       "nameKey": "角宗哉",
       "displayName": "角宗哉",
@@ -2164,785 +1268,754 @@
       ],
       "coverageStatus": "unresolved-registration-no",
       "sourceType": "AUDIT_EXACT"
-    }
-  ],
-  "unresolvedNames": [
-    {
-      "nameKey": "藤井優希",
-      "displayName": "藤井 優希",
-      "observationCount": 5,
-      "raceCount": 5,
-      "carNos": [
-        "1",
-        "3",
-        "4",
-        "5"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-09:hofu:9",
-        "2026-06-10:hofu:11",
-        "2026-06-17:keiokaku:2",
-        "2026-06-18:keiokaku:2",
-        "2026-06-19:keiokaku:3"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-09:hofu:9",
-          "carNo": 5,
-          "name": "藤井 優希"
-        },
-        {
-          "raceKey": "2026-06-10:hofu:11",
-          "carNo": 1,
-          "name": "藤井 優希"
-        },
-        {
-          "raceKey": "2026-06-17:keiokaku:2",
-          "carNo": 4,
-          "name": "藤井 優希"
-        },
-        {
-          "raceKey": "2026-06-18:keiokaku:2",
-          "carNo": 1,
-          "name": "藤井 優希"
-        },
-        {
-          "raceKey": "2026-06-19:keiokaku:3",
-          "carNo": 3,
-          "name": "藤井 優希"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
     },
     {
-      "nameKey": "南和夫",
-      "displayName": "南 和夫",
-      "observationCount": 5,
-      "raceCount": 5,
-      "carNos": [
-        "1",
-        "4",
-        "5",
-        "6"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-10:aomori:6",
-        "2026-06-11:aomori:4",
-        "2026-06-12:aomori:2",
-        "2026-06-17:toyama:1",
-        "2026-06-18:toyama:1"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-10:aomori:6",
-          "carNo": 5,
-          "name": "南 和夫"
-        },
-        {
-          "raceKey": "2026-06-11:aomori:4",
-          "carNo": 6,
-          "name": "南 和夫"
-        },
-        {
-          "raceKey": "2026-06-12:aomori:2",
-          "carNo": 4,
-          "name": "南 和夫"
-        },
-        {
-          "raceKey": "2026-06-17:toyama:1",
-          "carNo": 6,
-          "name": "南 和夫"
-        },
-        {
-          "raceKey": "2026-06-18:toyama:1",
-          "carNo": 1,
-          "name": "南 和夫"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "白濱一平",
-      "displayName": "白濱 一平",
-      "observationCount": 5,
-      "raceCount": 5,
-      "carNos": [
-        "1",
-        "2",
-        "3",
-        "4",
-        "5"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-10:aomori:3",
-        "2026-06-11:aomori:7",
-        "2026-06-12:aomori:5",
-        "2026-06-17:toyama:3",
-        "2026-06-18:toyama:3"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-10:aomori:3",
-          "carNo": 4,
-          "name": "白濱 一平"
-        },
-        {
-          "raceKey": "2026-06-11:aomori:7",
-          "carNo": 5,
-          "name": "白濱 一平"
-        },
-        {
-          "raceKey": "2026-06-12:aomori:5",
-          "carNo": 3,
-          "name": "白濱 一平"
-        },
-        {
-          "raceKey": "2026-06-17:toyama:3",
-          "carNo": 2,
-          "name": "白濱 一平"
-        },
-        {
-          "raceKey": "2026-06-18:toyama:3",
-          "carNo": 1,
-          "name": "白濱 一平"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "武田良太",
-      "displayName": "武田 良太",
-      "observationCount": 5,
-      "raceCount": 5,
-      "carNos": [
-        "1",
-        "4",
-        "5",
-        "7"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-09:maebashi:2",
-        "2026-06-10:maebashi:2",
-        "2026-06-11:maebashi:1",
-        "2026-06-18:kumamoto:4",
-        "2026-06-19:kumamoto:5"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-09:maebashi:2",
-          "carNo": 4,
-          "name": "武田 良太"
-        },
-        {
-          "raceKey": "2026-06-10:maebashi:2",
-          "carNo": 5,
-          "name": "武田 良太"
-        },
-        {
-          "raceKey": "2026-06-11:maebashi:1",
-          "carNo": 1,
-          "name": "武田 良太"
-        },
-        {
-          "raceKey": "2026-06-18:kumamoto:4",
-          "carNo": 7,
-          "name": "武田良太"
-        },
-        {
-          "raceKey": "2026-06-19:kumamoto:5",
-          "carNo": 7,
-          "name": "武田良太"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "木下章",
-      "displayName": "木下章",
-      "observationCount": 5,
-      "raceCount": 5,
-      "carNos": [
-        "2",
-        "3",
-        "4",
-        "6"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-10:utsunomiya:1",
-        "2026-06-11:utsunomiya:1",
-        "2026-06-17:aomori:3",
-        "2026-06-18:aomori:4",
-        "2026-06-19:aomori:3"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-10:utsunomiya:1",
-          "carNo": 3,
-          "name": "木下章"
-        },
-        {
-          "raceKey": "2026-06-11:utsunomiya:1",
-          "carNo": 4,
-          "name": "木下 章"
-        },
-        {
-          "raceKey": "2026-06-17:aomori:3",
-          "carNo": 4,
-          "name": "木下 章"
-        },
-        {
-          "raceKey": "2026-06-18:aomori:4",
-          "carNo": 6,
-          "name": "木下 章"
-        },
-        {
-          "raceKey": "2026-06-19:aomori:3",
-          "carNo": 2,
-          "name": "木下 章"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "野見泰要",
-      "displayName": "野見 泰要",
-      "observationCount": 5,
-      "raceCount": 5,
-      "carNos": [
-        "1",
-        "3",
-        "5",
-        "7"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-10:hofu:2",
-        "2026-06-12:keiokaku:2",
-        "2026-06-17:aomori:5",
-        "2026-06-18:aomori:1",
-        "2026-06-19:aomori:6"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-10:hofu:2",
-          "carNo": 5,
-          "name": "野見 泰要"
-        },
-        {
-          "raceKey": "2026-06-12:keiokaku:2",
-          "carNo": 3,
-          "name": "野見 泰要"
-        },
-        {
-          "raceKey": "2026-06-17:aomori:5",
-          "carNo": 1,
-          "name": "野見 泰要"
-        },
-        {
-          "raceKey": "2026-06-18:aomori:1",
-          "carNo": 5,
-          "name": "野見 泰要"
-        },
-        {
-          "raceKey": "2026-06-19:aomori:6",
-          "carNo": 7,
-          "name": "野見 泰要"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "野津宏介",
-      "displayName": "野津 宏介",
-      "observationCount": 5,
-      "raceCount": 5,
-      "carNos": [
-        "1",
-        "2",
-        "3"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-10:utsunomiya:3",
-        "2026-06-11:utsunomiya:8",
-        "2026-06-19:matsuyama:7",
-        "2026-06-20:matsuyama:7",
-        "2026-06-21:matsuyama:6"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-10:utsunomiya:3",
-          "carNo": 1,
-          "name": "野津 宏介"
-        },
-        {
-          "raceKey": "2026-06-11:utsunomiya:8",
-          "carNo": 1,
-          "name": "野津 宏介"
-        },
-        {
-          "raceKey": "2026-06-19:matsuyama:7",
-          "carNo": 1,
-          "name": "野津 宏介"
-        },
-        {
-          "raceKey": "2026-06-20:matsuyama:7",
-          "carNo": 3,
-          "name": "野津 宏介"
-        },
-        {
-          "raceKey": "2026-06-21:matsuyama:6",
-          "carNo": 2,
-          "name": "野津 宏介"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "龍門慎太郎",
-      "displayName": "龍門 慎太郎",
-      "observationCount": 5,
-      "raceCount": 5,
-      "carNos": [
-        "1",
-        "3",
-        "4",
-        "5"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-10:aomori:2",
-        "2026-06-11:aomori:7",
-        "2026-06-12:aomori:6",
-        "2026-06-17:toyama:2",
-        "2026-06-18:toyama:1"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-10:aomori:2",
-          "carNo": 4,
-          "name": "龍門 慎太郎"
-        },
-        {
-          "raceKey": "2026-06-11:aomori:7",
-          "carNo": 3,
-          "name": "龍門 慎太郎"
-        },
-        {
-          "raceKey": "2026-06-12:aomori:6",
-          "carNo": 1,
-          "name": "龍門 慎太郎"
-        },
-        {
-          "raceKey": "2026-06-17:toyama:2",
-          "carNo": 5,
-          "name": "龍門 慎太郎"
-        },
-        {
-          "raceKey": "2026-06-18:toyama:1",
-          "carNo": 4,
-          "name": "龍門 慎太郎"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "鈴木浩太",
-      "displayName": "鈴木浩太",
-      "observationCount": 5,
-      "raceCount": 5,
-      "carNos": [
-        "2",
-        "4",
-        "5",
-        "6",
-        "7"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-09:iwakitaira:11",
-        "2026-06-10:iwakitaira:9",
-        "2026-06-17:keiokaku:7",
-        "2026-06-18:keiokaku:12",
-        "2026-06-19:keiokaku:8"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-09:iwakitaira:11",
-          "carNo": 6,
-          "name": "鈴木浩太"
-        },
-        {
-          "raceKey": "2026-06-10:iwakitaira:9",
-          "carNo": 7,
-          "name": "鈴木 浩太"
-        },
-        {
-          "raceKey": "2026-06-17:keiokaku:7",
-          "carNo": 5,
-          "name": "鈴木 浩太"
-        },
-        {
-          "raceKey": "2026-06-18:keiokaku:12",
-          "carNo": 2,
-          "name": "鈴木 浩太"
-        },
-        {
-          "raceKey": "2026-06-19:keiokaku:8",
-          "carNo": 4,
-          "name": "鈴木 浩太"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "與古田龍門",
-      "displayName": "與古田 龍門",
-      "observationCount": 5,
-      "raceCount": 5,
-      "carNos": [
-        "1",
-        "2",
-        "3",
-        "4"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-09:hofu:3",
-        "2026-06-10:hofu:3",
-        "2026-06-18:kokura:1",
-        "2026-06-19:kokura:4",
-        "2026-06-20:kokura:2"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-09:hofu:3",
-          "carNo": 1,
-          "name": "與古田 龍門"
-        },
-        {
-          "raceKey": "2026-06-10:hofu:3",
-          "carNo": 3,
-          "name": "與古田 龍門"
-        },
-        {
-          "raceKey": "2026-06-18:kokura:1",
-          "carNo": 1,
-          "name": "與古田龍門"
-        },
-        {
-          "raceKey": "2026-06-19:kokura:4",
-          "carNo": 2,
-          "name": "與古田龍門"
-        },
-        {
-          "raceKey": "2026-06-20:kokura:2",
-          "carNo": 4,
-          "name": "與古田龍門"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "阿部功",
-      "displayName": "阿部 功",
-      "observationCount": 4,
-      "raceCount": 4,
-      "carNos": [
-        "1",
-        "5",
-        "6"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-10:ogaki:3",
-        "2026-06-17:keiokaku:1",
-        "2026-06-18:keiokaku:1",
-        "2026-06-19:keiokaku:1"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-10:ogaki:3",
-          "carNo": 1,
-          "name": "阿部 功"
-        },
-        {
-          "raceKey": "2026-06-17:keiokaku:1",
-          "carNo": 1,
-          "name": "阿部 功"
-        },
-        {
-          "raceKey": "2026-06-18:keiokaku:1",
-          "carNo": 6,
-          "name": "阿部 功"
-        },
-        {
-          "raceKey": "2026-06-19:keiokaku:1",
-          "carNo": 5,
-          "name": "阿部 功"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "伊原克彦",
-      "displayName": "伊原 克彦",
-      "observationCount": 4,
-      "raceCount": 4,
-      "carNos": [
-        "1",
-        "2",
-        "4",
-        "7"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-10:ogaki:4",
-        "2026-06-18:kumamoto:8",
-        "2026-06-19:kumamoto:8",
-        "2026-06-20:kumamoto:6"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-10:ogaki:4",
-          "carNo": 7,
-          "name": "伊原 克彦"
-        },
-        {
-          "raceKey": "2026-06-18:kumamoto:8",
-          "carNo": 1,
-          "name": "伊原克彦"
-        },
-        {
-          "raceKey": "2026-06-19:kumamoto:8",
-          "carNo": 4,
-          "name": "伊原克彦"
-        },
-        {
-          "raceKey": "2026-06-20:kumamoto:6",
-          "carNo": 2,
-          "name": "伊原克彦"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "伊藤健詞",
-      "displayName": "伊藤健詞",
-      "observationCount": 4,
-      "raceCount": 4,
-      "carNos": [
-        "1",
-        "2",
-        "5",
-        "7"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-09:iwakitaira:5",
-        "2026-06-10:iwakitaira:4",
-        "2026-06-17:toyama:10",
-        "2026-06-18:toyama:7"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-09:iwakitaira:5",
-          "carNo": 5,
-          "name": "伊藤健詞"
-        },
-        {
-          "raceKey": "2026-06-10:iwakitaira:4",
-          "carNo": 2,
-          "name": "伊藤健詞"
-        },
-        {
-          "raceKey": "2026-06-17:toyama:10",
-          "carNo": 7,
-          "name": "伊藤 健詞"
-        },
-        {
-          "raceKey": "2026-06-18:toyama:7",
-          "carNo": 1,
-          "name": "伊藤 健詞"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "伊藤彰規",
-      "displayName": "伊藤 彰規",
+      "nameKey": "小浦凪",
+      "displayName": "小浦 凪",
       "observationCount": 4,
       "raceCount": 4,
       "carNos": [
         "3",
         "4",
         "7"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-10:shizuoka:8",
-        "2026-06-18:kokura:7",
-        "2026-06-19:kokura:8",
-        "2026-06-20:kokura:6"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-10:shizuoka:8",
-          "carNo": 4,
-          "name": "伊藤 彰規"
-        },
-        {
-          "raceKey": "2026-06-18:kokura:7",
-          "carNo": 7,
-          "name": "伊藤彰規"
-        },
-        {
-          "raceKey": "2026-06-19:kokura:8",
-          "carNo": 3,
-          "name": "伊藤彰規"
-        },
-        {
-          "raceKey": "2026-06-20:kokura:6",
-          "carNo": 7,
-          "name": "伊藤彰規"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "稲川翔",
-      "displayName": "稲川 翔",
-      "observationCount": 4,
-      "raceCount": 4,
-      "carNos": [
-        "1",
-        "2",
-        "7",
-        "8"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-18:kishiwada:11",
-        "2026-06-19:kishiwada:8",
-        "2026-06-20:kishiwada:8",
-        "2026-06-21:kishiwada:10"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-18:kishiwada:11",
-          "carNo": 7,
-          "name": "稲川 翔"
-        },
-        {
-          "raceKey": "2026-06-19:kishiwada:8",
-          "carNo": 2,
-          "name": "稲川 翔"
-        },
-        {
-          "raceKey": "2026-06-20:kishiwada:8",
-          "carNo": 1,
-          "name": "稲川 翔"
-        },
-        {
-          "raceKey": "2026-06-21:kishiwada:10",
-          "carNo": 8,
-          "name": "稲川 翔"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "宇根秀俊",
-      "displayName": "宇根 秀俊",
-      "observationCount": 4,
-      "raceCount": 4,
-      "carNos": [
-        "2",
-        "3",
-        "4",
-        "5"
       ],
       "sampleRaceKeys": [
         "2026-06-09:hofu:7",
-        "2026-06-10:hofu:6",
-        "2026-06-17:toyama:10",
-        "2026-06-18:toyama:7"
+        "2026-06-10:hofu:7",
+        "2026-06-15:matsudo:7",
+        "2026-06-17:matsudo:5"
       ],
       "examples": [
         {
           "raceKey": "2026-06-09:hofu:7",
-          "carNo": 2,
-          "name": "宇根 秀俊"
+          "carNo": 7,
+          "name": "小浦 凪"
         },
         {
-          "raceKey": "2026-06-10:hofu:6",
-          "carNo": 4,
-          "name": "宇根 秀俊"
-        },
-        {
-          "raceKey": "2026-06-17:toyama:10",
+          "raceKey": "2026-06-10:hofu:7",
           "carNo": 3,
-          "name": "宇根 秀俊"
+          "name": "小浦 凪"
         },
         {
-          "raceKey": "2026-06-18:toyama:7",
-          "carNo": 5,
-          "name": "宇根 秀俊"
+          "raceKey": "2026-06-15:matsudo:7",
+          "carNo": 4,
+          "name": "小浦 凪"
+        },
+        {
+          "raceKey": "2026-06-17:matsudo:5",
+          "carNo": 7,
+          "name": "小浦 凪"
         }
       ],
       "coverageStatus": "unresolved-registration-no",
       "sourceType": "AUDIT_EXACT"
     },
     {
-      "nameKey": "浦川尊明",
-      "displayName": "浦川 尊明",
+      "nameKey": "小橋秀幸",
+      "displayName": "小橋 秀幸",
+      "observationCount": 4,
+      "raceCount": 4,
+      "carNos": [
+        "1",
+        "2",
+        "7"
+      ],
+      "sampleRaceKeys": [
+        "2026-06-10:utsunomiya:9",
+        "2026-06-11:utsunomiya:9",
+        "2026-06-17:toyama:10",
+        "2026-06-18:toyama:11"
+      ],
+      "examples": [
+        {
+          "raceKey": "2026-06-10:utsunomiya:9",
+          "carNo": 1,
+          "name": "小橋 秀幸"
+        },
+        {
+          "raceKey": "2026-06-11:utsunomiya:9",
+          "carNo": 1,
+          "name": "小橋 秀幸"
+        },
+        {
+          "raceKey": "2026-06-17:toyama:10",
+          "carNo": 2,
+          "name": "小橋 秀幸"
+        },
+        {
+          "raceKey": "2026-06-18:toyama:11",
+          "carNo": 7,
+          "name": "小橋 秀幸"
+        }
+      ],
+      "coverageStatus": "unresolved-registration-no",
+      "sourceType": "AUDIT_EXACT"
+    },
+    {
+      "nameKey": "小松原正登",
+      "displayName": "小松原 正登",
+      "observationCount": 4,
+      "raceCount": 4,
+      "carNos": [
+        "2",
+        "4",
+        "5",
+        "6"
+      ],
+      "sampleRaceKeys": [
+        "2026-06-09:matsusaka:6",
+        "2026-06-19:hiratsuka:6",
+        "2026-06-20:hiratsuka:11",
+        "2026-06-21:hiratsuka:8"
+      ],
+      "examples": [
+        {
+          "raceKey": "2026-06-09:matsusaka:6",
+          "carNo": 5,
+          "name": "小松原 正登"
+        },
+        {
+          "raceKey": "2026-06-19:hiratsuka:6",
+          "carNo": 2,
+          "name": "小松原 正登"
+        },
+        {
+          "raceKey": "2026-06-20:hiratsuka:11",
+          "carNo": 6,
+          "name": "小松原 正登"
+        },
+        {
+          "raceKey": "2026-06-21:hiratsuka:8",
+          "carNo": 4,
+          "name": "小松原 正登"
+        }
+      ],
+      "coverageStatus": "unresolved-registration-no",
+      "sourceType": "AUDIT_EXACT"
+    },
+    {
+      "nameKey": "小林優香",
+      "displayName": "小林 優香",
+      "observationCount": 4,
+      "raceCount": 4,
+      "carNos": [
+        "1",
+        "3",
+        "4"
+      ],
+      "sampleRaceKeys": [
+        "2026-06-09:hofu:6",
+        "2026-06-10:hofu:10",
+        "2026-06-17:kishiwada:6",
+        "2026-06-18:kishiwada:6"
+      ],
+      "examples": [
+        {
+          "raceKey": "2026-06-09:hofu:6",
+          "carNo": 4,
+          "name": "小林 優香"
+        },
+        {
+          "raceKey": "2026-06-10:hofu:10",
+          "carNo": 1,
+          "name": "小林 優香"
+        },
+        {
+          "raceKey": "2026-06-17:kishiwada:6",
+          "carNo": 3,
+          "name": "小林 優香"
+        },
+        {
+          "raceKey": "2026-06-18:kishiwada:6",
+          "carNo": 3,
+          "name": "小林 優香"
+        }
+      ],
+      "coverageStatus": "unresolved-registration-no",
+      "sourceType": "AUDIT_EXACT"
+    },
+    {
+      "nameKey": "小林稜武",
+      "displayName": "小林稜武",
+      "observationCount": 4,
+      "raceCount": 4,
+      "carNos": [
+        "2",
+        "5",
+        "6"
+      ],
+      "sampleRaceKeys": [
+        "2026-06-09:iwakitaira:6",
+        "2026-06-10:iwakitaira:5",
+        "2026-06-18:keiokaku:7",
+        "2026-06-19:keiokaku:5"
+      ],
+      "examples": [
+        {
+          "raceKey": "2026-06-09:iwakitaira:6",
+          "carNo": 6,
+          "name": "小林稜武"
+        },
+        {
+          "raceKey": "2026-06-10:iwakitaira:5",
+          "carNo": 5,
+          "name": "小林稜武"
+        },
+        {
+          "raceKey": "2026-06-18:keiokaku:7",
+          "carNo": 2,
+          "name": "小林 稜武"
+        },
+        {
+          "raceKey": "2026-06-19:keiokaku:5",
+          "carNo": 6,
+          "name": "小林 稜武"
+        }
+      ],
+      "coverageStatus": "unresolved-registration-no",
+      "sourceType": "AUDIT_EXACT"
+    },
+    {
+      "nameKey": "松岡孝高",
+      "displayName": "松岡 孝高",
+      "observationCount": 4,
+      "raceCount": 4,
+      "carNos": [
+        "1",
+        "4",
+        "5",
+        "7"
+      ],
+      "sampleRaceKeys": [
+        "2026-06-09:ito:4",
+        "2026-06-18:kumamoto:6",
+        "2026-06-19:kumamoto:9",
+        "2026-06-20:kumamoto:9"
+      ],
+      "examples": [
+        {
+          "raceKey": "2026-06-09:ito:4",
+          "carNo": 5,
+          "name": "松岡 孝高"
+        },
+        {
+          "raceKey": "2026-06-18:kumamoto:6",
+          "carNo": 1,
+          "name": "松岡孝高"
+        },
+        {
+          "raceKey": "2026-06-19:kumamoto:9",
+          "carNo": 4,
+          "name": "松岡孝高"
+        },
+        {
+          "raceKey": "2026-06-20:kumamoto:9",
+          "carNo": 7,
+          "name": "松岡孝高"
+        }
+      ],
+      "coverageStatus": "unresolved-registration-no",
+      "sourceType": "AUDIT_EXACT"
+    },
+    {
+      "nameKey": "松坂英司",
+      "displayName": "松坂 英司",
+      "observationCount": 4,
+      "raceCount": 4,
+      "carNos": [
+        "2",
+        "4",
+        "6"
+      ],
+      "sampleRaceKeys": [
+        "2026-06-10:utsunomiya:7",
+        "2026-06-11:utsunomiya:6",
+        "2026-06-15:beppu:5",
+        "2026-06-17:beppu:4"
+      ],
+      "examples": [
+        {
+          "raceKey": "2026-06-10:utsunomiya:7",
+          "carNo": 4,
+          "name": "松坂 英司"
+        },
+        {
+          "raceKey": "2026-06-11:utsunomiya:6",
+          "carNo": 2,
+          "name": "松坂 英司"
+        },
+        {
+          "raceKey": "2026-06-15:beppu:5",
+          "carNo": 6,
+          "name": "松坂 英司"
+        },
+        {
+          "raceKey": "2026-06-17:beppu:4",
+          "carNo": 2,
+          "name": "松坂 英司"
+        }
+      ],
+      "coverageStatus": "unresolved-registration-no",
+      "sourceType": "AUDIT_EXACT"
+    },
+    {
+      "nameKey": "松田優一",
+      "displayName": "松田優一",
       "observationCount": 4,
       "raceCount": 4,
       "carNos": [
         "2",
         "3",
         "4",
-        "7"
+        "5"
       ],
       "sampleRaceKeys": [
-        "2026-06-13:yahiko:8",
-        "2026-06-19:hiratsuka:5",
-        "2026-06-20:hiratsuka:3",
-        "2026-06-21:hiratsuka:11"
+        "2026-05-14:ogaki:5",
+        "2026-06-10:keiokaku:7",
+        "2026-06-11:keiokaku:9",
+        "2026-06-12:keiokaku:10"
       ],
       "examples": [
         {
-          "raceKey": "2026-06-13:yahiko:8",
+          "raceKey": "2026-05-14:ogaki:5",
           "carNo": 3,
-          "name": "浦川 尊明"
+          "name": "松田優一"
         },
         {
-          "raceKey": "2026-06-19:hiratsuka:5",
+          "raceKey": "2026-06-10:keiokaku:7",
+          "carNo": 5,
+          "name": "松田 優一"
+        },
+        {
+          "raceKey": "2026-06-11:keiokaku:9",
           "carNo": 4,
-          "name": "浦川 尊明"
+          "name": "松田 優一"
         },
         {
-          "raceKey": "2026-06-20:hiratsuka:3",
+          "raceKey": "2026-06-12:keiokaku:10",
           "carNo": 2,
-          "name": "浦川 尊明"
-        },
-        {
-          "raceKey": "2026-06-21:hiratsuka:11",
-          "carNo": 7,
-          "name": "浦川 尊明"
+          "name": "松田 優一"
         }
       ],
       "coverageStatus": "unresolved-registration-no",
       "sourceType": "AUDIT_EXACT"
     },
     {
-      "nameKey": "岡本翔",
-      "displayName": "岡本 翔",
+      "nameKey": "松澤敬輔",
+      "displayName": "松澤 敬輔",
+      "observationCount": 4,
+      "raceCount": 4,
+      "carNos": [
+        "3",
+        "4",
+        "6"
+      ],
+      "sampleRaceKeys": [
+        "2026-06-10:utsunomiya:8",
+        "2026-06-11:utsunomiya:9",
+        "2026-06-17:toyama:9",
+        "2026-06-18:toyama:11"
+      ],
+      "examples": [
+        {
+          "raceKey": "2026-06-10:utsunomiya:8",
+          "carNo": 3,
+          "name": "松澤 敬輔"
+        },
+        {
+          "raceKey": "2026-06-11:utsunomiya:9",
+          "carNo": 6,
+          "name": "松澤 敬輔"
+        },
+        {
+          "raceKey": "2026-06-17:toyama:9",
+          "carNo": 4,
+          "name": "松澤 敬輔"
+        },
+        {
+          "raceKey": "2026-06-18:toyama:11",
+          "carNo": 3,
+          "name": "松澤 敬輔"
+        }
+      ],
+      "coverageStatus": "unresolved-registration-no",
+      "sourceType": "AUDIT_EXACT"
+    },
+    {
+      "nameKey": "森岡正臣",
+      "displayName": "森岡 正臣",
+      "observationCount": 4,
+      "raceCount": 4,
+      "carNos": [
+        "1",
+        "3",
+        "4",
+        "7"
+      ],
+      "sampleRaceKeys": [
+        "2026-06-09:matsusaka:4",
+        "2026-06-18:kumamoto:5",
+        "2026-06-19:kumamoto:5",
+        "2026-06-20:kumamoto:7"
+      ],
+      "examples": [
+        {
+          "raceKey": "2026-06-09:matsusaka:4",
+          "carNo": 7,
+          "name": "森岡 正臣"
+        },
+        {
+          "raceKey": "2026-06-18:kumamoto:5",
+          "carNo": 3,
+          "name": "森岡正臣"
+        },
+        {
+          "raceKey": "2026-06-19:kumamoto:5",
+          "carNo": 1,
+          "name": "森岡正臣"
+        },
+        {
+          "raceKey": "2026-06-20:kumamoto:7",
+          "carNo": 4,
+          "name": "森岡正臣"
+        }
+      ],
+      "coverageStatus": "unresolved-registration-no",
+      "sourceType": "AUDIT_EXACT"
+    },
+    {
+      "nameKey": "神田龍",
+      "displayName": "神田龍",
+      "observationCount": 4,
+      "raceCount": 4,
+      "carNos": [
+        "1",
+        "4",
+        "5",
+        "7"
+      ],
+      "sampleRaceKeys": [
+        "2026-05-09:matsusaka:10",
+        "2026-05-10:matsusaka:7",
+        "2026-06-15:beppu:6",
+        "2026-06-17:beppu:12"
+      ],
+      "examples": [
+        {
+          "raceKey": "2026-05-09:matsusaka:10",
+          "carNo": 1,
+          "name": "神田龍"
+        },
+        {
+          "raceKey": "2026-05-10:matsusaka:7",
+          "carNo": 7,
+          "name": "神田龍"
+        },
+        {
+          "raceKey": "2026-06-15:beppu:6",
+          "carNo": 4,
+          "name": "神田 龍"
+        },
+        {
+          "raceKey": "2026-06-17:beppu:12",
+          "carNo": 5,
+          "name": "神田 龍"
+        }
+      ],
+      "coverageStatus": "unresolved-registration-no",
+      "sourceType": "AUDIT_EXACT"
+    },
+    {
+      "nameKey": "須藤悟",
+      "displayName": "須藤 悟",
+      "observationCount": 4,
+      "raceCount": 4,
+      "carNos": [
+        "1",
+        "3",
+        "4",
+        "7"
+      ],
+      "sampleRaceKeys": [
+        "2026-06-09:ito:5",
+        "2026-06-17:keiokaku:9",
+        "2026-06-18:keiokaku:6",
+        "2026-06-19:keiokaku:5"
+      ],
+      "examples": [
+        {
+          "raceKey": "2026-06-09:ito:5",
+          "carNo": 7,
+          "name": "須藤 悟"
+        },
+        {
+          "raceKey": "2026-06-17:keiokaku:9",
+          "carNo": 1,
+          "name": "須藤 悟"
+        },
+        {
+          "raceKey": "2026-06-18:keiokaku:6",
+          "carNo": 3,
+          "name": "須藤 悟"
+        },
+        {
+          "raceKey": "2026-06-19:keiokaku:5",
+          "carNo": 4,
+          "name": "須藤 悟"
+        }
+      ],
+      "coverageStatus": "unresolved-registration-no",
+      "sourceType": "AUDIT_EXACT"
+    },
+    {
+      "nameKey": "瀬口匠",
+      "displayName": "瀬口 匠",
+      "observationCount": 4,
+      "raceCount": 4,
+      "carNos": [
+        "1",
+        "6"
+      ],
+      "sampleRaceKeys": [
+        "2026-06-10:ogaki:1",
+        "2026-06-17:keiokaku:1",
+        "2026-06-18:keiokaku:4",
+        "2026-06-19:keiokaku:4"
+      ],
+      "examples": [
+        {
+          "raceKey": "2026-06-10:ogaki:1",
+          "carNo": 1,
+          "name": "瀬口 匠"
+        },
+        {
+          "raceKey": "2026-06-17:keiokaku:1",
+          "carNo": 6,
+          "name": "瀬口 匠"
+        },
+        {
+          "raceKey": "2026-06-18:keiokaku:4",
+          "carNo": 6,
+          "name": "瀬口 匠"
+        },
+        {
+          "raceKey": "2026-06-19:keiokaku:4",
+          "carNo": 6,
+          "name": "瀬口 匠"
+        }
+      ],
+      "coverageStatus": "unresolved-registration-no",
+      "sourceType": "AUDIT_EXACT"
+    },
+    {
+      "nameKey": "清水邦章",
+      "displayName": "清水 邦章",
+      "observationCount": 4,
+      "raceCount": 4,
+      "carNos": [
+        "1",
+        "6"
+      ],
+      "sampleRaceKeys": [
+        "2026-06-09:hofu:7",
+        "2026-06-10:hofu:6",
+        "2026-06-17:toyama:8",
+        "2026-06-18:toyama:5"
+      ],
+      "examples": [
+        {
+          "raceKey": "2026-06-09:hofu:7",
+          "carNo": 6,
+          "name": "清水 邦章"
+        },
+        {
+          "raceKey": "2026-06-10:hofu:6",
+          "carNo": 6,
+          "name": "清水 邦章"
+        },
+        {
+          "raceKey": "2026-06-17:toyama:8",
+          "carNo": 6,
+          "name": "清水 邦章"
+        },
+        {
+          "raceKey": "2026-06-18:toyama:5",
+          "carNo": 1,
+          "name": "清水 邦章"
+        }
+      ],
+      "coverageStatus": "unresolved-registration-no",
+      "sourceType": "AUDIT_EXACT"
+    },
+    {
+      "nameKey": "西本健三郎",
+      "displayName": "西本 健三郎",
+      "observationCount": 4,
+      "raceCount": 4,
+      "carNos": [
+        "1",
+        "2",
+        "4",
+        "5"
+      ],
+      "sampleRaceKeys": [
+        "2026-06-10:utsunomiya:4",
+        "2026-06-11:utsunomiya:8",
+        "2026-06-17:toyama:5",
+        "2026-06-18:toyama:10"
+      ],
+      "examples": [
+        {
+          "raceKey": "2026-06-10:utsunomiya:4",
+          "carNo": 1,
+          "name": "西本 健三郎"
+        },
+        {
+          "raceKey": "2026-06-11:utsunomiya:8",
+          "carNo": 2,
+          "name": "西本 健三郎"
+        },
+        {
+          "raceKey": "2026-06-17:toyama:5",
+          "carNo": 5,
+          "name": "西本 健三郎"
+        },
+        {
+          "raceKey": "2026-06-18:toyama:10",
+          "carNo": 4,
+          "name": "西本 健三郎"
+        }
+      ],
+      "coverageStatus": "unresolved-registration-no",
+      "sourceType": "AUDIT_EXACT"
+    },
+    {
+      "nameKey": "青井賢治",
+      "displayName": "青井 賢治",
+      "observationCount": 4,
+      "raceCount": 4,
+      "carNos": [
+        "1",
+        "2",
+        "7"
+      ],
+      "sampleRaceKeys": [
+        "2026-06-09:ito:4",
+        "2026-06-18:kokura:11",
+        "2026-06-19:kokura:11",
+        "2026-06-20:kokura:7"
+      ],
+      "examples": [
+        {
+          "raceKey": "2026-06-09:ito:4",
+          "carNo": 7,
+          "name": "青井 賢治"
+        },
+        {
+          "raceKey": "2026-06-18:kokura:11",
+          "carNo": 7,
+          "name": "青井賢治"
+        },
+        {
+          "raceKey": "2026-06-19:kokura:11",
+          "carNo": 2,
+          "name": "青井賢治"
+        },
+        {
+          "raceKey": "2026-06-20:kokura:7",
+          "carNo": 1,
+          "name": "青井賢治"
+        }
+      ],
+      "coverageStatus": "unresolved-registration-no",
+      "sourceType": "AUDIT_EXACT"
+    },
+    {
+      "nameKey": "石黒健",
+      "displayName": "石黒 健",
+      "observationCount": 4,
+      "raceCount": 4,
+      "carNos": [
+        "3",
+        "5",
+        "7"
+      ],
+      "sampleRaceKeys": [
+        "2026-06-10:utsunomiya:7",
+        "2026-06-11:utsunomiya:6",
+        "2026-06-17:toyama:7",
+        "2026-06-18:toyama:6"
+      ],
+      "examples": [
+        {
+          "raceKey": "2026-06-10:utsunomiya:7",
+          "carNo": 7,
+          "name": "石黒 健"
+        },
+        {
+          "raceKey": "2026-06-11:utsunomiya:6",
+          "carNo": 7,
+          "name": "石黒 健"
+        },
+        {
+          "raceKey": "2026-06-17:toyama:7",
+          "carNo": 5,
+          "name": "石黒 健"
+        },
+        {
+          "raceKey": "2026-06-18:toyama:6",
+          "carNo": 3,
+          "name": "石黒 健"
+        }
+      ],
+      "coverageStatus": "unresolved-registration-no",
+      "sourceType": "AUDIT_EXACT"
+    },
+    {
+      "nameKey": "泉谷直哉",
+      "displayName": "泉谷 直哉",
+      "observationCount": 4,
+      "raceCount": 4,
+      "carNos": [
+        "1",
+        "2",
+        "3",
+        "5"
+      ],
+      "sampleRaceKeys": [
+        "2026-06-09:hofu:8",
+        "2026-06-10:hofu:6",
+        "2026-06-15:matsudo:7",
+        "2026-06-17:matsudo:5"
+      ],
+      "examples": [
+        {
+          "raceKey": "2026-06-09:hofu:8",
+          "carNo": 1,
+          "name": "泉谷 直哉"
+        },
+        {
+          "raceKey": "2026-06-10:hofu:6",
+          "carNo": 2,
+          "name": "泉谷 直哉"
+        },
+        {
+          "raceKey": "2026-06-15:matsudo:7",
+          "carNo": 3,
+          "name": "泉谷 直哉"
+        },
+        {
+          "raceKey": "2026-06-17:matsudo:5",
+          "carNo": 5,
+          "name": "泉谷 直哉"
+        }
+      ],
+      "coverageStatus": "unresolved-registration-no",
+      "sourceType": "AUDIT_EXACT"
+    },
+    {
+      "nameKey": "太田黒大心",
+      "displayName": "太田黒 大心",
       "observationCount": 4,
       "raceCount": 4,
       "carNos": [
@@ -2951,118 +2024,79 @@
         "5"
       ],
       "sampleRaceKeys": [
-        "2026-06-10:ogaki:4",
-        "2026-06-18:kokura:7",
-        "2026-06-19:kokura:7",
-        "2026-06-20:kokura:6"
+        "2026-06-09:beppu:6",
+        "2026-06-10:beppu:6",
+        "2026-06-11:beppu:6",
+        "2026-06-17:toyama:7"
       ],
       "examples": [
         {
-          "raceKey": "2026-06-10:ogaki:4",
+          "raceKey": "2026-06-09:beppu:6",
           "carNo": 5,
-          "name": "岡本 翔"
+          "name": "太田黒 大心"
         },
         {
-          "raceKey": "2026-06-18:kokura:7",
+          "raceKey": "2026-06-10:beppu:6",
+          "carNo": 4,
+          "name": "太田黒 大心"
+        },
+        {
+          "raceKey": "2026-06-11:beppu:6",
+          "carNo": 5,
+          "name": "太田黒 大心"
+        },
+        {
+          "raceKey": "2026-06-17:toyama:7",
           "carNo": 3,
-          "name": "岡本翔"
-        },
-        {
-          "raceKey": "2026-06-19:kokura:7",
-          "carNo": 4,
-          "name": "岡本翔"
-        },
-        {
-          "raceKey": "2026-06-20:kokura:6",
-          "carNo": 5,
-          "name": "岡本翔"
+          "name": "太田黒 大心"
         }
       ],
       "coverageStatus": "unresolved-registration-no",
       "sourceType": "AUDIT_EXACT"
     },
     {
-      "nameKey": "河端朋之",
-      "displayName": "河端 朋之",
+      "nameKey": "太田美穂",
+      "displayName": "太田 美穂",
       "observationCount": 4,
       "raceCount": 4,
       "carNos": [
-        "1",
-        "5",
-        "6",
-        "8"
-      ],
-      "sampleRaceKeys": [
-        "2026-06-17:kishiwada:10",
-        "2026-06-19:kishiwada:6",
-        "2026-06-20:kishiwada:10",
-        "2026-06-21:kishiwada:12"
-      ],
-      "examples": [
-        {
-          "raceKey": "2026-06-17:kishiwada:10",
-          "carNo": 5,
-          "name": "河端 朋之"
-        },
-        {
-          "raceKey": "2026-06-19:kishiwada:6",
-          "carNo": 1,
-          "name": "河端 朋之"
-        },
-        {
-          "raceKey": "2026-06-20:kishiwada:10",
-          "carNo": 6,
-          "name": "河端 朋之"
-        },
-        {
-          "raceKey": "2026-06-21:kishiwada:12",
-          "carNo": 8,
-          "name": "河端 朋之"
-        }
-      ],
-      "coverageStatus": "unresolved-registration-no",
-      "sourceType": "AUDIT_EXACT"
-    },
-    {
-      "nameKey": "柿本大貴",
-      "displayName": "柿本大貴",
-      "observationCount": 4,
-      "raceCount": 4,
-      "carNos": [
+        "3",
         "4",
-        "6"
+        "7"
       ],
       "sampleRaceKeys": [
-        "2026-06-09:iwakitaira:6",
-        "2026-06-10:iwakitaira:6",
-        "2026-06-15:beppu:11",
-        "2026-06-17:beppu:5"
+        "2026-06-09:hofu:5",
+        "2026-06-10:hofu:10",
+        "2026-06-17:kishiwada:6",
+        "2026-06-18:kishiwada:5"
       ],
       "examples": [
         {
-          "raceKey": "2026-06-09:iwakitaira:6",
+          "raceKey": "2026-06-09:hofu:5",
+          "carNo": 7,
+          "name": "太田 美穂"
+        },
+        {
+          "raceKey": "2026-06-10:hofu:10",
+          "carNo": 3,
+          "name": "太田 美穂"
+        },
+        {
+          "raceKey": "2026-06-17:kishiwada:6",
           "carNo": 4,
-          "name": "柿本大貴"
+          "name": "太田 美穂"
         },
         {
-          "raceKey": "2026-06-10:iwakitaira:6",
-          "carNo": 6,
-          "name": "柿本大貴"
-        },
-        {
-          "raceKey": "2026-06-15:beppu:11",
-          "carNo": 6,
-          "name": "柿本 大貴"
-        },
-        {
-          "raceKey": "2026-06-17:beppu:5",
-          "carNo": 6,
-          "name": "柿本 大貴"
+          "raceKey": "2026-06-18:kishiwada:5",
+          "carNo": 4,
+          "name": "太田 美穂"
         }
       ],
       "coverageStatus": "unresolved-registration-no",
       "sourceType": "AUDIT_EXACT"
-    },
+    }
+  ],
+  "unresolvedNames": [
     {
       "nameKey": "角宗哉",
       "displayName": "角宗哉",

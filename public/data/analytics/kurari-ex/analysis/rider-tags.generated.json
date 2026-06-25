@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-24T22:41:08.869Z",
+  "generatedAt": "2026-06-25T04:36:17.471Z",
   "source": "kurari-ex-rider-score-v1",
   "sourceType": "EXACT_RIDER_SCORE",
   "period": {
     "from": "2026-05-09",
     "to": "2026-06-23"
   },
-  "riderCount": 1379,
+  "riderCount": 1399,
   "qualityCounts": {
-    "complete": 79,
-    "partial": 495,
-    "low-sample": 746,
+    "complete": 81,
+    "partial": 503,
+    "low-sample": 756,
     "identity-only": 59
   },
   "inclusionPolicy": {
@@ -25,43 +25,43 @@
       "tag": "ROLE_MISSING",
       "label": "役割欠損あり",
       "memo": "ライン・役割情報が一部不足している。",
-      "riderCount": 954
+      "riderCount": 970
     },
     {
       "tag": "CONFIRMED_START_SHORT",
       "label": "出走数不足",
       "memo": "confirmedStartCount が5未満。",
-      "riderCount": 805
+      "riderCount": 815
     },
     {
       "tag": "LOW_SAMPLE_GROWING",
       "label": "低サンプル育成中",
       "memo": "出走数が少ないため、消さずに育成中として保持する。",
-      "riderCount": 746
+      "riderCount": 756
     },
     {
       "tag": "TOP3_CANDIDATE",
       "label": "3着候補",
       "memo": "3連対率が高く、3着保護候補に使える。",
-      "riderCount": 730
+      "riderCount": 740
     },
     {
       "tag": "TOP2_CANDIDATE",
       "label": "2着候補",
       "memo": "2連対率が一定以上で、2着候補に使える。",
-      "riderCount": 689
+      "riderCount": 703
     },
     {
       "tag": "PARTIAL_DATA",
       "label": "部分データ",
       "memo": "一部データ不足があるため評価を弱めて扱う。",
-      "riderCount": 495
+      "riderCount": 503
     },
     {
       "tag": "COMPLETE_PROFILE",
       "label": "分析可能",
       "memo": "出走実績があり、条件別評価に使いやすい。",
-      "riderCount": 79
+      "riderCount": 81
     },
     {
       "tag": "IDENTITY_ONLY_GROWING",
