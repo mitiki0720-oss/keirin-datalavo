@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "kurume",
   "venueName": "久留米",
-  "updatedAt": "2026-06-23",
+  "updatedAt": "2026-06-25",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-01",
-    "to": "2026-06-23"
+    "to": "2026-06-24"
   },
   "quality": {
-    "seedSources": 10,
-    "parsedDateSources": 10,
+    "seedSources": 11,
+    "parsedDateSources": 11,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 10,
-    "raceCount": 104,
-    "trifectaHits": 21,
-    "trifectaHitRate": 20.2,
-    "exactaHits": 20,
-    "exactaHitRate": 21.7,
+    "sourceCount": 11,
+    "raceCount": 116,
+    "trifectaHits": 25,
+    "trifectaHitRate": 21.6,
+    "exactaHits": 22,
+    "exactaHitRate": 21.2,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 104000,
-    "returnYen": 69690,
-    "recoveryRate": 67,
+    "investmentYen": 116000,
+    "returnYen": 79820,
+    "recoveryRate": 68.8,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,49 +38,56 @@
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 10,
+      "evidenceCount": 11,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 10,
+      "evidenceCount": 11,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 3,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 3,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 3,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 2,
+      "evidenceCount": 3,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "LINE_COHESION",
+      "label": "同ライン決着を評価",
+      "evidenceCount": 1,
       "confidence": "low",
       "sourceType": "SEED"
     }
@@ -109,7 +116,9 @@
     "improvements": [
       "総括・次回に向けた改善summary",
       "4）次回の買い目ルール提案",
-      "5）次回の久留米ナイターで重視すること"
+      "5）次回の久留米ナイターで重視すること",
+      "※ここでは新規予想は行わず、予想10点と実結果を照合し、次回予想に活かすための反省点をまとめます。",
+      "出走表の選手属性が添付ファイルに不足していたため、府県・年齢・期・登録番号を完全記録できなかった。次回は出走表詳細CSV/HTMLまたは公式出走表の貼付が必要。"
     ]
   },
   "predictionGuidance": [
@@ -120,6 +129,6 @@
     "先行争いがある場合は別線の捲り筋を残す",
     "本線が崩れた場合の別線頭と別線3着を保護する",
     "踏み合い時は単騎の差し込みを3着候補に加える",
-    "総括・次回に向けた改善summary"
+    "ラインの長さと追走力を確認し、同ライン決着を評価する"
   ]
 }
