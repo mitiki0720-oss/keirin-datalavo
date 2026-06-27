@@ -733,29 +733,29 @@ function buildKurariExMatchupSignal(
 ) {
   const selfAheadRate = matchup.selfAheadRate ?? 0;
   const opponentAheadRate = matchup.opponentAheadRate ?? 0;
-  if (selfAheadRate >= 65) return selfName + "??????????????????";
-  if (opponentAheadRate >= 65) return opponentName + "??????" + selfName + "?????????";
-  if (selfAheadRate >= 55) return selfName + "??????";
-  if (opponentAheadRate >= 55) return opponentName + "??????";
-  return "???????????????????";
+  if (selfAheadRate >= 65) return selfName + "の先着優勢。序列上位評価。";
+  if (opponentAheadRate >= 65) return opponentName + "が優勢。" + selfName + "の過信注意。";
+  if (selfAheadRate >= 55) return selfName + "やや優勢。";
+  if (opponentAheadRate >= 55) return opponentName + "やや優勢。";
+  return "拮抗。展開・ライン構成を優先。";
 }
 
 export function buildKurariExMatchupPredictionMaterial(
   entries: KurariExMatchupPredictionEntry[],
   state: "ready" | "missing" | "error" = "ready",
 ): KurariExMatchupPredictionMaterial {
-  const heading = "???MATCHUP EX / ???????";
+  const heading = "【MATCHUP EX / 対戦相性】";
 
   if (state === "error") {
     return {
-      text: [heading, "MATCHUP EX????????????", "???EXACT????EXACT???????????"].join("\n"),
+      text: [heading, "MATCHUP EXを取得できませんでした。", "会場別EXACT・選手別EXACTと既存素材を主として予想してください。"].join("\n"),
       reflectedCount: 0,
     };
   }
 
   if (state === "missing" || entries.length < 2) {
     return {
-      text: [heading, "?????????????MATCHUP EX???????"].join("\n"),
+      text: [heading, "今回出走メンバー同士で使えるMATCHUP EXはありません。"].join("\n"),
       reflectedCount: 0,
     };
   }
@@ -778,15 +778,15 @@ export function buildKurariExMatchupPredictionMaterial(
       if (usedPairKeys.has(pairKey)) continue;
       usedPairKeys.add(pairKey);
 
-      const selfName = entry.carNo + "? " + (entry.riderName || entry.exact.name);
-      const opponentName = opponent.carNo + "? " + (opponent.riderName || matchup.opponentName);
+      const selfName = entry.carNo + "番 " + (entry.riderName || entry.exact.name);
+      const opponentName = opponent.carNo + "番 " + (opponent.riderName || matchup.opponentName);
 
       const detailLines = [
         "### " + selfName + " vs " + opponentName,
-        "- ????: " + matchup.safeComparableRaceCount + "R / " + selfName + "?? " + formatKurariExMatchupRate(matchup.selfAheadRate) + " / " + opponentName + "?? " + formatKurariExMatchupRate(matchup.opponentAheadRate),
-        "- ??: " + buildKurariExMatchupSignal(selfName, opponentName, matchup),
-        buildKurariExMatchupLine("?????", selfName, opponentName, matchup.sameLine),
-        buildKurariExMatchupLine("???", selfName, opponentName, matchup.otherLine),
+        "- 直接比較: " + matchup.safeComparableRaceCount + "R / " + selfName + "先着 " + formatKurariExMatchupRate(matchup.selfAheadRate) + " / " + opponentName + "先着 " + formatKurariExMatchupRate(matchup.opponentAheadRate),
+        "- 判定: " + buildKurariExMatchupSignal(selfName, opponentName, matchup),
+        buildKurariExMatchupLine("同ライン時", selfName, opponentName, matchup.sameLine),
+        buildKurariExMatchupLine("別ライン時", selfName, opponentName, matchup.otherLine),
       ].filter(Boolean);
 
       cards.push(detailLines.join("\n"));
@@ -799,8 +799,8 @@ export function buildKurariExMatchupPredictionMaterial(
     return {
       text: [
         heading,
-        "??????????????????MATCHUP EX???????",
-        "- 1R??????LOW SAMPLE?partial?????????????????????",
+        "今回出走メンバー同士のMATCHUP EXはありますが、比較可能レース数が少なく強い判断材料はありません。",
+        "- 1Rだけの比較、LOW SAMPLE、partial品質は過信しないでください。",
       ].join("\n"),
       reflectedCount: 0,
     };
@@ -811,9 +811,9 @@ export function buildKurariExMatchupPredictionMaterial(
       heading,
       "",
       "??:",
-      "- MATCHUP EX??????????????????????",
-      "- ???????????????????????????????????",
-      "- ?????????????????????????????????",
+      "- MATCHUP EXは同走時の先着傾向を補助材料として扱ってください。",
+      "- 直接比較で優勢でも、ライン構成・番手関係・当日気配を優先してください。",
+      "- 拮抗または低母数の場合は、会場別EXACT・選手別EXACT・KDreams素材を優先してください。",
       ...cards.flatMap((card) => ["", card]),
     ],
     2600,
