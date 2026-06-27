@@ -136,6 +136,14 @@ function normalizePodiumName(value) {
   );
 }
 
+const RIDER_AUDIT_NOISE_NAME_KEYS = new Set([
+  "単騎",
+]);
+
+function isRiderAuditNoiseName(nameKey) {
+  return RIDER_AUDIT_NOISE_NAME_KEYS.has(normalizeRiderName(nameKey));
+}
+
 async function main() {
   const [{ races, errors }, identitySources] = await Promise.all([
     readNormalizedRaces(),
@@ -165,7 +173,7 @@ async function main() {
       }
       if (["manual-override", "race-manual-override"].includes(identity.status)) manualOverrideMatches.add(nameKey);
       if (identity.registrationNo) resolvedRegistrationNos.add(identity.registrationNo);
-      if (identity.status === "unresolved") {
+      if (identity.status === "unresolved" && !isRiderAuditNoiseName(nameKey)) {
         unresolved.push({
           raceKey: race.raceKey,
           carNo: starter.carNo,
