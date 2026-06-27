@@ -723,7 +723,7 @@ function buildKurariExMatchupLine(
   stats?: KurariExMatchupComparableLike | null,
 ) {
   if (!stats || stats.safeComparableRaceCount < KURARI_EX_MATCHUP_PAIR_MIN_SAFE_RACES) return "";
-  return "- " + label + ": " + stats.safeComparableRaceCount + "R / " + selfName + "?? " + formatKurariExMatchupRate(stats.selfAheadRate) + " / " + opponentName + "?? " + formatKurariExMatchupRate(stats.opponentAheadRate);
+  return "- " + label + ": " + stats.safeComparableRaceCount + "R / " + selfName + "先着 " + formatKurariExMatchupRate(stats.selfAheadRate) + " / " + opponentName + "先着 " + formatKurariExMatchupRate(stats.opponentAheadRate);
 }
 
 function buildKurariExMatchupSignal(
@@ -810,7 +810,7 @@ export function buildKurariExMatchupPredictionMaterial(
     [
       heading,
       "",
-      "??:",
+      "扱い:",
       "- MATCHUP EXは同走時の先着傾向を補助材料として扱ってください。",
       "- 直接比較で優勢でも、ライン構成・番手関係・当日気配を優先してください。",
       "- 拮抗または低母数の場合は、会場別EXACT・選手別EXACT・KDreams素材を優先してください。",

@@ -1180,7 +1180,7 @@ export default function ExDataPage() {
                         </li>
                       ))}
                     </ul>
-                  ) : <div className="ex-muted">sample-short??</div>}
+                  ) : <div className="ex-muted">sample-shortなし</div>}
                 </article>
                 <article className="ex-recommend-card">
                   <h4>{"\u9078\u624b\u30ab\u30eb\u30c6\u4e0a\u4f4d"}</h4>
