@@ -263,6 +263,11 @@ type VenueReviewGroup = {
   hitCount: number;
 };
 
+type ReviewCopySection = {
+  raceNumber: number;
+  text: string;
+};
+
 const PAGE_MAX_WIDTH = "2040px";
 const PREDICTION_SLOT_STORAGE_KEY = "kurari-data-labo-prediction-slots";
 const PREDICTION_RESULT_STORAGE_KEY = "kurari-data-labo-prediction-results";
@@ -1577,6 +1582,117 @@ function isReviewAllRefundRace(feedRace?: PredictionRaceItem) {
   return payoutText.includes(REVIEW_ALL_REFUND_TEXT);
 }
 
+const EMPTY_REVIEW_VALUES = new Set([
+  "",
+  "-",
+  "--",
+  "---",
+  "pending",
+  "未保存",
+  "未入力",
+  "未反映",
+  "保留",
+  "接続待ち",
+  "未取得",
+  "情報なし",
+]);
+
+function normalizeReviewValue(value: unknown): string {
+  return String(value ?? "").trim();
+}
+
+function hasRealReviewValue(value: unknown): boolean {
+  const text = normalizeReviewValue(value);
+  return text.length > 0 && !EMPTY_REVIEW_VALUES.has(text.toLowerCase());
+}
+
+function parseReviewCopySections(copyText: string): ReviewCopySection[] {
+  const matches = Array.from(copyText.matchAll(/^■\s+.*?\s+(\d{1,2})R\s*$/gm));
+
+  return matches.flatMap((match, index) => {
+    const raceNumber = Number(match[1]);
+    if (!Number.isFinite(raceNumber)) return [];
+
+    const contentStart = (match.index ?? 0) + match[0].length;
+    const contentEnd = matches[index + 1]?.index ?? copyText.length;
+    return [{
+      raceNumber,
+      text: copyText.slice(contentStart, contentEnd).trim(),
+    }];
+  });
+}
+
+function isPredictionTextReady(value: unknown): boolean {
+  const text = normalizeReviewValue(value);
+  if (!hasRealReviewValue(text)) return false;
+
+  return text.split(/\r?\n/).some((line) => {
+    const normalizedLine = line.trim();
+    if (!normalizedLine || /^【[^】]+】$/.test(normalizedLine)) return false;
+
+    const labelAndValue = normalizedLine.match(/^[^:：]+[:：]\s*(.*)$/);
+    return hasRealReviewValue(labelAndValue ? labelAndValue[1] : normalizedLine);
+  });
+}
+
+function isPredictionReviewReady(race?: VenueReviewRace, fallbackText = ""): boolean {
+  return isPredictionTextReady(race?.predictionText) || isPredictionTextReady(fallbackText);
+}
+
+function isResultTextReady(value: unknown): boolean {
+  const text = normalizeReviewValue(value);
+  if (!hasRealReviewValue(text)) return false;
+  if (/^(?:結果確定|結果ステータス)\s*[:：]\s*(?:pending|接続待ち)\s*$/im.test(text)) return false;
+  if (/^(?:結果確定|結果ステータス)\s*[:：]\s*confirmed\s*$/im.test(text)) return true;
+
+  return Array.from(
+    text.matchAll(/^(?:着順|3連単(?:照合キー|結果|組合せキー)|払戻)\s*[:：]\s*(.+)$/gim),
+  ).some((match) => hasRealReviewValue(match[1]));
+}
+
+function isResultReviewReady(race?: VenueReviewRace, fallbackText = ""): boolean {
+  const feedRace = race?.feedRace;
+  const resultStatus = feedRace?.result?.status ?? feedRace?.resultStatus;
+  if (resultStatus === "pending") return false;
+  if (isReviewAllRefundRace(feedRace) || resultStatus === "confirmed") return true;
+
+  if (hasRealReviewValue(race?.resultRecord?.resultOrder)) return true;
+
+  const hasFinishOrder = Boolean(
+    feedRace?.result?.finishOrder?.some((item) =>
+      typeof item === "string"
+        ? hasRealReviewValue(item)
+        : hasRealReviewValue(item.rank) || hasRealReviewValue(item.carNo)
+    ) ||
+    feedRace?.resultTop3?.some((item) =>
+      hasRealReviewValue(item.place) || hasRealReviewValue(item.carNo)
+    )
+  );
+  if (hasFinishOrder) return true;
+
+  const payoutItems = [
+    ...(feedRace?.payouts ?? []),
+    feedRace?.result?.payout2tan,
+    ...(feedRace?.result?.payout2fuku ?? []),
+    feedRace?.result?.payout3tan,
+    feedRace?.result?.payout3fuku,
+    ...(feedRace?.result?.payoutWide ?? []),
+  ].filter((item): item is PredictionRaceResultPayoutItem => Boolean(item));
+  if (payoutItems.some((item) =>
+    hasRealReviewValue(item.combination) || hasRealReviewValue(item.payout)
+  )) return true;
+
+  const resultRecord = race?.resultRecord;
+  if (
+    (resultRecord?.hitStatus === "hit" || resultRecord?.hitStatus === "miss") &&
+    (typeof resultRecord.payout === "number" || typeof resultRecord.investment === "number")
+  ) {
+    return true;
+  }
+
+  return isResultTextReady(fallbackText);
+}
+
 function getReviewResultStatusLabel(feedRace?: PredictionRaceItem) {
   if (isReviewAllRefundRace(feedRace)) return REVIEW_ALL_REFUND_STATUS_LABEL;
   return feedRace?.result?.status ?? feedRace?.resultStatus ?? "\u63a5\u7d9a\u5f85\u3061";
@@ -2541,6 +2657,103 @@ export default function ReviewPage() {
     [isLocalReviewSelected, reviewWeatherActualMap, selectedFileFallbackVenueGroup, selectedReviewFileGroup, selectedVenueGroup, todayFeed],
   );
 
+  const selectedReviewReadiness = useMemo(() => {
+    const sourceGroup = isLocalReviewSelected ? selectedVenueGroup : selectedFileFallbackVenueGroup;
+    const sourceRaces = sourceGroup?.races ?? [];
+    const predictionSections = parseReviewCopySections(selectedReviewFileGroup?.predictionText ?? "");
+    const resultSections = parseReviewCopySections(selectedReviewFileGroup?.resultText ?? "");
+    const targetVenue = selectedDisplayVenueName ?? sourceGroup?.venue;
+    const feedVenue = todayFeed?.date === selectedDate && targetVenue
+      ? todayFeed.venues.find((venue) => normalizeVenueName(venue.venue) === normalizeVenueName(targetVenue))
+      : undefined;
+    const savedResultRecords = targetVenue
+      ? Object.values(resultMap).filter(
+          (record) =>
+            record.date === selectedDate &&
+            normalizeVenueName(record.venue) === normalizeVenueName(targetVenue),
+        )
+      : [];
+    const targetRaceNumbers = new Set<number>();
+
+    sourceRaces.forEach((race) => targetRaceNumbers.add(race.raceNumber));
+    feedVenue?.races?.forEach((race) => targetRaceNumbers.add(race.raceNo));
+    savedResultRecords.forEach((record) => targetRaceNumbers.add(record.raceNumber));
+    predictionSections.forEach((section) => targetRaceNumbers.add(section.raceNumber));
+    resultSections.forEach((section) => targetRaceNumbers.add(section.raceNumber));
+
+    const predictionSectionMap = new Map(
+      predictionSections.map((section) => [section.raceNumber, section.text]),
+    );
+    const resultSectionMap = new Map(
+      resultSections.map((section) => [section.raceNumber, section.text]),
+    );
+    const racesByNumber = new Map(sourceRaces.map((race) => [race.raceNumber, race]));
+    const feedRacesByNumber = new Map((feedVenue?.races ?? []).map((race) => [race.raceNo, race]));
+    const resultRecordsByNumber = new Map(
+      [...savedResultRecords]
+        .sort((a, b) => (a.savedAt ?? "").localeCompare(b.savedAt ?? ""))
+        .map((record) => [record.raceNumber, record]),
+    );
+    const raceNumbers = [...targetRaceNumbers].sort((a, b) => a - b);
+    const predictionMissingRaceNumbers: number[] = [];
+    const resultMissingRaceNumbers: number[] = [];
+    let predictionReadyCount = 0;
+    let resultReadyCount = 0;
+
+    raceNumbers.forEach((raceNumber) => {
+      const sourceRace = racesByNumber.get(raceNumber);
+      const latestFeedRace = feedRacesByNumber.get(raceNumber);
+      const savedResultRecord = resultRecordsByNumber.get(raceNumber);
+      const race = sourceRace
+        ? {
+            ...sourceRace,
+            feedRace: mergeReviewRaceWithSnapshot(latestFeedRace, sourceRace.feedRace),
+            resultRecord: savedResultRecord ?? sourceRace.resultRecord,
+          }
+        : targetVenue
+          ? {
+              venue: targetVenue,
+              date: selectedDate,
+              raceNumber,
+              raceKey: `readiness:${selectedDate}:${normalizeVenueName(targetVenue)}:${raceNumber}`,
+              predictionText: "",
+              predictionSummary: "",
+              feedRace: latestFeedRace,
+              resultRecord: savedResultRecord,
+            }
+          : undefined;
+
+      if (isPredictionReviewReady(race, predictionSectionMap.get(raceNumber))) {
+        predictionReadyCount += 1;
+      } else {
+        predictionMissingRaceNumbers.push(raceNumber);
+      }
+
+      if (isResultReviewReady(race, resultSectionMap.get(raceNumber))) {
+        resultReadyCount += 1;
+      } else {
+        resultMissingRaceNumbers.push(raceNumber);
+      }
+    });
+
+    return {
+      totalRaceCount: raceNumbers.length,
+      predictionReadyCount,
+      resultReadyCount,
+      predictionMissingRaceNumbers,
+      resultMissingRaceNumbers,
+    };
+  }, [
+    isLocalReviewSelected,
+    resultMap,
+    selectedDate,
+    selectedDisplayVenueName,
+    selectedFileFallbackVenueGroup,
+    selectedReviewFileGroup,
+    selectedVenueGroup,
+    todayFeed,
+  ]);
+
   const selectedReportRecord = useMemo(() => {
     if (!isLocalReviewSelected) return null;
     if (!selectedVenueGroup) return null;
@@ -3284,7 +3497,26 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
                       <div>
                         <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#9a7ad9", marginBottom: "8px" }}>PREDICTION COPY</div>
-                        <div style={{ fontSize: "22px", fontWeight: 900, color: "#111827" }}>予想まとめをコピー</div>
+                        <div style={{ fontSize: "22px", fontWeight: 900, color: "#111827" }}>
+                          予想まとめをコピー
+                          <span style={{
+                            marginLeft: "4px",
+                            color: selectedReviewReadiness.totalRaceCount === 0
+                              ? "#8a8fa1"
+                              : selectedReviewReadiness.predictionReadyCount === selectedReviewReadiness.totalRaceCount
+                                ? "#16835b"
+                                : selectedReviewReadiness.predictionReadyCount === 0
+                                  ? "#c2415d"
+                                  : "#b76a12",
+                          }}>
+                            （{selectedReviewReadiness.predictionReadyCount}/{selectedReviewReadiness.totalRaceCount}）
+                          </span>
+                        </div>
+                        {selectedReviewReadiness.predictionMissingRaceNumbers.length > 0 ? (
+                          <div style={{ marginTop: "6px", fontSize: "12px", fontWeight: 700, color: "#b76a12" }}>
+                            未入力: {selectedReviewReadiness.predictionMissingRaceNumbers.map((raceNumber) => `${raceNumber}R`).join(", ")}
+                          </div>
+                        ) : null}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
   <button
@@ -3336,7 +3568,26 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
                       <div>
                         <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#9a7ad9", marginBottom: "8px" }}>RESULT COPY</div>
-                        <div style={{ fontSize: "22px", fontWeight: 900, color: "#111827" }}>結果まとめをコピー</div>
+                        <div style={{ fontSize: "22px", fontWeight: 900, color: "#111827" }}>
+                          結果まとめをコピー
+                          <span style={{
+                            marginLeft: "4px",
+                            color: selectedReviewReadiness.totalRaceCount === 0
+                              ? "#8a8fa1"
+                              : selectedReviewReadiness.resultReadyCount === selectedReviewReadiness.totalRaceCount
+                                ? "#16835b"
+                                : selectedReviewReadiness.resultReadyCount === 0
+                                  ? "#c2415d"
+                                  : "#b76a12",
+                          }}>
+                            （{selectedReviewReadiness.resultReadyCount}/{selectedReviewReadiness.totalRaceCount}）
+                          </span>
+                        </div>
+                        {selectedReviewReadiness.resultMissingRaceNumbers.length > 0 ? (
+                          <div style={{ marginTop: "6px", fontSize: "12px", fontWeight: 700, color: "#b76a12" }}>
+                            未反映: {selectedReviewReadiness.resultMissingRaceNumbers.map((raceNumber) => `${raceNumber}R`).join(", ")}
+                          </div>
+                        ) : null}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
   <button
