@@ -48,6 +48,71 @@ export const KURARI_EX_ACCUMULATION_RULES = [
 export const KURARI_EX_ACCUMULATION_RULES_UI_SUMMARY =
   "fake補完禁止 / 登録番号優先 / LOW SAMPLE参考扱い";
 
+export type KurariExDataInventoryStatus =
+  | "ready"
+  | "conditional"
+  | "classifiable"
+  | "needs-data";
+
+export const KURARI_EX_DATA_INVENTORY = [
+  { label: "1着", status: "ready", reason: "選手別EXACTのoverall.winsで集計済み。" },
+  { label: "2着", status: "ready", reason: "選手別EXACTのoverall.secondsで集計済み。" },
+  { label: "3着", status: "ready", reason: "選手別EXACTのoverall.thirdsで集計済み。" },
+  { label: "着外", status: "ready", reason: "選手別EXACTのoverall.outsideで集計済み。" },
+  { label: "勝率", status: "ready", reason: "選手別EXACTのoverall.winRateで集計済み。" },
+  { label: "2連対率", status: "ready", reason: "選手別EXACTのoverall.top2Rateで集計済み。" },
+  { label: "3連対率", status: "ready", reason: "選手別EXACTのoverall.top3Rateで集計済み。" },
+  { label: "ラインの先頭の成績", status: "conditional", reason: "byRole.frontに実績あり。安全に並びを解釈できたレースだけを使い、母数不足時はLOW SAMPLE扱い。" },
+  { label: "番手の成績", status: "conditional", reason: "byRole.banteに実績あり。安全に並びを解釈できたレースだけを使い、母数不足時はLOW SAMPLE扱い。" },
+  { label: "3番手以降の成績", status: "conditional", reason: "byRole.thirdに実績あり。安全に並びを解釈できたレースだけを使い、母数不足時はLOW SAMPLE扱い。" },
+  { label: "単騎の成績", status: "conditional", reason: "byRole.singleに実績あり。安全に並びを解釈できたレースだけを使い、母数不足時はLOW SAMPLE扱い。" },
+  { label: "競りの成績", status: "needs-data", reason: "競り発生と当事者を確定する保存データがなく、新規蓄積が必要。" },
+  { label: "競りの勝率", status: "needs-data", reason: "競り発生・当事者・勝敗の確定データがなく、新規蓄積が必要。" },
+  { label: "飛びつき成功率", status: "needs-data", reason: "飛びつき発生と成功を確定する展開イベントがなく、新規蓄積が必要。" },
+  { label: "ちぎり率", status: "needs-data", reason: "ライン追走の離脱を確定する展開イベントがなく、新規蓄積が必要。" },
+  { label: "ちぎられ率", status: "needs-data", reason: "ライン追走の離脱を確定する展開イベントがなく、新規蓄積が必要。" },
+  { label: "かまし成功率", status: "needs-data", reason: "かまし発生と成功を確定する展開イベントがなく、新規蓄積が必要。" },
+  { label: "つっぱり成功率", status: "needs-data", reason: "つっぱり発生と成功を確定する展開イベントがなく、新規蓄積が必要。" },
+  { label: "予選の成績", status: "conditional", reason: "byRaceStage.qualifyingに実績あり。分類不能レースと選手別の母数不足に注意。" },
+  { label: "準決勝の成績", status: "classifiable", reason: "レース名は保存済みだが、準決勝を決勝から厳密に分離する分類ルールの整備が必要。" },
+  { label: "決勝の成績", status: "classifiable", reason: "レース名は保存済みだが、準決勝を混入させない厳密な分類ルールの整備が必要。" },
+  { label: "敗者戦の成績", status: "conditional", reason: "byRaceStage.consolationに一般・敗者戦として実績あり。選手別の母数不足に注意。" },
+  { label: "シード戦の成績", status: "conditional", reason: "byRaceStage.seed-specialに特選・シードとして実績あり。選手別の母数不足に注意。" },
+  { label: "333mバンクの成績", status: "conditional", reason: "byBankLengthに実績あり。会場周長が確定できるレースだけを使用。" },
+  { label: "400mバンクの成績", status: "conditional", reason: "byBankLengthに実績あり。会場周長が確定できるレースだけを使用。" },
+  { label: "500mバンクの成績", status: "conditional", reason: "byBankLengthに実績あり。会場周長が確定できるレースだけを使用。" },
+  { label: "晴れの成績", status: "conditional", reason: "byWeather.sunnyに実績あり。保存済み天候だけを使用。" },
+  { label: "曇りの成績", status: "conditional", reason: "byWeather.cloudyに実績あり。保存済み天候だけを使用。" },
+  { label: "雨の成績", status: "conditional", reason: "byWeather.rainに実績あり。保存済み天候だけを使用。" },
+  { label: "雪の成績", status: "needs-data", reason: "分類ルールはあるが、現在のEXACT集計に雪の実績がなく新規蓄積が必要。" },
+  { label: "モーニングの成績", status: "conditional", reason: "byTimeslot.morningに実績あり。選手別の母数不足に注意。" },
+  { label: "デイの成績", status: "conditional", reason: "byTimeslot.dayに実績あり。選手別の母数不足に注意。" },
+  { label: "ナイターの成績", status: "conditional", reason: "byTimeslot.nightに実績あり。選手別の母数不足に注意。" },
+  { label: "ミッドナイトの成績", status: "conditional", reason: "byTimeslot.midnightに実績あり。選手別の母数不足に注意。" },
+  { label: "G3", status: "classifiable", reason: "履歴にgradeが保存済み。推定値や不明値を除外する厳密な集計軸の追加が必要。" },
+  { label: "F1", status: "classifiable", reason: "履歴にgradeが保存済み。推定値や不明値を除外する厳密な集計軸の追加が必要。" },
+  { label: "F2", status: "classifiable", reason: "履歴にgradeが保存済み。推定値や不明値を除外する厳密な集計軸の追加が必要。" },
+  { label: "グレード×レース種目", status: "classifiable", reason: "gradeとレース名は保存済み。両方が確定したレースだけを使う分類ルールが必要。" },
+  { label: "同走相手との先着", status: "conditional", reason: "MATCHUP EXに安全比較可能な既存ペアの先着数・先着率あり。ペアごとの母数に注意。" },
+  { label: "同県選手同乗時", status: "classifiable", reason: "一部選手に府県と登録番号がある。登録番号一致かつ府県取得済みのレースだけを使う分類ルールが必要。" },
+  { label: "同ライン", status: "conditional", reason: "MATCHUP EXのsameLineに既存ペアの比較実績あり。ライン判定可能なレースだけを使用。" },
+  { label: "別線比較", status: "conditional", reason: "MATCHUP EXのotherLineに既存ペアの比較実績あり。ライン判定可能なレースだけを使用。" },
+] as const satisfies ReadonlyArray<{
+  label: string;
+  status: KurariExDataInventoryStatus;
+  reason: string;
+}>;
+
+export const KURARI_EX_DATA_INVENTORY_SUMMARY = {
+  ready: "基本着順・勝率 / 選手別EXACT / 会場EX",
+  conditional: "MATCHUP EX / ライン役割別 / 周長別 / 天候別 / 時間帯別",
+  classifiable: "レース種目別 / グレード別 / グレード×レース種目 / 同県同乗時",
+  needsData: "かまし / つっぱり / 飛びつき / 競り / ちぎり・ちぎられ / 雪",
+} as const;
+
+export const KURARI_EX_DATA_INVENTORY_UI_SUMMARY =
+  "今すぐ使える / 条件付き / 要蓄積 を分類";
+
 let riderExactIndexPromise: Promise<KurariExRiderExactIndex> | null = null;
 let matchupExactIndexPromise: Promise<KurariExMatchupExactIndex> | null = null;
 
@@ -440,6 +505,14 @@ function buildKurariExPredictionMaterialText(
 
   lines.push("", "【今回の買い目設計で確認すること】");
   lines.push(...KURARI_EX_PREDICTION_CHECKS.map((item) => `- ${item}`));
+  lines.push("", "【KURARI EX データ棚卸し】");
+  lines.push(
+    `- 今すぐ使える: ${KURARI_EX_DATA_INVENTORY_SUMMARY.ready}`,
+    `- 条件付きで使える: ${KURARI_EX_DATA_INVENTORY_SUMMARY.conditional}`,
+    `- 分類ルール整備で作れる: ${KURARI_EX_DATA_INVENTORY_SUMMARY.classifiable}`,
+    `- 新規蓄積が必要: ${KURARI_EX_DATA_INVENTORY_SUMMARY.needsData}`,
+    "- 扱い: 未蓄積・分類不能の項目は作らず、LOW SAMPLEと素材蓄積中を強い根拠にしない。fake補完は禁止。",
+  );
   lines.push("", "【KURARI EX 蓄積ルール】");
   lines.push(...KURARI_EX_ACCUMULATION_RULES.map((rule) => `- ${rule}`));
   return lines.join("\n");
@@ -477,13 +550,13 @@ export function buildKurariExPredictionMaterial(
   );
   if (fallbackText.length <= maxLength) return fallbackText;
 
-  const rulesMarker = "\n\n【KURARI EX 蓄積ルール】";
-  const rulesStart = fallbackText.lastIndexOf(rulesMarker);
-  if (rulesStart < 0) return fallbackText.slice(0, maxLength);
+  const footerMarker = "\n\n【KURARI EX データ棚卸し】";
+  const footerStart = fallbackText.lastIndexOf(footerMarker);
+  if (footerStart < 0) return fallbackText.slice(0, maxLength);
 
-  const rulesSection = fallbackText.slice(rulesStart);
-  const bodyLimit = Math.max(0, maxLength - rulesSection.length);
-  return `${fallbackText.slice(0, bodyLimit).trimEnd()}${rulesSection}`;
+  const footerSection = fallbackText.slice(footerStart);
+  const bodyLimit = Math.max(0, maxLength - footerSection.length);
+  return `${fallbackText.slice(0, bodyLimit).trimEnd()}${footerSection}`;
 }
 
 export async function loadKurariExInitialData(): Promise<KurariExInitialData> {
