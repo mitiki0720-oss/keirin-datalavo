@@ -48,6 +48,60 @@ export const KURARI_EX_ACCUMULATION_RULES = [
 export const KURARI_EX_ACCUMULATION_RULES_UI_SUMMARY =
   "fake補完禁止 / 登録番号優先 / LOW SAMPLE参考扱い";
 
+export const KURARI_EX_TACTIC_EVENT_RULES = [
+  {
+    key: "kamashi",
+    label: "かまし",
+    status: "rule-only",
+    detection: "後方または中団から一気に踏み上げ、先行ラインより前へ出て主導権を取った展開メモ・振り返り・明示タグがある場合だけ認定。",
+    success: "主導権を取り切り、本人またはラインが展開上の優位を維持した記録がある場合だけ成功候補。",
+    prohibited: "逃げ1着・捲り1着・先行役という情報だけでは、かまし成功にしない。",
+  },
+  {
+    key: "tsuppari",
+    label: "つっぱり",
+    status: "rule-only",
+    detection: "前受けまたは先頭ラインが別線の上昇を出させず、主導権を維持した展開メモ・振り返り・明示タグがある場合だけ認定。",
+    success: "別線を出さずに主導権を守り、ラインが崩れず展開上の優位を残した記録がある場合だけ成功候補。",
+    prohibited: "逃げた結果や先行1着だけでは、つっぱり成功にしない。",
+  },
+  {
+    key: "tobitsuki",
+    label: "飛びつき",
+    status: "rule-only",
+    detection: "自力または単騎選手が別線の番手・3番手へ切り替えて追走した展開メモ・振り返り・明示タグがある場合だけ認定。",
+    success: "切り替えた位置を確保し、位置確保後に着順・連対・3着絡みへつなげた記録がある場合だけ成功候補。",
+    prohibited: "単騎3着だけ、または位置取り不明の状態では飛びつき成功にしない。",
+  },
+  {
+    key: "seri",
+    label: "競り",
+    status: "rule-only",
+    detection: "番手・3番手など同一位置を複数選手が取り合った展開メモ・振り返り・明示タグがある場合だけ認定。",
+    success: "競った位置を最終的に確保し、相手を捌くか明確な位置優位を取った記録がある場合だけ勝ち候補。",
+    prohibited: "番手の着外・1着だけでは競りの負け・勝ちにせず、競り発生記録がなければ未認定。",
+  },
+  {
+    key: "chigiri",
+    label: "ちぎり",
+    status: "rule-only",
+    detection: "ライン先頭や自力選手が踏み上げ、後続を明確に離した展開メモ・振り返り・明示タグがある場合だけ認定。",
+    success: "後続を明確に離し、本人または主導権ラインが展開上の優位を作った記録がある場合だけ成功候補。",
+    prohibited: "着差や先頭1着だけでは、ちぎり成功にしない。",
+  },
+  {
+    key: "chigirare",
+    label: "ちぎられ",
+    status: "rule-only",
+    detection: "番手または3番手以降が同ライン先頭へ追走できず離れた展開メモ・振り返り・明示タグがある場合だけ認定。",
+    success: "ラインが分断され、対象選手が追走に失敗した明示記録がある場合だけ発生候補。",
+    prohibited: "着外や3番手着外だけでは推測せず、ライン崩れの明示記録がなければ未認定。",
+  },
+] as const;
+
+export const KURARI_EX_TACTIC_EVENT_RULES_UI_SUMMARY =
+  "成功率は未生成 / 順位・脚質・役割からのfake補完なし";
+
 export type KurariExDataInventoryStatus =
   | "ready"
   | "conditional"
@@ -66,13 +120,13 @@ export const KURARI_EX_DATA_INVENTORY = [
   { label: "番手の成績", status: "conditional", reason: "byRole.banteに実績あり。安全に並びを解釈できたレースだけを使い、母数不足時はLOW SAMPLE扱い。" },
   { label: "3番手以降の成績", status: "conditional", reason: "byRole.thirdに実績あり。安全に並びを解釈できたレースだけを使い、母数不足時はLOW SAMPLE扱い。" },
   { label: "単騎の成績", status: "conditional", reason: "byRole.singleに実績あり。安全に並びを解釈できたレースだけを使い、母数不足時はLOW SAMPLE扱い。" },
-  { label: "競りの成績", status: "needs-data", reason: "競り発生と当事者を確定する保存データがなく、新規蓄積が必要。" },
-  { label: "競りの勝率", status: "needs-data", reason: "競り発生・当事者・勝敗の確定データがなく、新規蓄積が必要。" },
-  { label: "飛びつき成功率", status: "needs-data", reason: "飛びつき発生と成功を確定する展開イベントがなく、新規蓄積が必要。" },
-  { label: "ちぎり率", status: "needs-data", reason: "ライン追走の離脱を確定する展開イベントがなく、新規蓄積が必要。" },
-  { label: "ちぎられ率", status: "needs-data", reason: "ライン追走の離脱を確定する展開イベントがなく、新規蓄積が必要。" },
-  { label: "かまし成功率", status: "needs-data", reason: "かまし発生と成功を確定する展開イベントがなく、新規蓄積が必要。" },
-  { label: "つっぱり成功率", status: "needs-data", reason: "つっぱり発生と成功を確定する展開イベントがなく、新規蓄積が必要。" },
+  { label: "競りの成績", status: "needs-data", reason: "判定ルールは固定済みだが、競り発生と当事者を確定する展開イベントの新規蓄積が必要。" },
+  { label: "競りの勝率", status: "needs-data", reason: "判定ルールは固定済みだが、競り発生・当事者・勝敗を確定する展開イベントの新規蓄積が必要。" },
+  { label: "飛びつき成功率", status: "needs-data", reason: "判定ルールは固定済みだが、飛びつき発生と位置確保を確定する展開イベントの新規蓄積が必要。" },
+  { label: "ちぎり率", status: "needs-data", reason: "判定ルールは固定済みだが、後続を離した事実を確定する展開イベントの新規蓄積が必要。" },
+  { label: "ちぎられ率", status: "needs-data", reason: "判定ルールは固定済みだが、追走失敗を確定する展開イベントの新規蓄積が必要。" },
+  { label: "かまし成功率", status: "needs-data", reason: "判定ルールは固定済みだが、かまし発生と主導権確保を確定する展開イベントの新規蓄積が必要。" },
+  { label: "つっぱり成功率", status: "needs-data", reason: "判定ルールは固定済みだが、別線を出さず主導権を維持した展開イベントの新規蓄積が必要。" },
   { label: "予選の成績", status: "conditional", reason: "byRaceStage.qualifyingに実績あり。分類不能レースと選手別の母数不足に注意。" },
   { label: "準決勝の成績", status: "classifiable", reason: "レース名は保存済みだが、準決勝を決勝から厳密に分離する分類ルールの整備が必要。" },
   { label: "決勝の成績", status: "classifiable", reason: "レース名は保存済みだが、準決勝を混入させない厳密な分類ルールの整備が必要。" },
@@ -507,6 +561,18 @@ function buildKurariExPredictionMaterialText(
 
   lines.push("", "【今回の買い目設計で確認すること】");
   lines.push(...KURARI_EX_PREDICTION_CHECKS.map((item) => `- ${item}`));
+  lines.push("", "【KURARI EX 戦法イベント判定ルール】");
+  lines.push(
+    "- 状態: ルール固定段階。発生回数・成功率・失敗率は未生成。",
+    "- 扱い: 順位・脚質・今回役割だけで戦法イベントを推測しない。展開メモ・振り返り・明示タグがある場合だけ認定する。",
+    "",
+    "■ 判定対象",
+    ...KURARI_EX_TACTIC_EVENT_RULES.map(
+      (rule) => `- ${rule.label}: 認定=${rule.detection} / ${rule.success} / 禁止=${rule.prohibited}`,
+    ),
+    "",
+    "- 禁止: 保存されていないイベントを過去レースへ後付けせず、着順だけで数値を作らない。fake補完しない。",
+  );
   lines.push("", "【KURARI EX データ棚卸し】");
   lines.push(
     `- 今すぐ使える: ${KURARI_EX_DATA_INVENTORY_SUMMARY.ready}`,
@@ -532,7 +598,7 @@ export function buildKurariExPredictionMaterial(
   const venue = bundle?.venue ?? null;
   const guidance = bundle?.guidance ?? null;
   const maxLength = conditionMaterial
-    ? 12500
+    ? 15000
     : riderMaterial || matchupMaterial || confidenceMaterial
       ? 9500
       : 4500;
@@ -558,7 +624,7 @@ export function buildKurariExPredictionMaterial(
   );
   if (fallbackText.length <= maxLength) return fallbackText;
 
-  const footerMarker = "\n\n【KURARI EX データ棚卸し】";
+  const footerMarker = "\n\n【KURARI EX 戦法イベント判定ルール】";
   const footerStart = fallbackText.lastIndexOf(footerMarker);
   if (footerStart < 0) return fallbackText.slice(0, maxLength);
 

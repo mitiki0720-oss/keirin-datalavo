@@ -25,6 +25,7 @@ import {
   buildKurariExWeatherMaterial,
   KURARI_EX_ACCUMULATION_RULES_UI_SUMMARY,
   KURARI_EX_DATA_INVENTORY_UI_SUMMARY,
+  KURARI_EX_TACTIC_EVENT_RULES_UI_SUMMARY,
   findKurariExExactVenueEntryByVenueName,
   findKurariExVenueEntryByVenueName,
   loadKurariExExactIndex,
@@ -12432,6 +12433,14 @@ const record = normalizePredictionResultRecord({
                           {selectedKurariExConditionMaterial.status === "ready"
                             ? "周長 / 時間帯 / グレード / レース種目（保存済みのみ）"
                             : "未保存条件はfake補完なし"}
+                        </div>
+                      </div>
+                      <div style={{ marginTop: "9px", borderTop: "1px solid rgba(226, 216, 241, 0.9)", paddingTop: "9px" }}>
+                        <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.08em", color: "#6d4fc2", marginBottom: "5px" }}>
+                          戦法イベント：ルール固定済み
+                        </div>
+                        <div style={{ fontSize: "10px", fontWeight: 700, color: "#7a5a14", lineHeight: 1.6 }}>
+                          {KURARI_EX_TACTIC_EVENT_RULES_UI_SUMMARY}
                         </div>
                       </div>
                       <div style={{ marginTop: "9px", borderTop: "1px solid rgba(226, 216, 241, 0.9)", paddingTop: "9px" }}>
