@@ -22,6 +22,7 @@ import {
   buildKurariExMatchupPredictionMaterial,
   buildKurariExRiderPredictionMaterial,
   buildKurariExRoleStatsMaterial,
+  buildKurariExWeatherMaterial,
   KURARI_EX_ACCUMULATION_RULES_UI_SUMMARY,
   KURARI_EX_DATA_INVENTORY_UI_SUMMARY,
   findKurariExExactVenueEntryByVenueName,
@@ -11190,6 +11191,21 @@ if (
     selectedPredictionMaterialRace,
     selectedPredictionMaterialRiders.length,
   ]);
+  const selectedKurariExWeatherMaterial = useMemo(
+    () => buildKurariExWeatherMaterial(
+      selectedKurariExRiderEntries,
+      selectedSavedPredictionResult?.weatherActual?.weather
+        || selectedWeather?.weatherLabel
+        || null,
+      selectedPredictionMaterialRiders.length,
+    ),
+    [
+      selectedKurariExRiderEntries,
+      selectedPredictionMaterialRiders.length,
+      selectedSavedPredictionResult?.weatherActual?.weather,
+      selectedWeather?.weatherLabel,
+    ],
+  );
 
   const selectedKurariExBundle = selectedKurariExEntry
     ? kurariExVenueCache[selectedKurariExEntry.venueKey] ?? null
@@ -11321,8 +11337,10 @@ if (
       selectedKurariExRoleMaterial.text,
       "",
       selectedKurariExRoleStatsMaterial.text,
+      "",
+      selectedKurariExWeatherMaterial.text,
     ].join("\n"),
-    [selectedKurariExAnyReady, selectedKurariExConfidence, selectedKurariExLinkAudit, selectedKurariExReflectionSummary, selectedKurariExRoleMaterial.text, selectedKurariExRoleStatsMaterial.text],
+    [selectedKurariExAnyReady, selectedKurariExConfidence, selectedKurariExLinkAudit, selectedKurariExReflectionSummary, selectedKurariExRoleMaterial.text, selectedKurariExRoleStatsMaterial.text, selectedKurariExWeatherMaterial.text],
   );
   const selectedKurariExGuidanceText = useMemo(
     () => selectedKurariExAnyReady
@@ -12382,6 +12400,24 @@ const record = normalizePredictionResultRecord({
                             : selectedKurariExRoleStatsMaterial.status === "partial"
                               ? `LOW SAMPLE ${selectedKurariExRoleStatsMaterial.lowSampleCount}人 / 未蓄積 ${selectedKurariExRoleStatsMaterial.missingCount}人`
                               : "並び未取得、または保存済みbyRole成績なし"}
+                        </div>
+                      </div>
+                      <div style={{ marginTop: "9px", borderTop: "1px solid rgba(226, 216, 241, 0.9)", paddingTop: "9px" }}>
+                        <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.08em", color: "#6d4fc2", marginBottom: "5px" }}>
+                          天候別成績：{selectedKurariExWeatherMaterial.status === "ready"
+                            ? "反映済み"
+                            : selectedKurariExWeatherMaterial.status === "partial"
+                              ? "一部反映"
+                              : selectedKurariExWeatherMaterial.weatherKey
+                                ? "未蓄積"
+                                : "未反映"}
+                        </div>
+                        <div style={{ fontSize: "10px", fontWeight: 700, color: selectedKurariExWeatherMaterial.status === "missing" ? "#a15c08" : "#526072", lineHeight: 1.6 }}>
+                          {selectedKurariExWeatherMaterial.status === "ready"
+                            ? `対象：${selectedKurariExWeatherMaterial.weatherLabel} / 晴れ・曇り・雨・雪は保存済み実績のみ`
+                            : selectedKurariExWeatherMaterial.status === "partial"
+                              ? `対象：${selectedKurariExWeatherMaterial.weatherLabel} / LOW SAMPLE ${selectedKurariExWeatherMaterial.lowSampleCount}人 / 未蓄積 ${selectedKurariExWeatherMaterial.missingCount}人`
+                              : "過去天気の後付けなし / 未保存天候はfake補完なし"}
                         </div>
                       </div>
                       <div style={{ marginTop: "9px", borderTop: "1px solid rgba(226, 216, 241, 0.9)", paddingTop: "9px" }}>

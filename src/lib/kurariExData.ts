@@ -732,6 +732,16 @@ export type KurariExRoleStatsMaterial = {
   missingCount: number;
 };
 
+export type KurariExWeatherMaterial = {
+  text: string;
+  status: "ready" | "partial" | "missing";
+  weatherKey: "sunny" | "cloudy" | "rain" | "snow" | null;
+  weatherLabel: string;
+  reflectedRiderCount: number;
+  lowSampleCount: number;
+  missingCount: number;
+};
+
 function normalizeKurariExRiderRegistrationNo(value?: string | number | null) {
   const digits = String(value ?? "").replace(/\D/gu, "");
   if (!digits) return "";
@@ -1359,6 +1369,121 @@ export function buildKurariExRoleStatsMaterial(
         ? "ready"
         : "partial",
     assignedRiderCount,
+    reflectedRiderCount,
+    lowSampleCount,
+    missingCount,
+  };
+}
+
+function normalizeKurariExWeather(value?: string | null) {
+  const normalized = String(value ?? "").normalize("NFKC").trim().toLowerCase();
+  if (!normalized || /不明|取得待ち|未取得|天気情報なし|観測値未提供|なし|unknown|pending/u.test(normalized)) {
+    return null;
+  }
+  if (/雪|snow|snowy/u.test(normalized)) return { key: "snow", label: "雪" } as const;
+  if (/雨|霧雨|にわか雨|雷雨|rain|rainy/u.test(normalized)) return { key: "rain", label: "雨" } as const;
+  if (/曇|くもり|cloudy|cloud/u.test(normalized)) return { key: "cloudy", label: "曇り" } as const;
+  if (/晴|快晴|sunny|clear/u.test(normalized)) return { key: "sunny", label: "晴れ" } as const;
+  return null;
+}
+
+function formatKurariExWeatherAggregate(
+  entry: KurariExRiderPredictionEntry,
+  weatherLabel: string,
+  aggregate?: KurariExRiderAggregate | null,
+) {
+  if (!aggregate || aggregate.starts == null || aggregate.starts <= 0) return "";
+  const sampleNote = aggregate.starts < 5
+    ? "LOW SAMPLE・参考扱い。強い根拠にはしない"
+    : aggregate.starts < 10
+      ? "低母数・参考扱い"
+      : "天候別の補助材料として使用可";
+  const parts = [
+    `${aggregate.starts}走`,
+    `1着${aggregate.wins}`,
+    `2着${aggregate.seconds}`,
+    `3着${aggregate.thirds}`,
+    aggregate.outside != null ? `着外${aggregate.outside}` : "",
+    aggregate.winRate.rate != null ? `勝率${aggregate.winRate.rate.toFixed(1)}%` : "",
+    aggregate.top2Rate.rate != null ? `2連対${aggregate.top2Rate.rate.toFixed(1)}%` : "",
+    aggregate.top3Rate.rate != null ? `3連対${aggregate.top3Rate.rate.toFixed(1)}%` : "",
+  ].filter(Boolean);
+  return `- ${entry.carNo}番 ${entry.riderName || entry.exact.name}: ${weatherLabel} ${parts.join(" / ")} / ${sampleNote}`;
+}
+
+export function buildKurariExWeatherMaterial(
+  entries: KurariExRiderPredictionEntry[],
+  currentWeather?: string | null,
+  totalRiderCount = entries.length,
+): KurariExWeatherMaterial {
+  const heading = "【KURARI EX 天候別成績】";
+  const weather = normalizeKurariExWeather(currentWeather);
+  const readingLines = [
+    "",
+    "■ 天候別の見方",
+    "- 晴れ: 通常条件の再現性を見る。",
+    "- 曇り: 晴れとの差が大きい選手だけ参考。",
+    "- 雨: バンクが重い・滑る可能性があるため、LOW SAMPLE時は過信しない。",
+    "- 雪: 現在は要蓄積。保存済み実績がない場合は使わない。",
+  ];
+  if (!weather) {
+    return {
+      text: [
+        heading,
+        "- 今回天候を安全に取得できないため、天候別成績は表示対象外。",
+        "- 選手別EXACTの総合成績・条件別成績を優先し、過去天気を後付けしない。",
+        ...readingLines,
+      ].join("\n"),
+      status: "missing",
+      weatherKey: null,
+      weatherLabel: "",
+      reflectedRiderCount: 0,
+      lowSampleCount: 0,
+      missingCount: totalRiderCount,
+    };
+  }
+
+  const eligibleEntries = entries
+    .filter((entry) => entry.exact.quality !== "identity-only")
+    .sort((left, right) => Number(left.carNo) - Number(right.carNo))
+    .slice(0, 9);
+  const rows: string[] = [];
+  let lowSampleCount = 0;
+  for (const entry of eligibleEntries) {
+    const aggregate = entry.exact.byWeather.find(
+      (item) => item.weatherCondition === weather.key,
+    );
+    const row = formatKurariExWeatherAggregate(entry, weather.label, aggregate);
+    if (!row) continue;
+    rows.push(row);
+    if ((aggregate?.starts ?? 0) < 10) lowSampleCount += 1;
+  }
+
+  const reflectedRiderCount = rows.length;
+  const missingCount = Math.max(0, totalRiderCount - reflectedRiderCount);
+  const missingMessage = weather.key === "snow"
+    ? "雪の成績は現在のEXACTに未蓄積。fake補完しない。"
+    : "今回天候に対応する保存済みbyWeather成績なし。過去天気を後付けしない。";
+  return {
+    text: [
+      heading,
+      `- 対象天候: ${weather.label}`,
+      "- 扱い: 既存の選手別EXACTに保存済みの天候別成績だけを表示。過去天気の後付け・fake補完は禁止。",
+      "",
+      "■ 今回天候の過去成績",
+      ...(rows.length ? rows : [`- ${missingMessage}`]),
+      ...(missingCount > 0 && rows.length
+        ? [`- 未蓄積: ${missingCount}人（identity-only、未紐付け、または該当天候のbyWeather未蓄積）`]
+        : []),
+      ...readingLines,
+    ].join("\n"),
+    status: reflectedRiderCount === 0
+      ? "missing"
+      : reflectedRiderCount === totalRiderCount && lowSampleCount === 0
+        ? "ready"
+        : "partial",
+    weatherKey: weather.key,
+    weatherLabel: weather.label,
     reflectedRiderCount,
     lowSampleCount,
     missingCount,
