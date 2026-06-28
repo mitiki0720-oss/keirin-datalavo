@@ -415,6 +415,76 @@ type KurariExRiderCategoryAnalysis = {
   unsupportedExactMetrics?: Array<{ label: string; status: string; reason: string }>;
 };
 
+type KurariExConditionDataTab = "bankLength" | "timeslot" | "raceStage" | "weather";
+
+const KURARI_EX_CONDITION_DATA_TABS: Array<{
+  key: KurariExConditionDataTab;
+  label: string;
+  dimensionKey: string;
+  items: Array<{ key: string; label: string }>;
+  note: string;
+}> = [
+  {
+    key: "bankLength",
+    label: "周長別",
+    dimensionKey: "bankLength",
+    items: [
+      { key: "333", label: "333m" },
+      { key: "400", label: "400m" },
+      { key: "500", label: "500m" },
+    ],
+    note: "会場周長を確定できた保存済みbyBankLengthだけを集計しています。",
+  },
+  {
+    key: "timeslot",
+    label: "時間帯別",
+    dimensionKey: "timeslot",
+    items: [
+      { key: "morning", label: "モーニング" },
+      { key: "day", label: "デイ" },
+      { key: "night", label: "ナイター" },
+      { key: "midnight", label: "ミッドナイト" },
+    ],
+    note: "不明時間帯を除き、保存済みbyTimeslotの確定分類だけを表示しています。",
+  },
+  {
+    key: "raceStage",
+    label: "レース種目別",
+    dimensionKey: "raceStage",
+    items: [
+      { key: "qualifying", label: "予選" },
+      { key: "consolation", label: "一般・敗者戦" },
+      { key: "seed-special", label: "特選・シード" },
+      { key: "final", label: "決勝" },
+    ],
+    note: "安全に分類済みのbyRaceStageだけを表示します。準決勝・不明・グレード×レース種目は混在させません。",
+  },
+  {
+    key: "weather",
+    label: "天候別",
+    dimensionKey: "weather",
+    items: [
+      { key: "sunny", label: "晴れ" },
+      { key: "cloudy", label: "曇り" },
+      { key: "rain", label: "雨" },
+      { key: "snow", label: "雪" },
+    ],
+    note: "保存済みbyWeatherのみ表示します。実結果天候を優先し、未取得時は取得済み予報だけを使用します。",
+  },
+];
+
+function formatRiderCategoryRate(value: number | null | undefined) {
+  return Number.isFinite(value) ? `${Number(value).toFixed(1)}%` : "未取得";
+}
+
+function ConditionQualityBadge({ item }: { item: KurariExRiderCategoryItem | null }) {
+  if (!item) return <span className="ex-quality is-identity-only">未蓄積</span>;
+  if (item.quality === "low-sample" || item.starts < 5) {
+    return <span className="ex-quality is-low-sample">LOW SAMPLE</span>;
+  }
+  return <span className="ex-quality is-complete">EXACT</span>;
+}
+
 function getRiderCategoryGeneratedAgeHours(generatedAt: string | null | undefined) {
   const generatedTime = Date.parse(generatedAt ?? "");
   if (!Number.isFinite(generatedTime)) return null;
@@ -662,6 +732,7 @@ export default function ExDataPage() {
   const [riderScoreStatus, setRiderScoreStatus] = useState<"loading" | "ready" | "error">("loading");
   const [riderCategoryAnalysis, setRiderCategoryAnalysis] = useState<KurariExRiderCategoryAnalysis | null>(null);
   const [riderCategoryStatus, setRiderCategoryStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [conditionDataTab, setConditionDataTab] = useState<KurariExConditionDataTab>("bankLength");
     const [riderCoverageAudit, setRiderCoverageAudit] = useState<KurariExRiderCoverageAudit | null>(null);
     const [riderCoverageAuditStatus, setRiderCoverageAuditStatus] = useState<"loading" | "ready" | "error">("loading");
   const [todayRecommendation, setTodayRecommendation] = useState<KurariExTodayRecommendation | null>(null);
@@ -1123,6 +1194,12 @@ export default function ExDataPage() {
   ).length;
   const matchupQualityCounts = matchupSummary?.qualityCounts ?? {};
   const categoryDimensions = riderCategoryAnalysis?.dimensions ?? {};
+  const selectedConditionTab = KURARI_EX_CONDITION_DATA_TABS.find((tab) => tab.key === conditionDataTab) ?? KURARI_EX_CONDITION_DATA_TABS[0];
+  const selectedConditionDimension = categoryDimensions[selectedConditionTab.dimensionKey];
+  const selectedConditionRows = selectedConditionTab.items.map((definition) => ({
+    ...definition,
+    item: selectedConditionDimension?.items.find((item) => item.key === definition.key) ?? null,
+  }));
   const hasCategoryData = (key: string) => (categoryDimensions[key]?.items.length ?? 0) > 0;
   const hasSnowData = categoryDimensions.weather?.items.some((item) => item.key === "snow" && item.starts > 0) ?? false;
   const unresolvedWarning = riderCoverageAudit?.warnings?.[0]
@@ -1199,6 +1276,23 @@ export default function ExDataPage() {
         .ex-rider-overview-card-block { display: grid; gap: 5px; padding-top: 11px; border-top: 1px solid #edf0f5; color: #435269; font-size: 11px; line-height: 1.65; }
         .ex-rider-overview-card-block b { color: #758197; font-size: 9px; letter-spacing: .08em; }
         .ex-rider-overview-link { display: inline-flex; width: fit-content; padding: 5px 8px; border-radius: 999px; background: #edf3ff; color: #365f99; font-size: 9px; font-weight: 900; }
+        .ex-condition-tabs { display: flex; gap: 9px; overflow-x: auto; padding-bottom: 3px; }
+        .ex-condition-tab { flex: 0 0 auto; padding: 10px 15px; border: 1px solid #dfe4ee; border-radius: 999px; background: #fff; color: #657187; font-size: 11px; font-weight: 900; cursor: pointer; }
+        .ex-condition-tab.is-active { border-color: #6d58ad; color: #fff; background: linear-gradient(135deg,#705ab3,#4e7ca9); box-shadow: 0 8px 18px rgba(87,82,157,.18); }
+        .ex-condition-source { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 13px 15px; border-radius: 16px; background: #f7f9fc; color: #68758a; font-size: 11px; line-height: 1.6; }
+        .ex-condition-table-wrap { overflow-x: auto; border: 1px solid #e0e5ef; border-radius: 20px; background: rgba(255,255,255,.9); }
+        .ex-condition-table { width: 100%; min-width: 920px; border-collapse: collapse; }
+        .ex-condition-table th { padding: 12px 14px; color: #6d788c; background: #f6f8fc; font-size: 10px; text-align: left; white-space: nowrap; }
+        .ex-condition-table td { padding: 14px; border-top: 1px solid #edf0f5; color: #3b4960; font-size: 11px; line-height: 1.55; vertical-align: middle; }
+        .ex-condition-table td:first-child { color: #1f2d45; font: 800 15px/1.35 ${serif}; }
+        .ex-condition-cards { display: grid; gap: 12px; }
+        .ex-condition-card { display: grid; gap: 13px; padding: 18px; border: 1px solid #e0e5ef; border-radius: 20px; background: rgba(255,255,255,.9); }
+        .ex-condition-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+        .ex-condition-card-head h3 { margin: 0; color: #1f2d45; font: 800 19px/1.3 ${serif}; }
+        .ex-condition-card-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+        .ex-condition-card-grid div { padding: 9px 10px; border-radius: 12px; background: #f7f9fc; color: #68758a; font-size: 10px; }
+        .ex-condition-card-grid strong { display: block; margin-top: 3px; color: #263650; font-size: 13px; }
+        .ex-condition-rate-row { display: grid; gap: 5px; color: #536d92; font-size: 11px; font-weight: 800; line-height: 1.6; }
         .ex-section { padding: ${isMobile ? "22px 18px" : "30px"}; display: grid; gap: 22px; }
         .ex-section-title h2 { margin: 6px 0 0; font: 800 ${isMobile ? "27px" : "36px"}/1.15 ${serif}; color: #172239; }
         .ex-section-title p { margin: 8px 0 0; color: #718096; line-height: 1.7; }
@@ -1499,6 +1593,115 @@ export default function ExDataPage() {
           <p className="ex-location-policy">
             KURARI EXの選手別EXACTは、蓄積済みデータだけを表示します。未蓄積の成績・決まり手・登録番号は作りません。
             LOW SAMPLEは参考扱い、素材蓄積中は成績根拠にしません。fake補完は禁止です。
+          </p>
+        </section>
+
+        <section className="ex-panel ex-section">
+          <SectionTitle
+            eyebrow="CONDITION EXACT DATA"
+            title="条件別データ"
+            lead="優先9〜11で生成済みの選手別EXACT条件集計を、保存済みデータの範囲だけで表示します。"
+          />
+          <div className="ex-condition-tabs" role="tablist" aria-label="条件別データの分類">
+            {KURARI_EX_CONDITION_DATA_TABS.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                role="tab"
+                aria-selected={conditionDataTab === tab.key}
+                className={`ex-condition-tab${conditionDataTab === tab.key ? " is-active" : ""}`}
+                onClick={() => setConditionDataTab(tab.key)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <div className="ex-condition-source">
+            <strong>{selectedConditionTab.label}</strong>
+            <span>{selectedConditionTab.note}</span>
+            <span>参照元: {selectedConditionDimension?.sourcePath ?? "未取得"}</span>
+          </div>
+          {riderCategoryStatus === "loading" ? <EmptyState text="保存済み条件別データを読み込んでいます。" /> : null}
+          {riderCategoryStatus === "error" ? <EmptyState text="条件別データを取得できませんでした。" /> : null}
+          {riderCategoryStatus === "ready" && !isMobile ? (
+            <div className="ex-condition-table-wrap">
+              <table className="ex-condition-table">
+                <thead>
+                  <tr>
+                    <th>条件名</th>
+                    <th>対象件数</th>
+                    <th>1着</th>
+                    <th>2着</th>
+                    <th>3着</th>
+                    <th>着外</th>
+                    <th>勝率</th>
+                    <th>2連対率</th>
+                    <th>3連対率</th>
+                    <th>品質</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedConditionRows.map(({ key, label, item }) => (
+                    <tr key={`${selectedConditionTab.key}-${key}`}>
+                      <td>{label}</td>
+                      <td>{item ? item.starts.toLocaleString("ja-JP") : "未蓄積"}</td>
+                      <td>{item ? item.wins.toLocaleString("ja-JP") : "-"}</td>
+                      <td>{item ? item.seconds.toLocaleString("ja-JP") : "-"}</td>
+                      <td>{item ? item.thirds.toLocaleString("ja-JP") : "-"}</td>
+                      <td>{item ? item.outside.toLocaleString("ja-JP") : "-"}</td>
+                      <td>{item ? formatRiderCategoryRate(item.winRate) : "-"}</td>
+                      <td>{item ? formatRiderCategoryRate(item.top2Rate) : "-"}</td>
+                      <td>{item ? formatRiderCategoryRate(item.top3Rate) : "-"}</td>
+                      <td><ConditionQualityBadge item={item} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+          {riderCategoryStatus === "ready" && isMobile ? (
+            <div className="ex-condition-cards">
+              {selectedConditionRows.map(({ key, label, item }) => (
+                <article className="ex-condition-card" key={`${selectedConditionTab.key}-${key}`}>
+                  <div className="ex-condition-card-head">
+                    <div>
+                      <h3>{label}</h3>
+                      <div className="ex-muted">対象件数 {item ? item.starts.toLocaleString("ja-JP") : "未蓄積"}</div>
+                    </div>
+                    <ConditionQualityBadge item={item} />
+                  </div>
+                  <div className="ex-condition-card-grid">
+                    {[
+                      ["1着", item ? item.wins.toLocaleString("ja-JP") : "-"],
+                      ["2着", item ? item.seconds.toLocaleString("ja-JP") : "-"],
+                      ["3着", item ? item.thirds.toLocaleString("ja-JP") : "-"],
+                      ["着外", item ? item.outside.toLocaleString("ja-JP") : "-"],
+                    ].map(([metricLabel, value]) => (
+                      <div key={metricLabel}><span>{metricLabel}</span><strong>{value}</strong></div>
+                    ))}
+                  </div>
+                  <div className="ex-condition-rate-row">
+                    <span>勝率 {item ? formatRiderCategoryRate(item.winRate) : "-"}</span>
+                    <span>2連対率 {item ? formatRiderCategoryRate(item.top2Rate) : "-"}</span>
+                    <span>3連対率 {item ? formatRiderCategoryRate(item.top3Rate) : "-"}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : null}
+          {conditionDataTab === "raceStage" ? (
+            <div className="ex-sample-alert">
+              <strong>安全分類のみ</strong>準決勝は決勝へ混ぜず未蓄積扱いです。不明分類とグレード×レース種目も推測では生成しません。
+            </div>
+          ) : null}
+          {conditionDataTab === "weather" ? (
+            <div className="ex-sample-alert">
+              <strong>保存済みbyWeatherのみ</strong>雪は保存実績がない限り未蓄積です。過去天候を後付けせず、実結果天候を優先します。
+            </div>
+          ) : null}
+          <p className="ex-location-policy">
+            条件別データは、既存の保存済みEXACT集計だけを表示します。LOW SAMPLEは参考扱い、identity-onlyは成績集計の根拠にせず、
+            未取得条件・未保存数値・曖昧分類をfake補完しません。
           </p>
         </section>
 
