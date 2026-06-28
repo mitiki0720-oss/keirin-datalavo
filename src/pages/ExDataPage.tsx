@@ -42,6 +42,18 @@ import {
 import type {
   KurariExAvailableAnalysisFocusItem,
 } from "../data/kurariExAvailableAnalysisFocus";
+import {
+  KURARI_EX_FUTURE_ACCUMULATION_PLAN,
+  KURARI_EX_FUTURE_PLAN_CURRENT_STATUSES,
+  KURARI_EX_FUTURE_PLAN_PRIORITIES,
+  KURARI_EX_FUTURE_PLAN_PRIORITY_LABELS,
+  KURARI_EX_FUTURE_PLAN_PRIORITY_SUMMARY,
+  KURARI_EX_FUTURE_PLAN_STATUS_SUMMARY,
+} from "../data/kurariExFutureAccumulationPlan";
+import type {
+  KurariExFutureAccumulationPlanItem,
+  KurariExFuturePlanCurrentStatus,
+} from "../data/kurariExFutureAccumulationPlan";
 import type {
   KurariExExactInitialData,
   KurariExMetric,
@@ -296,6 +308,36 @@ function AvailableAnalysisFocusCard({ item }: { item: KurariExAvailableAnalysisF
       </ul>
       <div className="ex-available-focus-caution">注意: {item.caution}</div>
       <div className="ex-available-focus-next">次の拡張: {item.nextUpgrade}</div>
+    </article>
+  );
+}
+
+const FUTURE_PLAN_STATUS_LABELS: Record<KurariExFuturePlanCurrentStatus, string> = {
+  partial: "PARTIAL",
+  "future-accumulation": "FUTURE",
+  unavailable: "UNAVAILABLE",
+  "fake-prohibited": "FAKE PROHIBITED",
+};
+
+function FutureAccumulationPlanCard({ item }: { item: KurariExFutureAccumulationPlanItem }) {
+  return (
+    <article className={`ex-future-plan-card is-${item.priority}`}>
+      <div className="ex-future-plan-head">
+        <div>
+          <span>{KURARI_EX_FUTURE_PLAN_PRIORITY_LABELS[item.priority]}</span>
+          <h3>{item.label}</h3>
+        </div>
+        <span className={`ex-future-plan-status is-${item.currentStatus}`}>
+          {FUTURE_PLAN_STATUS_LABELS[item.currentStatus]}
+        </span>
+      </div>
+      <div className="ex-future-plan-fields">
+        <b>必要な保存項目</b>
+        <span>{item.requiredSourceFields.join(" / ")}</span>
+      </div>
+      <p><b>fakeリスク</b>{item.fakeRisk}</p>
+      <p><b>available昇格条件</b>{item.promotionCondition}</p>
+      <p><b>次の実装ステップ</b>{item.nextImplementationStep}</p>
     </article>
   );
 }
@@ -2109,6 +2151,30 @@ export default function ExDataPage() {
         .ex-available-focus-caution { margin-top: 9px; padding: 9px 10px; border-radius: 11px; background: #fff8ed; color: #805e31; font-size: 9px; line-height: 1.65; }
         .ex-available-focus-next { margin-top: 8px; color: #7b8799; font-size: 9px; line-height: 1.6; }
         .ex-available-focus-partial { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 2},minmax(0,1fr)); gap: 9px; padding-top: 4px; }
+        .ex-future-plan-summary { display: grid; grid-template-columns: repeat(${isMobile ? 2 : 4},minmax(0,1fr)); gap: 9px; }
+        .ex-future-plan-summary article { min-width: 0; padding: 13px; border: 1px solid #e1e5ee; border-radius: 15px; background: rgba(255,255,255,.86); }
+        .ex-future-plan-summary span { color: #748097; font-size: 9px; font-weight: 900; letter-spacing: .05em; overflow-wrap: anywhere; }
+        .ex-future-plan-summary strong { display: block; margin-top: 5px; color: #263650; font: 850 22px/1 ${serif}; }
+        .ex-future-plan-status-summary { display: flex; flex-wrap: wrap; gap: 8px; }
+        .ex-future-plan-status-summary span { padding: 7px 10px; border-radius: 999px; background: #f1f3f7; color: #657187; font-size: 9px; font-weight: 900; }
+        .ex-future-plan-group { display: grid; gap: 10px; }
+        .ex-future-plan-group-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #e5e8ef; }
+        .ex-future-plan-group-head h3 { margin: 0; color: #293851; font: 800 19px/1.3 ${serif}; }
+        .ex-future-plan-group-head span { color: #8490a2; font-size: 10px; font-weight: 850; }
+        .ex-future-plan-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 2},minmax(0,1fr)); gap: 10px; }
+        .ex-future-plan-card { min-width: 0; padding: 15px; border: 1px solid #e1e5ed; border-radius: 17px; background: rgba(255,255,255,.88); }
+        .ex-future-plan-card.is-high { border-color: #d4c9ef; background: linear-gradient(145deg,#fff,#f8f5ff); }
+        .ex-future-plan-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+        .ex-future-plan-head > div > span { color: #765fae; font-size: 8px; font-weight: 950; letter-spacing: .1em; }
+        .ex-future-plan-head h3 { margin: 3px 0 0; color: #263650; font: 800 16px/1.4 ${serif}; }
+        .ex-future-plan-status { flex: 0 0 auto; display: inline-flex; padding: 5px 8px; border-radius: 999px; background: #edf0f4; color: #687184; font-size: 8px; font-weight: 950; }
+        .ex-future-plan-status.is-partial { color: #315f91; background: #e1efff; }
+        .ex-future-plan-status.is-future-accumulation { color: #6a7280; background: #eceef2; }
+        .ex-future-plan-status.is-unavailable { color: #6a7280; background: #eceef2; }
+        .ex-future-plan-status.is-fake-prohibited { color: #9a3d4f; background: #ffe8ed; }
+        .ex-future-plan-fields { display: grid; gap: 4px; margin-top: 11px; padding: 10px; border-radius: 12px; background: #f7f9fc; color: #647187; font-size: 9px; line-height: 1.6; overflow-wrap: anywhere; }
+        .ex-future-plan-fields b, .ex-future-plan-card p b { display: block; margin-bottom: 2px; color: #526176; }
+        .ex-future-plan-card p { margin: 9px 0 0; color: #6c788c; font-size: 9px; line-height: 1.7; }
         @media (max-width: 520px) { .ex-ranking-grid { max-height: none; overflow-y: visible; } }
 
         @media (max-width: 520px) { .ex-health-grid, .ex-kpi-grid { grid-template-columns: 1fr; } }
@@ -3180,6 +3246,51 @@ export default function ExDataPage() {
           <div className="ex-empty">
             SAFE USE: LOW SAMPLEは参考扱いです。byGrade / byRaceTypeはpartialのまま数値化せず、
             見なし直線・同県同乗・競りや戦法イベント成功率などfake-prohibited項目をこのビューへ混ぜません。
+          </div>
+        </section>
+
+        <section className="ex-panel ex-section">
+          <SectionTitle
+            eyebrow="FUTURE ACCUMULATION PLAN"
+            title="蓄積設計 / available昇格条件"
+            lead="partial・未蓄積・fake禁止項目について、将来何を保存し、どう検証すれば昇格できるかを定義した設計表です。実数値・率・指数・点数ではありません。"
+          />
+          <div className="ex-future-plan-summary" aria-label="蓄積設計priority集計">
+            <article>
+              <span>PLAN ITEMS</span>
+              <strong>{KURARI_EX_FUTURE_ACCUMULATION_PLAN.length.toLocaleString("ja-JP")}</strong>
+            </article>
+            {KURARI_EX_FUTURE_PLAN_PRIORITIES.map((priority) => (
+              <article key={priority}>
+                <span>{KURARI_EX_FUTURE_PLAN_PRIORITY_LABELS[priority]}</span>
+                <strong>{KURARI_EX_FUTURE_PLAN_PRIORITY_SUMMARY[priority].toLocaleString("ja-JP")}</strong>
+              </article>
+            ))}
+          </div>
+          <div className="ex-future-plan-status-summary" aria-label="蓄積設計currentStatus集計">
+            {KURARI_EX_FUTURE_PLAN_CURRENT_STATUSES.map((status) => (
+              <span key={status}>
+                {FUTURE_PLAN_STATUS_LABELS[status]}: {KURARI_EX_FUTURE_PLAN_STATUS_SUMMARY[status].toLocaleString("ja-JP")}
+              </span>
+            ))}
+          </div>
+          {KURARI_EX_FUTURE_PLAN_PRIORITIES.map((priority) => {
+            const priorityItems = KURARI_EX_FUTURE_ACCUMULATION_PLAN.filter((item) => item.priority === priority);
+            return (
+              <div className="ex-future-plan-group" key={priority}>
+                <div className="ex-future-plan-group-head">
+                  <h3>{KURARI_EX_FUTURE_PLAN_PRIORITY_LABELS[priority]} PRIORITY</h3>
+                  <span>{priorityItems.length.toLocaleString("ja-JP")}項目</span>
+                </div>
+                <div className="ex-future-plan-grid">
+                  {priorityItems.map((item) => <FutureAccumulationPlanCard item={item} key={item.id} />)}
+                </div>
+              </div>
+            );
+          })}
+          <div className="ex-empty">
+            DESIGN ONLY: byGrade / byRaceType / 見なし直線 / 同県同乗 / lineSize / position / 戦法イベント / 将来指数は、
+            必要な生データと検証条件が揃うまでavailableへ昇格させません。生成スクリプトと数値計算は今回実装していません。
           </div>
         </section>
 
