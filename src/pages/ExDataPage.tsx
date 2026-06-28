@@ -20,6 +20,7 @@ import type {
   KurariExMetric,
   KurariExInitialData,
   KurariExMatchupComparableStats,
+  KurariExMatchupEntry,
   KurariExMatchupExact,
   KurariExMatchupExactIndexItem,
   KurariExMatchupExactInitialData,
@@ -75,6 +76,102 @@ function getMatchupQualityLabel(quality?: string | null) {
     partial: "PARTIAL",
   };
   return quality ? labels[quality] ?? quality.toUpperCase() : "UNKNOWN";
+}
+
+const MATCHUP_OVERVIEW_LIMIT = 50;
+const MATCHUP_OVERVIEW_SOURCE_RIDER_LIMIT = 12;
+
+type MatchupOverviewCategory = "practical" | "low-sample" | "insufficient" | "unavailable";
+
+type MatchupOverviewRow = {
+  pairKey: string;
+  registrationNoA: string;
+  nameA: string;
+  registrationNoB: string;
+  nameB: string;
+  sharedRaceCount: number;
+  safeComparableRaceCount: number;
+  aAheadCount: number;
+  bAheadCount: number;
+  sameLine: KurariExMatchupComparableStats;
+  otherLine: KurariExMatchupComparableStats;
+  quality: string;
+  category: MatchupOverviewCategory;
+};
+
+function orientMatchupStats(stats: KurariExMatchupComparableStats, selfIsA: boolean): KurariExMatchupComparableStats {
+  if (selfIsA) return stats;
+  return {
+    ...stats,
+    selfAheadCount: stats.opponentAheadCount,
+    opponentAheadCount: stats.selfAheadCount,
+    selfAheadRate: stats.opponentAheadRate,
+    opponentAheadRate: stats.selfAheadRate,
+  };
+}
+
+function classifyMatchupOverview(
+  matchup: KurariExMatchupEntry,
+  selfQuality?: string,
+  opponentQuality?: string,
+): MatchupOverviewCategory {
+  const pairQuality = String(matchup.quality ?? "").toLowerCase();
+  const normalizedSelfQuality = String(selfQuality ?? "").toLowerCase();
+  const normalizedOpponentQuality = String(opponentQuality ?? "").toLowerCase();
+  const safeComparableRaceCount = matchup.safeComparableRaceCount ?? 0;
+
+  if (pairQuality === "partial" || normalizedSelfQuality === "partial" || normalizedOpponentQuality === "partial") {
+    return "insufficient";
+  }
+  if (
+    pairQuality === "low-sample" ||
+    normalizedSelfQuality === "low-sample" ||
+    normalizedOpponentQuality === "low-sample" ||
+    (safeComparableRaceCount >= 1 && safeComparableRaceCount <= 2)
+  ) {
+    return "low-sample";
+  }
+
+  const hasSameLineComparison = (matchup.sameLine?.safeComparableRaceCount ?? 0) > 0;
+  const hasOtherLineComparison = (matchup.otherLine?.safeComparableRaceCount ?? 0) > 0;
+  const hasOnlyOneLineCategory = hasSameLineComparison !== hasOtherLineComparison;
+  const hasComparableRates = matchup.selfAheadRate != null && matchup.opponentAheadRate != null;
+  if (
+    safeComparableRaceCount < 3 ||
+    pairQuality !== "sufficient" ||
+    hasOnlyOneLineCategory ||
+    !hasComparableRates
+  ) {
+    return "insufficient";
+  }
+  return "practical";
+}
+
+function getMatchupOverviewCategoryLabel(category: MatchupOverviewCategory) {
+  const labels: Record<MatchupOverviewCategory, string> = {
+    practical: "実戦参考",
+    "low-sample": "LOW SAMPLE",
+    insufficient: "比較不足 / 蓄積中",
+    unavailable: "未取得",
+  };
+  return labels[category];
+}
+
+function MatchupOverviewBadge({ category }: { category: MatchupOverviewCategory }) {
+  const className = category === "practical"
+    ? "is-sufficient"
+    : category === "low-sample"
+      ? "is-low-sample"
+      : category === "insufficient"
+        ? "is-partial"
+        : "is-identity-only";
+  return <span className={`ex-quality ${className}`}>{getMatchupOverviewCategoryLabel(category)}</span>;
+}
+
+function formatMatchupOverviewLine(stats: KurariExMatchupComparableStats) {
+  if (!stats.sharedRaceCount) return "未蓄積";
+  if (!stats.safeComparableRaceCount) return `${stats.sharedRaceCount}R / 比較未取得`;
+  return `${stats.sharedRaceCount}R / A先着${stats.selfAheadCount} / B先着${stats.opponentAheadCount}`;
 }
 
 function MetricCard({ label, value, note, warning }: {
@@ -753,6 +850,8 @@ export default function ExDataPage() {
   const [matchupFilterMode, setMatchupFilterMode] = useState<"all" | "advantage" | "danger" | "sample" | "strong" | "risk" | "sameLine" | "otherLine">("all");
   const [matchupCache, setMatchupCache] = useState<Record<string, KurariExMatchupExact>>({});
   const [matchupStatus, setMatchupStatus] = useState<Record<string, "loading" | "ready" | "error">>({});
+  const [matchupOverviewRows, setMatchupOverviewRows] = useState<MatchupOverviewRow[]>([]);
+  const [matchupOverviewStatus, setMatchupOverviewStatus] = useState<"loading" | "ready" | "error">("loading");
   const [shbNameIndex, setShbNameIndex] = useState<KurariExShbNameIndex | null>(null);
   const [shbNameStatus, setShbNameStatus] = useState<"loading" | "ready" | "error">("loading");
   const [venueScoreAnalysis, setVenueScoreAnalysis] = useState<KurariExVenueScoreAnalysis | null>(null);
@@ -1075,6 +1174,78 @@ export default function ExDataPage() {
     ));
   }, [matchupInitialData?.index.items, matchupQuery]);
 
+  useEffect(() => {
+    if (matchupInitialStatus !== "ready" || !matchupInitialData?.index.items.length) return;
+    let active = true;
+    setMatchupOverviewStatus("loading");
+    const indexItems = matchupInitialData.index.items;
+    const qualityByRegistrationNo = new Map(indexItems.map((item) => [item.registrationNo, item.quality]));
+    const sourceItems = [...indexItems]
+      .sort((left, right) =>
+        right.safeComparableRaceCount - left.safeComparableRaceCount ||
+        right.sharedRaceCount - left.sharedRaceCount ||
+        left.registrationNo.localeCompare(right.registrationNo)
+      )
+      .slice(0, MATCHUP_OVERVIEW_SOURCE_RIDER_LIMIT);
+
+    Promise.allSettled(
+      sourceItems.map(async (item) => ({
+        indexItem: item,
+        exact: await loadKurariExMatchupExactByFile(item.file),
+      })),
+    ).then((results) => {
+      if (!active) return;
+      const pairMap = new Map<string, MatchupOverviewRow>();
+      let fulfilledCount = 0;
+      results.forEach((result) => {
+        if (result.status !== "fulfilled") return;
+        fulfilledCount += 1;
+        const { exact } = result.value;
+        exact.matchups.forEach((matchup) => {
+          if (pairMap.has(matchup.pairKey)) return;
+          const [registrationNoA, registrationNoB] = matchup.pairKey.split(":");
+          if (!registrationNoA || !registrationNoB) return;
+          const selfIsA = exact.registrationNo === registrationNoA;
+          pairMap.set(matchup.pairKey, {
+            pairKey: matchup.pairKey,
+            registrationNoA,
+            nameA: selfIsA ? exact.name : matchup.opponentName,
+            registrationNoB,
+            nameB: selfIsA ? matchup.opponentName : exact.name,
+            sharedRaceCount: matchup.sharedRaceCount,
+            safeComparableRaceCount: matchup.safeComparableRaceCount,
+            aAheadCount: selfIsA ? matchup.selfAheadCount : matchup.opponentAheadCount,
+            bAheadCount: selfIsA ? matchup.opponentAheadCount : matchup.selfAheadCount,
+            sameLine: orientMatchupStats(matchup.sameLine, selfIsA),
+            otherLine: orientMatchupStats(matchup.otherLine, selfIsA),
+            quality: matchup.quality,
+            category: classifyMatchupOverview(
+              matchup,
+              exact.quality,
+              qualityByRegistrationNo.get(matchup.opponentRegistrationNo),
+            ),
+          });
+        });
+      });
+      const categoryRanks: Record<MatchupOverviewCategory, number> = {
+        practical: 0,
+        "low-sample": 1,
+        insufficient: 2,
+        unavailable: 3,
+      };
+      setMatchupOverviewRows([...pairMap.values()].sort((left, right) =>
+        categoryRanks[left.category] - categoryRanks[right.category] ||
+        right.safeComparableRaceCount - left.safeComparableRaceCount ||
+        right.sharedRaceCount - left.sharedRaceCount ||
+        left.pairKey.localeCompare(right.pairKey)
+      ));
+      setMatchupOverviewStatus(fulfilledCount > 0 ? "ready" : "error");
+    });
+    return () => {
+      active = false;
+    };
+  }, [matchupInitialData, matchupInitialStatus]);
+
   const selectMatchupRider = (item: KurariExMatchupExactIndexItem) => {
     setSelectedMatchupRiderNo(item.registrationNo);
     if (matchupCache[item.registrationNo] || matchupStatus[item.registrationNo] === "loading") return;
@@ -1223,6 +1394,11 @@ export default function ExDataPage() {
     (item) => item.quality !== "identity-only" && item.confirmedStartCount >= 5,
   ).length;
   const matchupQualityCounts = matchupSummary?.qualityCounts ?? {};
+  const matchupOverviewVisibleRows = matchupOverviewRows.slice(0, MATCHUP_OVERVIEW_LIMIT);
+  const matchupOverviewCategoryCounts = matchupOverviewRows.reduce<Record<MatchupOverviewCategory, number>>(
+    (counts, row) => ({ ...counts, [row.category]: counts[row.category] + 1 }),
+    { practical: 0, "low-sample": 0, insufficient: 0, unavailable: 0 },
+  );
   const categoryDimensions = riderCategoryAnalysis?.dimensions ?? {};
   const selectedConditionTab = KURARI_EX_CONDITION_DATA_TABS.find((tab) => tab.key === conditionDataTab) ?? KURARI_EX_CONDITION_DATA_TABS[0];
   const selectedConditionDimension = categoryDimensions[selectedConditionTab.dimensionKey];
@@ -1327,6 +1503,22 @@ export default function ExDataPage() {
         .ex-condition-card-grid strong { display: block; margin-top: 3px; color: #263650; font-size: 13px; }
         .ex-condition-rate-row { display: grid; gap: 5px; color: #536d92; font-size: 11px; font-weight: 800; line-height: 1.6; }
         .ex-role-description { margin: 0; padding: 15px 17px; border-left: 4px solid #705ab3; border-radius: 0 16px 16px 0; background: #f7f5ff; color: #526279; font-size: 12px; line-height: 1.8; font-weight: 700; }
+        .ex-matchup-overview-summary { display: grid; grid-template-columns: repeat(${isMobile ? 2 : 5},minmax(0,1fr)); gap: 10px; }
+        .ex-matchup-overview-summary div { padding: 14px; border: 1px solid #e3e6ef; border-radius: 17px; background: rgba(255,255,255,.86); color: #748096; font-size: 10px; line-height: 1.5; }
+        .ex-matchup-overview-summary strong { display: block; margin-top: 5px; color: #263650; font: 850 ${isMobile ? "20px" : "24px"}/1 ${serif}; }
+        .ex-matchup-overview-table { min-width: 1420px; }
+        .ex-matchup-overview-player { display: grid; gap: 3px; min-width: 125px; }
+        .ex-matchup-overview-player strong { color: #1f2d45; font-size: 13px; }
+        .ex-matchup-overview-line { min-width: 170px; color: #526987; font-weight: 750; }
+        .ex-matchup-overview-note { min-width: 110px; color: #8590a3; }
+        .ex-matchup-overview-cards { display: grid; gap: 12px; }
+        .ex-matchup-overview-card { display: grid; gap: 13px; padding: 18px; border: 1px solid #e0e5ef; border-radius: 20px; background: rgba(255,255,255,.92); }
+        .ex-matchup-overview-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+        .ex-matchup-overview-card-head h3 { margin: 0; color: #1f2d45; font: 800 17px/1.45 ${serif}; }
+        .ex-matchup-overview-card-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+        .ex-matchup-overview-card-grid div { padding: 9px; border-radius: 12px; background: #f7f9fc; color: #748096; font-size: 9px; }
+        .ex-matchup-overview-card-grid strong { display: block; margin-top: 3px; color: #263650; font-size: 12px; }
+        .ex-matchup-overview-card-line { display: grid; gap: 6px; padding-top: 11px; border-top: 1px solid #edf0f5; color: #526987; font-size: 11px; line-height: 1.6; }
         .ex-section { padding: ${isMobile ? "22px 18px" : "30px"}; display: grid; gap: 22px; }
         .ex-section-title h2 { margin: 6px 0 0; font: 800 ${isMobile ? "27px" : "36px"}/1.15 ${serif}; color: #172239; }
         .ex-section-title p { margin: 8px 0 0; color: #718096; line-height: 1.7; }
@@ -1840,6 +2032,111 @@ export default function ExDataPage() {
           <p className="ex-location-policy">
             位置・役割別成績は、既存の保存済みbyRoleだけを表示します。LOW SAMPLEは参考扱い、identity-onlyは成績根拠にせず、
             未保存の役割・件数・成績をfake補完しません。
+          </p>
+        </section>
+
+        <section className="ex-panel ex-section">
+          <SectionTitle
+            eyebrow="MATCHUP EXACT OVERVIEW"
+            title="MATCHUP / 相性データ一覧"
+            lead="既存MATCHUP EXに保存済みのpairKeyだけを表示します。存在しない対戦ペアや相性メモは生成しません。"
+          />
+          <div className="ex-matchup-overview-summary">
+            <div>保存済み対戦ペア数<strong>{valueText(matchupSummary?.distinctPairCount)}</strong></div>
+            <div>実戦参考・候補内<strong>{matchupOverviewCategoryCounts.practical.toLocaleString("ja-JP")}</strong></div>
+            <div>LOW SAMPLE・候補内<strong>{matchupOverviewCategoryCounts["low-sample"].toLocaleString("ja-JP")}</strong></div>
+            <div>比較不足・候補内<strong>{matchupOverviewCategoryCounts.insufficient.toLocaleString("ja-JP")}</strong></div>
+            <div>表示件数<strong>{matchupOverviewVisibleRows.length.toLocaleString("ja-JP")}</strong></div>
+          </div>
+          <div className="ex-condition-source">
+            <strong>表示：先頭{matchupOverviewVisibleRows.length.toLocaleString("ja-JP")}件 / 全件数 {valueText(matchupSummary?.distinctPairCount)}件</strong>
+            <span>分類数はindex上位{MATCHUP_OVERVIEW_SOURCE_RIDER_LIMIT}選手から読み込んだ重複なし候補 {matchupOverviewRows.length.toLocaleString("ja-JP")}件内</span>
+            <span>参照元: exact/matchups/by-rider-tail/*</span>
+          </div>
+          <div className="ex-rider-overview-legend" aria-label="MATCHUP品質区分">
+            <span className="ex-quality is-sufficient">実戦参考</span>
+            <span className="ex-quality is-low-sample">LOW SAMPLE / 低母数</span>
+            <span className="ex-quality is-partial">比較不足 / 蓄積中</span>
+            <span className="ex-quality is-identity-only">未取得</span>
+          </div>
+          {matchupOverviewStatus === "loading" ? <EmptyState text="保存済みMATCHUP EXを読み込んでいます。" /> : null}
+          {matchupOverviewStatus === "error" ? <EmptyState text="MATCHUP / 相性データ一覧を取得できませんでした。" /> : null}
+          {matchupOverviewStatus === "ready" && !isMobile ? (
+            <div className="ex-condition-table-wrap">
+              <table className="ex-condition-table ex-matchup-overview-table">
+                <thead>
+                  <tr>
+                    <th>選手A</th>
+                    <th>選手B</th>
+                    <th>直接対戦数</th>
+                    <th>A先着</th>
+                    <th>B先着</th>
+                    <th>同ライン時</th>
+                    <th>別ライン時</th>
+                    <th>品質</th>
+                    <th>再戦材料</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {matchupOverviewVisibleRows.map((row) => (
+                    <tr key={row.pairKey}>
+                      <td>
+                        <div className="ex-matchup-overview-player">
+                          <strong>{row.nameA || "未取得"}</strong>
+                          <span>{row.registrationNoA}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="ex-matchup-overview-player">
+                          <strong>{row.nameB || "未取得"}</strong>
+                          <span>{row.registrationNoB}</span>
+                        </div>
+                      </td>
+                      <td>{row.sharedRaceCount}R<br /><span className="ex-muted">比較可能 {row.safeComparableRaceCount}R</span></td>
+                      <td>{row.safeComparableRaceCount ? row.aAheadCount : "-"}</td>
+                      <td>{row.safeComparableRaceCount ? row.bAheadCount : "-"}</td>
+                      <td className="ex-matchup-overview-line">{formatMatchupOverviewLine(row.sameLine)}</td>
+                      <td className="ex-matchup-overview-line">{formatMatchupOverviewLine(row.otherLine)}</td>
+                      <td><MatchupOverviewBadge category={row.category} /></td>
+                      <td className="ex-matchup-overview-note">未蓄積</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+          {matchupOverviewStatus === "ready" && isMobile ? (
+            <div className="ex-matchup-overview-cards">
+              {matchupOverviewVisibleRows.map((row) => (
+                <article className="ex-matchup-overview-card" key={row.pairKey}>
+                  <div className="ex-matchup-overview-card-head">
+                    <div>
+                      <h3>{row.nameA || "未取得"} × {row.nameB || "未取得"}</h3>
+                      <div className="ex-muted">{row.registrationNoA} / {row.registrationNoB}</div>
+                    </div>
+                    <MatchupOverviewBadge category={row.category} />
+                  </div>
+                  <div className="ex-matchup-overview-card-grid">
+                    <div>直接対戦<strong>{row.sharedRaceCount}R</strong></div>
+                    <div>A先着<strong>{row.safeComparableRaceCount ? row.aAheadCount : "-"}</strong></div>
+                    <div>B先着<strong>{row.safeComparableRaceCount ? row.bAheadCount : "-"}</strong></div>
+                  </div>
+                  <div className="ex-matchup-overview-card-line">
+                    <span>比較可能：{row.safeComparableRaceCount}R</span>
+                    <span>同ライン時：{formatMatchupOverviewLine(row.sameLine)}</span>
+                    <span>別ライン時：{formatMatchupOverviewLine(row.otherLine)}</span>
+                    <span>再戦材料：未蓄積</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : null}
+          <div className="ex-sample-alert">
+            <strong>保存済みMATCHUP EXのみ</strong>LOW SAMPLEは参考扱い、比較不足は蓄積中として表示します。同ライン・別ラインや直接対戦数を推測しません。
+          </div>
+          <p className="ex-location-policy">
+            A先着・B先着は保存済みの比較可能レースだけを表示します。順位・府県・脚質から因果関係や再戦材料を作らず、
+            identity-onlyを成績根拠にせず、未保存項目は未蓄積として扱います。fake補完は禁止です。
           </p>
         </section>
 
