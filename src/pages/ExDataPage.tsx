@@ -25,6 +25,16 @@ import type {
   KurariExAnalysisInventoryItem,
   KurariExAnalysisInventoryStatus,
 } from "../data/kurariExAnalysisInventory";
+import {
+  KURARI_EX_SOURCE_CAPABILITY_AUDIT,
+  KURARI_EX_SOURCE_CAPABILITY_AUDIT_SUMMARY,
+  KURARI_EX_SOURCE_CAPABILITY_FOCUS_IDS,
+  KURARI_EX_SOURCE_CAPABILITY_STATUSES,
+  KURARI_EX_SOURCE_CAPABILITY_STATUS_META,
+} from "../data/kurariExSourceCapabilityAudit";
+import type {
+  KurariExSourceCapabilityStatus,
+} from "../data/kurariExSourceCapabilityAudit";
 import type {
   KurariExExactInitialData,
   KurariExMetric,
@@ -246,6 +256,18 @@ function AnalysisInventoryStatusBadge({ status }: { status: KurariExAnalysisInve
   return (
     <span className={`ex-analysis-inventory-status is-${className}`}>
       {KURARI_EX_ANALYSIS_STATUS_META[status].label}
+    </span>
+  );
+}
+
+const KURARI_EX_SOURCE_CAPABILITY_FOCUS_ITEMS = KURARI_EX_SOURCE_CAPABILITY_FOCUS_IDS
+  .map((id) => KURARI_EX_SOURCE_CAPABILITY_AUDIT.find((auditItem) => auditItem.id === id))
+  .filter((auditItem): auditItem is (typeof KURARI_EX_SOURCE_CAPABILITY_AUDIT)[number] => Boolean(auditItem));
+
+function SourceCapabilityStatusBadge({ status }: { status: KurariExSourceCapabilityStatus }) {
+  return (
+    <span className={`ex-source-capability-status is-${status}`}>
+      {KURARI_EX_SOURCE_CAPABILITY_STATUS_META[status].label}
     </span>
   );
 }
@@ -2031,6 +2053,21 @@ export default function ExDataPage() {
         .ex-analysis-inventory-status.is-low-sample { color: #925711; background: #fff0d3; }
         .ex-analysis-inventory-status.is-future-accumulation { color: #6a7280; background: #eceef2; }
         .ex-analysis-inventory-status.is-not-generated-fake-prohibited { color: #9a3d4f; background: #ffe8ed; }
+        .ex-source-capability-summary { display: grid; grid-template-columns: repeat(${isMobile ? 2 : 5},minmax(0,1fr)); gap: 9px; }
+        .ex-source-capability-summary article { min-width: 0; padding: 13px; border: 1px solid #e1e5ee; border-radius: 15px; background: rgba(255,255,255,.86); }
+        .ex-source-capability-summary span { color: #748097; font-size: 9px; font-weight: 900; letter-spacing: .05em; overflow-wrap: anywhere; }
+        .ex-source-capability-summary strong { display: block; margin-top: 5px; color: #263650; font: 850 22px/1 ${serif}; }
+        .ex-source-capability-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 2},minmax(0,1fr)); gap: 9px; }
+        .ex-source-capability-item { display: grid; gap: 8px; min-width: 0; padding: 14px; border: 1px solid #e2e6ef; border-radius: 16px; background: rgba(255,255,255,.84); }
+        .ex-source-capability-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 9px; }
+        .ex-source-capability-head h3 { margin: 0; color: #293851; font: 800 15px/1.4 ${serif}; }
+        .ex-source-capability-item p { margin: 0; color: #6a778c; font-size: 10px; line-height: 1.7; }
+        .ex-source-capability-keys { color: #8390a3; font-size: 9px; line-height: 1.6; overflow-wrap: anywhere; }
+        .ex-source-capability-status { flex: 0 0 auto; display: inline-flex; padding: 5px 8px; border-radius: 999px; color: #5d687a; background: #edf0f4; font-size: 8px; font-weight: 950; letter-spacing: .04em; }
+        .ex-source-capability-status.is-available { color: #23664c; background: #daf5e8; }
+        .ex-source-capability-status.is-partial { color: #315f91; background: #e1efff; }
+        .ex-source-capability-status.is-unavailable { color: #6a7280; background: #eceef2; }
+        .ex-source-capability-status.is-fake-prohibited { color: #9a3d4f; background: #ffe8ed; }
         @media (max-width: 520px) { .ex-ranking-grid { max-height: none; overflow-y: visible; } }
 
         @media (max-width: 520px) { .ex-health-grid, .ex-kpi-grid { grid-template-columns: 1fr; } }
@@ -3032,6 +3069,45 @@ export default function ExDataPage() {
           <div className="ex-empty">
             POLICY: existing / extend-existing は既存セクションを拡張し、別名の重複実装をしません。
             根拠が未蓄積の項目は future-accumulation、推測するとfakeになる指標は not-generated / fake-prohibited のまま管理します。
+          </div>
+        </section>
+
+        <section className="ex-panel ex-section">
+          <SectionTitle
+            eyebrow="SOURCE CAPABILITY AUDIT"
+            title="データ根拠監査 / 生成可能性"
+            lead="保存済みJSONに根拠フィールドがあるかを監査した結果です。これは新しい率・指数の生成ではなく、根拠なしの数値を作らないための確認表です。"
+          />
+          <div className="ex-source-capability-summary" aria-label="データ根拠監査集計">
+            <article>
+              <span>AUDIT TARGETS</span>
+              <strong>{KURARI_EX_SOURCE_CAPABILITY_AUDIT.length.toLocaleString("ja-JP")}</strong>
+            </article>
+            {KURARI_EX_SOURCE_CAPABILITY_STATUSES.map((status) => (
+              <article key={status}>
+                <span>{KURARI_EX_SOURCE_CAPABILITY_STATUS_META[status].label}</span>
+                <strong>{KURARI_EX_SOURCE_CAPABILITY_AUDIT_SUMMARY[status].toLocaleString("ja-JP")}</strong>
+              </article>
+            ))}
+          </div>
+          <div className="ex-source-capability-grid">
+            {KURARI_EX_SOURCE_CAPABILITY_FOCUS_ITEMS.map((auditItem) => (
+              <article className="ex-source-capability-item" key={auditItem.id}>
+                <div className="ex-source-capability-head">
+                  <h3>{auditItem.label}</h3>
+                  <SourceCapabilityStatusBadge status={auditItem.capabilityStatus} />
+                </div>
+                <p>{auditItem.implementationNote}</p>
+                <div className="ex-source-capability-keys">
+                  根拠: {auditItem.confirmedSourceKeys.length ? auditItem.confirmedSourceKeys.join(" / ") : "未蓄積"}
+                  {auditItem.missingSourceKeys.length ? ` / 不足: ${auditItem.missingSourceKeys.join(" / ")}` : ""}
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className="ex-empty">
+            AUDIT POLICY: byGrade / byRaceType / 見なし直線 / 同県同乗 / 戦法イベント生データが存在しない状態では、
+            推測による成功率・指数・補正値を生成しません。保存済みキーと安全に分類できる範囲だけを利用します。
           </div>
         </section>
 
