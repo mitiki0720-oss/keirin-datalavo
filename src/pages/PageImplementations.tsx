@@ -20,6 +20,7 @@ import {
   buildKurariExPredictionMaterial,
   buildKurariExMatchupPredictionMaterial,
   buildKurariExRiderPredictionMaterial,
+  KURARI_EX_ACCUMULATION_RULES_UI_SUMMARY,
   findKurariExExactVenueEntryByVenueName,
   findKurariExVenueEntryByVenueName,
   loadKurariExExactIndex,
@@ -12303,6 +12304,14 @@ const record = normalizePredictionResultRecord({
                           {selectedKurariExRoleMaterial.ready
                             ? `先行役 ${selectedKurariExRoleMaterial.lineHeadCount}人 / 番手 ${selectedKurariExRoleMaterial.lineSecondCount}人 / 3番手以降 ${selectedKurariExRoleMaterial.lineThirdOrLaterCount}人 / 単騎 ${selectedKurariExRoleMaterial.soloCount}人`
                             : "並び未取得、または安全に解釈できないため役割判定なし"}
+                        </div>
+                      </div>
+                      <div style={{ marginTop: "9px", borderTop: "1px solid rgba(226, 216, 241, 0.9)", paddingTop: "9px" }}>
+                        <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.08em", color: "#6d4fc2", marginBottom: "5px" }}>
+                          蓄積ルール：固定済み
+                        </div>
+                        <div style={{ fontSize: "10px", fontWeight: 700, color: "#7a5a14", lineHeight: 1.6 }}>
+                          {KURARI_EX_ACCUMULATION_RULES_UI_SUMMARY}
                         </div>
                       </div>
                     </div>

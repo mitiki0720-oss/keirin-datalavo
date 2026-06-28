@@ -33,6 +33,21 @@ const EX_ROOT = "/data/analytics/kurari-ex";
 const EXACT_ROOT = `${EX_ROOT}/exact`;
 const RIDER_EXACT_ROOT = `${EXACT_ROOT}/riders`;
 const MATCHUP_EXACT_ROOT = `${EXACT_ROOT}/matchups`;
+
+export const KURARI_EX_ACCUMULATION_RULES = [
+  "fake補完は禁止。存在しない成績・対戦・登録番号は作らない。",
+  "登録番号一致を最優先。名前一致・補助一致は参考扱い。",
+  "未解決・曖昧候補は無理に紐付けず、監査対象として残す。",
+  "LOW SAMPLEは参考扱い。買い目の主根拠にはしない。",
+  "素材蓄積中は登録・識別のみ。成績根拠として固定しない。",
+  "MATCHUP EXは既存対戦ペアのみ使用し、存在しない対戦は生成しない。",
+  "ライン役割は安全に並びを解釈できる場合だけ使う。",
+  "public/data/reviews/YYYY-MM-DD は蓄積データなので削除しない。",
+] as const;
+
+export const KURARI_EX_ACCUMULATION_RULES_UI_SUMMARY =
+  "fake補完禁止 / 登録番号優先 / LOW SAMPLE参考扱い";
+
 let riderExactIndexPromise: Promise<KurariExRiderExactIndex> | null = null;
 let matchupExactIndexPromise: Promise<KurariExMatchupExactIndex> | null = null;
 
@@ -425,6 +440,8 @@ function buildKurariExPredictionMaterialText(
 
   lines.push("", "【今回の買い目設計で確認すること】");
   lines.push(...KURARI_EX_PREDICTION_CHECKS.map((item) => `- ${item}`));
+  lines.push("", "【KURARI EX 蓄積ルール】");
+  lines.push(...KURARI_EX_ACCUMULATION_RULES.map((rule) => `- ${rule}`));
   return lines.join("\n");
 }
 
@@ -447,7 +464,26 @@ export function buildKurariExPredictionMaterial(
     const text = buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, matchupMaterial, confidenceMaterial, 0, guidanceLimit);
     if (text.length <= maxLength) return text;
   }
-  return buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, matchupMaterial, confidenceMaterial, 0, 1).slice(0, maxLength);
+  const fallbackText = buildKurariExPredictionMaterialText(
+    venue,
+    guidance,
+    exact,
+    context,
+    riderMaterial,
+    matchupMaterial,
+    confidenceMaterial,
+    0,
+    1,
+  );
+  if (fallbackText.length <= maxLength) return fallbackText;
+
+  const rulesMarker = "\n\n【KURARI EX 蓄積ルール】";
+  const rulesStart = fallbackText.lastIndexOf(rulesMarker);
+  if (rulesStart < 0) return fallbackText.slice(0, maxLength);
+
+  const rulesSection = fallbackText.slice(rulesStart);
+  const bodyLimit = Math.max(0, maxLength - rulesSection.length);
+  return `${fallbackText.slice(0, bodyLimit).trimEnd()}${rulesSection}`;
 }
 
 export async function loadKurariExInitialData(): Promise<KurariExInitialData> {
