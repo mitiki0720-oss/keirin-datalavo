@@ -170,6 +170,60 @@ function RiderQualityBadge({ quality }: { quality: KurariExRiderQuality }) {
   );
 }
 
+const RIDER_EXACT_OVERVIEW_LIMIT = 50;
+
+function getRiderOverviewQualityRank(item: KurariExRiderExactIndexItem) {
+  if (item.quality === "identity-only") return 2;
+  if (item.quality === "low-sample" || item.confirmedStartCount < 5) return 1;
+  return 0;
+}
+
+function getRiderOverviewQualityLabel(item: KurariExRiderExactIndexItem) {
+  const rank = getRiderOverviewQualityRank(item);
+  if (rank === 2) return "素材蓄積中";
+  if (rank === 1) return "LOW SAMPLE";
+  return "実戦根拠あり";
+}
+
+function getRiderIdentityLabel(rider?: KurariExRiderExact) {
+  if (!rider) return "確認中";
+  if (!rider.identity.registrationNoResolved) return "紐付け：確認中";
+  const labels: Record<KurariExRiderExact["identity"]["status"], string> = {
+    "registration-no": "登録番号一致",
+    "unique-player-card-name": "名前一致 / 補助一致",
+    "same-registration-name": "名前一致 / 同一登録番号",
+    "manual-override": "補助一致 / 手動確認",
+  };
+  return labels[rider.identity.status] ?? "紐付け：確認中";
+}
+
+function formatRiderOverviewRate(rate?: number | null) {
+  return rate == null ? "未取得" : `${rate.toFixed(1)}%`;
+}
+
+function RiderExactOverviewStats({ item, rider }: { item: KurariExRiderExactIndexItem; rider?: KurariExRiderExact }) {
+  if (!rider) return <span className="ex-muted">読込中</span>;
+  if (item.quality === "identity-only") return <span className="ex-muted">成績未蓄積</span>;
+  return (
+    <>
+      <span>出走 {rider.overall.starts ?? "未取得"} / 1着 {rider.overall.wins} / 2着 {rider.overall.seconds} / 3着 {rider.overall.thirds} / 着外 {rider.overall.outside ?? "未取得"}</span>
+      <span className="ex-rider-overview-rates">
+        勝率 {formatRiderOverviewRate(rider.overall.winRate.rate)} / 2連対率 {formatRiderOverviewRate(rider.overall.top2Rate.rate)} / 3連対率 {formatRiderOverviewRate(rider.overall.top3Rate.rate)}
+      </span>
+    </>
+  );
+}
+
+function RiderExactOverviewMethods({ item, rider }: { item: KurariExRiderExactIndexItem; rider?: KurariExRiderExact }) {
+  if (!rider) return <span className="ex-muted">読込中</span>;
+  if (item.quality === "identity-only") return <span className="ex-muted">未蓄積</span>;
+  return (
+    <span>
+      逃げ {rider.winningMethods.escape.count} / 捲り {rider.winningMethods.sprint.count} / 差し {rider.winningMethods.difference.count} / マーク 未蓄積
+    </span>
+  );
+}
+
 function RiderAggregateCards({ aggregate }: { aggregate: KurariExRiderAggregate }) {
   const values = [
     ["出走数", aggregate.starts == null ? "未取得" : valueText(aggregate.starts)],
@@ -591,6 +645,8 @@ export default function ExDataPage() {
   const [selectedRiderNo, setSelectedRiderNo] = useState<string | null>(null);
   const [riderCache, setRiderCache] = useState<Record<string, KurariExRiderExact>>({});
   const [riderStatus, setRiderStatus] = useState<Record<string, "loading" | "ready" | "error">>({});
+  const [riderOverviewCache, setRiderOverviewCache] = useState<Record<string, KurariExRiderExact>>({});
+  const [riderOverviewStatus, setRiderOverviewStatus] = useState<"loading" | "ready" | "error">("loading");
   const [matchupInitialData, setMatchupInitialData] = useState<KurariExMatchupExactInitialData | null>(null);
   const [matchupInitialStatus, setMatchupInitialStatus] = useState<"loading" | "ready" | "error">("loading");
   const [matchupQuery, setMatchupQuery] = useState("");
@@ -855,6 +911,45 @@ export default function ExDataPage() {
       });
   }, [riderFilterMode, riderInitialData?.index.items, riderQuery]);
 
+  const riderOverviewItems = useMemo(
+    () => [...(riderInitialData?.index.items ?? [])]
+      .sort((left, right) =>
+        getRiderOverviewQualityRank(left) - getRiderOverviewQualityRank(right) ||
+        left.name.localeCompare(right.name, "ja") ||
+        left.registrationNo.localeCompare(right.registrationNo)
+      )
+      .slice(0, RIDER_EXACT_OVERVIEW_LIMIT),
+    [riderInitialData?.index.items],
+  );
+
+  useEffect(() => {
+    if (riderInitialStatus !== "ready" || riderOverviewItems.length === 0) return;
+    let active = true;
+    setRiderOverviewStatus("loading");
+    Promise.allSettled(
+      riderOverviewItems.map(async (item) => ({
+        registrationNo: item.registrationNo,
+        rider: await loadKurariExRiderExactByFile(item.file),
+      })),
+    ).then((results) => {
+      if (!active) return;
+      const loaded: Record<string, KurariExRiderExact> = {};
+      let rejectedCount = 0;
+      results.forEach((result) => {
+        if (result.status === "fulfilled") {
+          loaded[result.value.registrationNo] = result.value.rider;
+        } else {
+          rejectedCount += 1;
+        }
+      });
+      setRiderOverviewCache(loaded);
+      setRiderOverviewStatus(rejectedCount === results.length ? "error" : "ready");
+    });
+    return () => {
+      active = false;
+    };
+  }, [riderInitialStatus, riderOverviewItems]);
+
   const selectRider = (item: KurariExRiderExactIndexItem) => {
     setSelectedRiderNo(item.registrationNo);
     if (riderCache[item.registrationNo] || riderStatus[item.registrationNo] === "loading") return;
@@ -1084,6 +1179,26 @@ export default function ExDataPage() {
         .ex-location-row strong { color: #35435a; text-align: right; overflow-wrap: anywhere; }
         .ex-location-note { margin: 13px 0 0; padding-top: 11px; border-top: 1px dashed #dfe3ec; color: #7a8497; font-size: 11px; line-height: 1.7; }
         .ex-location-policy { margin: 0; padding: 17px 19px; border-radius: 18px; border: 1px solid #dbe6e1; background: rgba(246,255,251,.86); color: #526779; font-size: 13px; line-height: 1.85; font-weight: 650; }
+        .ex-rider-overview-summary { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .ex-rider-overview-summary strong { color: #263650; font-size: 14px; }
+        .ex-rider-overview-legend { display: flex; flex-wrap: wrap; gap: 8px; }
+        .ex-rider-overview-legend .ex-quality { gap: 5px; }
+        .ex-rider-overview-table-wrap { overflow-x: auto; border: 1px solid #e0e5ef; border-radius: 20px; background: rgba(255,255,255,.88); }
+        .ex-rider-overview-table { width: 100%; min-width: 1080px; border-collapse: collapse; }
+        .ex-rider-overview-table th { padding: 12px 14px; color: #6d788c; background: #f6f8fc; font-size: 10px; letter-spacing: .06em; text-align: left; white-space: nowrap; }
+        .ex-rider-overview-table td { padding: 14px; border-top: 1px solid #edf0f5; color: #3b4960; font-size: 11px; line-height: 1.65; vertical-align: top; }
+        .ex-rider-overview-name { display: grid; gap: 3px; min-width: 150px; }
+        .ex-rider-overview-name strong { color: #1f2d45; font: 800 15px/1.35 ${serif}; }
+        .ex-rider-overview-stats { display: grid; gap: 4px; min-width: 310px; }
+        .ex-rider-overview-rates { color: #536d92; font-weight: 800; }
+        .ex-rider-overview-methods { min-width: 240px; }
+        .ex-rider-overview-cards { display: grid; gap: 12px; }
+        .ex-rider-overview-card { display: grid; gap: 13px; padding: 18px; border: 1px solid #e0e5ef; border-radius: 20px; background: rgba(255,255,255,.9); }
+        .ex-rider-overview-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+        .ex-rider-overview-card-head h3 { margin: 0; color: #1f2d45; font: 800 18px/1.35 ${serif}; }
+        .ex-rider-overview-card-block { display: grid; gap: 5px; padding-top: 11px; border-top: 1px solid #edf0f5; color: #435269; font-size: 11px; line-height: 1.65; }
+        .ex-rider-overview-card-block b { color: #758197; font-size: 9px; letter-spacing: .08em; }
+        .ex-rider-overview-link { display: inline-flex; width: fit-content; padding: 5px 8px; border-radius: 999px; background: #edf3ff; color: #365f99; font-size: 9px; font-weight: 900; }
         .ex-section { padding: ${isMobile ? "22px 18px" : "30px"}; display: grid; gap: 22px; }
         .ex-section-title h2 { margin: 6px 0 0; font: 800 ${isMobile ? "27px" : "36px"}/1.15 ${serif}; color: #172239; }
         .ex-section-title p { margin: 8px 0 0; color: #718096; line-height: 1.7; }
@@ -1280,6 +1395,110 @@ export default function ExDataPage() {
           <p className="ex-location-policy">
             KURARI EXは、実データを蓄積しながら育てる分析ページです。未蓄積の数値は作らず、LOW SAMPLEや素材蓄積中を明示します。
             netkeirin / WINTICKETのような分析感を目指しつつ、ぬらくら用のオリジナルEXとして育成中です。fake補完は禁止です。
+          </p>
+        </section>
+
+        <section className="ex-panel ex-section">
+          <SectionTitle
+            eyebrow="PLAYER EXACT OVERVIEW"
+            title="選手別EXACT一覧"
+            lead="KURARI EXに保存されている選手別データです。未蓄積の数値は作らず、LOW SAMPLE・素材蓄積中を明示します。"
+          />
+          <div className="ex-rider-overview-summary">
+            <strong>
+              表示：先頭{Math.min(RIDER_EXACT_OVERVIEW_LIMIT, riderInitialData?.index.riderCount ?? 0).toLocaleString("ja-JP")}件 / 全件数 {(riderInitialData?.index.riderCount ?? 0).toLocaleString("ja-JP")}件
+            </strong>
+            <span className="ex-muted">実戦根拠あり → LOW SAMPLE → 素材蓄積中 → 選手名順</span>
+          </div>
+          <div className="ex-rider-overview-legend" aria-label="EX品質の全件内訳">
+            <span className="ex-quality is-complete">実戦根拠あり {practicalRiderCount.toLocaleString("ja-JP")}人</span>
+            <span className="ex-quality is-low-sample">LOW SAMPLE {(riderQualityCounts?.["low-sample"] ?? 0).toLocaleString("ja-JP")}人</span>
+            <span className="ex-quality is-identity-only">素材蓄積中 {(riderQualityCounts?.["identity-only"] ?? 0).toLocaleString("ja-JP")}人</span>
+          </div>
+          {riderInitialStatus === "loading" ? <EmptyState text="選手別EXACT一覧を読み込んでいます。" /> : null}
+          {riderInitialStatus === "error" || riderOverviewStatus === "error" ? <EmptyState text="選手別EXACT一覧を取得できませんでした。" /> : null}
+          {riderInitialStatus === "ready" && riderOverviewItems.length > 0 && !isMobile ? (
+            <div className="ex-rider-overview-table-wrap">
+              <table className="ex-rider-overview-table">
+                <thead>
+                  <tr>
+                    <th>選手</th>
+                    <th>基本情報</th>
+                    <th>総合成績</th>
+                    <th>決まり手</th>
+                    <th>EX品質</th>
+                    <th>紐付け</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {riderOverviewItems.map((item) => {
+                    const rider = riderOverviewCache[item.registrationNo];
+                    return (
+                      <tr key={item.registrationNo}>
+                        <td>
+                          <div className="ex-rider-overview-name">
+                            <strong>{item.name}</strong>
+                            <span>登録番号 {item.registrationNo}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <div>{item.prefecture || "府県未取得"} / {item.class || "級班未取得"}</div>
+                          <div className="ex-muted">期・年齢・脚質：未取得</div>
+                        </td>
+                        <td>
+                          <div className="ex-rider-overview-stats">
+                            <RiderExactOverviewStats item={item} rider={rider} />
+                          </div>
+                        </td>
+                        <td className="ex-rider-overview-methods">
+                          <RiderExactOverviewMethods item={item} rider={rider} />
+                        </td>
+                        <td>
+                          <span className={`ex-quality is-${item.quality}`}>{getRiderOverviewQualityLabel(item)}</span>
+                        </td>
+                        <td><span className="ex-rider-overview-link">{getRiderIdentityLabel(rider)}</span></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+          {riderInitialStatus === "ready" && riderOverviewItems.length > 0 && isMobile ? (
+            <div className="ex-rider-overview-cards">
+              {riderOverviewItems.map((item) => {
+                const rider = riderOverviewCache[item.registrationNo];
+                return (
+                  <article className="ex-rider-overview-card" key={item.registrationNo}>
+                    <div className="ex-rider-overview-card-head">
+                      <div>
+                        <h3>{item.name}</h3>
+                        <div className="ex-muted">登録番号 {item.registrationNo}</div>
+                      </div>
+                      <span className={`ex-quality is-${item.quality}`}>{getRiderOverviewQualityLabel(item)}</span>
+                    </div>
+                    <div className="ex-rider-overview-card-block">
+                      <b>基本情報</b>
+                      <span>{item.prefecture || "府県未取得"} / {item.class || "級班未取得"}</span>
+                      <span className="ex-muted">期・年齢・脚質：未取得</span>
+                    </div>
+                    <div className="ex-rider-overview-card-block">
+                      <b>総合成績</b>
+                      <RiderExactOverviewStats item={item} rider={rider} />
+                    </div>
+                    <div className="ex-rider-overview-card-block">
+                      <b>決まり手</b>
+                      <RiderExactOverviewMethods item={item} rider={rider} />
+                    </div>
+                    <span className="ex-rider-overview-link">{getRiderIdentityLabel(rider)}</span>
+                  </article>
+                );
+              })}
+            </div>
+          ) : null}
+          <p className="ex-location-policy">
+            KURARI EXの選手別EXACTは、蓄積済みデータだけを表示します。未蓄積の成績・決まり手・登録番号は作りません。
+            LOW SAMPLEは参考扱い、素材蓄積中は成績根拠にしません。fake補完は禁止です。
           </p>
         </section>
 
