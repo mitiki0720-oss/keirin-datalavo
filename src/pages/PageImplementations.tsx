@@ -21,6 +21,7 @@ import {
   buildKurariExPredictionMaterial,
   buildKurariExMatchupPredictionMaterial,
   buildKurariExRiderPredictionMaterial,
+  buildKurariExRoleStatsMaterial,
   KURARI_EX_ACCUMULATION_RULES_UI_SUMMARY,
   KURARI_EX_DATA_INVENTORY_UI_SUMMARY,
   findKurariExExactVenueEntryByVenueName,
@@ -11171,6 +11172,24 @@ if (
     selectedPredictionMaterialRace,
     selectedPredictionMaterialRiders,
   ]);
+  const selectedKurariExRoleStatsMaterial = useMemo(() => {
+    const lineupGroups = buildPredictionLineupGroups(selectedPredictionMaterialRace);
+    const allowRole = lineupGroups.length > 0
+      && !selectedPredictionMaterialRace?.isGirls
+      && detectPredictionRookieRaceCategory(selectedPredictionMaterialRace) === null;
+    return buildKurariExRoleStatsMaterial(
+      selectedKurariExRiderEntries,
+      {
+        lineupGroups,
+        allowRole,
+        totalRiderCount: selectedPredictionMaterialRiders.length,
+      },
+    );
+  }, [
+    selectedKurariExRiderEntries,
+    selectedPredictionMaterialRace,
+    selectedPredictionMaterialRiders.length,
+  ]);
 
   const selectedKurariExBundle = selectedKurariExEntry
     ? kurariExVenueCache[selectedKurariExEntry.venueKey] ?? null
@@ -11300,8 +11319,10 @@ if (
       "- 扱い: 登録番号一致を最も信頼し、名前一致・補助一致は選手名の揺れに注意。",
       "",
       selectedKurariExRoleMaterial.text,
+      "",
+      selectedKurariExRoleStatsMaterial.text,
     ].join("\n"),
-    [selectedKurariExAnyReady, selectedKurariExConfidence, selectedKurariExLinkAudit, selectedKurariExReflectionSummary, selectedKurariExRoleMaterial.text],
+    [selectedKurariExAnyReady, selectedKurariExConfidence, selectedKurariExLinkAudit, selectedKurariExReflectionSummary, selectedKurariExRoleMaterial.text, selectedKurariExRoleStatsMaterial.text],
   );
   const selectedKurariExGuidanceText = useMemo(
     () => selectedKurariExAnyReady
@@ -12345,6 +12366,22 @@ const record = normalizePredictionResultRecord({
                           {selectedKurariExRoleMaterial.ready
                             ? `先行役 ${selectedKurariExRoleMaterial.lineHeadCount}人 / 番手 ${selectedKurariExRoleMaterial.lineSecondCount}人 / 3番手以降 ${selectedKurariExRoleMaterial.lineThirdOrLaterCount}人 / 単騎 ${selectedKurariExRoleMaterial.soloCount}人`
                             : "並び未取得、または安全に解釈できないため役割判定なし"}
+                        </div>
+                      </div>
+                      <div style={{ marginTop: "9px", borderTop: "1px solid rgba(226, 216, 241, 0.9)", paddingTop: "9px" }}>
+                        <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.08em", color: "#6d4fc2", marginBottom: "5px" }}>
+                          役割別成績：{selectedKurariExRoleStatsMaterial.status === "ready"
+                            ? "反映済み"
+                            : selectedKurariExRoleStatsMaterial.status === "partial"
+                              ? "一部反映"
+                              : "未反映"}
+                        </div>
+                        <div style={{ fontSize: "10px", fontWeight: 700, color: selectedKurariExRoleStatsMaterial.status === "missing" ? "#a15c08" : "#526072", lineHeight: 1.6 }}>
+                          {selectedKurariExRoleStatsMaterial.status === "ready"
+                            ? "先頭 / 番手 / 3番手以降 / 単騎"
+                            : selectedKurariExRoleStatsMaterial.status === "partial"
+                              ? `LOW SAMPLE ${selectedKurariExRoleStatsMaterial.lowSampleCount}人 / 未蓄積 ${selectedKurariExRoleStatsMaterial.missingCount}人`
+                              : "並び未取得、または保存済みbyRole成績なし"}
                         </div>
                       </div>
                       <div style={{ marginTop: "9px", borderTop: "1px solid rgba(226, 216, 241, 0.9)", paddingTop: "9px" }}>

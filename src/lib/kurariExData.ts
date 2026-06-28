@@ -723,6 +723,15 @@ export type KurariExConditionMaterial = {
   reflectedRiderCount: number;
 };
 
+export type KurariExRoleStatsMaterial = {
+  text: string;
+  status: "ready" | "partial" | "missing";
+  assignedRiderCount: number;
+  reflectedRiderCount: number;
+  lowSampleCount: number;
+  missingCount: number;
+};
+
 function normalizeKurariExRiderRegistrationNo(value?: string | number | null) {
   const digits = String(value ?? "").replace(/\D/gu, "");
   if (!digits) return "";
@@ -1237,6 +1246,123 @@ function resolveKurariExRiderRole(
     return null;
   }
   return null;
+}
+
+function formatKurariExRoleStatsAggregate(
+  entry: KurariExRiderPredictionEntry,
+  roleLabel: string,
+  aggregate?: KurariExRiderAggregate | null,
+) {
+  if (!aggregate || aggregate.starts == null || aggregate.starts <= 0) return "";
+  const sampleNote = aggregate.starts < 5
+    ? "LOW SAMPLE・参考扱い。強い根拠にはしない"
+    : aggregate.starts < 10
+      ? "低母数・参考扱い"
+      : "役割別の補助材料として使用可";
+  const parts = [
+    `${aggregate.starts}走`,
+    `1着${aggregate.wins}`,
+    `2着${aggregate.seconds}`,
+    `3着${aggregate.thirds}`,
+    aggregate.outside != null ? `着外${aggregate.outside}` : "",
+    aggregate.winRate.rate != null ? `勝率${aggregate.winRate.rate.toFixed(1)}%` : "",
+    aggregate.top2Rate.rate != null ? `2連対${aggregate.top2Rate.rate.toFixed(1)}%` : "",
+    aggregate.top3Rate.rate != null ? `3連対${aggregate.top3Rate.rate.toFixed(1)}%` : "",
+  ].filter(Boolean);
+  return `- ${entry.carNo}番 ${entry.riderName || entry.exact.name}: ${roleLabel} ${parts.join(" / ")} / ${sampleNote}`;
+}
+
+export function buildKurariExRoleStatsMaterial(
+  entries: KurariExRiderPredictionEntry[],
+  context?: KurariExRiderPredictionContext | null,
+): KurariExRoleStatsMaterial {
+  const heading = "【KURARI EX 役割別成績】";
+  const groups = (context?.lineupGroups ?? []).map((group) =>
+    group
+      .split("-")
+      .map((value) => value.replace(/\D/gu, ""))
+      .filter(Boolean),
+  );
+  const lineupCarNumbers = groups.flat();
+  const lineupIsSafe = Boolean(
+    context?.allowRole
+    && groups.length > 0
+    && groups.every((group) => group.length > 0)
+    && lineupCarNumbers.length > 0
+    && new Set(lineupCarNumbers).size === lineupCarNumbers.length
+    && (!context.totalRiderCount || lineupCarNumbers.length === context.totalRiderCount),
+  );
+  if (!lineupIsSafe) {
+    return {
+      text: [
+        heading,
+        "- 並び未取得、または車番を安全に解釈できないため、今回役割に固定した成績表示は行いません。",
+        "- 選手別EXACTの総合成績・条件別成績を優先してください。",
+      ].join("\n"),
+      status: "missing",
+      assignedRiderCount: 0,
+      reflectedRiderCount: 0,
+      lowSampleCount: 0,
+      missingCount: 0,
+    };
+  }
+
+  const roleLabels: Record<keyof NonNullable<KurariExRiderExact["byRole"]>, string> = {
+    front: "ライン先頭",
+    bante: "番手",
+    third: "3番手以降",
+    single: "単騎",
+  };
+  const eligibleEntries = entries
+    .filter((entry) => entry.exact.quality !== "identity-only")
+    .sort((left, right) => Number(left.carNo) - Number(right.carNo))
+    .slice(0, 9);
+  const rows: string[] = [];
+  let lowSampleCount = 0;
+  for (const entry of eligibleEntries) {
+    const role = resolveKurariExRiderRole(entry.carNo, context);
+    if (!role) continue;
+    const aggregate = entry.exact.byRole?.[role] ?? null;
+    const row = formatKurariExRoleStatsAggregate(entry, roleLabels[role], aggregate);
+    if (!row) continue;
+    rows.push(row);
+    if ((aggregate?.starts ?? 0) < 10) lowSampleCount += 1;
+  }
+
+  const assignedRiderCount = lineupCarNumbers.length;
+  const reflectedRiderCount = rows.length;
+  const missingCount = Math.max(0, assignedRiderCount - reflectedRiderCount);
+  const lines = [
+    heading,
+    "- 扱い: 既存の選手別EXACTに保存済みのbyRole成績だけを表示。並び未取得時は今回役割に固定しない。",
+    `- 今回並び: ${groups.map((group) => group.join("-")).join(" / ")}`,
+    "",
+    "■ 今回役割別の過去成績",
+    ...(rows.length
+      ? rows
+      : ["- 今回役割に対応する保存済みbyRole成績なし。fake補完しない。"]),
+    ...(missingCount > 0
+      ? [`- 未蓄積・対象外: ${missingCount}人（identity-only、byRole未蓄積、または既存集計対象外の4番手以降を含む）`]
+      : []),
+    "",
+    "■ 役割別の見方",
+    "- ライン先頭: 逃げ・捲りの押し切り、主導権時の残り目を確認。",
+    "- 番手: 差し・同ラインワンツー、逆転差しを確認。",
+    "- 3番手以降: 保存済みbyRole.thirdがある場合だけ、同ラインスリーと3連単3着保護を確認。",
+    "- 単騎: 単騎3着、別線3着、展開待ちの差し込みを参考扱い。",
+  ];
+  return {
+    text: lines.join("\n"),
+    status: reflectedRiderCount === 0
+      ? "missing"
+      : reflectedRiderCount === assignedRiderCount && lowSampleCount === 0
+        ? "ready"
+        : "partial",
+    assignedRiderCount,
+    reflectedRiderCount,
+    lowSampleCount,
+    missingCount,
+  };
 }
 
 function findKurariExRiderClassDimension(
