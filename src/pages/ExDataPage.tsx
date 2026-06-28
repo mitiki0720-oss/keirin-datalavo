@@ -35,6 +35,13 @@ import {
 import type {
   KurariExSourceCapabilityStatus,
 } from "../data/kurariExSourceCapabilityAudit";
+import {
+  KURARI_EX_AVAILABLE_ANALYSIS_FOCUS,
+  KURARI_EX_PARTIAL_ANALYSIS_FOCUS,
+} from "../data/kurariExAvailableAnalysisFocus";
+import type {
+  KurariExAvailableAnalysisFocusItem,
+} from "../data/kurariExAvailableAnalysisFocus";
 import type {
   KurariExExactInitialData,
   KurariExMetric,
@@ -269,6 +276,27 @@ function SourceCapabilityStatusBadge({ status }: { status: KurariExSourceCapabil
     <span className={`ex-source-capability-status is-${status}`}>
       {KURARI_EX_SOURCE_CAPABILITY_STATUS_META[status].label}
     </span>
+  );
+}
+
+function AvailableAnalysisFocusCard({ item }: { item: KurariExAvailableAnalysisFocusItem }) {
+  return (
+    <article className="ex-available-focus-card">
+      <div className="ex-available-focus-head">
+        <h3>{item.label}</h3>
+        <SourceCapabilityStatusBadge status={item.capabilityStatus} />
+      </div>
+      <div className="ex-available-focus-section">
+        sourceKey: {item.sourceKey.join(" / ")}<br />
+        見る場所: {item.existingSection}
+      </div>
+      <p>{item.practicalUse}</p>
+      <ul className="ex-available-focus-signals">
+        {item.safeSignals.map((signal) => <li key={`${item.id}:${signal}`}>{signal}</li>)}
+      </ul>
+      <div className="ex-available-focus-caution">注意: {item.caution}</div>
+      <div className="ex-available-focus-next">次の拡張: {item.nextUpgrade}</div>
+    </article>
   );
 }
 
@@ -2068,6 +2096,19 @@ export default function ExDataPage() {
         .ex-source-capability-status.is-partial { color: #315f91; background: #e1efff; }
         .ex-source-capability-status.is-unavailable { color: #6a7280; background: #eceef2; }
         .ex-source-capability-status.is-fake-prohibited { color: #9a3d4f; background: #ffe8ed; }
+        .ex-available-focus-summary { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 15px 17px; border: 1px solid #dfe6ed; border-radius: 17px; background: linear-gradient(135deg,#f5fff9,#f5f9ff); }
+        .ex-available-focus-summary strong { color: #245d4c; font: 850 24px/1 ${serif}; }
+        .ex-available-focus-summary span { color: #69778c; font-size: 10px; line-height: 1.65; }
+        .ex-available-focus-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 3},minmax(0,1fr)); gap: 10px; }
+        .ex-available-focus-card { min-width: 0; padding: 15px; border: 1px solid #e0e6ec; border-radius: 17px; background: rgba(255,255,255,.88); }
+        .ex-available-focus-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 9px; }
+        .ex-available-focus-head h3 { margin: 0; color: #263650; font: 800 16px/1.4 ${serif}; }
+        .ex-available-focus-section { margin-top: 9px; color: #596a80; font-size: 10px; font-weight: 850; line-height: 1.6; }
+        .ex-available-focus-card p { margin: 8px 0 0; color: #69768b; font-size: 10px; line-height: 1.7; }
+        .ex-available-focus-signals { margin: 9px 0 0; padding-left: 18px; color: #53677d; font-size: 10px; line-height: 1.65; }
+        .ex-available-focus-caution { margin-top: 9px; padding: 9px 10px; border-radius: 11px; background: #fff8ed; color: #805e31; font-size: 9px; line-height: 1.65; }
+        .ex-available-focus-next { margin-top: 8px; color: #7b8799; font-size: 9px; line-height: 1.6; }
+        .ex-available-focus-partial { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 2},minmax(0,1fr)); gap: 9px; padding-top: 4px; }
         @media (max-width: 520px) { .ex-ranking-grid { max-height: none; overflow-y: visible; } }
 
         @media (max-width: 520px) { .ex-health-grid, .ex-kpi-grid { grid-template-columns: 1fr; } }
@@ -3108,6 +3149,37 @@ export default function ExDataPage() {
           <div className="ex-empty">
             AUDIT POLICY: byGrade / byRaceType / 見なし直線 / 同県同乗 / 戦法イベント生データが存在しない状態では、
             推測による成功率・指数・補正値を生成しません。保存済みキーと安全に分類できる範囲だけを利用します。
+          </div>
+        </section>
+
+        <section className="ex-panel ex-section">
+          <SectionTitle
+            eyebrow="AVAILABLE ANALYSIS FOCUS"
+            title="実データで使える分析"
+            lead="availableと監査済みの保存データを、どの既存セクションで何に使うか整理します。新しい数値は作らず、条件別・役割別・MATCHUPの既存表示へ案内します。"
+          />
+          <div className="ex-available-focus-summary">
+            <strong>{KURARI_EX_AVAILABLE_ANALYSIS_FOCUS.length.toLocaleString("ja-JP")}項目</strong>
+            <span>
+              {KURARI_EX_AVAILABLE_ANALYSIS_FOCUS.map((item) => item.sourceKey[0]).join(" / ")}
+            </span>
+          </div>
+          <div className="ex-available-focus-grid">
+            {KURARI_EX_AVAILABLE_ANALYSIS_FOCUS.map((item) => (
+              <AvailableAnalysisFocusCard item={item} key={item.id} />
+            ))}
+          </div>
+          <div className="ex-subsection">
+            <div className="ex-eyebrow">PARTIAL / 要注意</div>
+            <div className="ex-available-focus-partial">
+              {KURARI_EX_PARTIAL_ANALYSIS_FOCUS.map((item) => (
+                <AvailableAnalysisFocusCard item={item} key={item.id} />
+              ))}
+            </div>
+          </div>
+          <div className="ex-empty">
+            SAFE USE: LOW SAMPLEは参考扱いです。byGrade / byRaceTypeはpartialのまま数値化せず、
+            見なし直線・同県同乗・競りや戦法イベント成功率などfake-prohibited項目をこのビューへ混ぜません。
           </div>
         </section>
 
