@@ -288,6 +288,38 @@ function RiderQualityBadge({ quality }: { quality: KurariExRiderQuality }) {
 
 const RIDER_EXACT_OVERVIEW_LIMIT = 50;
 
+type RiderOverviewFilterKey =
+  | "practical"
+  | "low-sample"
+  | "identity-only"
+  | "registration-match"
+  | "name-match"
+  | "unresolved"
+  | "matchup"
+  | "condition"
+  | "role"
+  | "weather";
+
+const RIDER_OVERVIEW_FILTERS: Array<{ key: RiderOverviewFilterKey; label: string; note: string }> = [
+  { key: "practical", label: "実戦根拠あり", note: "identity-onlyとLOW SAMPLEを除き、確認出走5R以上" },
+  { key: "low-sample", label: "LOW SAMPLE", note: "母数少・参考扱い" },
+  { key: "identity-only", label: "素材蓄積中", note: "登録・識別中心で成績根拠にしない" },
+  { key: "registration-match", label: "登録番号一致", note: "identity.statusがregistration-noの場合のみ" },
+  { key: "name-match", label: "名前一致", note: "保存済みの名前一致・同一登録番号名寄せのみ" },
+  { key: "unresolved", label: "未解決", note: "registrationNoResolvedがfalseの場合のみ" },
+  { key: "matchup", label: "MATCHUPあり", note: "保存済みMATCHUP indexに存在" },
+  { key: "condition", label: "条件別あり", note: "保存済みbyBankLength / byTimeslot / byRaceStageのいずれかあり" },
+  { key: "role", label: "役割別あり", note: "保存済みbyRoleに対象実績あり" },
+  { key: "weather", label: "天候別あり", note: "保存済みbyWeatherあり" },
+];
+
+const RIDER_OVERVIEW_INDEX_FILTERS = new Set<RiderOverviewFilterKey>([
+  "practical",
+  "low-sample",
+  "identity-only",
+  "matchup",
+]);
+
 function getRiderOverviewQualityRank(item: KurariExRiderExactIndexItem) {
   if (item.quality === "identity-only") return 2;
   if (item.quality === "low-sample" || item.confirmedStartCount < 5) return 1;
@@ -338,6 +370,27 @@ function RiderExactOverviewMethods({ item, rider }: { item: KurariExRiderExactIn
       逃げ {rider.winningMethods.escape.count} / 捲り {rider.winningMethods.sprint.count} / 差し {rider.winningMethods.difference.count} / マーク 未蓄積
     </span>
   );
+}
+
+function matchesRiderOverviewExactFilter(
+  filter: RiderOverviewFilterKey,
+  rider: KurariExRiderExact | undefined,
+) {
+  if (!rider) return false;
+  if (filter === "registration-match") return rider.identity.registrationNoResolved && rider.identity.status === "registration-no";
+  if (filter === "name-match") {
+    return rider.identity.registrationNoResolved &&
+      (rider.identity.status === "unique-player-card-name" || rider.identity.status === "same-registration-name");
+  }
+  if (filter === "unresolved") return !rider.identity.registrationNoResolved;
+  if (filter === "condition") {
+    return rider.byBankLength.length > 0 || rider.byTimeslot.length > 0 || rider.byRaceStage.length > 0;
+  }
+  if (filter === "role") {
+    return Boolean(rider.byRole && Object.values(rider.byRole).some((aggregate) => (aggregate?.starts ?? 0) > 0));
+  }
+  if (filter === "weather") return rider.byWeather.length > 0;
+  return true;
 }
 
 function RiderAggregateCards({ aggregate }: { aggregate: KurariExRiderAggregate }) {
@@ -862,6 +915,10 @@ export default function ExDataPage() {
   const [riderStatus, setRiderStatus] = useState<Record<string, "loading" | "ready" | "error">>({});
   const [riderOverviewCache, setRiderOverviewCache] = useState<Record<string, KurariExRiderExact>>({});
   const [riderOverviewStatus, setRiderOverviewStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [riderOverviewQuery, setRiderOverviewQuery] = useState("");
+  const [riderOverviewFilters, setRiderOverviewFilters] = useState<RiderOverviewFilterKey[]>([]);
+  const [riderFilteredCache, setRiderFilteredCache] = useState<Record<string, KurariExRiderExact>>({});
+  const [riderFilteredStatus, setRiderFilteredStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [matchupInitialData, setMatchupInitialData] = useState<KurariExMatchupExactInitialData | null>(null);
   const [matchupInitialStatus, setMatchupInitialStatus] = useState<"loading" | "ready" | "error">("loading");
   const [matchupQuery, setMatchupQuery] = useState("");
@@ -1140,6 +1197,48 @@ export default function ExDataPage() {
       .slice(0, RIDER_EXACT_OVERVIEW_LIMIT),
     [riderInitialData?.index.items],
   );
+  const riderOverviewFilterActive = riderOverviewQuery.trim().length > 0 || riderOverviewFilters.length > 0;
+  const matchupRiderRegistrationNos = useMemo(
+    () => new Set((matchupInitialData?.index.items ?? []).map((item) => item.registrationNo)),
+    [matchupInitialData?.index.items],
+  );
+  const riderOverviewCandidateItems = useMemo(() => {
+    const normalizedQuery = normalizeSearchText(riderOverviewQuery);
+    return [...(riderInitialData?.index.items ?? [])]
+      .filter((item) => {
+        if (normalizedQuery) {
+          const matchesQuery = [item.name, item.nameKey, item.registrationNo, item.prefecture, item.class]
+            .some((value) => normalizeSearchText(value).includes(normalizedQuery));
+          if (!matchesQuery) return false;
+        }
+        return riderOverviewFilters
+          .filter((filter) => RIDER_OVERVIEW_INDEX_FILTERS.has(filter))
+          .every((filter) => {
+            if (filter === "practical") return getRiderOverviewQualityRank(item) === 0;
+            if (filter === "low-sample") return getRiderOverviewQualityRank(item) === 1;
+            if (filter === "identity-only") return getRiderOverviewQualityRank(item) === 2;
+            if (filter === "matchup") return matchupRiderRegistrationNos.has(item.registrationNo);
+            return true;
+          });
+      })
+      .sort((left, right) =>
+        getRiderOverviewQualityRank(left) - getRiderOverviewQualityRank(right) ||
+        left.name.localeCompare(right.name, "ja") ||
+        left.registrationNo.localeCompare(right.registrationNo)
+      );
+  }, [
+    matchupRiderRegistrationNos,
+    riderInitialData?.index.items,
+    riderOverviewFilters,
+    riderOverviewQuery,
+  ]);
+  const riderOverviewLoadItems = useMemo(
+    () => (riderOverviewFilterActive ? riderOverviewCandidateItems.slice(0, RIDER_EXACT_OVERVIEW_LIMIT) : riderOverviewItems),
+    [riderOverviewCandidateItems, riderOverviewFilterActive, riderOverviewItems],
+  );
+  const riderOverviewExactFilters = riderOverviewFilters.filter(
+    (filter) => !RIDER_OVERVIEW_INDEX_FILTERS.has(filter),
+  );
 
   useEffect(() => {
     if (riderInitialStatus !== "ready" || riderOverviewItems.length === 0) return;
@@ -1168,6 +1267,68 @@ export default function ExDataPage() {
       active = false;
     };
   }, [riderInitialStatus, riderOverviewItems]);
+
+  useEffect(() => {
+    if (!riderOverviewFilterActive) {
+      setRiderFilteredCache({});
+      setRiderFilteredStatus("idle");
+      return;
+    }
+    if (riderInitialStatus !== "ready") return;
+    if (riderOverviewLoadItems.length === 0) {
+      setRiderFilteredCache({});
+      setRiderFilteredStatus("ready");
+      return;
+    }
+    let active = true;
+    setRiderFilteredStatus("loading");
+    Promise.allSettled(
+      riderOverviewLoadItems.map(async (item) => ({
+        registrationNo: item.registrationNo,
+        rider: riderOverviewCache[item.registrationNo] ?? await loadKurariExRiderExactByFile(item.file),
+      })),
+    ).then((results) => {
+      if (!active) return;
+      const loaded: Record<string, KurariExRiderExact> = {};
+      let rejectedCount = 0;
+      results.forEach((result) => {
+        if (result.status === "fulfilled") {
+          loaded[result.value.registrationNo] = result.value.rider;
+        } else {
+          rejectedCount += 1;
+        }
+      });
+      setRiderFilteredCache(loaded);
+      setRiderFilteredStatus(rejectedCount === results.length ? "error" : "ready");
+    });
+    return () => {
+      active = false;
+    };
+  }, [
+    riderInitialStatus,
+    riderOverviewFilterActive,
+    riderOverviewLoadItems,
+  ]);
+
+  const riderOverviewDisplayCache = riderOverviewFilterActive
+    ? { ...riderOverviewCache, ...riderFilteredCache }
+    : riderOverviewCache;
+  const riderOverviewDisplayItems = riderOverviewLoadItems.filter((item) =>
+    riderOverviewExactFilters.every((filter) =>
+      matchesRiderOverviewExactFilter(filter, riderOverviewDisplayCache[item.registrationNo])
+    )
+  );
+  const toggleRiderOverviewFilter = (filter: RiderOverviewFilterKey) => {
+    setRiderOverviewFilters((current) =>
+      current.includes(filter)
+        ? current.filter((item) => item !== filter)
+        : [...current, filter]
+    );
+  };
+  const clearRiderOverviewFilters = () => {
+    setRiderOverviewQuery("");
+    setRiderOverviewFilters([]);
+  };
 
   const selectRider = (item: KurariExRiderExactIndexItem) => {
     setSelectedRiderNo(item.registrationNo);
@@ -1645,6 +1806,21 @@ export default function ExDataPage() {
         .ex-rider-overview-summary strong { color: #263650; font-size: 14px; }
         .ex-rider-overview-legend { display: flex; flex-wrap: wrap; gap: 8px; }
         .ex-rider-overview-legend .ex-quality { gap: 5px; }
+        .ex-rider-filter-panel { display: grid; gap: 14px; padding: ${isMobile ? "17px" : "20px"}; border: 1px solid #dfe4ef; border-radius: 21px; background: linear-gradient(145deg,rgba(250,252,255,.96),rgba(247,245,255,.94)); }
+        .ex-rider-filter-head { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .ex-rider-filter-head h3 { margin: 0; color: #263650; font: 800 20px/1.3 ${serif}; }
+        .ex-rider-filter-search { display: grid; grid-template-columns: ${isMobile ? "1fr" : "minmax(260px,1fr) auto"}; gap: 10px; }
+        .ex-rider-filter-input { width: 100%; box-sizing: border-box; padding: 12px 14px; border: 1px solid #d7deea; border-radius: 14px; background: #fff; color: #263650; font-size: 13px; outline: none; }
+        .ex-rider-filter-input:focus { border-color: #7461b5; box-shadow: 0 0 0 3px rgba(116,97,181,.11); }
+        .ex-rider-filter-clear { padding: 11px 15px; border: 1px solid #d7deea; border-radius: 14px; background: #fff; color: #657187; font-size: 11px; font-weight: 900; cursor: pointer; }
+        .ex-rider-filter-clear:disabled { cursor: default; opacity: .45; }
+        .ex-rider-filter-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .ex-rider-filter-chip { padding: 8px 11px; border: 1px solid #dce2ec; border-radius: 999px; background: #fff; color: #657187; font-size: 10px; font-weight: 900; cursor: pointer; }
+        .ex-rider-filter-chip.is-active { border-color: #6d58ad; color: #fff; background: #6d58ad; }
+        .ex-rider-filter-chip.is-unavailable { border-style: dashed; cursor: default; color: #8b93a2; background: #f3f4f6; }
+        .ex-rider-filter-counts { display: grid; grid-template-columns: repeat(${isMobile ? 2 : 4},minmax(0,1fr)); gap: 8px; }
+        .ex-rider-filter-counts div { padding: 10px 12px; border-radius: 13px; background: rgba(255,255,255,.85); color: #7a8598; font-size: 9px; }
+        .ex-rider-filter-counts strong { display: block; margin-top: 3px; color: #263650; font-size: 15px; }
         .ex-rider-overview-table-wrap { overflow-x: auto; border: 1px solid #e0e5ef; border-radius: 20px; background: rgba(255,255,255,.88); }
         .ex-rider-overview-table { width: 100%; min-width: 1080px; border-collapse: collapse; }
         .ex-rider-overview-table th { padding: 12px 14px; color: #6d788c; background: #f6f8fc; font-size: 10px; letter-spacing: .06em; text-align: left; white-space: nowrap; }
@@ -1927,11 +2103,68 @@ export default function ExDataPage() {
             title="選手別EXACT一覧"
             lead="KURARI EXに保存されている選手別データです。未蓄積の数値は作らず、LOW SAMPLE・素材蓄積中を明示します。"
           />
+          <div className="ex-rider-filter-panel">
+            <div className="ex-rider-filter-head">
+              <div>
+                <div className="ex-eyebrow">PLAYER SEARCH / FILTER</div>
+                <h3>検索・フィルタ</h3>
+              </div>
+              <span className="ex-muted">選択した条件はすべてANDで適用</span>
+            </div>
+            <div className="ex-rider-filter-search">
+              <input
+                className="ex-rider-filter-input"
+                type="search"
+                value={riderOverviewQuery}
+                onChange={(event) => setRiderOverviewQuery(event.target.value)}
+                placeholder="選手名・登録番号・府県・級班で検索"
+                aria-label="選手別EXACT一覧を検索"
+              />
+              <button
+                className="ex-rider-filter-clear"
+                type="button"
+                onClick={clearRiderOverviewFilters}
+                disabled={!riderOverviewFilterActive}
+              >
+                フィルタ解除
+              </button>
+            </div>
+            <div className="ex-rider-filter-chips" aria-label="選手別EXACTフィルタ">
+              {RIDER_OVERVIEW_FILTERS.map((filter) => {
+                const active = riderOverviewFilters.includes(filter.key);
+                return (
+                  <button
+                    key={filter.key}
+                    className={`ex-rider-filter-chip${active ? " is-active" : ""}`}
+                    type="button"
+                    aria-pressed={active}
+                    title={filter.note}
+                    onClick={() => toggleRiderOverviewFilter(filter.key)}
+                  >
+                    {filter.label}
+                  </button>
+                );
+              })}
+              <span className="ex-rider-filter-chip is-unavailable" title="車番はレースごとの情報で、選手別EXACT indexには固定値として保存されていません。">
+                車番：未蓄積
+              </span>
+            </div>
+            <div className="ex-rider-filter-counts">
+              <div>全選手<strong>{(riderInitialData?.index.riderCount ?? 0).toLocaleString("ja-JP")}</strong></div>
+              <div>index該当候補<strong>{riderOverviewCandidateItems.length.toLocaleString("ja-JP")}</strong></div>
+              <div>個別EXACT読込<strong>{riderOverviewLoadItems.length.toLocaleString("ja-JP")}</strong></div>
+              <div>一覧表示<strong>{riderOverviewDisplayItems.length.toLocaleString("ja-JP")}</strong></div>
+            </div>
+            <div className="ex-muted">
+              検索・フィルタは保存済みKURARI EXデータのみが対象です。紐付け・条件別・役割別・天候別フィルタは、index条件で絞った先頭50件の個別EXACT内で判定します。
+              未取得・未蓄積は補完せず該当なしとして扱います。
+            </div>
+          </div>
           <div className="ex-rider-overview-summary">
             <strong>
-              表示：先頭{Math.min(RIDER_EXACT_OVERVIEW_LIMIT, riderInitialData?.index.riderCount ?? 0).toLocaleString("ja-JP")}件 / 全件数 {(riderInitialData?.index.riderCount ?? 0).toLocaleString("ja-JP")}件
+              表示：{riderOverviewDisplayItems.length.toLocaleString("ja-JP")}件 / index該当候補 {riderOverviewCandidateItems.length.toLocaleString("ja-JP")}件 / 全件数 {(riderInitialData?.index.riderCount ?? 0).toLocaleString("ja-JP")}件
             </strong>
-            <span className="ex-muted">実戦根拠あり → LOW SAMPLE → 素材蓄積中 → 選手名順</span>
+            <span className="ex-muted">先頭最大50件 / 実戦根拠あり → LOW SAMPLE → 素材蓄積中 → 選手名順</span>
           </div>
           <div className="ex-rider-overview-legend" aria-label="EX品質の全件内訳">
             <span className="ex-quality is-complete">実戦根拠あり {practicalRiderCount.toLocaleString("ja-JP")}人</span>
@@ -1940,7 +2173,9 @@ export default function ExDataPage() {
           </div>
           {riderInitialStatus === "loading" ? <EmptyState text="選手別EXACT一覧を読み込んでいます。" /> : null}
           {riderInitialStatus === "error" || riderOverviewStatus === "error" ? <EmptyState text="選手別EXACT一覧を取得できませんでした。" /> : null}
-          {riderInitialStatus === "ready" && riderOverviewItems.length > 0 && !isMobile ? (
+          {riderOverviewFilterActive && riderFilteredStatus === "loading" ? <EmptyState text="検索条件に一致する個別EXACTを読み込んでいます。" /> : null}
+          {riderFilteredStatus === "error" ? <EmptyState text="検索対象の個別EXACTを取得できませんでした。" /> : null}
+          {riderInitialStatus === "ready" && riderOverviewDisplayItems.length > 0 && !isMobile ? (
             <div className="ex-rider-overview-table-wrap">
               <table className="ex-rider-overview-table">
                 <thead>
@@ -1954,8 +2189,8 @@ export default function ExDataPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {riderOverviewItems.map((item) => {
-                    const rider = riderOverviewCache[item.registrationNo];
+                  {riderOverviewDisplayItems.map((item) => {
+                    const rider = riderOverviewDisplayCache[item.registrationNo];
                     return (
                       <tr key={item.registrationNo}>
                         <td>
@@ -1987,10 +2222,10 @@ export default function ExDataPage() {
               </table>
             </div>
           ) : null}
-          {riderInitialStatus === "ready" && riderOverviewItems.length > 0 && isMobile ? (
+          {riderInitialStatus === "ready" && riderOverviewDisplayItems.length > 0 && isMobile ? (
             <div className="ex-rider-overview-cards">
-              {riderOverviewItems.map((item) => {
-                const rider = riderOverviewCache[item.registrationNo];
+              {riderOverviewDisplayItems.map((item) => {
+                const rider = riderOverviewDisplayCache[item.registrationNo];
                 return (
                   <article className="ex-rider-overview-card" key={item.registrationNo}>
                     <div className="ex-rider-overview-card-head">
@@ -2018,6 +2253,9 @@ export default function ExDataPage() {
                 );
               })}
             </div>
+          ) : null}
+          {riderInitialStatus === "ready" && riderFilteredStatus !== "loading" && riderOverviewDisplayItems.length === 0 ? (
+            <EmptyState text="検索・フィルタ条件に一致する保存済み選手別EXACTはありません。" />
           ) : null}
           <p className="ex-location-policy">
             KURARI EXの選手別EXACTは、蓄積済みデータだけを表示します。未蓄積の成績・決まり手・登録番号は作りません。
