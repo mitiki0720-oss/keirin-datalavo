@@ -577,6 +577,7 @@ export type KurariExRiderPredictionContext = {
   isGirls?: boolean;
   lineupGroups?: string[];
   allowRole?: boolean;
+  totalRiderCount?: number;
 };
 
 export type KurariExRiderPredictionEntry = KurariExRiderExactMatch & {
@@ -945,57 +946,133 @@ function buildKurariExRiderCard(
   return fitKurariExMaterialLines(lines, 700);
 }
 
+function buildKurariExRiderSummaryLine(
+  entry: KurariExRiderPredictionEntry,
+  category: "practical" | "low-sample" | "identity-only",
+) {
+  const { exact } = entry;
+  const name = entry.riderName || exact.name;
+
+  if (category === "identity-only") {
+    return `- ${entry.carNo}番 ${name}: 素材蓄積中。登録・識別のみ。買い目根拠には固定しない`;
+  }
+
+  const metrics = [
+    `確定出走${exact.coverage.confirmedStartCount}`,
+    exact.overall.winRate.rate != null ? `1着率${exact.overall.winRate.rate.toFixed(1)}%` : "",
+    exact.overall.top3Rate.rate != null ? `3着以内率${exact.overall.top3Rate.rate.toFixed(1)}%` : "",
+  ].filter(Boolean);
+  const suffix = category === "low-sample"
+    ? "母数少・参考扱い。強い根拠にはせず、展開・並びを優先"
+    : "実戦根拠として買い目検討の補助に使用";
+
+  return `- ${entry.carNo}番 ${name}: ${metrics.join(" / ")} / ${suffix}`;
+}
+
 export function buildKurariExRiderPredictionMaterial(
   entries: KurariExRiderPredictionEntry[],
   context?: KurariExRiderPredictionContext | null,
   state: "ready" | "missing" | "error" = "ready",
 ): KurariExRiderPredictionMaterial {
-  const heading = "【登録選手別EXACT】";
+  const heading = "【PLAYER EX / 選手別EXACT】";
+  const totalRiderCount = context?.totalRiderCount ?? entries.length;
   if (state === "error") {
     return {
-      text: [heading, "選手別EXACTを取得できませんでした。", "会場別EXACTと既存素材を主として予想してください。"].join("\n"),
+      text: [
+        heading,
+        `- 反映状況: 選手別EXACT 0/${totalRiderCount}`,
+        "選手別EXACTを取得できませんでした。",
+        "会場別EXACTと既存素材を主として予想してください。",
+      ].join("\n"),
       reflectedCount: 0,
     };
   }
   if (state === "missing" || entries.length === 0) {
     return {
-      text: [heading, "該当する公開済み選手別EXACTはありません。", "会場別EXACTと既存素材を主として予想してください。"].join("\n"),
-      reflectedCount: 0,
-    };
-  }
-
-  const maxRiders = entries.length >= 8 ? 9 : 7;
-  const headerLines = [
-    heading,
-    "",
-    "扱い:",
-    "選手別EXACTは自前履歴から算出した確定集計です。",
-    "ただし、母数が少ない選手は強い根拠として固定せず、",
-    "展開判断の補助として確認してください。",
-  ];
-  const usableEntries = entries.filter((entry) =>
-    entry.exact.quality !== "identity-only" && entry.exact.coverage.confirmedStartCount >= 5
-  );
-  if (!usableEntries.length) {
-    return {
       text: [
-        ...headerLines,
+        heading,
+        `- 反映状況: 選手別EXACT 0/${totalRiderCount}`,
+        "- 実戦根拠: 0人",
+        "- LOW SAMPLE: 0人",
+        "- 素材蓄積中: 0人",
         "",
-        "【登録選手EXACTからの注意】",
-        "- 今回は確認出走5R以上の選手別EXACTがないため、選手別EXACTは買い目根拠から外してください。",
-        "- LOW SAMPLE選手・素材蓄積中の選手は詳細カードを省略しています。",
+        "該当する公開済み選手別EXACTはありません。",
+        "会場別EXACTと既存素材を主として予想してください。",
       ].join("\n"),
       reflectedCount: 0,
     };
   }
 
-  const skippedLowSampleCount = entries.length - usableEntries.length;
+  const maxRidersPerCategory = 7;
+  const practicalEntries = entries.filter(
+    (entry) =>
+      entry.exact.quality !== "identity-only" &&
+      entry.exact.quality !== "low-sample" &&
+      entry.exact.coverage.confirmedStartCount >= 5,
+  );
+  const identityOnlyEntries = entries.filter(
+    (entry) => entry.exact.quality === "identity-only",
+  );
+  const lowSampleEntries = entries.filter(
+    (entry) =>
+      entry.exact.quality !== "identity-only" &&
+      (entry.exact.quality === "low-sample" || entry.exact.coverage.confirmedStartCount < 5),
+  );
+  const displayedPracticalEntries = practicalEntries.slice(0, maxRidersPerCategory);
+  const displayedLowSampleEntries = lowSampleEntries.slice(0, maxRidersPerCategory);
+  const displayedIdentityOnlyEntries = identityOnlyEntries.slice(0, maxRidersPerCategory);
+  const headerLines = [
+    heading,
+    "",
+    `- 反映状況: 選手別EXACT ${entries.length}/${totalRiderCount}`,
+    `- 実戦根拠: ${practicalEntries.length}人`,
+    `- LOW SAMPLE: ${lowSampleEntries.length}人`,
+    `- 素材蓄積中: ${identityOnlyEntries.length}人`,
+    "",
+    "扱い: 実戦根拠は買い目検討に使用し、LOW SAMPLEは参考扱い、素材蓄積中は将来の蓄積対象とします。",
+  ];
+
+  const categoryLines = [
+    "",
+    "■ 実戦根拠として使える選手",
+    ...(displayedPracticalEntries.length
+      ? displayedPracticalEntries.map((entry) => buildKurariExRiderSummaryLine(entry, "practical"))
+      : ["- 該当なし"]),
+    ...(practicalEntries.length > displayedPracticalEntries.length
+      ? [`- ほか${practicalEntries.length - displayedPracticalEntries.length}人（表示上限）`]
+      : []),
+    "",
+    "■ LOW SAMPLE / 参考扱い",
+    ...(displayedLowSampleEntries.length
+      ? displayedLowSampleEntries.map((entry) => buildKurariExRiderSummaryLine(entry, "low-sample"))
+      : ["- 該当なし"]),
+    ...(lowSampleEntries.length > displayedLowSampleEntries.length
+      ? [`- ほか${lowSampleEntries.length - displayedLowSampleEntries.length}人（表示上限）`]
+      : []),
+    "",
+    "■ 素材蓄積中 / identity-only",
+    ...(displayedIdentityOnlyEntries.length
+      ? displayedIdentityOnlyEntries.map((entry) => buildKurariExRiderSummaryLine(entry, "identity-only"))
+      : ["- 該当なし"]),
+    ...(identityOnlyEntries.length > displayedIdentityOnlyEntries.length
+      ? [`- ほか${identityOnlyEntries.length - displayedIdentityOnlyEntries.length}人（表示上限）`]
+      : []),
+  ];
+
   const cards: string[] = [];
   const includedEntries: KurariExRiderPredictionEntry[] = [];
-  for (const entry of usableEntries.slice(0, maxRiders)) {
+  for (const entry of displayedPracticalEntries) {
     const card = buildKurariExRiderCard(entry, context);
-    const candidate = [...headerLines, "", ...cards.flatMap((item) => [item, ""]), card].join("\n");
-    if (candidate.length > 3150) break;
+    const candidate = [
+      ...headerLines,
+      ...categoryLines,
+      "",
+      "【実戦根拠選手の詳細】",
+      ...cards.flatMap((item) => ["", item]),
+      "",
+      card,
+    ].join("\n");
+    if (candidate.length > 3350) break;
     cards.push(card);
     includedEntries.push(entry);
   }
@@ -1005,7 +1082,6 @@ export function buildKurariExRiderPredictionMaterial(
       ? entry.exact.byVenue.find((item) => item.venueKey === context.venueKey)
       : null;
     return [
-      skippedLowSampleCount > 0 ? "確認出走5R未満・素材蓄積中の選手は詳細カードから除外" : "",
       venue?.starts != null && venue.starts < 3 ? "当場データは母数3R未満のため参考扱い" : "",
       entry.exact.coverage.roleEligibleCount < 3 ? "役割解析可能数が少ないため、番手差し評価を固定しない" : "",
     ];
@@ -1014,8 +1090,17 @@ export function buildKurariExRiderPredictionMaterial(
     ? ["", "【登録選手EXACTからの注意】", ...notes.map((note) => `- ${note}`)]
     : [];
   const text = fitKurariExMaterialLines(
-    [...headerLines, ...cards.flatMap((card) => ["", card]), ...noteLines],
+    [
+      ...headerLines,
+      ...categoryLines,
+      ...(cards.length ? ["", "【実戦根拠選手の詳細】", ...cards.flatMap((card) => ["", card])] : []),
+      ...noteLines,
+    ],
     3500,
   );
-  return { text, reflectedCount: includedEntries.length };
+  const reflectedCount =
+    displayedPracticalEntries.length +
+    displayedLowSampleEntries.length +
+    displayedIdentityOnlyEntries.length;
+  return { text, reflectedCount };
 }

@@ -10879,6 +10879,7 @@ if (
         isGirls: selectedPredictionMaterialRace?.isGirls,
         lineupGroups,
         allowRole,
+        totalRiderCount: selectedPredictionMaterialRiders.length,
       },
       selectedKurariExRiderStatus === "ready"
         ? "ready"
