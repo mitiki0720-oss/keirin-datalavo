@@ -1979,7 +1979,43 @@ export default function ExDataPage() {
         @media (max-width: 520px) { .ex-ranking-grid { max-height: none; overflow-y: visible; } }
 
         @media (max-width: 520px) { .ex-health-grid, .ex-kpi-grid { grid-template-columns: 1fr; } }
-      `}</style>
+
+        /* KURARI EX priority 21 visual polish */
+        .ex-panel.ex-section { padding: ${isMobile ? "20px" : "28px"}; margin-top: ${isMobile ? "18px" : "24px"}; }
+        .ex-panel.ex-section + .ex-panel.ex-section { margin-top: ${isMobile ? "18px" : "24px"}; }
+        .ex-section-title { display: grid; gap: 7px; margin-bottom: ${isMobile ? "16px" : "20px"}; }
+        .ex-section-title h2 { margin: 0; color: #1f2d45; letter-spacing: .01em; }
+        .ex-section-title p { max-width: 980px; margin: 0; color: #6c7890; line-height: 1.75; }
+        .ex-eyebrow { letter-spacing: .13em; }
+        .ex-muted { line-height: 1.65; }
+        .ex-location-grid, .ex-kpi-grid { align-items: stretch; }
+        .ex-location-card, .ex-metric-card, .ex-rider-overview-card, .ex-condition-card, .ex-matchup-overview-card, .ex-relationship-card, .ex-tactic-event-card { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+        .ex-location-card:hover, .ex-metric-card:hover, .ex-rider-overview-card:hover, .ex-condition-card:hover, .ex-matchup-overview-card:hover, .ex-relationship-card:hover, .ex-tactic-event-card:hover { transform: translateY(-1px); box-shadow: 0 16px 34px rgba(39,54,84,.09); border-color: #d2d9e8; }
+        .ex-rider-filter-panel { box-shadow: inset 0 1px 0 rgba(255,255,255,.72), 0 12px 26px rgba(52,65,96,.05); }
+        .ex-rider-filter-input { min-height: 44px; }
+        .ex-rider-filter-clear:not(:disabled), .ex-rider-filter-chip:not(.is-unavailable) { cursor: pointer; }
+        .ex-rider-filter-chip { line-height: 1.35; }
+        .ex-rider-filter-chip:focus-visible, .ex-rider-filter-clear:focus-visible, .ex-condition-tab:focus-visible, .ex-view-tab:focus-visible { outline: 3px solid rgba(112,90,179,.24); outline-offset: 2px; }
+        .ex-rider-overview-table-wrap, .ex-condition-table-wrap { scrollbar-width: thin; scrollbar-color: #b9c2d4 #f3f6fb; }
+        .ex-rider-overview-table th, .ex-condition-table th { position: sticky; top: 0; z-index: 1; }
+        .ex-rider-overview-table tbody tr:nth-child(even), .ex-condition-table tbody tr:nth-child(even) { background: rgba(248,250,253,.66); }
+        .ex-rider-overview-table tbody tr:hover, .ex-condition-table tbody tr:hover { background: rgba(239,244,255,.92); }
+        .ex-rider-overview-table td, .ex-condition-table td, .ex-matchup-overview-note, .ex-relationship-note, .ex-relationship-target, .ex-relationship-evidence { overflow-wrap: anywhere; }
+        .ex-rider-overview-legend { row-gap: 8px; }
+        .ex-condition-source { line-height: 1.65; }
+        .ex-condition-tabs { scroll-snap-type: x proximity; }
+        .ex-condition-tab { scroll-snap-align: start; white-space: nowrap; }
+        .ex-matchup-overview-summary div { min-width: 0; }
+        .ex-matchup-overview-summary strong { overflow-wrap: anywhere; }
+        .ex-role-description, .ex-location-policy { line-height: 1.75; }
+        @media (max-width: 760px) {
+          .ex-panel.ex-section { border-radius: 22px; }
+          .ex-section-title { gap: 6px; }
+          .ex-rider-filter-counts, .ex-matchup-overview-summary { grid-template-columns: 1fr 1fr; }
+          .ex-rider-overview-card, .ex-condition-card, .ex-matchup-overview-card, .ex-relationship-card, .ex-tactic-event-card { padding: 16px; }
+          .ex-matchup-overview-card-grid, .ex-condition-card-grid { grid-template-columns: 1fr 1fr; }
+        }
+`}</style>
 
       <main className="ex-main">
         <section className="ex-panel ex-hero">
