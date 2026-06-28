@@ -661,14 +661,14 @@ export type KurariExMatchupPredictionMaterial = {
   reflectedCount: number;
 };
 
-type KurariExMatchupComparableLike = {
-  safeComparableRaceCount: number;
-  selfAheadRate: number | null;
-  opponentAheadRate: number | null;
-};
+type KurariExMatchupMaterialCategory = "practical" | "low-sample" | "insufficient";
 
-const KURARI_EX_MATCHUP_RIDER_MIN_SAFE_RACES = 5;
-const KURARI_EX_MATCHUP_PAIR_MIN_SAFE_RACES = 2;
+type KurariExMatchupMaterialPair = {
+  self: KurariExMatchupPredictionEntry;
+  opponent: KurariExMatchupPredictionEntry;
+  matchup: KurariExMatchupEntry;
+  category: KurariExMatchupMaterialCategory;
+};
 
 export function matchKurariExMatchupsForRace(
   index: KurariExMatchupExactIndex,
@@ -713,20 +713,6 @@ export function matchKurariExMatchupsForRace(
     .sort((left, right) => Number(left.carNo) - Number(right.carNo));
 }
 
-function formatKurariExMatchupRate(value?: number | null) {
-  return Number.isFinite(value) ? String(Number(value).toFixed(1)) + "%" : "--";
-}
-
-function buildKurariExMatchupLine(
-  label: string,
-  selfName: string,
-  opponentName: string,
-  stats?: KurariExMatchupComparableLike | null,
-) {
-  if (!stats || stats.safeComparableRaceCount < KURARI_EX_MATCHUP_PAIR_MIN_SAFE_RACES) return "";
-  return "- " + label + ": " + stats.safeComparableRaceCount + "R / " + selfName + "先着 " + formatKurariExMatchupRate(stats.selfAheadRate) + " / " + opponentName + "先着 " + formatKurariExMatchupRate(stats.opponentAheadRate);
-}
-
 function buildKurariExMatchupSignal(
   selfName: string,
   opponentName: string,
@@ -739,6 +725,80 @@ function buildKurariExMatchupSignal(
   if (selfAheadRate >= 55) return selfName + "やや優勢。";
   if (opponentAheadRate >= 55) return opponentName + "やや優勢。";
   return "拮抗。展開・ライン構成を優先。";
+}
+
+function classifyKurariExMatchupMaterialPair(
+  self: KurariExMatchupPredictionEntry,
+  opponent: KurariExMatchupPredictionEntry,
+  matchup: KurariExMatchupEntry,
+): KurariExMatchupMaterialCategory {
+  const pairQuality = String(matchup.quality ?? "").toLowerCase();
+  const selfQuality = String(self.exact.quality ?? "").toLowerCase();
+  const opponentQuality = String(opponent.exact.quality ?? "").toLowerCase();
+  const safeComparableRaceCount = matchup.safeComparableRaceCount ?? 0;
+
+  if (
+    pairQuality === "partial" ||
+    selfQuality === "partial" ||
+    opponentQuality === "partial"
+  ) {
+    return "insufficient";
+  }
+
+  if (
+    pairQuality === "low-sample" ||
+    selfQuality === "low-sample" ||
+    opponentQuality === "low-sample" ||
+    (safeComparableRaceCount >= 1 && safeComparableRaceCount <= 2)
+  ) {
+    return "low-sample";
+  }
+
+  const hasSameLineComparison = (matchup.sameLine?.safeComparableRaceCount ?? 0) > 0;
+  const hasOtherLineComparison = (matchup.otherLine?.safeComparableRaceCount ?? 0) > 0;
+  const hasOnlyOneLineCategory = hasSameLineComparison !== hasOtherLineComparison;
+  const hasComparableRates =
+    matchup.selfAheadRate != null &&
+    matchup.opponentAheadRate != null;
+
+  if (
+    safeComparableRaceCount < 3 ||
+    pairQuality !== "sufficient" ||
+    hasOnlyOneLineCategory ||
+    !hasComparableRates
+  ) {
+    return "insufficient";
+  }
+
+  return "practical";
+}
+
+function buildKurariExMatchupMaterialLine(pair: KurariExMatchupMaterialPair) {
+  const { self, opponent, matchup, category } = pair;
+  const selfName = self.carNo + "番 " + (self.riderName || self.exact.name);
+  const opponentName = opponent.carNo + "番 " + (opponent.riderName || matchup.opponentName);
+  const safeComparableRaceCount = matchup.safeComparableRaceCount ?? 0;
+  const comparison = safeComparableRaceCount > 0
+    ? `${safeComparableRaceCount}R比較 / ${self.carNo}番先着${matchup.selfAheadCount} / ${opponent.carNo}番先着${matchup.opponentAheadCount}`
+    : `安全比較0R / 共有${matchup.sharedRaceCount ?? 0}R`;
+
+  if (category === "practical") {
+    return `- ${selfName} vs ${opponentName}: ${comparison}。${buildKurariExMatchupSignal(selfName, opponentName, matchup)}`;
+  }
+
+  if (category === "low-sample") {
+    const sampleNote = safeComparableRaceCount === 1
+      ? "1Rだけの比較のため過信しない"
+      : "LOW SAMPLE・母数少のため参考扱い";
+    return `- ${selfName} vs ${opponentName}: ${comparison}。${sampleNote}。強い根拠にはせず、展開・ライン・近況を優先`;
+  }
+
+  const qualityLabel = matchup.quality === "partial" ||
+    self.exact.quality === "partial" ||
+    opponent.exact.quality === "partial"
+    ? "partial品質"
+    : "比較項目不足";
+  return `- ${selfName} vs ${opponentName}: ${comparison}。${qualityLabel}のため比較不足・蓄積中。買い目根拠には固定しない`;
 }
 
 export function buildKurariExMatchupPredictionMaterial(
@@ -762,65 +822,88 @@ export function buildKurariExMatchupPredictionMaterial(
   }
 
   const entryByRegistrationNo = new Map(entries.map((entry) => [entry.registrationNo, entry]));
-  const cards: string[] = [];
   const usedPairKeys = new Set<string>();
+  const pairs: KurariExMatchupMaterialPair[] = [];
 
   for (const entry of entries) {
-    if (entry.exact.quality !== "sufficient") continue;
-    if ((entry.exact.coverage?.safeComparableRaceCount ?? 0) < KURARI_EX_MATCHUP_RIDER_MIN_SAFE_RACES) continue;
-
     for (const matchup of entry.exact.matchups ?? []) {
       const opponent = entryByRegistrationNo.get(matchup.opponentRegistrationNo);
       if (!opponent) continue;
-      if (matchup.safeComparableRaceCount < KURARI_EX_MATCHUP_PAIR_MIN_SAFE_RACES) continue;
-      if (matchup.quality !== "sufficient" && matchup.safeComparableRaceCount < KURARI_EX_MATCHUP_PAIR_MIN_SAFE_RACES + 1) continue;
 
       const pairKey = [entry.registrationNo, opponent.registrationNo].sort().join(":");
       if (usedPairKeys.has(pairKey)) continue;
       usedPairKeys.add(pairKey);
 
-      const selfName = entry.carNo + "番 " + (entry.riderName || entry.exact.name);
-      const opponentName = opponent.carNo + "番 " + (opponent.riderName || matchup.opponentName);
-
-      const detailLines = [
-        "### " + selfName + " vs " + opponentName,
-        "- 直接比較: " + matchup.safeComparableRaceCount + "R / " + selfName + "先着 " + formatKurariExMatchupRate(matchup.selfAheadRate) + " / " + opponentName + "先着 " + formatKurariExMatchupRate(matchup.opponentAheadRate),
-        "- 判定: " + buildKurariExMatchupSignal(selfName, opponentName, matchup),
-        buildKurariExMatchupLine("同ライン時", selfName, opponentName, matchup.sameLine),
-        buildKurariExMatchupLine("別ライン時", selfName, opponentName, matchup.otherLine),
-      ].filter(Boolean);
-
-      cards.push(detailLines.join("\n"));
-      if (cards.length >= 6) break;
+      pairs.push({
+        self: entry,
+        opponent,
+        matchup,
+        category: classifyKurariExMatchupMaterialPair(entry, opponent, matchup),
+      });
     }
-    if (cards.length >= 6) break;
   }
 
-  if (!cards.length) {
+  if (!pairs.length) {
     return {
       text: [
         heading,
-        "今回出走メンバー同士のMATCHUP EXはありますが、比較可能レース数が少なく強い判断材料はありません。",
-        "- 1Rだけの比較、LOW SAMPLE、partial品質は過信しないでください。",
+        "今回出走メンバー同士で使えるMATCHUP EXはありません。",
       ].join("\n"),
       reflectedCount: 0,
     };
   }
 
-  const text = fitKurariExMaterialLines(
-    [
-      heading,
-      "",
-      "扱い:",
-      "- MATCHUP EXは同走時の先着傾向を補助材料として扱ってください。",
-      "- 直接比較で優勢でも、ライン構成・番手関係・当日気配を優先してください。",
-      "- 拮抗または低母数の場合は、会場別EXACT・選手別EXACT・KDreams素材を優先してください。",
-      ...cards.flatMap((card) => ["", card]),
-    ],
-    2600,
-  );
+  const maxPairsPerCategory = 5;
+  const practicalPairs = pairs.filter((pair) => pair.category === "practical");
+  const lowSamplePairs = pairs.filter((pair) => pair.category === "low-sample");
+  const insufficientPairs = pairs.filter((pair) => pair.category === "insufficient");
+  const displayedPracticalPairs = practicalPairs.slice(0, maxPairsPerCategory);
+  const displayedLowSamplePairs = lowSamplePairs.slice(0, maxPairsPerCategory);
+  const displayedInsufficientPairs = insufficientPairs.slice(0, maxPairsPerCategory);
+  const reflectedCount =
+    displayedPracticalPairs.length +
+    displayedLowSamplePairs.length +
+    displayedInsufficientPairs.length;
 
-  return { text, reflectedCount: cards.length };
+  const text = [
+    heading,
+    "",
+    `- 反映状況: MATCHUP EX ${reflectedCount}組`,
+    `- 実戦参考: ${displayedPracticalPairs.length}組`,
+    `- LOW SAMPLE / 低母数: ${displayedLowSamplePairs.length}組`,
+    `- 比較不足 / 蓄積中: ${displayedInsufficientPairs.length}組`,
+    "",
+    "扱い:",
+    "- MATCHUP EXは同走時の先着傾向を補助材料として扱ってください。",
+    "- 1Rだけの比較は過信せず、LOW SAMPLEは参考扱い、partial品質は比較不足・蓄積中として扱います。",
+    "- 会場別EXACT・選手別EXACT・KDreams素材、ライン構成・近況を優先してください。",
+    "",
+    "■ 実戦参考にできる対戦",
+    ...(displayedPracticalPairs.length
+      ? displayedPracticalPairs.map(buildKurariExMatchupMaterialLine)
+      : ["- 該当なし"]),
+    ...(practicalPairs.length > displayedPracticalPairs.length
+      ? [`- ほか${practicalPairs.length - displayedPracticalPairs.length}組（表示上限）`]
+      : []),
+    "",
+    "■ LOW SAMPLE / 低母数",
+    ...(displayedLowSamplePairs.length
+      ? displayedLowSamplePairs.map(buildKurariExMatchupMaterialLine)
+      : ["- 該当なし"]),
+    ...(lowSamplePairs.length > displayedLowSamplePairs.length
+      ? [`- ほか${lowSamplePairs.length - displayedLowSamplePairs.length}組（表示上限）`]
+      : []),
+    "",
+    "■ 比較不足 / 蓄積中",
+    ...(displayedInsufficientPairs.length
+      ? displayedInsufficientPairs.map(buildKurariExMatchupMaterialLine)
+      : ["- 該当なし"]),
+    ...(insufficientPairs.length > displayedInsufficientPairs.length
+      ? [`- ほか${insufficientPairs.length - displayedInsufficientPairs.length}組（表示上限）`]
+      : []),
+  ].join("\n");
+
+  return { text, reflectedCount };
 }
 
 function formatKurariExRiderAggregate(label: string, aggregate?: KurariExRiderAggregate | null, prefix = "") {
