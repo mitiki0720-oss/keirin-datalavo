@@ -99,6 +99,25 @@ type MatchupOverviewRow = {
   category: MatchupOverviewCategory;
 };
 
+type RelationshipMemoCategory =
+  | "同県連携候補"
+  | "同一ライン候補"
+  | "再戦材料"
+  | "ライン先頭候補"
+  | "番手候補"
+  | "単騎傾向"
+  | "ライン分断注意";
+
+type RelationshipMemoRow = {
+  id: string;
+  category: RelationshipMemoCategory;
+  target: string;
+  evidenceType: string;
+  count: number | null;
+  quality: MatchupOverviewCategory;
+  note: string;
+};
+
 function orientMatchupStats(stats: KurariExMatchupComparableStats, selfIsA: boolean): KurariExMatchupComparableStats {
   if (selfIsA) return stats;
   return {
@@ -1399,6 +1418,163 @@ export default function ExDataPage() {
     (counts, row) => ({ ...counts, [row.category]: counts[row.category] + 1 }),
     { practical: 0, "low-sample": 0, insufficient: 0, unavailable: 0 },
   );
+  const relationshipMemoRows = useMemo(() => {
+    const rows: RelationshipMemoRow[] = [];
+    const riderIndexByRegistrationNo = new Map(
+      (riderInitialData?.index.items ?? []).map((item) => [item.registrationNo, item]),
+    );
+    const normalizedPrefecture = (registrationNo: string) =>
+      (riderIndexByRegistrationNo.get(registrationNo)?.prefecture ?? "").replace(/\s+/gu, "");
+    const sameLinePairs = [...matchupOverviewRows]
+      .filter((row) => row.sameLine.sharedRaceCount > 0)
+      .sort((left, right) =>
+        right.sameLine.sharedRaceCount - left.sameLine.sharedRaceCount ||
+        right.sameLine.safeComparableRaceCount - left.sameLine.safeComparableRaceCount ||
+        left.pairKey.localeCompare(right.pairKey)
+      );
+    const samePrefecturePairs = sameLinePairs.filter((row) => {
+      const prefectureA = normalizedPrefecture(row.registrationNoA);
+      const prefectureB = normalizedPrefecture(row.registrationNoB);
+      return Boolean(prefectureA && prefectureB && prefectureA === prefectureB);
+    });
+
+    samePrefecturePairs.slice(0, 3).forEach((row) => {
+      const prefecture = riderIndexByRegistrationNo.get(row.registrationNoA)?.prefecture?.trim() || "府県取得済み";
+      rows.push({
+        id: `same-prefecture:${row.pairKey}`,
+        category: "同県連携候補",
+        target: `${row.nameA} × ${row.nameB}`,
+        evidenceType: "保存済みMATCHUP EX / 保存済みライン情報",
+        count: row.sameLine.sharedRaceCount,
+        quality: row.category,
+        note: `${prefecture}一致に加え、保存済み同ライン共走${row.sameLine.sharedRaceCount}R。連携を断定せず候補として表示。`,
+      });
+    });
+    if (samePrefecturePairs.length === 0) {
+      rows.push({
+        id: "same-prefecture:unavailable",
+        category: "同県連携候補",
+        target: "未蓄積",
+        evidenceType: "保存済みライン情報",
+        count: null,
+        quality: "unavailable",
+        note: "府県一致だけでは表示せず、同ライン共走の保存実績があるペアのみ対象。",
+      });
+    }
+
+    sameLinePairs.slice(0, 5).forEach((row) => {
+      rows.push({
+        id: `same-line:${row.pairKey}`,
+        category: "同一ライン候補",
+        target: `${row.nameA} × ${row.nameB}`,
+        evidenceType: "保存済みMATCHUP EX / 保存済みライン情報",
+        count: row.sameLine.sharedRaceCount,
+        quality: row.category,
+        note: `同ライン共走${row.sameLine.sharedRaceCount}R / 比較可能${row.sameLine.safeComparableRaceCount}R。今回の並びを固定する材料にはしない。`,
+      });
+    });
+    if (sameLinePairs.length === 0) {
+      rows.push({
+        id: "same-line:unavailable",
+        category: "同一ライン候補",
+        target: "未蓄積",
+        evidenceType: "保存済みライン情報",
+        count: null,
+        quality: "unavailable",
+        note: "保存済み同ライン共走実績なし。",
+      });
+    }
+
+    [...matchupOverviewRows]
+      .filter((row) => row.sharedRaceCount >= 2)
+      .sort((left, right) =>
+        right.sharedRaceCount - left.sharedRaceCount ||
+        right.safeComparableRaceCount - left.safeComparableRaceCount ||
+        left.pairKey.localeCompare(right.pairKey)
+      )
+      .slice(0, 5)
+      .forEach((row) => {
+        rows.push({
+          id: `rematch:${row.pairKey}`,
+          category: "再戦材料",
+          target: `${row.nameA} × ${row.nameB}`,
+          evidenceType: "過去同走データ / 保存済みMATCHUP EX",
+          count: row.sharedRaceCount,
+          quality: row.category,
+          note: `過去同走${row.sharedRaceCount}R / 比較可能${row.safeComparableRaceCount}R。因果関係や相性は補完しない。`,
+        });
+      });
+
+    const roleSources: Array<{
+      key: "front" | "bante" | "single";
+      category: "ライン先頭候補" | "番手候補" | "単騎傾向";
+      label: string;
+    }> = [
+      { key: "front", category: "ライン先頭候補", label: "byRole.front" },
+      { key: "bante", category: "番手候補", label: "byRole.bante" },
+      { key: "single", category: "単騎傾向", label: "byRole.single" },
+    ];
+    const exactRiders = Object.values(riderOverviewCache)
+      .filter((rider) => rider.quality !== "identity-only");
+    roleSources.forEach((source) => {
+      const candidates = exactRiders
+        .map((rider) => ({ rider, aggregate: rider.byRole?.[source.key] ?? null }))
+        .filter((entry) => (entry.aggregate?.starts ?? 0) > 0)
+        .sort((left, right) =>
+          (right.aggregate?.starts ?? 0) - (left.aggregate?.starts ?? 0) ||
+          left.rider.name.localeCompare(right.rider.name, "ja")
+        )
+        .slice(0, 3);
+      candidates.forEach(({ rider, aggregate }) => {
+        if (!aggregate?.starts) return;
+        const quality: MatchupOverviewCategory =
+          rider.quality === "low-sample" || aggregate.starts < 5 ? "low-sample" : "practical";
+        rows.push({
+          id: `${source.key}:${rider.registrationNo}`,
+          category: source.category,
+          target: rider.name,
+          evidenceType: "保存済み役割別成績",
+          count: aggregate.starts,
+          quality,
+          note: `${source.label} ${aggregate.starts}R / 3連対率 ${formatKurariExRiderMetric(aggregate.top3Rate)}。次走の役割を断定しない。`,
+        });
+      });
+      if (candidates.length === 0) {
+        rows.push({
+          id: `${source.key}:unavailable`,
+          category: source.category,
+          target: "未蓄積",
+          evidenceType: "保存済み役割別成績",
+          count: null,
+          quality: "unavailable",
+          note: `${source.label}の保存実績なし。脚質から補完しない。`,
+        });
+      }
+    });
+
+    rows.push({
+      id: "line-break:unavailable",
+      category: "ライン分断注意",
+      target: "未蓄積",
+      evidenceType: "保存済み明示メモ",
+      count: null,
+      quality: "unavailable",
+      note: "ライン分断の明示記録を一覧データから取得できないため、想像で注意対象を作らない。",
+    });
+    return rows;
+  }, [matchupOverviewRows, riderInitialData?.index.items, riderOverviewCache]);
+  const relationshipMemoCounts = relationshipMemoRows.reduce(
+    (counts, row) => {
+      if (row.quality === "unavailable") counts.unavailable += 1;
+      else counts.saved += 1;
+      if (row.category === "同県連携候補" && row.quality !== "unavailable") counts.samePrefecture += 1;
+      if (row.category === "同一ライン候補" && row.quality !== "unavailable") counts.sameLine += 1;
+      if (row.category === "再戦材料" && row.quality !== "unavailable") counts.rematch += 1;
+      if (["ライン先頭候補", "番手候補", "単騎傾向"].includes(row.category) && row.quality !== "unavailable") counts.role += 1;
+      return counts;
+    },
+    { saved: 0, samePrefecture: 0, sameLine: 0, rematch: 0, role: 0, unavailable: 0 },
+  );
   const categoryDimensions = riderCategoryAnalysis?.dimensions ?? {};
   const selectedConditionTab = KURARI_EX_CONDITION_DATA_TABS.find((tab) => tab.key === conditionDataTab) ?? KURARI_EX_CONDITION_DATA_TABS[0];
   const selectedConditionDimension = categoryDimensions[selectedConditionTab.dimensionKey];
@@ -1519,6 +1695,20 @@ export default function ExDataPage() {
         .ex-matchup-overview-card-grid div { padding: 9px; border-radius: 12px; background: #f7f9fc; color: #748096; font-size: 9px; }
         .ex-matchup-overview-card-grid strong { display: block; margin-top: 3px; color: #263650; font-size: 12px; }
         .ex-matchup-overview-card-line { display: grid; gap: 6px; padding-top: 11px; border-top: 1px solid #edf0f5; color: #526987; font-size: 11px; line-height: 1.6; }
+        .ex-relationship-table { min-width: 1160px; }
+        .ex-relationship-table td:first-child { min-width: 120px; font-size: 13px; }
+        .ex-relationship-target { min-width: 190px; color: #263650; font-weight: 850; }
+        .ex-relationship-evidence { min-width: 190px; color: #526987; font-weight: 750; }
+        .ex-relationship-note { min-width: 300px; color: #657187; line-height: 1.75; }
+        .ex-relationship-cards { display: grid; gap: 12px; }
+        .ex-relationship-card { display: grid; gap: 12px; padding: 18px; border: 1px solid #e0e5ef; border-radius: 20px; background: rgba(255,255,255,.92); }
+        .ex-relationship-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+        .ex-relationship-card-head h3 { margin: 0; color: #1f2d45; font: 800 18px/1.35 ${serif}; }
+        .ex-relationship-card-target { color: #30425d; font-size: 13px; font-weight: 850; line-height: 1.6; }
+        .ex-relationship-card-meta { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+        .ex-relationship-card-meta div { padding: 9px 10px; border-radius: 12px; background: #f7f9fc; color: #748096; font-size: 9px; line-height: 1.45; }
+        .ex-relationship-card-meta strong { display: block; margin-top: 3px; color: #263650; font-size: 11px; }
+        .ex-relationship-card-note { margin: 0; padding-top: 10px; border-top: 1px solid #edf0f5; color: #657187; font-size: 11px; line-height: 1.75; }
         .ex-section { padding: ${isMobile ? "22px 18px" : "30px"}; display: grid; gap: 22px; }
         .ex-section-title h2 { margin: 6px 0 0; font: 800 ${isMobile ? "27px" : "36px"}/1.15 ${serif}; color: #172239; }
         .ex-section-title p { margin: 8px 0 0; color: #718096; line-height: 1.7; }
@@ -2137,6 +2327,88 @@ export default function ExDataPage() {
           <p className="ex-location-policy">
             A先着・B先着は保存済みの比較可能レースだけを表示します。順位・府県・脚質から因果関係や再戦材料を作らず、
             identity-onlyを成績根拠にせず、未保存項目は未蓄積として扱います。fake補完は禁止です。
+          </p>
+        </section>
+
+        <section className="ex-panel ex-section">
+          <SectionTitle
+            eyebrow="LINE / RELATIONSHIP NOTES"
+            title="ライン・関係性メモ"
+            lead="保存済みMATCHUP EXの過去同走・同ライン実績と、保存済みbyRoleだけを事実ベースで整理します。"
+          />
+          <div className="ex-matchup-overview-summary">
+            <div>保存済み材料<strong>{relationshipMemoCounts.saved.toLocaleString("ja-JP")}</strong></div>
+            <div>同県連携候補<strong>{relationshipMemoCounts.samePrefecture.toLocaleString("ja-JP")}</strong></div>
+            <div>同一ライン候補<strong>{relationshipMemoCounts.sameLine.toLocaleString("ja-JP")}</strong></div>
+            <div>再戦材料<strong>{relationshipMemoCounts.rematch.toLocaleString("ja-JP")}</strong></div>
+            <div>役割材料<strong>{relationshipMemoCounts.role.toLocaleString("ja-JP")}</strong></div>
+            <div>未蓄積<strong>{relationshipMemoCounts.unavailable.toLocaleString("ja-JP")}</strong></div>
+          </div>
+          <div className="ex-condition-source">
+            <strong>表示：{relationshipMemoRows.length.toLocaleString("ja-JP")}件</strong>
+            <span>MATCHUP候補 {matchupOverviewRows.length.toLocaleString("ja-JP")}件 / 選手別EXACT先頭{Object.keys(riderOverviewCache).length.toLocaleString("ja-JP")}件を参照</span>
+            <span>同県一致だけ・脚質だけ・順位だけでは関係性を作成しません</span>
+          </div>
+          <div className="ex-rider-overview-legend" aria-label="関係性メモの品質区分">
+            <span className="ex-quality is-sufficient">保存済み実績</span>
+            <span className="ex-quality is-low-sample">LOW SAMPLE / 参考</span>
+            <span className="ex-quality is-partial">比較不足 / 蓄積中</span>
+            <span className="ex-quality is-identity-only">未蓄積</span>
+          </div>
+          {matchupOverviewStatus === "loading" || riderOverviewStatus === "loading" ? <EmptyState text="保存済みライン・関係性材料を読み込んでいます。" /> : null}
+          {matchupOverviewStatus === "error" ? <EmptyState text="ライン・関係性メモのMATCHUP材料を取得できませんでした。" /> : null}
+          {matchupOverviewStatus === "ready" && riderOverviewStatus !== "loading" && !isMobile ? (
+            <div className="ex-condition-table-wrap">
+              <table className="ex-condition-table ex-relationship-table">
+                <thead>
+                  <tr>
+                    <th>カテゴリ</th>
+                    <th>対象選手 / 対象ペア</th>
+                    <th>根拠タイプ</th>
+                    <th>件数</th>
+                    <th>品質</th>
+                    <th>メモ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {relationshipMemoRows.map((row) => (
+                    <tr key={row.id}>
+                      <td>{row.category}</td>
+                      <td className="ex-relationship-target">{row.target}</td>
+                      <td className="ex-relationship-evidence">{row.evidenceType}</td>
+                      <td>{row.count == null ? "未蓄積" : `${row.count.toLocaleString("ja-JP")}R`}</td>
+                      <td><MatchupOverviewBadge category={row.quality} /></td>
+                      <td className="ex-relationship-note">{row.note}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+          {matchupOverviewStatus === "ready" && riderOverviewStatus !== "loading" && isMobile ? (
+            <div className="ex-relationship-cards">
+              {relationshipMemoRows.map((row) => (
+                <article className="ex-relationship-card" key={row.id}>
+                  <div className="ex-relationship-card-head">
+                    <h3>{row.category}</h3>
+                    <MatchupOverviewBadge category={row.quality} />
+                  </div>
+                  <div className="ex-relationship-card-target">{row.target}</div>
+                  <div className="ex-relationship-card-meta">
+                    <div>根拠タイプ<strong>{row.evidenceType}</strong></div>
+                    <div>件数<strong>{row.count == null ? "未蓄積" : `${row.count.toLocaleString("ja-JP")}R`}</strong></div>
+                  </div>
+                  <p className="ex-relationship-card-note">{row.note}</p>
+                </article>
+              ))}
+            </div>
+          ) : null}
+          <div className="ex-sample-alert">
+            <strong>関係性の断定禁止</strong>同県だけでは連携候補にせず、保存済み同ライン実績もある場合だけ表示します。次走の並び・役割は固定しません。
+          </div>
+          <p className="ex-location-policy">
+            ライン先頭・番手・単騎は保存済みbyRoleの過去成績であり、脚質から推測した役割ではありません。ライン分断注意は明示記録を取得できないため未蓄積です。
+            LOW SAMPLEは参考扱い、identity-onlyは成績根拠にせず、保存されていない関係性をfake補完しません。
           </p>
         </section>
 
