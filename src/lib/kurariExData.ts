@@ -436,10 +436,11 @@ function buildKurariExPredictionMaterialText(
   riderMaterial: string,
   matchupMaterial: string,
   confidenceMaterial: string,
+  conditionMaterial: string,
   insightLimit: number,
   guidanceLimit: number,
 ) {
-  if (!venue && !exact && !riderMaterial && !matchupMaterial && !confidenceMaterial) {
+  if (!venue && !exact && !riderMaterial && !matchupMaterial && !confidenceMaterial && !conditionMaterial) {
     return [
       "[P. KURARI EX DATA / 独自展開指標]",
       "",
@@ -465,6 +466,7 @@ function buildKurariExPredictionMaterialText(
   }
   if (riderMaterial) lines.push("", riderMaterial);
   if (matchupMaterial) lines.push("", matchupMaterial);
+  if (conditionMaterial) lines.push("", conditionMaterial);
   if (venue) {
     lines.push("", "【会場別SEED】", `- 対象会場: ${venue.venueName}`);
   }
@@ -525,16 +527,21 @@ export function buildKurariExPredictionMaterial(
   riderMaterial = "",
   matchupMaterial = "",
   confidenceMaterial = "",
+  conditionMaterial = "",
 ): string {
   const venue = bundle?.venue ?? null;
   const guidance = bundle?.guidance ?? null;
-  const maxLength = riderMaterial || matchupMaterial || confidenceMaterial ? 9500 : 4500;
+  const maxLength = conditionMaterial
+    ? 12500
+    : riderMaterial || matchupMaterial || confidenceMaterial
+      ? 9500
+      : 4500;
   for (let insightLimit = Math.min(8, venue?.seedInsights.length ?? 0); insightLimit >= 0; insightLimit -= 1) {
-    const text = buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, matchupMaterial, confidenceMaterial, insightLimit, 8);
+    const text = buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, matchupMaterial, confidenceMaterial, conditionMaterial, insightLimit, 8);
     if (text.length <= maxLength) return text;
   }
   for (let guidanceLimit = 7; guidanceLimit >= 1; guidanceLimit -= 1) {
-    const text = buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, matchupMaterial, confidenceMaterial, 0, guidanceLimit);
+    const text = buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, matchupMaterial, confidenceMaterial, conditionMaterial, 0, guidanceLimit);
     if (text.length <= maxLength) return text;
   }
   const fallbackText = buildKurariExPredictionMaterialText(
@@ -545,6 +552,7 @@ export function buildKurariExPredictionMaterial(
     riderMaterial,
     matchupMaterial,
     confidenceMaterial,
+    conditionMaterial,
     0,
     1,
   );
@@ -699,6 +707,20 @@ export type KurariExRiderPredictionEntry = KurariExRiderExactMatch & {
 export type KurariExRiderPredictionMaterial = {
   text: string;
   reflectedCount: number;
+};
+
+export type KurariExConditionContext = {
+  bankLength?: number | null;
+  timeslot?: string | null;
+  grade?: string | null;
+  raceTitle?: string | null;
+};
+
+export type KurariExConditionMaterial = {
+  text: string;
+  status: "ready" | "partial" | "missing";
+  reflectedCategoryCount: number;
+  reflectedRiderCount: number;
 };
 
 function normalizeKurariExRiderRegistrationNo(value?: string | number | null) {
@@ -1028,6 +1050,175 @@ function formatKurariExRiderAggregate(label: string, aggregate?: KurariExRiderAg
     aggregate.top3Rate?.rate != null ? `3着以内率${aggregate.top3Rate.rate.toFixed(1)}%` : "",
   ].filter(Boolean);
   return parts.length ? `- ${label}: ${prefix}${parts.join(" / ")}` : "";
+}
+
+function normalizeKurariExConditionGrade(value?: string | null) {
+  const normalized = String(value ?? "").normalize("NFKC").trim().toUpperCase();
+  if (normalized === "G3" || normalized === "GIII") return "G3";
+  if (normalized === "F1" || normalized === "F2") return normalized;
+  return null;
+}
+
+function resolveKurariExConditionRaceStage(value?: string | null) {
+  const normalized = String(value ?? "").normalize("NFKC");
+  if (!normalized) return null;
+  if (/準決/u.test(normalized)) return { key: "semi-final", label: "準決勝", safe: false } as const;
+  if (/決勝/u.test(normalized)) return { key: "final", label: "決勝", safe: false } as const;
+  if (/一般|特一般|敗者|負け戦/u.test(normalized)) return { key: "consolation", label: "敗者戦", safe: true } as const;
+  if (/特選|優秀|選抜|シード/u.test(normalized)) return { key: "seed-special", label: "シード戦", safe: true } as const;
+  if (/予選|一予|二予|一次予選|二次予選|特予選/u.test(normalized)) return { key: "qualifying", label: "予選", safe: true } as const;
+  return null;
+}
+
+function getKurariExConditionSampleNote(starts: number) {
+  if (starts < 5) return "LOW SAMPLE・参考扱い。強い根拠にはしない";
+  if (starts < 10) return "低母数・参考扱い";
+  return "条件別の補助材料として使用可";
+}
+
+function formatKurariExConditionAggregate(
+  entry: KurariExRiderPredictionEntry,
+  label: string,
+  aggregate?: KurariExRiderAggregate | null,
+) {
+  if (!aggregate || aggregate.starts == null || aggregate.starts <= 0) return "";
+  const parts = [
+    `${aggregate.starts}走`,
+    `1着${aggregate.wins}`,
+    `2着${aggregate.seconds}`,
+    `3着${aggregate.thirds}`,
+    aggregate.outside != null ? `着外${aggregate.outside}` : "",
+    aggregate.winRate.rate != null ? `勝率${aggregate.winRate.rate.toFixed(1)}%` : "",
+    aggregate.top2Rate.rate != null ? `2連対${aggregate.top2Rate.rate.toFixed(1)}%` : "",
+    aggregate.top3Rate.rate != null ? `3連対${aggregate.top3Rate.rate.toFixed(1)}%` : "",
+  ].filter(Boolean);
+  return `- ${entry.carNo}番 ${entry.riderName || entry.exact.name}: ${label} ${parts.join(" / ")} / ${getKurariExConditionSampleNote(aggregate.starts)}`;
+}
+
+export function buildKurariExConditionMaterial(
+  entries: KurariExRiderPredictionEntry[],
+  context?: KurariExConditionContext | null,
+): KurariExConditionMaterial {
+  const heading = "【KURARI EX 条件別成績】";
+  const bankLength = context?.bankLength === 333 || context?.bankLength === 400 || context?.bankLength === 500
+    ? context.bankLength
+    : null;
+  const timeslotLabels: Record<string, string> = {
+    morning: "モーニング",
+    day: "デイ",
+    night: "ナイター",
+    midnight: "ミッドナイト",
+  };
+  const timeslot = context?.timeslot && timeslotLabels[context.timeslot] ? context.timeslot : null;
+  const grade = normalizeKurariExConditionGrade(context?.grade);
+  const raceStage = resolveKurariExConditionRaceStage(context?.raceTitle);
+  const targetLabels = [
+    bankLength ? `${bankLength}m` : "",
+    timeslot ? timeslotLabels[timeslot] : "",
+    grade ?? "",
+    raceStage?.label ?? "",
+    grade && raceStage?.safe ? `${grade}×${raceStage.label}` : "",
+  ].filter(Boolean);
+  const eligibleEntries = entries
+    .filter((entry) => entry.exact.quality !== "identity-only")
+    .sort((left, right) => Number(left.carNo) - Number(right.carNo))
+    .slice(0, 9);
+  const lines = [
+    heading,
+    `- 対象条件: ${targetLabels.length ? targetLabels.join(" / ") : "安全に取得できた条件なし"}`,
+    "- 扱い: 既存の選手別EXACTに保存済みの条件別成績だけを表示。未保存条件はfake補完しない。",
+  ];
+  let reflectedCategoryCount = 0;
+  const reflectedRiders = new Set<string>();
+
+  const appendCategory = (
+    title: string,
+    rows: string[],
+    emptyMessage: string,
+  ) => {
+    lines.push("", `■ ${title}`);
+    if (rows.length) {
+      lines.push(...rows);
+      reflectedCategoryCount += 1;
+      rows.forEach((row) => {
+        const match = row.match(/^- (\d+)番/u);
+        if (match) reflectedRiders.add(match[1]);
+      });
+    } else {
+      lines.push(`- ${emptyMessage}`);
+    }
+  };
+
+  appendCategory(
+    "周長別",
+    bankLength
+      ? eligibleEntries
+        .map((entry) => formatKurariExConditionAggregate(
+          entry,
+          `${bankLength}m`,
+          entry.exact.byBankLength.find((item) => item.bankLength === bankLength),
+        ))
+        .filter(Boolean)
+      : [],
+    bankLength ? "該当する保存済み選手成績なし。fake補完しない。" : "今回周長を安全に取得できないため表示対象外。",
+  );
+  appendCategory(
+    "時間帯別",
+    timeslot
+      ? eligibleEntries
+        .map((entry) => formatKurariExConditionAggregate(
+          entry,
+          timeslotLabels[timeslot],
+          entry.exact.byTimeslot.find((item) => item.timeslot === timeslot),
+        ))
+        .filter(Boolean)
+      : [],
+    timeslot ? "該当する保存済み選手成績なし。fake補完しない。" : "今回時間帯を安全に取得できないため表示対象外。",
+  );
+  appendCategory(
+    "グレード別",
+    [],
+    grade
+      ? `${grade}の選手別集計は現在のEXACTに未蓄積。現在レースのグレードを過去成績へ後付けしない。`
+      : "今回グレードを安全に取得できないため表示対象外。",
+  );
+  appendCategory(
+    "レース種目別",
+    raceStage?.safe
+      ? eligibleEntries
+        .map((entry) => formatKurariExConditionAggregate(
+          entry,
+          raceStage.label,
+          entry.exact.byRaceStage.find((item) => item.raceStage === raceStage.key),
+        ))
+        .filter(Boolean)
+      : [],
+    raceStage?.key === "semi-final"
+      ? "準決勝は分類整備中のため今回は表示対象外。決勝へ混ぜない。"
+      : raceStage?.key === "final"
+        ? "決勝は既存集計から準決勝を安全に分離できるまで表示対象外。"
+        : raceStage
+          ? "該当する保存済み選手成績なし。fake補完しない。"
+          : "今回レース種目を安全に分類できないため表示対象外。",
+  );
+  appendCategory(
+    "グレード×レース種目",
+    [],
+    grade && raceStage?.safe
+      ? `${grade}×${raceStage.label}の選手別交差集計は現在のEXACTに未蓄積。fake補完しない。`
+      : "両条件を安全に取得できない、または交差集計未蓄積のため表示対象外。",
+  );
+
+  return {
+    text: lines.join("\n"),
+    status: reflectedCategoryCount >= 5
+      ? "ready"
+      : reflectedCategoryCount > 0
+        ? "partial"
+        : "missing",
+    reflectedCategoryCount,
+    reflectedRiderCount: reflectedRiders.size,
+  };
 }
 
 function resolveKurariExRiderRole(

@@ -17,6 +17,7 @@ import {
   downloadKeirinPredictionExport,
 } from "../lib/keirinPredictionExport";
 import {
+  buildKurariExConditionMaterial,
   buildKurariExPredictionMaterial,
   buildKurariExMatchupPredictionMaterial,
   buildKurariExRiderPredictionMaterial,
@@ -10895,6 +10896,45 @@ if (
     selectedPredictionMaterialRace,
     selectedPredictionMaterialVenue,
   ]);
+  const selectedKurariExConditionBankLength = useMemo(() => {
+    const candidates = [
+      selectedVenueSummary.bankLength,
+      ...selectedPredictionMaterialRiders.map((rider) => rider.sameTrackYearlyStats?.trackLength ?? ""),
+    ]
+      .map((value) => String(value ?? "").normalize("NFKC").match(/(?:^|\D)(333|400|500)\s*m?(?:\D|$)/iu)?.[1] ?? "")
+      .filter(Boolean)
+      .map(Number);
+    const unique = Array.from(new Set(candidates));
+    return unique.length === 1 ? unique[0] : null;
+  }, [selectedPredictionMaterialRiders, selectedVenueSummary.bankLength]);
+  const selectedKurariExConditionGrade = useMemo(() => {
+    const normalized = normalizePredictionGradeForBadge(selectedPredictionMaterialVenue?.grade);
+    const label = formatPredictionGradeBadgeLabel(normalized);
+    return label === "G3" || label === "F1" || label === "F2" ? label : null;
+  }, [selectedPredictionMaterialVenue?.grade]);
+  const selectedKurariExConditionMaterial = useMemo(
+    () => buildKurariExConditionMaterial(
+      selectedKurariExRiderEntries,
+      {
+        bankLength: selectedKurariExConditionBankLength,
+        timeslot: selectedPredictionMaterialVenue
+          ? getPredictionSessionGroupKey(selectedPredictionMaterialVenue)
+          : null,
+        grade: selectedKurariExConditionGrade,
+        raceTitle: [
+          selectedPredictionMaterialRace?.title,
+          selectedPredictionMaterialRace?.sourceNote,
+        ].filter(Boolean).join(" "),
+      },
+    ),
+    [
+      selectedKurariExConditionBankLength,
+      selectedKurariExConditionGrade,
+      selectedKurariExRiderEntries,
+      selectedPredictionMaterialRace,
+      selectedPredictionMaterialVenue,
+    ],
+  );
   const selectedKurariExMatchupEntries = useMemo(() => {
     void kurariExMatchupExactCacheVersion;
     return selectedKurariExMatchupMatches.flatMap((match) => {
@@ -11272,11 +11312,11 @@ if (
           isGirls: selectedPredictionMaterialRace?.isGirls,
           lineup: selectedPredictionMaterialRace?.lineup,
           windSpeedKmh: parsePredictionNumber(selectedWeather?.windSpeedText ?? ""),
-        }, selectedKurariExRiderMaterial.text, selectedKurariExMatchupMaterial.text, selectedKurariExConfidenceMaterial)
+        }, selectedKurariExRiderMaterial.text, selectedKurariExMatchupMaterial.text, selectedKurariExConfidenceMaterial, selectedKurariExConditionMaterial.text)
       : selectedKurariExBothMissing
-        ? buildKurariExPredictionMaterial(null, null, null, selectedKurariExRiderMaterial.text, selectedKurariExMatchupMaterial.text, selectedKurariExConfidenceMaterial)
+        ? buildKurariExPredictionMaterial(null, null, null, selectedKurariExRiderMaterial.text, selectedKurariExMatchupMaterial.text, selectedKurariExConfidenceMaterial, selectedKurariExConditionMaterial.text)
         : "",
-    [selectedKurariExAnyReady, selectedKurariExBothMissing, selectedKurariExBundle, selectedKurariExConfidenceMaterial, selectedKurariExExact, selectedKurariExMatchupMaterial.text, selectedKurariExRiderMaterial.text, selectedPredictionMaterialRace, selectedPredictionMaterialVenue?.session, selectedWeather?.windSpeedText],
+    [selectedKurariExAnyReady, selectedKurariExBothMissing, selectedKurariExBundle, selectedKurariExConditionMaterial.text, selectedKurariExConfidenceMaterial, selectedKurariExExact, selectedKurariExMatchupMaterial.text, selectedKurariExRiderMaterial.text, selectedPredictionMaterialRace, selectedPredictionMaterialVenue?.session, selectedWeather?.windSpeedText],
   );
   const sortedPredictionVenues = useMemo(
     () => [...(predictionFeed?.venues ?? [])].sort(comparePredictionVenues),
@@ -12305,6 +12345,20 @@ const record = normalizePredictionResultRecord({
                           {selectedKurariExRoleMaterial.ready
                             ? `先行役 ${selectedKurariExRoleMaterial.lineHeadCount}人 / 番手 ${selectedKurariExRoleMaterial.lineSecondCount}人 / 3番手以降 ${selectedKurariExRoleMaterial.lineThirdOrLaterCount}人 / 単騎 ${selectedKurariExRoleMaterial.soloCount}人`
                             : "並び未取得、または安全に解釈できないため役割判定なし"}
+                        </div>
+                      </div>
+                      <div style={{ marginTop: "9px", borderTop: "1px solid rgba(226, 216, 241, 0.9)", paddingTop: "9px" }}>
+                        <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.08em", color: "#6d4fc2", marginBottom: "5px" }}>
+                          条件別成績：{selectedKurariExConditionMaterial.status === "ready"
+                            ? "反映済み"
+                            : selectedKurariExConditionMaterial.status === "partial"
+                              ? "一部反映"
+                              : "未反映"}
+                        </div>
+                        <div style={{ fontSize: "10px", fontWeight: 700, color: selectedKurariExConditionMaterial.status === "missing" ? "#a15c08" : "#526072", lineHeight: 1.6 }}>
+                          {selectedKurariExConditionMaterial.status === "ready"
+                            ? "周長 / 時間帯 / グレード / レース種目（保存済みのみ）"
+                            : "未保存条件はfake補完なし"}
                         </div>
                       </div>
                       <div style={{ marginTop: "9px", borderTop: "1px solid rgba(226, 216, 241, 0.9)", paddingTop: "9px" }}>
