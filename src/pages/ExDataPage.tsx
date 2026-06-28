@@ -3,6 +3,9 @@ import {
   formatKurariExMetric,
   formatKurariExRiderMetric,
   getKurariExRiderQualityLabel,
+  KURARI_EX_ACCUMULATION_RULES,
+  KURARI_EX_DATA_INVENTORY,
+  KURARI_EX_TACTIC_EVENT_RULES,
   loadKurariExExactInitialData,
   loadKurariExInitialData,
   loadKurariExMatchupExactByFile,
@@ -101,6 +104,40 @@ function SectionTitle({ eyebrow, title, lead }: { eyebrow: string; title: string
 
 function EmptyState({ text }: { text: string }) {
   return <div className="ex-empty">{text}</div>;
+}
+
+type ExLocationTone = "ready" | "partial" | "pending" | "fixed" | "warning";
+
+function ExLocationCard({
+  title,
+  status,
+  tone,
+  items,
+  note,
+}: {
+  title: string;
+  status: string;
+  tone: ExLocationTone;
+  items: Array<{ label: string; value: string }>;
+  note?: string;
+}) {
+  return (
+    <article className="ex-location-card">
+      <div className="ex-location-head">
+        <h3>{title}</h3>
+        <span className={`ex-location-status is-${tone}`}>{status}</span>
+      </div>
+      <div className="ex-location-rows">
+        {items.map((item) => (
+          <div className="ex-location-row" key={`${title}:${item.label}`}>
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+          </div>
+        ))}
+      </div>
+      {note ? <p className="ex-location-note">{note}</p> : null}
+    </article>
+  );
 }
 
 function ExactMetricCard({ label, metric }: { label: string; metric?: KurariExMetric }) {
@@ -985,6 +1022,32 @@ export default function ExDataPage() {
     ["PUBLIC EX SIZE", formatBytes(status?.outputBytes), sizeWarning ? "20MB超過" : "lightweight"],
     ["WARNINGS", valueText(status?.warningCount), `${valueText(status?.missingSummaryCount)} missing summary`],
   ] as const;
+  const riderQualityCounts = riderInitialData?.status.qualityCounts;
+  const practicalRiderCount = (riderInitialData?.index.items ?? []).filter(
+    (item) => item.quality !== "identity-only" && item.confirmedStartCount >= 5,
+  ).length;
+  const matchupQualityCounts = matchupSummary?.qualityCounts ?? {};
+  const categoryDimensions = riderCategoryAnalysis?.dimensions ?? {};
+  const hasCategoryData = (key: string) => (categoryDimensions[key]?.items.length ?? 0) > 0;
+  const hasSnowData = categoryDimensions.weather?.items.some((item) => item.key === "snow" && item.starts > 0) ?? false;
+  const unresolvedWarning = riderCoverageAudit?.warnings?.[0]
+    ?? (riderCoverageAuditStatus === "loading" ? "監査読込中" : "warningなし");
+  const needsDataCount = KURARI_EX_DATA_INVENTORY.filter((item) => item.status === "needs-data").length;
+  const conditionsReflected = [
+    hasCategoryData("bankLength"),
+    hasCategoryData("timeslot"),
+    hasCategoryData("raceStage"),
+    hasCategoryData("weather"),
+  ].filter(Boolean).length;
+  const roleReflected = hasCategoryData("role");
+  const dashboardStatus = {
+    rider: riderInitialStatus === "ready" ? "反映済み" : riderInitialStatus === "error" ? "取得失敗" : "読込中",
+    matchup: matchupInitialStatus === "ready" ? "反映済み" : matchupInitialStatus === "error" ? "取得失敗" : "読込中",
+    venue: exactInitialStatus === "ready" ? "反映済み" : exactInitialStatus === "error" ? "取得失敗" : "読込中",
+    conditions: conditionsReflected > 0 ? "一部反映" : riderCategoryStatus === "error" ? "取得失敗" : "読込中",
+    role: roleReflected ? "一部反映" : riderCategoryStatus === "error" ? "取得失敗" : "読込中",
+    weather: hasCategoryData("weather") ? "一部反映" : riderCategoryStatus === "error" ? "取得失敗" : "読込中",
+  };
 
   return (
     <div className="ex-page">
@@ -1005,6 +1068,22 @@ export default function ExDataPage() {
         .ex-hero p { max-width: 760px; margin: 22px 0 0; color: #5a6880; font-size: ${isMobile ? "14px" : "17px"}; line-height: 2; font-weight: 650; }
         .ex-phase { position: relative; z-index: 1; padding: 24px; border-radius: 25px; border: 1px solid rgba(180,170,225,.6); background: linear-gradient(145deg, rgba(251,248,255,.96), rgba(238,248,255,.94), rgba(239,255,248,.9)); }
         .ex-phase strong { display: block; margin: 8px 0; font: 800 28px/1.2 ${serif}; color: #59499c; }
+        .ex-location { border-color: rgba(164,176,222,.72); background: linear-gradient(145deg,rgba(252,252,255,.96),rgba(244,249,255,.94),rgba(244,255,250,.92)); }
+        .ex-location-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(${isMobile ? "240px" : "280px"},1fr)); gap: 14px; }
+        .ex-location-card { min-width: 0; padding: 19px; border: 1px solid #e0e4ef; border-radius: 22px; background: rgba(255,255,255,.86); box-shadow: 0 12px 28px rgba(73,83,126,.06); }
+        .ex-location-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 13px; }
+        .ex-location-head h3 { margin: 0; color: #24324a; font: 800 18px/1.3 ${serif}; }
+        .ex-location-status { flex: 0 0 auto; display: inline-flex; padding: 6px 9px; border-radius: 999px; font-size: 9px; font-weight: 950; letter-spacing: .06em; }
+        .ex-location-status.is-ready { color: #1f6a50; background: #dcf7e9; }
+        .ex-location-status.is-partial { color: #8a5a0a; background: #fff0cf; }
+        .ex-location-status.is-pending { color: #667085; background: #edf0f4; }
+        .ex-location-status.is-fixed { color: #59449b; background: #eee8ff; }
+        .ex-location-status.is-warning { color: #9a3d4f; background: #ffe8ed; }
+        .ex-location-rows { display: grid; gap: 8px; }
+        .ex-location-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-top: 8px; border-top: 1px solid #eef0f5; color: #68758a; font-size: 11px; line-height: 1.5; }
+        .ex-location-row strong { color: #35435a; text-align: right; overflow-wrap: anywhere; }
+        .ex-location-note { margin: 13px 0 0; padding-top: 11px; border-top: 1px dashed #dfe3ec; color: #7a8497; font-size: 11px; line-height: 1.7; }
+        .ex-location-policy { margin: 0; padding: 17px 19px; border-radius: 18px; border: 1px solid #dbe6e1; background: rgba(246,255,251,.86); color: #526779; font-size: 13px; line-height: 1.85; font-weight: 650; }
         .ex-section { padding: ${isMobile ? "22px 18px" : "30px"}; display: grid; gap: 22px; }
         .ex-section-title h2 { margin: 6px 0 0; font: 800 ${isMobile ? "27px" : "36px"}/1.15 ${serif}; color: #172239; }
         .ex-section-title p { margin: 8px 0 0; color: #718096; line-height: 1.7; }
@@ -1101,6 +1180,107 @@ export default function ExDataPage() {
             <strong>SEED + EXACT</strong>
             <div className="ex-badges"><span className="ex-badge">SEED INSIGHT</span><span className="ex-badge is-exact">{exactInitialStatus === "ready" ? "EXACT ANALYTICS" : "EXACT：未生成"}</span><span className="ex-badge is-exact">{matchupInitialStatus === "ready" ? "MATCHUP EX" : "MATCHUP：未生成"}</span></div>
           </aside>
+        </section>
+
+        <section className="ex-panel ex-section ex-location">
+          <SectionTitle
+            eyebrow="KURARI EX POSITION"
+            title="KURARI EX 現在地"
+            lead="実装済み・一部反映・未蓄積・ルール固定済みを、既存データと監査結果から整理します。"
+          />
+          <div className="ex-location-grid">
+            <ExLocationCard
+              title="EXデータ概要"
+              status="育成中"
+              tone="partial"
+              items={[
+                { label: "選手別EXACT", value: dashboardStatus.rider },
+                { label: "MATCHUP EX", value: dashboardStatus.matchup },
+                { label: "会場EX", value: dashboardStatus.venue },
+                { label: "予想ページ反映素材", value: "反映済み" },
+                { label: "EXページ整備状況", value: "現在地を追加" },
+              ]}
+              note={`蓄積ルール ${KURARI_EX_ACCUMULATION_RULES.length}項目固定 / 要蓄積 ${needsDataCount}項目`}
+            />
+            <ExLocationCard
+              title="選手別EXACT"
+              status={dashboardStatus.rider}
+              tone={riderInitialStatus === "ready" ? "ready" : riderInitialStatus === "error" ? "warning" : "pending"}
+              items={[
+                { label: "実戦根拠あり", value: riderInitialStatus === "ready" ? `${practicalRiderCount.toLocaleString("ja-JP")}人` : "集計準備中" },
+                { label: "LOW SAMPLE", value: riderInitialStatus === "ready" ? `${(riderQualityCounts?.["low-sample"] ?? 0).toLocaleString("ja-JP")}人` : "集計準備中" },
+                { label: "素材蓄積中", value: riderInitialStatus === "ready" ? `${(riderQualityCounts?.["identity-only"] ?? 0).toLocaleString("ja-JP")}人` : "集計準備中" },
+                { label: "登録番号一致", value: "最優先" },
+                { label: "名前一致", value: "補助・参考扱い" },
+              ]}
+              note="PLAYER EXは実戦根拠 / LOW SAMPLE / identity-onlyを分離し、母数不足を強い根拠にしません。"
+            />
+            <ExLocationCard
+              title="MATCHUP EX"
+              status={dashboardStatus.matchup}
+              tone={matchupInitialStatus === "ready" ? "ready" : matchupInitialStatus === "error" ? "warning" : "pending"}
+              items={[
+                { label: "既存対戦ペア", value: matchupInitialStatus === "ready" ? valueText(matchupSummary?.distinctPairCount) : "集計準備中" },
+                { label: "実戦参考", value: matchupInitialStatus === "ready" ? valueText(matchupQualityCounts.sufficient) : "集計準備中" },
+                { label: "LOW SAMPLE", value: matchupInitialStatus === "ready" ? valueText(matchupQualityCounts["low-sample"]) : "集計準備中" },
+                { label: "比較不足・蓄積中", value: matchupInitialStatus === "ready" ? valueText(matchupQualityCounts.partial) : "集計準備中" },
+                { label: "ペア生成方針", value: "存在する対戦のみ" },
+              ]}
+              note="直接対戦の保存済みペアだけを使用し、存在しない対戦ペアは生成しません。"
+            />
+            <ExLocationCard
+              title="条件別データ"
+              status={dashboardStatus.conditions}
+              tone={conditionsReflected > 0 ? "partial" : riderCategoryStatus === "error" ? "warning" : "pending"}
+              items={[
+                { label: "周長別", value: hasCategoryData("bankLength") ? "333m / 400m / 500m" : "未蓄積" },
+                { label: "時間帯別", value: hasCategoryData("timeslot") ? "朝 / デイ / ナイター / ミッド" : "未蓄積" },
+                { label: "レース種目別", value: hasCategoryData("raceStage") ? "安全分類のみ" : "未蓄積" },
+                { label: "天候別", value: hasCategoryData("weather") ? "晴れ / 曇り / 雨" : "未蓄積" },
+                { label: "雪", value: hasSnowData ? "保存実績あり" : "未蓄積" },
+              ]}
+              note="未保存条件は分類せず、準決勝など安全に分離できない項目は確定値として扱いません。"
+            />
+            <ExLocationCard
+              title="役割別データ"
+              status={dashboardStatus.role}
+              tone={roleReflected ? "partial" : riderCategoryStatus === "error" ? "warning" : "pending"}
+              items={[
+                { label: "ライン先頭", value: roleReflected ? "一部反映" : "未蓄積" },
+                { label: "番手", value: roleReflected ? "一部反映" : "未蓄積" },
+                { label: "3番手以降", value: roleReflected ? "一部反映" : "未蓄積" },
+                { label: "単騎", value: roleReflected ? "一部反映" : "未蓄積" },
+              ]}
+              note="安全に並びを解釈できる場合だけ使用し、脚質だけでは役割を断定しません。"
+            />
+            <ExLocationCard
+              title="戦法イベント"
+              status="ルール固定済み"
+              tone="fixed"
+              items={KURARI_EX_TACTIC_EVENT_RULES.map((rule) => ({
+                label: rule.label,
+                value: "成功率未蓄積",
+              }))}
+              note="順位・脚質・役割だけではイベント判定せず、成功率・失敗率・発生回数をfake補完しません。"
+            />
+            <ExLocationCard
+              title="紐付け監査"
+              status={(riderCoverageAudit?.warnings?.length ?? 0) > 0 ? "warningあり" : riderCoverageAuditStatus === "ready" ? "確認済み" : "読込中"}
+              tone={(riderCoverageAudit?.warnings?.length ?? 0) > 0 ? "warning" : riderCoverageAuditStatus === "ready" ? "ready" : "pending"}
+              items={[
+                { label: "登録番号一致", value: "最優先" },
+                { label: "名前一致", value: "補助扱い" },
+                { label: "未解決", value: riderCoverageAuditStatus === "ready" ? `${valueText(riderCoverageAudit?.unresolvedNameCount)}名 / ${valueText(riderCoverageAudit?.unresolvedObservationCount)} observations` : "集計準備中" },
+                { label: "曖昧候補", value: riderCoverageAuditStatus === "ready" ? `${valueText(riderCoverageAudit?.ambiguousNameCount)}名` : "集計準備中" },
+                { label: "既知warning", value: unresolvedWarning },
+              ]}
+              note="未解決・曖昧候補は無理に紐付けず、改善対象として監査に残します。"
+            />
+          </div>
+          <p className="ex-location-policy">
+            KURARI EXは、実データを蓄積しながら育てる分析ページです。未蓄積の数値は作らず、LOW SAMPLEや素材蓄積中を明示します。
+            netkeirin / WINTICKETのような分析感を目指しつつ、ぬらくら用のオリジナルEXとして育成中です。fake補完は禁止です。
+          </p>
         </section>
 
         {initialStatus === "error" ? (
