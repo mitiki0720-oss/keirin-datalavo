@@ -10917,6 +10917,32 @@ if (
     selectedKurariExMatchupStatus,
   ]);
 
+  const selectedKurariExReflectionSummary = useMemo(() => {
+    const practicalCount = selectedKurariExRiderEntries.filter(
+      (entry) =>
+        entry.exact.quality !== "identity-only" &&
+        entry.exact.coverage.confirmedStartCount >= 5,
+    ).length;
+
+    return {
+      totalRiderCount: selectedPredictionMaterialRiders.length,
+      matchedRiderCount: selectedKurariExRiderMatches.length,
+      practicalCount,
+      lowSampleCount: selectedKurariExRiderEntries.filter(
+        (entry) => entry.exact.quality === "low-sample",
+      ).length,
+      identityOnlyCount: selectedKurariExRiderEntries.filter(
+        (entry) => entry.exact.quality === "identity-only",
+      ).length,
+      matchupReflectedCount: selectedKurariExMatchupMaterial.reflectedCount,
+    };
+  }, [
+    selectedKurariExMatchupMaterial.reflectedCount,
+    selectedKurariExRiderEntries,
+    selectedKurariExRiderMatches.length,
+    selectedPredictionMaterialRiders.length,
+  ]);
+
   const selectedKurariExBundle = selectedKurariExEntry
     ? kurariExVenueCache[selectedKurariExEntry.venueKey] ?? null
     : null;
@@ -11892,6 +11918,40 @@ const record = normalizePredictionResultRecord({
                       ))}
                     </div>
                   </div>
+                  {selectedPredictionMaterialRace ? (
+                    <div style={{ borderRadius: "20px", border: "1px solid #e5dcf2", background: "linear-gradient(135deg, rgba(250,247,255,0.94) 0%, rgba(246,250,255,0.94) 100%)", padding: "13px 15px" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", flexWrap: "wrap", marginBottom: "10px" }}>
+                        <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.1em", color: "#6d4fc2" }}>KURARI EX反映状況</div>
+                        {(selectedKurariExRiderStatus === "loading" || selectedKurariExMatchupStatus === "loading") ? (
+                          <span style={{ fontSize: "10px", fontWeight: 800, color: "#7a8090" }}>詳細データ確認中</span>
+                        ) : null}
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "8px" }}>
+                        {[
+                          {
+                            label: "登録選手別EXACT",
+                            value: `${selectedKurariExReflectionSummary.matchedRiderCount}/${selectedKurariExReflectionSummary.totalRiderCount}`,
+                            color: selectedKurariExReflectionSummary.totalRiderCount === 0
+                              ? "#7a8090"
+                              : selectedKurariExReflectionSummary.matchedRiderCount === selectedKurariExReflectionSummary.totalRiderCount
+                                ? "#047857"
+                                : selectedKurariExReflectionSummary.matchedRiderCount === 0
+                                  ? "#b42345"
+                                  : "#a15c08",
+                          },
+                          { label: "実戦根拠", value: `${selectedKurariExReflectionSummary.practicalCount}人`, color: "#276b59" },
+                          { label: "LOW SAMPLE", value: `${selectedKurariExReflectionSummary.lowSampleCount}人`, color: "#a15c08" },
+                          { label: "素材蓄積中", value: `${selectedKurariExReflectionSummary.identityOnlyCount}人`, color: "#6d4fc2" },
+                          { label: "MATCHUP EX", value: `${selectedKurariExReflectionSummary.matchupReflectedCount}組反映`, color: "#276b59" },
+                        ].map((item) => (
+                          <div key={item.label} style={{ borderRadius: "14px", border: "1px solid rgba(226, 216, 241, 0.9)", background: "rgba(255,255,255,0.82)", padding: "9px 11px" }}>
+                            <div style={{ fontSize: "9px", fontWeight: 900, letterSpacing: "0.08em", color: "#7b889b", marginBottom: "4px" }}>{item.label}</div>
+                            <div style={{ fontSize: "14px", fontWeight: 900, color: item.color }}>{item.value}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
                 <div style={{ marginBottom: "10px", fontSize: "10px", color: "#8b94a5", lineHeight: 1.7 }}>出力ファイル名: {predictionExportFileName}</div>
                 <div style={{ borderRadius: "28px", border: "1px solid #e7def3", background: "linear-gradient(180deg, rgba(252,251,255,0.99) 0%, rgba(247,248,252,0.98) 100%)", padding: "16px", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.74)" }}>
