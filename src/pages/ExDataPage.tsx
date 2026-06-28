@@ -54,6 +54,19 @@ import type {
   KurariExFutureAccumulationPlanItem,
   KurariExFuturePlanCurrentStatus,
 } from "../data/kurariExFutureAccumulationPlan";
+import {
+  KURARI_EX_SOURCE_SCHEMA_CATEGORIES,
+  KURARI_EX_SOURCE_SCHEMA_CATEGORY_SUMMARY,
+  KURARI_EX_SOURCE_SCHEMA_PLAN,
+  KURARI_EX_SOURCE_SCHEMA_PRIORITIES,
+  KURARI_EX_SOURCE_SCHEMA_PRIORITY_SUMMARY,
+  KURARI_EX_SOURCE_SCHEMA_STATUSES,
+  KURARI_EX_SOURCE_SCHEMA_STATUS_SUMMARY,
+} from "../data/kurariExSourceSchemaPlan";
+import type {
+  KurariExSourceSchemaPlanItem,
+  KurariExSourceSchemaStatus,
+} from "../data/kurariExSourceSchemaPlan";
 import type {
   KurariExExactInitialData,
   KurariExMetric,
@@ -338,6 +351,48 @@ function FutureAccumulationPlanCard({ item }: { item: KurariExFutureAccumulation
       <p><b>fakeリスク</b>{item.fakeRisk}</p>
       <p><b>available昇格条件</b>{item.promotionCondition}</p>
       <p><b>次の実装ステップ</b>{item.nextImplementationStep}</p>
+    </article>
+  );
+}
+
+const SOURCE_SCHEMA_STATUS_LABELS: Record<KurariExSourceSchemaStatus, string> = {
+  "design-only": "DESIGN ONLY",
+  "ready-for-script": "READY FOR SCRIPT",
+  "blocked-by-source": "BLOCKED BY SOURCE",
+  "fake-prohibited": "FAKE PROHIBITED",
+};
+
+function SourceSchemaPlanCard({ item }: { item: KurariExSourceSchemaPlanItem }) {
+  return (
+    <article className={`ex-source-schema-card is-${item.priority}`}>
+      <div className="ex-source-schema-head">
+        <div>
+          <span>{item.category} / {item.priority.toUpperCase()}</span>
+          <h3>{item.label}</h3>
+        </div>
+        <span className={`ex-source-schema-status is-${item.schemaStatus}`}>
+          {SOURCE_SCHEMA_STATUS_LABELS[item.schemaStatus]}
+        </span>
+      </div>
+      <div className="ex-source-schema-target">
+        <b>targetOutput</b>
+        <span>{item.targetOutput.join(" / ")}</span>
+      </div>
+      <div className="ex-source-schema-columns">
+        <div><b>requiredRawFields</b><span>{item.requiredRawFields.join(" / ")}</span></div>
+        <div><b>normalizedFields</b><span>{item.normalizedFields.join(" / ")}</span></div>
+      </div>
+      <div className="ex-source-schema-rules">
+        <div>
+          <b>validationRules</b>
+          <ul>{item.validationRules.map((rule) => <li key={`${item.id}:validation:${rule}`}>{rule}</li>)}</ul>
+        </div>
+        <div className="is-fake">
+          <b>fakeProhibitedRules</b>
+          <ul>{item.fakeProhibitedRules.map((rule) => <li key={`${item.id}:fake:${rule}`}>{rule}</li>)}</ul>
+        </div>
+      </div>
+      <div className="ex-source-schema-script"><b>nextScriptCandidate</b>{item.nextScriptCandidate}</div>
     </article>
   );
 }
@@ -2175,6 +2230,36 @@ export default function ExDataPage() {
         .ex-future-plan-fields { display: grid; gap: 4px; margin-top: 11px; padding: 10px; border-radius: 12px; background: #f7f9fc; color: #647187; font-size: 9px; line-height: 1.6; overflow-wrap: anywhere; }
         .ex-future-plan-fields b, .ex-future-plan-card p b { display: block; margin-bottom: 2px; color: #526176; }
         .ex-future-plan-card p { margin: 9px 0 0; color: #6c788c; font-size: 9px; line-height: 1.7; }
+        .ex-source-schema-summary { display: grid; grid-template-columns: repeat(${isMobile ? 2 : 4},minmax(0,1fr)); gap: 9px; }
+        .ex-source-schema-summary article { min-width: 0; padding: 13px; border: 1px solid #e1e5ee; border-radius: 15px; background: rgba(255,255,255,.86); }
+        .ex-source-schema-summary span { color: #748097; font-size: 9px; font-weight: 900; letter-spacing: .05em; overflow-wrap: anywhere; }
+        .ex-source-schema-summary strong { display: block; margin-top: 5px; color: #263650; font: 850 22px/1 ${serif}; }
+        .ex-source-schema-meta-summary { display: flex; flex-wrap: wrap; gap: 8px; }
+        .ex-source-schema-meta-summary span { padding: 7px 10px; border-radius: 999px; background: #f1f3f7; color: #657187; font-size: 9px; font-weight: 900; }
+        .ex-source-schema-group { display: grid; gap: 10px; }
+        .ex-source-schema-group-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #e5e8ef; }
+        .ex-source-schema-group-head h3 { margin: 0; color: #293851; font: 800 19px/1.3 ${serif}; }
+        .ex-source-schema-group-head span { color: #8490a2; font-size: 10px; font-weight: 850; }
+        .ex-source-schema-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 2},minmax(0,1fr)); gap: 10px; }
+        .ex-source-schema-card { min-width: 0; padding: 16px; border: 1px solid #e1e5ed; border-radius: 18px; background: rgba(255,255,255,.88); }
+        .ex-source-schema-card.is-high { border-color: #cbdde7; background: linear-gradient(145deg,#fff,#f2fbff); }
+        .ex-source-schema-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+        .ex-source-schema-head > div > span { color: #4e7890; font-size: 8px; font-weight: 950; letter-spacing: .09em; }
+        .ex-source-schema-head h3 { margin: 3px 0 0; color: #263650; font: 800 17px/1.4 ${serif}; }
+        .ex-source-schema-status { flex: 0 0 auto; display: inline-flex; max-width: 145px; padding: 5px 8px; border-radius: 999px; background: #edf0f4; color: #687184; font-size: 8px; font-weight: 950; line-height: 1.35; text-align: center; }
+        .ex-source-schema-status.is-ready-for-script { color: #23664c; background: #daf5e8; }
+        .ex-source-schema-status.is-design-only { color: #315f91; background: #e1efff; }
+        .ex-source-schema-status.is-blocked-by-source { color: #925711; background: #fff0d3; }
+        .ex-source-schema-status.is-fake-prohibited { color: #9a3d4f; background: #ffe8ed; }
+        .ex-source-schema-target { display: grid; gap: 4px; margin-top: 11px; padding: 10px; border-radius: 12px; background: #f4f9fb; color: #586b7e; font-size: 9px; line-height: 1.6; }
+        .ex-source-schema-target b, .ex-source-schema-columns b, .ex-source-schema-rules b, .ex-source-schema-script b { display: block; color: #496174; }
+        .ex-source-schema-columns { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin-top: 9px; }
+        .ex-source-schema-columns div { min-width: 0; padding: 9px; border-radius: 11px; background: #f7f9fc; color: #68758a; font-size: 9px; line-height: 1.6; overflow-wrap: anywhere; }
+        .ex-source-schema-rules { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin-top: 9px; }
+        .ex-source-schema-rules > div { min-width: 0; padding: 10px; border-radius: 11px; background: #f7f9fc; color: #647187; font-size: 9px; line-height: 1.65; }
+        .ex-source-schema-rules > div.is-fake { background: #fff6f6; color: #80545c; }
+        .ex-source-schema-rules ul { margin: 5px 0 0; padding-left: 17px; }
+        .ex-source-schema-script { margin-top: 9px; padding-top: 9px; border-top: 1px solid #e7eaf0; color: #7a8698; font-size: 9px; line-height: 1.65; overflow-wrap: anywhere; }
         @media (max-width: 520px) { .ex-ranking-grid { max-height: none; overflow-y: visible; } }
 
         @media (max-width: 520px) { .ex-health-grid, .ex-kpi-grid { grid-template-columns: 1fr; } }
@@ -3291,6 +3376,58 @@ export default function ExDataPage() {
           <div className="ex-empty">
             DESIGN ONLY: byGrade / byRaceType / 見なし直線 / 同県同乗 / lineSize / position / 戦法イベント / 将来指数は、
             必要な生データと検証条件が揃うまでavailableへ昇格させません。生成スクリプトと数値計算は今回実装していません。
+          </div>
+        </section>
+
+        <section className="ex-panel ex-section">
+          <SectionTitle
+            eyebrow="RAW FIELD SCHEMA PLAN"
+            title="生成前スキーマ設計 / RAW FIELD"
+            lead="将来の生成処理が保存すべきRAW FIELD、正規化キー、source、validation、fake禁止条件を固定した設計です。これは生成前のスキーマ定義であり、集計値ではありません。"
+          />
+          <div className="ex-source-schema-summary" aria-label="RAW FIELDスキーマpriority集計">
+            <article>
+              <span>SCHEMA ITEMS</span>
+              <strong>{KURARI_EX_SOURCE_SCHEMA_PLAN.length.toLocaleString("ja-JP")}</strong>
+            </article>
+            {KURARI_EX_SOURCE_SCHEMA_PRIORITIES.map((priority) => (
+              <article key={priority}>
+                <span>{priority.toUpperCase()}</span>
+                <strong>{KURARI_EX_SOURCE_SCHEMA_PRIORITY_SUMMARY[priority].toLocaleString("ja-JP")}</strong>
+              </article>
+            ))}
+          </div>
+          <div className="ex-source-schema-meta-summary" aria-label="RAW FIELDスキーマstatus集計">
+            {KURARI_EX_SOURCE_SCHEMA_STATUSES.map((status) => (
+              <span key={status}>
+                {SOURCE_SCHEMA_STATUS_LABELS[status]}: {KURARI_EX_SOURCE_SCHEMA_STATUS_SUMMARY[status].toLocaleString("ja-JP")}
+              </span>
+            ))}
+          </div>
+          <div className="ex-source-schema-meta-summary" aria-label="RAW FIELDスキーマcategory集計">
+            {KURARI_EX_SOURCE_SCHEMA_CATEGORIES.map((category) => (
+              <span key={category}>
+                {category}: {KURARI_EX_SOURCE_SCHEMA_CATEGORY_SUMMARY[category].toLocaleString("ja-JP")}
+              </span>
+            ))}
+          </div>
+          {KURARI_EX_SOURCE_SCHEMA_PRIORITIES.map((priority) => {
+            const priorityItems = KURARI_EX_SOURCE_SCHEMA_PLAN.filter((item) => item.priority === priority);
+            return (
+              <div className="ex-source-schema-group" key={priority}>
+                <div className="ex-source-schema-group-head">
+                  <h3>{priority.toUpperCase()} PRIORITY</h3>
+                  <span>{priorityItems.length.toLocaleString("ja-JP")}項目</span>
+                </div>
+                <div className="ex-source-schema-grid">
+                  {priorityItems.map((item) => <SourceSchemaPlanCard item={item} key={item.id} />)}
+                </div>
+              </div>
+            );
+          })}
+          <div className="ex-empty">
+            SCHEMA ONLY: grade / raceType / venueCondition / lineup / position / samePrefecture / tacticEvent / futureIndexの
+            RAW保存形式だけを定義しています。既存JSONの変更、生成スクリプト実装、勝率・成功率・指数計算は行っていません。
           </div>
         </section>
 
