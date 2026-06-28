@@ -10965,6 +10965,171 @@ if (
     };
   }, [selectedKurariExRiderMatches, selectedPredictionMaterialRiders]);
 
+  const selectedKurariExRoleMaterial = useMemo(() => {
+    const heading = "【KURARI EX ライン役割メモ】";
+    const rawGroups = buildPredictionLineupGroups(selectedPredictionMaterialRace);
+    const riderByCarNo = new Map(
+      selectedPredictionMaterialRiders.map((rider) => [String(rider.carNo), rider]),
+    );
+    const exactEntryByCarNo = new Map(
+      selectedKurariExRiderEntries.map((entry) => [String(entry.carNo), entry]),
+    );
+    const groups = rawGroups.map((group) =>
+      group
+        .split("-")
+        .map((value) => value.replace(/\D/gu, ""))
+        .filter(Boolean),
+    );
+    const lineupCarNumbers = groups.flat();
+    const lineupIsSafe =
+      groups.length > 0 &&
+      lineupCarNumbers.length > 0 &&
+      lineupCarNumbers.every((carNo) => riderByCarNo.has(carNo)) &&
+      new Set(lineupCarNumbers).size === lineupCarNumbers.length;
+
+    if (!lineupIsSafe) {
+      return {
+        text: [
+          heading,
+          "- 並び未取得、または車番を安全に解釈できないため、役割別判定は行いません。",
+          "- 選手EX・MATCHUP EXは参考素材として扱い、KDreams並び確認後に判断してください。",
+        ].join("\n"),
+        ready: false,
+        lineHeadCount: 0,
+        lineSecondCount: 0,
+        lineThirdOrLaterCount: 0,
+        soloCount: 0,
+      };
+    }
+
+    type RoleKey = "lineHead" | "lineSecond" | "lineThirdOrLater" | "solo";
+    const roleAssignments: Array<{
+      carNo: string;
+      role: RoleKey;
+      roleIndex: "front" | "bante" | "third" | "single" | null;
+    }> = [];
+
+    groups.forEach((group) => {
+      if (group.length === 1) {
+        roleAssignments.push({ carNo: group[0], role: "solo", roleIndex: "single" });
+        return;
+      }
+      group.forEach((carNo, index) => {
+        if (index === 0) {
+          roleAssignments.push({ carNo, role: "lineHead", roleIndex: "front" });
+        } else if (index === 1) {
+          roleAssignments.push({ carNo, role: "lineSecond", roleIndex: "bante" });
+        } else {
+          roleAssignments.push({
+            carNo,
+            role: "lineThirdOrLater",
+            roleIndex: index === 2 ? "third" : null,
+          });
+        }
+      });
+    });
+
+    const roleLabels: Record<RoleKey, string> = {
+      lineHead: "先行役",
+      lineSecond: "番手",
+      lineThirdOrLater: "3番手以降",
+      solo: "単騎",
+    };
+    const roleGuidance: Record<RoleKey, string> = {
+      lineHead: "逃げ・捲り系の会場EXと今回役割成績を確認",
+      lineSecond: "差し・同ラインワンツー系の会場EXを確認し、番手差し候補を検討",
+      lineThirdOrLater: "同ラインスリーと3着絡みを確認し、3連単3着保護を検討",
+      solo: "単騎3着・別線3着・捲り系を参考扱い。展開依存が強いため過信しない",
+    };
+    const assignmentsByRole = (Object.keys(roleLabels) as RoleKey[]).reduce(
+      (map, role) => {
+        map[role] = roleAssignments.filter((assignment) => assignment.role === role).slice(0, 5);
+        return map;
+      },
+      {
+        lineHead: [],
+        lineSecond: [],
+        lineThirdOrLater: [],
+        solo: [],
+      } as Record<RoleKey, typeof roleAssignments>,
+    );
+    const formatRiderLabel = (carNo: string) => {
+      const rider = riderByCarNo.get(carNo);
+      return `${carNo}番 ${rider?.fullName || rider?.name || "選手名未取得"}`;
+    };
+    const buildRoleLine = (assignment: (typeof roleAssignments)[number]) => {
+      const riderLabel = formatRiderLabel(assignment.carNo);
+      const entry = exactEntryByCarNo.get(assignment.carNo);
+      if (!entry) {
+        return `- ${riderLabel}: 選手EX未反映。${roleGuidance[assignment.role]}。買い目根拠には固定しない`;
+      }
+      if (entry.exact.quality === "identity-only") {
+        return `- ${riderLabel}: 素材蓄積中。役割は${roleLabels[assignment.role]}だが、識別情報のみのため買い目根拠には固定しない`;
+      }
+
+      const aggregate = assignment.roleIndex
+        ? entry.exact.byRole?.[assignment.roleIndex] ?? null
+        : null;
+      const aggregateParts = aggregate
+        ? [
+            aggregate.starts != null ? `役割実績${aggregate.starts}走` : "",
+            aggregate.top3Rate?.rate != null ? `3着以内率${aggregate.top3Rate.rate.toFixed(1)}%` : "",
+          ].filter(Boolean)
+        : [];
+      const sampleCaution =
+        entry.exact.quality === "low-sample" ||
+        entry.exact.coverage.confirmedStartCount < 5
+          ? "。LOW SAMPLE・母数少のため参考扱い"
+          : "";
+      const aggregateText = aggregateParts.length
+        ? `。${aggregateParts.join(" / ")}`
+        : "。役割別実績は未蓄積";
+      return `- ${riderLabel}: ${roleGuidance[assignment.role]}${aggregateText}${sampleCaution}`;
+    };
+    const roleSummaryLines = (Object.keys(roleLabels) as RoleKey[]).map((role) => {
+      const labels = assignmentsByRole[role].map((assignment) => formatRiderLabel(assignment.carNo));
+      return `- ${roleLabels[role]}: ${labels.length ? labels.join(" / ") : "該当なし"}`;
+    });
+    const roleDetailLines = (Object.keys(roleLabels) as RoleKey[]).flatMap((role) => [
+      "",
+      `■ ${roleLabels[role]}チェック`,
+      ...(assignmentsByRole[role].length
+        ? assignmentsByRole[role].map(buildRoleLine)
+        : ["- 該当なし"]),
+    ]);
+    const unmatchedLineupRiders = selectedPredictionMaterialRiders
+      .filter((rider) => !lineupCarNumbers.includes(String(rider.carNo)))
+      .map((rider) => `${rider.carNo}番 ${rider.fullName || rider.name || "選手名未取得"}`);
+
+    return {
+      text: [
+        heading,
+        `- 並び: ${groups.map((group) => group.join("-")).join(" / ")}`,
+        ...roleSummaryLines,
+        ...(unmatchedLineupRiders.length
+          ? [`- 役割不明: ${unmatchedLineupRiders.join(" / ")}（並びに含まれないため判定しない）`]
+          : []),
+        ...roleDetailLines,
+        ...(selectedKurariExMatchupMaterial.reflectedCount > 0
+          ? [
+              "",
+              `- 別線比較: 既存MATCHUP EX ${selectedKurariExMatchupMaterial.reflectedCount}組だけを補助材料にする。1R比較は過信せず、partial品質は比較不足・蓄積中として扱う`,
+            ]
+          : []),
+      ].join("\n"),
+      ready: true,
+      lineHeadCount: assignmentsByRole.lineHead.length,
+      lineSecondCount: assignmentsByRole.lineSecond.length,
+      lineThirdOrLaterCount: assignmentsByRole.lineThirdOrLater.length,
+      soloCount: assignmentsByRole.solo.length,
+    };
+  }, [
+    selectedKurariExMatchupMaterial.reflectedCount,
+    selectedKurariExRiderEntries,
+    selectedPredictionMaterialRace,
+    selectedPredictionMaterialRiders,
+  ]);
+
   const selectedKurariExBundle = selectedKurariExEntry
     ? kurariExVenueCache[selectedKurariExEntry.venueKey] ?? null
     : null;
@@ -11091,8 +11256,10 @@ if (
         : []),
       "- 曖昧候補: 未取得",
       "- 扱い: 登録番号一致を最も信頼し、名前一致・補助一致は選手名の揺れに注意。",
+      "",
+      selectedKurariExRoleMaterial.text,
     ].join("\n"),
-    [selectedKurariExAnyReady, selectedKurariExConfidence, selectedKurariExLinkAudit, selectedKurariExReflectionSummary],
+    [selectedKurariExAnyReady, selectedKurariExConfidence, selectedKurariExLinkAudit, selectedKurariExReflectionSummary, selectedKurariExRoleMaterial.text],
   );
   const selectedKurariExGuidanceText = useMemo(
     () => selectedKurariExAnyReady
@@ -12127,6 +12294,16 @@ const record = normalizePredictionResultRecord({
                             未解決選手：{selectedKurariExLinkAudit.unresolvedRiders.join(" / ")}
                           </div>
                         ) : null}
+                      </div>
+                      <div style={{ marginTop: "9px", borderTop: "1px solid rgba(226, 216, 241, 0.9)", paddingTop: "9px" }}>
+                        <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.08em", color: "#6d4fc2", marginBottom: "6px" }}>
+                          ライン役割メモ：{selectedKurariExRoleMaterial.ready ? "反映済み" : "未反映"}
+                        </div>
+                        <div style={{ fontSize: "10px", fontWeight: 700, color: selectedKurariExRoleMaterial.ready ? "#526072" : "#a15c08", lineHeight: 1.6 }}>
+                          {selectedKurariExRoleMaterial.ready
+                            ? `先行役 ${selectedKurariExRoleMaterial.lineHeadCount}人 / 番手 ${selectedKurariExRoleMaterial.lineSecondCount}人 / 3番手以降 ${selectedKurariExRoleMaterial.lineThirdOrLaterCount}人 / 単騎 ${selectedKurariExRoleMaterial.soloCount}人`
+                            : "並び未取得、または安全に解釈できないため役割判定なし"}
+                        </div>
                       </div>
                     </div>
                   ) : null}
