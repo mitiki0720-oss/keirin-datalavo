@@ -10944,6 +10944,27 @@ if (
     selectedPredictionMaterialRiders.length,
   ]);
 
+  const selectedKurariExLinkAudit = useMemo(() => {
+    const matchedCarNumbers = new Set(
+      selectedKurariExRiderMatches.map((match) => String(match.carNo)),
+    );
+    const unresolvedRiders = selectedPredictionMaterialRiders
+      .filter((rider) => !matchedCarNumbers.has(String(rider.carNo)))
+      .map((rider) => `${rider.carNo}番 ${rider.fullName || rider.name || "選手名未取得"}`);
+
+    return {
+      registrationMatchCount: selectedKurariExRiderMatches.filter(
+        (match) => match.matchMethod === "registrationNo",
+      ).length,
+      nameMatchCount: selectedKurariExRiderMatches.filter(
+        (match) => match.matchMethod === "name",
+      ).length,
+      unresolvedCount: unresolvedRiders.length,
+      unresolvedRiders,
+      ambiguousStatus: "unavailable" as const,
+    };
+  }, [selectedKurariExRiderMatches, selectedPredictionMaterialRiders]);
+
   const selectedKurariExBundle = selectedKurariExEntry
     ? kurariExVenueCache[selectedKurariExEntry.venueKey] ?? null
     : null;
@@ -10975,6 +10996,10 @@ if (
       identityOnlyCount,
       matchupReflectedCount,
     } = selectedKurariExReflectionSummary;
+    const {
+      nameMatchCount,
+      unresolvedCount,
+    } = selectedKurariExLinkAudit;
     const matchedRate = totalRiderCount > 0 ? matchedRiderCount / totalRiderCount : 0;
     const venueReady = selectedKurariExAnyReady;
     const hasError = [
@@ -10989,6 +11014,7 @@ if (
       matchedRate >= 0.8 &&
       practicalCount >= Math.ceil(totalRiderCount / 2) &&
       matchupReflectedCount >= 2 &&
+      unresolvedCount === 0 &&
       venueReady;
     const rankB =
       !hasError &&
@@ -11001,34 +11027,44 @@ if (
       const caution = lowSampleCount + identityOnlyCount > 0
         ? `LOW SAMPLE ${lowSampleCount}人・素材蓄積中${identityOnlyCount}人を含むため過信禁止。`
         : "直前気配と展開は必ず確認。";
+      const linkCaution = nameMatchCount > 0
+        ? `名前一致・補助一致${nameMatchCount}人を含むため紐付けも過信しない。`
+        : "";
       return {
         rank: "A" as const,
         label: "かなり活用できる",
-        reason: `選手EX ${matchedRiderCount}/${totalRiderCount}、実戦根拠${practicalCount}人、MATCHUP ${matchupReflectedCount}組、会場EX反映済み。${caution}`,
+        reason: `選手EX ${matchedRiderCount}/${totalRiderCount}、実戦根拠${practicalCount}人、MATCHUP ${matchupReflectedCount}組、会場EX反映済み。${caution}${linkCaution}`,
         tone: "strong" as const,
       };
     }
 
     if (rankB) {
+      const linkCaution = nameMatchCount > 0
+        ? `名前一致・補助一致${nameMatchCount}人を含むため紐付けにも注意。`
+        : "";
       return {
         rank: "B" as const,
         label: "予想補助として使える",
-        reason: `選手EX ${matchedRiderCount}/${totalRiderCount}、実戦根拠${practicalCount}人。LOW SAMPLE ${lowSampleCount}人・素材蓄積中${identityOnlyCount}人を含むため、展開・並び・近況と併用。`,
+        reason: `選手EX ${matchedRiderCount}/${totalRiderCount}、実戦根拠${practicalCount}人。LOW SAMPLE ${lowSampleCount}人・素材蓄積中${identityOnlyCount}人を含むため、展開・並び・近況と併用。${linkCaution}`,
         tone: "medium" as const,
       };
     }
 
+    const linkCaution = nameMatchCount > 0
+      ? ` 名前一致・補助一致${nameMatchCount}人を含むため、紐付けも過信しない。`
+      : "";
     return {
       rank: "C" as const,
       label: "参考弱め・蓄積中心",
       reason: hasError
-        ? "EXデータの取得失敗を含むため、買い目の主根拠にはせず既存素材を優先。"
-        : `選手EX ${matchedRiderCount}/${totalRiderCount}、実戦根拠${practicalCount}人、MATCHUP ${matchupReflectedCount}組。EXは蓄積・参考中心とし、買い目の主根拠にはしない。`,
+        ? `EXデータの取得失敗を含むため、買い目の主根拠にはせず既存素材を優先。${linkCaution}`
+        : `選手EX ${matchedRiderCount}/${totalRiderCount}、実戦根拠${practicalCount}人、MATCHUP ${matchupReflectedCount}組、未解決${unresolvedCount}人。EXは蓄積・参考中心とし、買い目の主根拠にはしない。${linkCaution}`,
       tone: "weak" as const,
     };
   }, [
     selectedKurariExAnyReady,
     selectedKurariExExactStatus,
+    selectedKurariExLinkAudit,
     selectedKurariExMatchupStatus,
     selectedKurariExReflectionSummary,
     selectedKurariExRiderStatus,
@@ -11045,8 +11081,18 @@ if (
       `- MATCHUP EX: ${selectedKurariExReflectionSummary.matchupReflectedCount}組`,
       `- 会場EX: ${selectedKurariExAnyReady ? "反映済み" : "未反映"}`,
       `- 扱い: ${selectedKurariExConfidence.reason}`,
+      "",
+      "【KURARI EX 紐付け監査】",
+      `- 登録番号一致: ${selectedKurariExLinkAudit.registrationMatchCount}人`,
+      `- 名前一致 / 補助一致: ${selectedKurariExLinkAudit.nameMatchCount}人`,
+      `- 未解決: ${selectedKurariExLinkAudit.unresolvedCount}人`,
+      ...(selectedKurariExLinkAudit.unresolvedRiders.length
+        ? [`- 未解決選手: ${selectedKurariExLinkAudit.unresolvedRiders.join(" / ")}`]
+        : []),
+      "- 曖昧候補: 未取得",
+      "- 扱い: 登録番号一致を最も信頼し、名前一致・補助一致は選手名の揺れに注意。",
     ].join("\n"),
-    [selectedKurariExAnyReady, selectedKurariExConfidence, selectedKurariExReflectionSummary],
+    [selectedKurariExAnyReady, selectedKurariExConfidence, selectedKurariExLinkAudit, selectedKurariExReflectionSummary],
   );
   const selectedKurariExGuidanceText = useMemo(
     () => selectedKurariExAnyReady
@@ -12061,6 +12107,26 @@ const record = normalizePredictionResultRecord({
                             : "#9f3858",
                       }}>
                         {selectedKurariExConfidence.label}：{selectedKurariExConfidence.reason}
+                      </div>
+                      <div style={{ marginTop: "9px", borderTop: "1px solid rgba(226, 216, 241, 0.9)", paddingTop: "9px" }}>
+                        <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.08em", color: "#6d4fc2", marginBottom: "7px" }}>KURARI EX紐付け監査</div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
+                          {[
+                            { label: "登録番号一致", value: `${selectedKurariExLinkAudit.registrationMatchCount}人`, color: "#047857", background: "rgba(236,253,245,0.9)", border: "#a7f3d0" },
+                            { label: "名前一致 / 補助一致", value: `${selectedKurariExLinkAudit.nameMatchCount}人`, color: "#7c4aa5", background: "rgba(250,245,255,0.92)", border: "#e1d1f2" },
+                            { label: "未解決", value: `${selectedKurariExLinkAudit.unresolvedCount}人`, color: selectedKurariExLinkAudit.unresolvedCount > 0 ? "#b45309" : "#64748b", background: selectedKurariExLinkAudit.unresolvedCount > 0 ? "rgba(255,247,237,0.94)" : "rgba(248,250,252,0.9)", border: selectedKurariExLinkAudit.unresolvedCount > 0 ? "#fed7aa" : "#e2e8f0" },
+                            { label: "曖昧候補", value: "未取得", color: "#64748b", background: "rgba(248,250,252,0.9)", border: "#e2e8f0" },
+                          ].map((item) => (
+                            <span key={item.label} style={{ display: "inline-flex", alignItems: "center", gap: "5px", borderRadius: "9999px", padding: "6px 9px", fontSize: "9px", fontWeight: 900, color: item.color, background: item.background, border: `1px solid ${item.border}` }}>
+                              {item.label}：{item.value}
+                            </span>
+                          ))}
+                        </div>
+                        {selectedKurariExLinkAudit.unresolvedRiders.length > 0 ? (
+                          <div style={{ marginTop: "7px", fontSize: "10px", fontWeight: 700, color: "#b45309", lineHeight: 1.6 }}>
+                            未解決選手：{selectedKurariExLinkAudit.unresolvedRiders.join(" / ")}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   ) : null}
