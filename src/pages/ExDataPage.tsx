@@ -15,6 +15,16 @@ import {
   loadKurariExVenueBundle,
   loadKurariExVenueExact,
 } from "../lib/kurariExData";
+import {
+  KURARI_EX_ANALYSIS_INVENTORY,
+  KURARI_EX_ANALYSIS_INVENTORY_STATUSES,
+  KURARI_EX_ANALYSIS_INVENTORY_SUMMARY,
+  KURARI_EX_ANALYSIS_STATUS_META,
+} from "../data/kurariExAnalysisInventory";
+import type {
+  KurariExAnalysisInventoryItem,
+  KurariExAnalysisInventoryStatus,
+} from "../data/kurariExAnalysisInventory";
 import type {
   KurariExExactInitialData,
   KurariExMetric,
@@ -220,6 +230,24 @@ function SectionTitle({ eyebrow, title, lead }: { eyebrow: string; title: string
 
 function EmptyState({ text }: { text: string }) {
   return <div className="ex-empty">{text}</div>;
+}
+
+const KURARI_EX_ANALYSIS_INVENTORY_BY_CATEGORY = Array.from(
+  KURARI_EX_ANALYSIS_INVENTORY.reduce((categories, inventoryItem) => {
+    const categoryItems = categories.get(inventoryItem.category) ?? [];
+    categoryItems.push(inventoryItem);
+    categories.set(inventoryItem.category, categoryItems);
+    return categories;
+  }, new Map<string, KurariExAnalysisInventoryItem[]>()),
+);
+
+function AnalysisInventoryStatusBadge({ status }: { status: KurariExAnalysisInventoryStatus }) {
+  const className = status.replace(/[^a-z]+/g, "-").replace(/^-|-$/g, "");
+  return (
+    <span className={`ex-analysis-inventory-status is-${className}`}>
+      {KURARI_EX_ANALYSIS_STATUS_META[status].label}
+    </span>
+  );
 }
 
 type ExLocationTone = "ready" | "partial" | "pending" | "fixed" | "warning";
@@ -1976,6 +2004,33 @@ export default function ExDataPage() {
         .ex-ranking-score { font-weight: 900; font-size: 36px; line-height: 1; font-family: Georgia, "Times New Roman", serif; color: #554294; }
         .ex-ranking-tags { display: flex; flex-wrap: wrap; gap: 6px; }
         .ex-ranking-tags span { border-radius: 999px; padding: 4px 8px; background: #f1edff; color: #6552a2; font-size: 10px; font-weight: 900; }
+        .ex-analysis-inventory-summary { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 10px; }
+        .ex-analysis-inventory-summary article { min-width: 0; padding: 15px; border: 1px solid #e1e5ee; border-radius: 17px; background: rgba(255,255,255,.86); }
+        .ex-analysis-inventory-summary strong { display: block; margin-top: 6px; color: #263650; font: 850 25px/1 ${serif}; }
+        .ex-analysis-inventory-summary span { color: #738097; font-size: 9px; font-weight: 900; letter-spacing: .06em; overflow-wrap: anywhere; }
+        .ex-analysis-inventory-legend { display: grid; grid-template-columns: repeat(auto-fit,minmax(230px,1fr)); gap: 9px; }
+        .ex-analysis-inventory-legend div { display: grid; gap: 6px; padding: 12px 14px; border-radius: 15px; background: #f7f9fc; color: #6b778d; font-size: 10px; line-height: 1.65; }
+        .ex-analysis-inventory-categories { display: grid; gap: 16px; }
+        .ex-analysis-inventory-category { display: grid; gap: 11px; padding-top: 4px; }
+        .ex-analysis-inventory-category-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 9px; border-bottom: 1px solid #e4e8f0; }
+        .ex-analysis-inventory-category-head h3 { margin: 0; color: #293851; font: 800 19px/1.3 ${serif}; }
+        .ex-analysis-inventory-category-head span { color: #8290a4; font-size: 10px; font-weight: 850; }
+        .ex-analysis-inventory-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 2},minmax(0,1fr)); gap: 10px; }
+        .ex-analysis-inventory-item { min-width: 0; padding: 15px; border: 1px solid #e2e6ef; border-radius: 17px; background: rgba(255,255,255,.86); }
+        .ex-analysis-inventory-item-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+        .ex-analysis-inventory-item h4 { margin: 0; color: #263650; font: 800 15px/1.4 ${serif}; }
+        .ex-analysis-inventory-item p { margin: 9px 0 0; color: #69768b; font-size: 10px; line-height: 1.7; }
+        .ex-analysis-inventory-meta { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; margin-top: 10px; }
+        .ex-analysis-inventory-meta div { padding: 8px 9px; border-radius: 11px; background: #f7f9fc; color: #7b8799; font-size: 9px; line-height: 1.55; overflow-wrap: anywhere; }
+        .ex-analysis-inventory-meta b { display: block; margin-bottom: 2px; color: #56657b; }
+        .ex-analysis-inventory-status { flex: 0 0 auto; display: inline-flex; max-width: 170px; padding: 5px 8px; border-radius: 999px; color: #546278; background: #edf0f4; font-size: 8px; font-weight: 950; letter-spacing: .04em; line-height: 1.35; text-align: center; }
+        .ex-analysis-inventory-status.is-existing { color: #23664c; background: #daf5e8; }
+        .ex-analysis-inventory-status.is-extend-existing { color: #315f91; background: #e1efff; }
+        .ex-analysis-inventory-status.is-available-not-rendered { color: #59449b; background: #eee8ff; }
+        .ex-analysis-inventory-status.is-partial { color: #315f91; background: #e7f0fb; }
+        .ex-analysis-inventory-status.is-low-sample { color: #925711; background: #fff0d3; }
+        .ex-analysis-inventory-status.is-future-accumulation { color: #6a7280; background: #eceef2; }
+        .ex-analysis-inventory-status.is-not-generated-fake-prohibited { color: #9a3d4f; background: #ffe8ed; }
         @media (max-width: 520px) { .ex-ranking-grid { max-height: none; overflow-y: visible; } }
 
         @media (max-width: 520px) { .ex-health-grid, .ex-kpi-grid { grid-template-columns: 1fr; } }
@@ -2918,6 +2973,68 @@ export default function ExDataPage() {
           </div>
           <div className="ex-empty">POLICY: 未確定指標は推定で補完しません。正確に蓄積できるデータだけをEXACTとして昇格します。</div>
         </section>
+
+        <section className="ex-panel ex-section">
+          <SectionTitle
+            eyebrow="EX ANALYSIS INVENTORY"
+            title="分析項目マップ / 重複防止"
+            lead="これは新しい分析数値の実装ではなく、既存項目・拡張候補・要蓄積・生成禁止項目の棚卸しです。既存セクションへの別名での重複追加を防ぎます。"
+          />
+          <div className="ex-analysis-inventory-summary" aria-label="分析項目マップ集計">
+            <article>
+              <span>TOTAL</span>
+              <strong>{KURARI_EX_ANALYSIS_INVENTORY.length.toLocaleString("ja-JP")}</strong>
+            </article>
+            {KURARI_EX_ANALYSIS_INVENTORY_STATUSES.map((status) => (
+              <article key={status}>
+                <span>{KURARI_EX_ANALYSIS_STATUS_META[status].label}</span>
+                <strong>{KURARI_EX_ANALYSIS_INVENTORY_SUMMARY[status].toLocaleString("ja-JP")}</strong>
+              </article>
+            ))}
+          </div>
+          <div className="ex-analysis-inventory-legend">
+            {KURARI_EX_ANALYSIS_INVENTORY_STATUSES.map((status) => (
+              <div key={status}>
+                <AnalysisInventoryStatusBadge status={status} />
+                <span>{KURARI_EX_ANALYSIS_STATUS_META[status].description}</span>
+              </div>
+            ))}
+          </div>
+          <div className="ex-analysis-inventory-categories">
+            {KURARI_EX_ANALYSIS_INVENTORY_BY_CATEGORY.map(([category, categoryItems]) => (
+              <section className="ex-analysis-inventory-category" key={category}>
+                <div className="ex-analysis-inventory-category-head">
+                  <h3>{category}</h3>
+                  <span>{categoryItems.length.toLocaleString("ja-JP")}項目</span>
+                </div>
+                <div className="ex-analysis-inventory-grid">
+                  {categoryItems.map((inventoryItem) => (
+                    <article className="ex-analysis-inventory-item" key={inventoryItem.id}>
+                      <div className="ex-analysis-inventory-item-head">
+                        <h4>{inventoryItem.label}</h4>
+                        <AnalysisInventoryStatusBadge status={inventoryItem.status} />
+                      </div>
+                      <p>{inventoryItem.note}</p>
+                      <div className="ex-analysis-inventory-meta">
+                        <div><b>現在地</b>{inventoryItem.currentSection}</div>
+                        <div><b>sourceKeys</b>{inventoryItem.sourceKeys.length ? inventoryItem.sourceKeys.join(" / ") : "未蓄積"}</div>
+                        <div><b>重複先</b>{inventoryItem.duplicateOf ?? "なし"}</div>
+                        <div><b>表示方針</b>{inventoryItem.displayPlan}</div>
+                        <div><b>必要データ</b>{inventoryItem.dataRequirement}</div>
+                        <div><b>ID</b>{inventoryItem.id}</div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+          <div className="ex-empty">
+            POLICY: existing / extend-existing は既存セクションを拡張し、別名の重複実装をしません。
+            根拠が未蓄積の項目は future-accumulation、推測するとfakeになる指標は not-generated / fake-prohibited のまま管理します。
+          </div>
+        </section>
+
         <section className="ex-panel ex-section">
           <SectionTitle eyebrow="QUALITY LEGEND" title="データ品質の4段階" lead="SEEDとEXACTを分離して公開しています。" />
           <div className="ex-legend">
