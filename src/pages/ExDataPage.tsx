@@ -1709,6 +1709,19 @@ export default function ExDataPage() {
         .ex-relationship-card-meta div { padding: 9px 10px; border-radius: 12px; background: #f7f9fc; color: #748096; font-size: 9px; line-height: 1.45; }
         .ex-relationship-card-meta strong { display: block; margin-top: 3px; color: #263650; font-size: 11px; }
         .ex-relationship-card-note { margin: 0; padding-top: 10px; border-top: 1px solid #edf0f5; color: #657187; font-size: 11px; line-height: 1.75; }
+        .ex-tactic-rule-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 2},minmax(0,1fr)); gap: 14px; }
+        .ex-tactic-rule-card { display: grid; gap: 14px; padding: ${isMobile ? "18px" : "22px"}; border: 1px solid #dedff0; border-radius: 22px; background: linear-gradient(145deg,rgba(255,255,255,.95),rgba(248,246,255,.92)); box-shadow: 0 12px 28px rgba(73,83,126,.05); }
+        .ex-tactic-rule-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+        .ex-tactic-rule-head h3 { margin: 0; color: #1f2d45; font: 800 21px/1.3 ${serif}; }
+        .ex-tactic-rule-metrics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+        .ex-tactic-rule-metrics div { padding: 10px; border-radius: 13px; background: #f6f7fb; color: #778297; font-size: 9px; line-height: 1.45; }
+        .ex-tactic-rule-metrics strong { display: block; margin-top: 4px; color: #8d5a15; font-size: 11px; }
+        .ex-tactic-rule-detail { display: grid; gap: 10px; }
+        .ex-tactic-rule-detail div { padding-top: 10px; border-top: 1px solid #ececf3; color: #5b687d; font-size: 11px; line-height: 1.75; }
+        .ex-tactic-rule-detail b { display: block; margin-bottom: 3px; color: #625099; font-size: 10px; letter-spacing: .06em; }
+        .ex-tactic-common-ban { display: grid; gap: 8px; padding: 17px 19px; border: 1px solid #f0d7c1; border-radius: 18px; background: #fff9f3; color: #735f52; font-size: 12px; line-height: 1.7; }
+        .ex-tactic-common-ban strong { color: #9a5729; }
+        .ex-tactic-common-ban ul { margin: 0; padding-left: 20px; }
         .ex-section { padding: ${isMobile ? "22px 18px" : "30px"}; display: grid; gap: 22px; }
         .ex-section-title h2 { margin: 6px 0 0; font: 800 ${isMobile ? "27px" : "36px"}/1.15 ${serif}; color: #172239; }
         .ex-section-title p { margin: 8px 0 0; color: #718096; line-height: 1.7; }
@@ -2409,6 +2422,63 @@ export default function ExDataPage() {
           <p className="ex-location-policy">
             ライン先頭・番手・単騎は保存済みbyRoleの過去成績であり、脚質から推測した役割ではありません。ライン分断注意は明示記録を取得できないため未蓄積です。
             LOW SAMPLEは参考扱い、identity-onlyは成績根拠にせず、保存されていない関係性をfake補完しません。
+          </p>
+        </section>
+
+        <section className="ex-panel ex-section">
+          <SectionTitle
+            eyebrow="TACTIC EVENT RULE MANAGEMENT"
+            title="戦法イベント管理欄"
+            lead="優先12で固定した判定ルールを表示します。発生・成功・失敗の数値は、明示記録が蓄積されるまで生成しません。"
+          />
+          <div className="ex-matchup-overview-summary">
+            <div>対象イベント数<strong>{KURARI_EX_TACTIC_EVENT_RULES.length}</strong></div>
+            <div>ルール固定済み<strong>{KURARI_EX_TACTIC_EVENT_RULES.length}</strong></div>
+            <div>成功率未蓄積<strong>{KURARI_EX_TACTIC_EVENT_RULES.length}</strong></div>
+            <div>失敗率未蓄積<strong>{KURARI_EX_TACTIC_EVENT_RULES.length}</strong></div>
+            <div>発生回数未蓄積<strong>{KURARI_EX_TACTIC_EVENT_RULES.length}</strong></div>
+          </div>
+          <div className="ex-condition-source">
+            <strong>後付け分類：禁止</strong>
+            <span>参照元: KURARI_EX_TACTIC_EVENT_RULES</span>
+            <span>展開メモ・振り返り・明示タグがある場合だけ認定</span>
+          </div>
+          <div className="ex-tactic-rule-grid">
+            {KURARI_EX_TACTIC_EVENT_RULES.map((rule) => (
+              <article className="ex-tactic-rule-card" key={rule.key}>
+                <div className="ex-tactic-rule-head">
+                  <div>
+                    <div className="ex-eyebrow">{rule.key.toUpperCase()}</div>
+                    <h3>{rule.label}</h3>
+                  </div>
+                  <span className="ex-location-status is-fixed">ルール固定済み</span>
+                </div>
+                <div className="ex-tactic-rule-metrics">
+                  <div>成功率<strong>未蓄積</strong></div>
+                  <div>失敗率<strong>未蓄積</strong></div>
+                  <div>発生回数<strong>未蓄積</strong></div>
+                </div>
+                <div className="ex-tactic-rule-detail">
+                  <div><b>認定条件</b>{rule.detection}</div>
+                  <div><b>成功候補条件</b>{rule.success}</div>
+                  <div><b>個別禁止条件</b>{rule.prohibited}</div>
+                </div>
+                <span className="ex-quality is-identity-only">品質：RULE ONLY / 数値未蓄積</span>
+              </article>
+            ))}
+          </div>
+          <div className="ex-tactic-common-ban">
+            <strong>共通禁止条件</strong>
+            <ul>
+              <li>順位だけでは認定しない</li>
+              <li>脚質だけでは認定しない</li>
+              <li>ライン役割だけでは認定しない</li>
+              <li>保存済みメモ・振り返り・明示タグなしでは認定しない</li>
+            </ul>
+          </div>
+          <p className="ex-location-policy">
+            戦法イベントはルール固定段階です。成功率・失敗率・発生回数を作らず、保存されていないイベントを過去レースへ後付け分類しません。
+            判定元が揃うまで未蓄積のまま扱い、fake補完は禁止です。
           </p>
         </section>
 
