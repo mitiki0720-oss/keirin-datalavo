@@ -473,6 +473,35 @@ const KURARI_EX_CONDITION_DATA_TABS: Array<{
   },
 ];
 
+type KurariExRoleDataTab = "front" | "bante" | "third" | "single";
+
+const KURARI_EX_ROLE_DATA_TABS: Array<{
+  key: KurariExRoleDataTab;
+  label: string;
+  description: string;
+}> = [
+  {
+    key: "front",
+    label: "ライン先頭",
+    description: "安全な並び情報からライン先頭と判定できた場合だけ集計。主導権を取りに行く可能性は確認しますが、脚質だけでは断定しません。",
+  },
+  {
+    key: "bante",
+    label: "番手",
+    description: "安全に解釈できる並び情報から、ライン先頭の直後と判定できた場合だけ集計します。",
+  },
+  {
+    key: "third",
+    label: "3番手以降",
+    description: "安全に解釈できる並び情報から3番手以降と判定でき、保存済みbyRole.thirdがある場合だけ集計します。",
+  },
+  {
+    key: "single",
+    label: "単騎",
+    description: "ラインに属さないと安全に判定できる場合だけ集計し、位置不明の選手を単騎に補完しません。",
+  },
+];
+
 function formatRiderCategoryRate(value: number | null | undefined) {
   return Number.isFinite(value) ? `${Number(value).toFixed(1)}%` : "未取得";
 }
@@ -733,6 +762,7 @@ export default function ExDataPage() {
   const [riderCategoryAnalysis, setRiderCategoryAnalysis] = useState<KurariExRiderCategoryAnalysis | null>(null);
   const [riderCategoryStatus, setRiderCategoryStatus] = useState<"loading" | "ready" | "error">("loading");
   const [conditionDataTab, setConditionDataTab] = useState<KurariExConditionDataTab>("bankLength");
+  const [roleDataTab, setRoleDataTab] = useState<KurariExRoleDataTab>("front");
     const [riderCoverageAudit, setRiderCoverageAudit] = useState<KurariExRiderCoverageAudit | null>(null);
     const [riderCoverageAuditStatus, setRiderCoverageAuditStatus] = useState<"loading" | "ready" | "error">("loading");
   const [todayRecommendation, setTodayRecommendation] = useState<KurariExTodayRecommendation | null>(null);
@@ -1200,6 +1230,9 @@ export default function ExDataPage() {
     ...definition,
     item: selectedConditionDimension?.items.find((item) => item.key === definition.key) ?? null,
   }));
+  const selectedRoleTab = KURARI_EX_ROLE_DATA_TABS.find((tab) => tab.key === roleDataTab) ?? KURARI_EX_ROLE_DATA_TABS[0];
+  const roleDimension = categoryDimensions.role;
+  const selectedRoleItem = roleDimension?.items.find((item) => item.key === selectedRoleTab.key) ?? null;
   const hasCategoryData = (key: string) => (categoryDimensions[key]?.items.length ?? 0) > 0;
   const hasSnowData = categoryDimensions.weather?.items.some((item) => item.key === "snow" && item.starts > 0) ?? false;
   const unresolvedWarning = riderCoverageAudit?.warnings?.[0]
@@ -1293,6 +1326,7 @@ export default function ExDataPage() {
         .ex-condition-card-grid div { padding: 9px 10px; border-radius: 12px; background: #f7f9fc; color: #68758a; font-size: 10px; }
         .ex-condition-card-grid strong { display: block; margin-top: 3px; color: #263650; font-size: 13px; }
         .ex-condition-rate-row { display: grid; gap: 5px; color: #536d92; font-size: 11px; font-weight: 800; line-height: 1.6; }
+        .ex-role-description { margin: 0; padding: 15px 17px; border-left: 4px solid #705ab3; border-radius: 0 16px 16px 0; background: #f7f5ff; color: #526279; font-size: 12px; line-height: 1.8; font-weight: 700; }
         .ex-section { padding: ${isMobile ? "22px 18px" : "30px"}; display: grid; gap: 22px; }
         .ex-section-title h2 { margin: 6px 0 0; font: 800 ${isMobile ? "27px" : "36px"}/1.15 ${serif}; color: #172239; }
         .ex-section-title p { margin: 8px 0 0; color: #718096; line-height: 1.7; }
@@ -1702,6 +1736,110 @@ export default function ExDataPage() {
           <p className="ex-location-policy">
             条件別データは、既存の保存済みEXACT集計だけを表示します。LOW SAMPLEは参考扱い、identity-onlyは成績集計の根拠にせず、
             未取得条件・未保存数値・曖昧分類をfake補完しません。
+          </p>
+        </section>
+
+        <section className="ex-panel ex-section">
+          <SectionTitle
+            eyebrow="POSITION / ROLE EXACT"
+            title="位置・役割別成績"
+            lead="優先10で生成済みの保存済みbyRoleを、安全に並びを解釈できたレースの範囲だけで表示します。"
+          />
+          <div className="ex-condition-tabs" role="tablist" aria-label="位置・役割別成績の分類">
+            {KURARI_EX_ROLE_DATA_TABS.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                role="tab"
+                aria-selected={roleDataTab === tab.key}
+                className={`ex-condition-tab${roleDataTab === tab.key ? " is-active" : ""}`}
+                onClick={() => setRoleDataTab(tab.key)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <p className="ex-role-description">
+            <strong>{selectedRoleTab.label}：</strong>{selectedRoleTab.description}
+          </p>
+          <div className="ex-condition-source">
+            <strong>保存済みbyRole</strong>
+            <span>脚質ではなく、安全に解釈できた並び情報を使用</span>
+            <span>参照元: {roleDimension?.sourcePath ?? "未取得"}</span>
+          </div>
+          <div className="ex-rider-overview-legend" aria-label="役割別成績の品質区分">
+            <span className="ex-quality is-complete">EXACT 蓄積済み</span>
+            <span className="ex-quality is-low-sample">LOW SAMPLE 参考扱い</span>
+            <span className="ex-quality is-identity-only">未蓄積</span>
+          </div>
+          {riderCategoryStatus === "loading" ? <EmptyState text="保存済み役割別データを読み込んでいます。" /> : null}
+          {riderCategoryStatus === "error" ? <EmptyState text="位置・役割別成績を取得できませんでした。" /> : null}
+          {riderCategoryStatus === "ready" && !isMobile ? (
+            <div className="ex-condition-table-wrap">
+              <table className="ex-condition-table">
+                <thead>
+                  <tr>
+                    <th>役割名</th>
+                    <th>対象件数</th>
+                    <th>1着</th>
+                    <th>2着</th>
+                    <th>3着</th>
+                    <th>着外</th>
+                    <th>勝率</th>
+                    <th>2連対率</th>
+                    <th>3連対率</th>
+                    <th>品質</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>{selectedRoleTab.label}</td>
+                    <td>{selectedRoleItem ? selectedRoleItem.starts.toLocaleString("ja-JP") : "未蓄積"}</td>
+                    <td>{selectedRoleItem ? selectedRoleItem.wins.toLocaleString("ja-JP") : "-"}</td>
+                    <td>{selectedRoleItem ? selectedRoleItem.seconds.toLocaleString("ja-JP") : "-"}</td>
+                    <td>{selectedRoleItem ? selectedRoleItem.thirds.toLocaleString("ja-JP") : "-"}</td>
+                    <td>{selectedRoleItem ? selectedRoleItem.outside.toLocaleString("ja-JP") : "-"}</td>
+                    <td>{selectedRoleItem ? formatRiderCategoryRate(selectedRoleItem.winRate) : "-"}</td>
+                    <td>{selectedRoleItem ? formatRiderCategoryRate(selectedRoleItem.top2Rate) : "-"}</td>
+                    <td>{selectedRoleItem ? formatRiderCategoryRate(selectedRoleItem.top3Rate) : "-"}</td>
+                    <td><ConditionQualityBadge item={selectedRoleItem} /></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+          {riderCategoryStatus === "ready" && isMobile ? (
+            <article className="ex-condition-card">
+              <div className="ex-condition-card-head">
+                <div>
+                  <h3>{selectedRoleTab.label}</h3>
+                  <div className="ex-muted">対象件数 {selectedRoleItem ? selectedRoleItem.starts.toLocaleString("ja-JP") : "未蓄積"}</div>
+                </div>
+                <ConditionQualityBadge item={selectedRoleItem} />
+              </div>
+              <div className="ex-condition-card-grid">
+                {[
+                  ["1着", selectedRoleItem ? selectedRoleItem.wins.toLocaleString("ja-JP") : "-"],
+                  ["2着", selectedRoleItem ? selectedRoleItem.seconds.toLocaleString("ja-JP") : "-"],
+                  ["3着", selectedRoleItem ? selectedRoleItem.thirds.toLocaleString("ja-JP") : "-"],
+                  ["着外", selectedRoleItem ? selectedRoleItem.outside.toLocaleString("ja-JP") : "-"],
+                ].map(([metricLabel, value]) => (
+                  <div key={metricLabel}><span>{metricLabel}</span><strong>{value}</strong></div>
+                ))}
+              </div>
+              <div className="ex-condition-rate-row">
+                <span>勝率 {selectedRoleItem ? formatRiderCategoryRate(selectedRoleItem.winRate) : "-"}</span>
+                <span>2連対率 {selectedRoleItem ? formatRiderCategoryRate(selectedRoleItem.top2Rate) : "-"}</span>
+                <span>3連対率 {selectedRoleItem ? formatRiderCategoryRate(selectedRoleItem.top3Rate) : "-"}</span>
+              </div>
+            </article>
+          ) : null}
+          <div className="ex-sample-alert">
+            <strong>安全な役割判定のみ</strong>脚質だけで役割を断定せず、並び未取得・曖昧な役割・4番手以降は未蓄積扱いです。
+          </div>
+          <p className="ex-location-policy">
+            位置・役割別成績は、既存の保存済みbyRoleだけを表示します。LOW SAMPLEは参考扱い、identity-onlyは成績根拠にせず、
+            未保存の役割・件数・成績をfake補完しません。
           </p>
         </section>
 
