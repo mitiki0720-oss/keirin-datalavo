@@ -10966,6 +10966,88 @@ if (
         : "loading";
   const selectedKurariExAnyReady = selectedKurariExStatus === "ready" || selectedKurariExExactStatus === "ready";
   const selectedKurariExBothMissing = selectedKurariExStatus === "missing" && selectedKurariExExactStatus === "missing";
+  const selectedKurariExConfidence = useMemo(() => {
+    const {
+      totalRiderCount,
+      matchedRiderCount,
+      practicalCount,
+      lowSampleCount,
+      identityOnlyCount,
+      matchupReflectedCount,
+    } = selectedKurariExReflectionSummary;
+    const matchedRate = totalRiderCount > 0 ? matchedRiderCount / totalRiderCount : 0;
+    const venueReady = selectedKurariExAnyReady;
+    const hasError = [
+      selectedKurariExStatus,
+      selectedKurariExExactStatus,
+      selectedKurariExRiderStatus,
+      selectedKurariExMatchupStatus,
+    ].includes("error");
+    const rankA =
+      !hasError &&
+      totalRiderCount > 0 &&
+      matchedRate >= 0.8 &&
+      practicalCount >= Math.ceil(totalRiderCount / 2) &&
+      matchupReflectedCount >= 2 &&
+      venueReady;
+    const rankB =
+      !hasError &&
+      totalRiderCount > 0 &&
+      matchedRate >= 0.6 &&
+      practicalCount >= 2 &&
+      venueReady;
+
+    if (rankA) {
+      const caution = lowSampleCount + identityOnlyCount > 0
+        ? `LOW SAMPLE ${lowSampleCount}人・素材蓄積中${identityOnlyCount}人を含むため過信禁止。`
+        : "直前気配と展開は必ず確認。";
+      return {
+        rank: "A" as const,
+        label: "かなり活用できる",
+        reason: `選手EX ${matchedRiderCount}/${totalRiderCount}、実戦根拠${practicalCount}人、MATCHUP ${matchupReflectedCount}組、会場EX反映済み。${caution}`,
+        tone: "strong" as const,
+      };
+    }
+
+    if (rankB) {
+      return {
+        rank: "B" as const,
+        label: "予想補助として使える",
+        reason: `選手EX ${matchedRiderCount}/${totalRiderCount}、実戦根拠${practicalCount}人。LOW SAMPLE ${lowSampleCount}人・素材蓄積中${identityOnlyCount}人を含むため、展開・並び・近況と併用。`,
+        tone: "medium" as const,
+      };
+    }
+
+    return {
+      rank: "C" as const,
+      label: "参考弱め・蓄積中心",
+      reason: hasError
+        ? "EXデータの取得失敗を含むため、買い目の主根拠にはせず既存素材を優先。"
+        : `選手EX ${matchedRiderCount}/${totalRiderCount}、実戦根拠${practicalCount}人、MATCHUP ${matchupReflectedCount}組。EXは蓄積・参考中心とし、買い目の主根拠にはしない。`,
+      tone: "weak" as const,
+    };
+  }, [
+    selectedKurariExAnyReady,
+    selectedKurariExExactStatus,
+    selectedKurariExMatchupStatus,
+    selectedKurariExReflectionSummary,
+    selectedKurariExRiderStatus,
+    selectedKurariExStatus,
+  ]);
+  const selectedKurariExConfidenceMaterial = useMemo(
+    () => [
+      "【KURARI EX 信頼度】",
+      `- EX信頼度: ${selectedKurariExConfidence.rank}`,
+      `- 選手EX: ${selectedKurariExReflectionSummary.matchedRiderCount}/${selectedKurariExReflectionSummary.totalRiderCount}`,
+      `- 実戦根拠: ${selectedKurariExReflectionSummary.practicalCount}人`,
+      `- LOW SAMPLE: ${selectedKurariExReflectionSummary.lowSampleCount}人`,
+      `- 素材蓄積中: ${selectedKurariExReflectionSummary.identityOnlyCount}人`,
+      `- MATCHUP EX: ${selectedKurariExReflectionSummary.matchupReflectedCount}組`,
+      `- 会場EX: ${selectedKurariExAnyReady ? "反映済み" : "未反映"}`,
+      `- 扱い: ${selectedKurariExConfidence.reason}`,
+    ].join("\n"),
+    [selectedKurariExAnyReady, selectedKurariExConfidence, selectedKurariExReflectionSummary],
+  );
   const selectedKurariExGuidanceText = useMemo(
     () => selectedKurariExAnyReady
       ? buildKurariExPredictionMaterial(selectedKurariExBundle, selectedKurariExExact, {
@@ -10975,11 +11057,11 @@ if (
           isGirls: selectedPredictionMaterialRace?.isGirls,
           lineup: selectedPredictionMaterialRace?.lineup,
           windSpeedKmh: parsePredictionNumber(selectedWeather?.windSpeedText ?? ""),
-        }, selectedKurariExRiderMaterial.text, selectedKurariExMatchupMaterial.text)
+        }, selectedKurariExRiderMaterial.text, selectedKurariExMatchupMaterial.text, selectedKurariExConfidenceMaterial)
       : selectedKurariExBothMissing
-        ? buildKurariExPredictionMaterial(null, null, null, selectedKurariExRiderMaterial.text, selectedKurariExMatchupMaterial.text)
+        ? buildKurariExPredictionMaterial(null, null, null, selectedKurariExRiderMaterial.text, selectedKurariExMatchupMaterial.text, selectedKurariExConfidenceMaterial)
         : "",
-    [selectedKurariExAnyReady, selectedKurariExBothMissing, selectedKurariExBundle, selectedKurariExExact, selectedKurariExMatchupMaterial.text, selectedKurariExRiderMaterial.text, selectedPredictionMaterialRace, selectedPredictionMaterialVenue?.session, selectedWeather?.windSpeedText],
+    [selectedKurariExAnyReady, selectedKurariExBothMissing, selectedKurariExBundle, selectedKurariExConfidenceMaterial, selectedKurariExExact, selectedKurariExMatchupMaterial.text, selectedKurariExRiderMaterial.text, selectedPredictionMaterialRace, selectedPredictionMaterialVenue?.session, selectedWeather?.windSpeedText],
   );
   const sortedPredictionVenues = useMemo(
     () => [...(predictionFeed?.venues ?? [])].sort(comparePredictionVenues),
@@ -11930,6 +12012,15 @@ const record = normalizePredictionResultRecord({
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "8px" }}>
                         {[
                           {
+                            label: "EX信頼度",
+                            value: selectedKurariExConfidence.rank,
+                            color: selectedKurariExConfidence.tone === "strong"
+                              ? "#047857"
+                              : selectedKurariExConfidence.tone === "medium"
+                                ? "#a15c08"
+                                : "#b42345",
+                          },
+                          {
                             label: "登録選手別EXACT",
                             value: `${selectedKurariExReflectionSummary.matchedRiderCount}/${selectedKurariExReflectionSummary.totalRiderCount}`,
                             color: selectedKurariExReflectionSummary.totalRiderCount === 0
@@ -11950,6 +12041,26 @@ const record = normalizePredictionResultRecord({
                             <div style={{ fontSize: "14px", fontWeight: 900, color: item.color }}>{item.value}</div>
                           </div>
                         ))}
+                      </div>
+                      <div style={{
+                        marginTop: "9px",
+                        borderRadius: "12px",
+                        padding: "8px 10px",
+                        fontSize: "10px",
+                        fontWeight: 700,
+                        lineHeight: 1.65,
+                        background: selectedKurariExConfidence.tone === "strong"
+                          ? "rgba(236,253,245,0.86)"
+                          : selectedKurariExConfidence.tone === "medium"
+                            ? "rgba(255,251,235,0.88)"
+                            : "rgba(255,241,242,0.88)",
+                        color: selectedKurariExConfidence.tone === "strong"
+                          ? "#276b59"
+                          : selectedKurariExConfidence.tone === "medium"
+                            ? "#8a5208"
+                            : "#9f3858",
+                      }}>
+                        {selectedKurariExConfidence.label}：{selectedKurariExConfidence.reason}
                       </div>
                     </div>
                   ) : null}

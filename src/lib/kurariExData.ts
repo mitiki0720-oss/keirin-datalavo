@@ -355,10 +355,11 @@ function buildKurariExPredictionMaterialText(
   context: KurariExPredictionContext | null | undefined,
   riderMaterial: string,
   matchupMaterial: string,
+  confidenceMaterial: string,
   insightLimit: number,
   guidanceLimit: number,
 ) {
-  if (!venue && !exact && !riderMaterial && !matchupMaterial) {
+  if (!venue && !exact && !riderMaterial && !matchupMaterial && !confidenceMaterial) {
     return [
       "[P. KURARI EX DATA / 独自展開指標]",
       "",
@@ -376,6 +377,7 @@ function buildKurariExPredictionMaterialText(
     ...(exact ? ["EXACTは正規化履歴から機械的に算出した確定集計です。", "母数が少ない指標は過信しないでください。"] : []),
     ...(venue ? ["SEEDは過去Summaryから抽出した初期知識です。"] : []),
   ];
+  if (confidenceMaterial) lines.push("", confidenceMaterial);
   if (exact) {
     lines.push("", ...buildExactLines(exact, context));
     const practicalMemo = buildKurariExPracticalMemo(exact, context);
@@ -432,19 +434,20 @@ export function buildKurariExPredictionMaterial(
   context?: KurariExPredictionContext | null,
   riderMaterial = "",
   matchupMaterial = "",
+  confidenceMaterial = "",
 ): string {
   const venue = bundle?.venue ?? null;
   const guidance = bundle?.guidance ?? null;
-  const maxLength = riderMaterial || matchupMaterial ? 9500 : 4500;
+  const maxLength = riderMaterial || matchupMaterial || confidenceMaterial ? 9500 : 4500;
   for (let insightLimit = Math.min(8, venue?.seedInsights.length ?? 0); insightLimit >= 0; insightLimit -= 1) {
-    const text = buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, matchupMaterial, insightLimit, 8);
+    const text = buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, matchupMaterial, confidenceMaterial, insightLimit, 8);
     if (text.length <= maxLength) return text;
   }
   for (let guidanceLimit = 7; guidanceLimit >= 1; guidanceLimit -= 1) {
-    const text = buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, matchupMaterial, 0, guidanceLimit);
+    const text = buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, matchupMaterial, confidenceMaterial, 0, guidanceLimit);
     if (text.length <= maxLength) return text;
   }
-  return buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, matchupMaterial, 0, 1).slice(0, maxLength);
+  return buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, matchupMaterial, confidenceMaterial, 0, 1).slice(0, maxLength);
 }
 
 export async function loadKurariExInitialData(): Promise<KurariExInitialData> {
