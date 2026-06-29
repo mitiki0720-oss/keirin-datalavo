@@ -63,6 +63,7 @@ const BLOCK_REASON_TAXONOMY = [
   "TODAY_CAR_NO_NOT_IN_ENTRY",
   "REGISTRATION_NO_MISSING",
   "REGISTRATION_NO_INVALID",
+  "REGISTRATION_NO_MISMATCH",
   "DUPLICATE_REGISTRATION_NO",
   "NAME_MATCH_REQUIRED_FAKE_PROHIBITED",
   "RESULT_OR_LINEUP_ONLY_SOURCE_PROHIBITED",
@@ -249,6 +250,8 @@ function buildBridgeCandidates(todayRaces, snapshot, snapshotPath) {
     bridgeBlockedRaceCount: 0,
     riderRegistrationNoBeforeCount: 0,
     riderRegistrationNoAfterCandidateCount: 0,
+    existingRegistrationNoMatchedCount: 0,
+    existingRegistrationNoMismatchCount: 0,
     carNoJoinMismatchCount: 0,
     duplicateCarNoCount: 0,
     duplicateRegistrationNoCount: 0,
@@ -371,6 +374,33 @@ function buildBridgeCandidates(todayRaces, snapshot, snapshotPath) {
     const entryByCarNo = new Map(
       entries.map((entry) => [toInteger(entry.carNo), entry]),
     );
+    for (const rider of riders) {
+      const existingRegistration = normalizeText(
+        rider?.registrationNo,
+      );
+      if (!existingRegistration) continue;
+      const entry = entryByCarNo.get(toInteger(rider?.carNo));
+      if (
+        !isValidRegistrationNo(existingRegistration) ||
+        existingRegistration !== normalizeText(entry?.registrationNo)
+      ) {
+        reasons.push("REGISTRATION_NO_MISMATCH");
+        summary.existingRegistrationNoMismatchCount += 1;
+      } else {
+        summary.existingRegistrationNoMatchedCount += 1;
+      }
+    }
+    if (reasons.includes("REGISTRATION_NO_MISMATCH")) {
+      summary.bridgePartialRaceCount += 1;
+      summary.bridgeBlockedRaceCount += 1;
+      recordBlock(
+        summary,
+        "REGISTRATION_NO_MISMATCH",
+        todayRace,
+        "existing today registrationNo conflicts with snapshot",
+      );
+      continue;
+    }
     const enrichedRiders = riders.map((rider) => {
       const entry = entryByCarNo.get(toInteger(rider.carNo));
       summary.nameComparedForDisplayOnlyCount += 1;
@@ -429,6 +459,13 @@ function buildBridgeCandidates(todayRaces, snapshot, snapshotPath) {
 }
 
 function evaluateReadiness(context) {
+  const alreadyBridged =
+    context.riderRegistrationNoBeforeCount > 0 &&
+    context.riderRegistrationNoBeforeCount ===
+      context.riderRegistrationNoAfterCandidateCount &&
+    context.existingRegistrationNoMatchedCount ===
+      context.riderRegistrationNoAfterCandidateCount &&
+    context.existingRegistrationNoMismatchCount === 0;
   const checks = [
     {
       label: "index validation PASS",
@@ -457,10 +494,10 @@ function evaluateReadiness(context) {
     },
     {
       label:
-        "riderRegistrationNoAfterCandidateCount > riderRegistrationNoBeforeCount",
+        "registration coverage improves or is already snapshot-identical",
       passed:
         context.riderRegistrationNoAfterCandidateCount >
-        context.riderRegistrationNoBeforeCount,
+          context.riderRegistrationNoBeforeCount || alreadyBridged,
     },
     { label: "fakeCompletionPerformed === false", passed: true },
     { label: "fuzzyMatchingPerformed === false", passed: true },
@@ -480,13 +517,17 @@ function evaluateReadiness(context) {
   return {
     status:
       failedChecks.length === 0
-        ? "READY_FOR_TODAY_RIDERS_WRITE_IMPLEMENTATION"
+        ? alreadyBridged
+          ? "ALREADY_BRIDGED"
+          : "READY_FOR_TODAY_RIDERS_WRITE_IMPLEMENTATION"
         : "BLOCKED",
     passedChecks,
     failedChecks,
     nextRecommendedAction:
       failedChecks.length === 0
-        ? "today更新前に、snapshot検証・carNo join・既存registrationNo保護・atomic current-feed writeを含む最小実装設計へ進む。"
+        ? alreadyBridged
+          ? "today.ridersはsnapshotと一致済み。write不要のままcheckerと日次pipeline統合設計へ進む。"
+          : "today更新前に、snapshot検証・carNo join・既存registrationNo保護・atomic current-feed writeを含む最小実装設計へ進む。"
         : "failedChecksのindex/snapshot/join原因を修正し、writeなしdry-runを再実行する。",
   };
 }
