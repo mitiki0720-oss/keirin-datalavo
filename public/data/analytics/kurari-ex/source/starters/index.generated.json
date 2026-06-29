@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "kurari-ex-starters-source-index/v1",
+  "sourceRoot": "public/data/analytics/kurari-ex/source/starters",
+  "sourcePattern": "*/today-registration-starters.generated.json",
+  "contentHash": "sha256:451f9da10fc334c535524977235fc0f53fcc2cc695f02365dd0a015dd2c7ac22",
+  "summary": {
+    "sourceFileCount": 1,
+    "indexedSourceCount": 1,
+    "passSourceCount": 1,
+    "failSourceCount": 0,
+    "duplicateDateCount": 0,
+    "duplicatePathCount": 0,
+    "totalRaceCount": 64,
+    "totalStarterCount": 464,
+    "fullStarterRaceCount": 64,
+    "blockedStarterRaceCount": 0,
+    "registrationNoCompleteCount": 464,
+    "sourceMetadataCompleteCount": 464
+  },
+  "latest": {
+    "date": "2026-06-29",
+    "path": "public/data/analytics/kurari-ex/source/starters/2026-06-29/today-registration-starters.generated.json",
+    "contentHash": "sha256:e95148b44388ca8821186b3cfaba988caabdf8dd503175f3d34e9c6fbf58ba5a",
+    "sourceTodayHash": "sha256:a9dcbbe0efe57d6fe5529b7796550f95f5e2d70849b2b38b38a1773ddd5dd876",
+    "sourceSnapshotHash": "sha256:3cd6ac2f4b41692aa32e7c46e0841ea6ef49ebb2adfbea667ae6e3f2ded97843",
+    "raceCount": 64,
+    "starterCount": 464,
+    "checkStatus": "PASS"
+  },
+  "sources": [
+    {
+      "date": "2026-06-29",
+      "path": "public/data/analytics/kurari-ex/source/starters/2026-06-29/today-registration-starters.generated.json",
+      "schemaVersion": "kurari-ex-starters-from-today-registration/v1",
+      "source": "today.riders.registrationNo",
+      "sourceTodayPath": "public/data/races/today.generated.json",
+      "sourceSnapshotPath": "public/data/races/entries-history/2026-06-29/keirin-jp-entries.generated.json",
+      "sourceTodayHash": "sha256:a9dcbbe0efe57d6fe5529b7796550f95f5e2d70849b2b38b38a1773ddd5dd876",
+      "sourceSnapshotHash": "sha256:3cd6ac2f4b41692aa32e7c46e0841ea6ef49ebb2adfbea667ae6e3f2ded97843",
+      "contentHash": "sha256:e95148b44388ca8821186b3cfaba988caabdf8dd503175f3d34e9c6fbf58ba5a",
+      "raceCount": 64,
+      "starterCount": 464,
+      "fullStarterRaceCount": 64,
+      "blockedStarterRaceCount": 0,
+      "registrationNoCompleteCount": 464,
+      "sourceMetadataCompleteCount": 464,
+      "checkStatus": "PASS",
+      "quality": {
+        "fakeCompletionPerformed": false,
+        "fuzzyMatchingPerformed": false,
+        "resultLineupPredictionUsedAsStarterSource": false,
+        "blockedReasons": []
+      }
+    }
+  ],
+  "quality": {
+    "checkStatus": "PASS",
+    "fakeCompletionPerformed": false,
+    "fuzzyMatchingPerformed": false,
+    "resultLineupPredictionUsedAsStarterSource": false,
+    "blockedReasons": []
+  }
+}
