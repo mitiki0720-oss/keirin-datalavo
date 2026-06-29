@@ -5,6 +5,7 @@ import {
   readFile,
   rename,
   rm,
+  stat,
 } from "node:fs/promises";
 import path from "node:path";
 
@@ -16,6 +17,11 @@ export const SOURCE_PATH =
   "public/data/races/keirin-jp-entries.generated.json";
 export const SNAPSHOT_ROOT =
   "public/data/races/entries-history";
+export const INDEX_SCHEMA_VERSION =
+  "kurari-ex-entry-snapshot-index/v1";
+export const INDEX_SOURCE = "kurari-ex-entry-snapshot-index";
+export const INDEX_PATH =
+  "public/data/races/entries-history/index.generated.json";
 
 export function normalizeText(value) {
   return String(value ?? "")
@@ -74,6 +80,345 @@ export function semanticHash(payload) {
     ),
   );
   return `sha256:${createHash("sha256").update(canonical).digest("hex")}`;
+}
+
+export function indexSemanticHash(payload) {
+  const {
+    generatedAt: _generatedAt,
+    contentHash: _contentHash,
+    ...semantic
+  } = payload ?? {};
+  const canonical = JSON.stringify(sortedObject(semantic));
+  return `sha256:${createHash("sha256").update(canonical).digest("hex")}`;
+}
+
+function countDuplicates(values) {
+  const counts = new Map();
+  for (const value of values) {
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+  return [...counts.values()].filter((count) => count > 1).length;
+}
+
+function summarizeIndexSnapshots(snapshots) {
+  return {
+    snapshotCount: snapshots.length,
+    raceCount: snapshots.reduce(
+      (total, snapshot) => total + Number(snapshot.raceCount ?? 0),
+      0,
+    ),
+    riderCount: snapshots.reduce(
+      (total, snapshot) => total + Number(snapshot.riderCount ?? 0),
+      0,
+    ),
+    fullRegistrationRaceCount: snapshots.reduce(
+      (total, snapshot) =>
+        total + Number(snapshot.fullRegistrationRaceCount ?? 0),
+      0,
+    ),
+    blockedRaceCount: snapshots.reduce(
+      (total, snapshot) =>
+        total + Number(snapshot.blockedRaceCount ?? 0),
+      0,
+    ),
+    passCount: snapshots.filter(
+      (snapshot) => snapshot.checkStatus === "PASS",
+    ).length,
+    failCount: snapshots.filter(
+      (snapshot) => snapshot.checkStatus !== "PASS",
+    ).length,
+  };
+}
+
+export function buildSnapshotIndexPayload(snapshotRecords) {
+  const snapshots = [...snapshotRecords]
+    .map((record) => ({
+      date: record.date,
+      path: record.path,
+      schemaVersion: record.schemaVersion,
+      source: record.source,
+      sourceGeneratedAt: record.sourceGeneratedAt,
+      contentHash: record.contentHash,
+      raceCount: record.raceCount,
+      riderCount: record.riderCount,
+      fullRegistrationRaceCount:
+        record.fullRegistrationRaceCount,
+      blockedRaceCount: record.blockedRaceCount,
+      checkStatus: record.checkStatus,
+      hashMatched: record.hashMatched,
+      sizeBytes: record.sizeBytes,
+    }))
+    .sort(
+      (left, right) =>
+        left.date.localeCompare(right.date) ||
+        left.path.localeCompare(right.path),
+    );
+  const duplicateDateCount = countDuplicates(
+    snapshots.map((snapshot) => snapshot.date),
+  );
+  const duplicatePathCount = countDuplicates(
+    snapshots.map((snapshot) => snapshot.path),
+  );
+  const missingSnapshotFileCount = snapshotRecords.filter(
+    (record) => record.fileExists === false,
+  ).length;
+  const hashMismatchCount = snapshotRecords.filter(
+    (record) => record.hashMatched !== true,
+  ).length;
+  const summary = summarizeIndexSnapshots(snapshots);
+  const blockedReasons = [];
+  if (snapshots.length === 0) blockedReasons.push("SNAPSHOT_COUNT_ZERO");
+  if (summary.failCount > 0) blockedReasons.push("SNAPSHOT_CHECK_FAILED");
+  if (duplicateDateCount > 0) blockedReasons.push("DUPLICATE_DATE");
+  if (duplicatePathCount > 0) blockedReasons.push("DUPLICATE_PATH");
+  if (missingSnapshotFileCount > 0) {
+    blockedReasons.push("SNAPSHOT_FILE_MISSING");
+  }
+  if (hashMismatchCount > 0) {
+    blockedReasons.push("SNAPSHOT_HASH_MISMATCH");
+  }
+  const generatedAt = snapshots
+    .map((snapshot) => snapshot.sourceGeneratedAt)
+    .filter(Boolean)
+    .sort()
+    .at(-1);
+  if (!generatedAt) blockedReasons.push("GENERATED_AT_UNAVAILABLE");
+
+  const withoutHash = {
+    schemaVersion: INDEX_SCHEMA_VERSION,
+    generatedAt: generatedAt ?? "",
+    source: INDEX_SOURCE,
+    basePath: SNAPSHOT_ROOT,
+    contentHash: "",
+    summary,
+    snapshots,
+    quality: {
+      allSnapshotsPass:
+        snapshots.length > 0 &&
+        summary.failCount === 0 &&
+        hashMismatchCount === 0 &&
+        missingSnapshotFileCount === 0,
+      duplicateDateCount,
+      duplicatePathCount,
+      missingSnapshotFileCount,
+      hashMismatchCount,
+      blockedReasons,
+    },
+  };
+  return {
+    payload: {
+      ...withoutHash,
+      contentHash: indexSemanticHash(withoutHash),
+    },
+    eligible: blockedReasons.length === 0,
+    blockedReasons,
+  };
+}
+
+export function validateSnapshotIndexMetadata(payload) {
+  const failedReasons = [];
+  if (payload?.schemaVersion !== INDEX_SCHEMA_VERSION) {
+    failedReasons.push("SCHEMA_VERSION_MISMATCH");
+  }
+  if (payload?.source !== INDEX_SOURCE) {
+    failedReasons.push("SOURCE_MISMATCH");
+  }
+  if (payload?.basePath !== SNAPSHOT_ROOT) {
+    failedReasons.push("BASE_PATH_MISMATCH");
+  }
+  if (!normalizeText(payload?.generatedAt)) {
+    failedReasons.push("GENERATED_AT_MISSING");
+  }
+  if (!Array.isArray(payload?.snapshots)) {
+    failedReasons.push("SNAPSHOTS_NOT_ARRAY");
+  }
+  const snapshots = Array.isArray(payload?.snapshots)
+    ? payload.snapshots
+    : [];
+  const expectedSummary = summarizeIndexSnapshots(snapshots);
+  if (
+    JSON.stringify(payload?.summary) !==
+    JSON.stringify(expectedSummary)
+  ) {
+    failedReasons.push("SUMMARY_MISMATCH");
+  }
+  const duplicateDateCount = countDuplicates(
+    snapshots.map((snapshot) => snapshot.date),
+  );
+  const duplicatePathCount = countDuplicates(
+    snapshots.map((snapshot) => snapshot.path),
+  );
+  const sorted = [...snapshots].sort(
+    (left, right) =>
+      String(left.date).localeCompare(String(right.date)) ||
+      String(left.path).localeCompare(String(right.path)),
+  );
+  if (JSON.stringify(snapshots) !== JSON.stringify(sorted)) {
+    failedReasons.push("SNAPSHOTS_NOT_DATE_SORTED");
+  }
+  const expectedQuality = {
+    allSnapshotsPass:
+      snapshots.length > 0 &&
+      expectedSummary.failCount === 0 &&
+      snapshots.every((snapshot) => snapshot.hashMatched === true),
+    duplicateDateCount,
+    duplicatePathCount,
+    missingSnapshotFileCount: Number(
+      payload?.quality?.missingSnapshotFileCount ?? 0,
+    ),
+    hashMismatchCount: Number(
+      payload?.quality?.hashMismatchCount ?? 0,
+    ),
+    blockedReasons: payload?.quality?.blockedReasons ?? [],
+  };
+  if (
+    JSON.stringify(payload?.quality) !==
+    JSON.stringify(expectedQuality)
+  ) {
+    failedReasons.push("QUALITY_MISMATCH");
+  }
+  if (duplicateDateCount > 0) failedReasons.push("DUPLICATE_DATE");
+  if (duplicatePathCount > 0) failedReasons.push("DUPLICATE_PATH");
+  const recomputedHash = indexSemanticHash(payload);
+  const hashMatched = payload?.contentHash === recomputedHash;
+  if (!hashMatched) failedReasons.push("CONTENT_HASH_MISMATCH");
+
+  return {
+    checkStatus: failedReasons.length === 0 ? "PASS" : "FAIL",
+    snapshotCount: expectedSummary.snapshotCount,
+    raceCount: expectedSummary.raceCount,
+    riderCount: expectedSummary.riderCount,
+    fullRegistrationRaceCount:
+      expectedSummary.fullRegistrationRaceCount,
+    blockedRaceCount: expectedSummary.blockedRaceCount,
+    contentHash: payload?.contentHash ?? null,
+    recomputedHash,
+    hashMatched,
+    failedReasons: [...new Set(failedReasons)],
+  };
+}
+
+export async function validateSnapshotIndex(root, payload) {
+  const metadata = validateSnapshotIndexMetadata(payload);
+  const failedReasons = [...metadata.failedReasons];
+  const snapshots = Array.isArray(payload?.snapshots)
+    ? payload.snapshots
+    : [];
+  const snapshotRoot = path.resolve(root, SNAPSHOT_ROOT);
+  let missingSnapshotFileCount = 0;
+  let hashMismatchCount = 0;
+
+  for (const item of snapshots) {
+    const file = path.resolve(root, normalizeText(item?.path));
+    if (
+      !file.startsWith(`${snapshotRoot}${path.sep}`) ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(
+        path.basename(path.dirname(file)),
+      ) ||
+      path.basename(file) !== "keirin-jp-entries.generated.json"
+    ) {
+      failedReasons.push("SNAPSHOT_PATH_OUT_OF_SCOPE");
+      missingSnapshotFileCount += 1;
+      continue;
+    }
+    let snapshot;
+    let fileStat;
+    try {
+      [snapshot, fileStat] = await Promise.all([
+        JSON.parse(await readFile(file, "utf8")),
+        stat(file),
+      ]);
+    } catch {
+      failedReasons.push("SNAPSHOT_FILE_MISSING");
+      missingSnapshotFileCount += 1;
+      continue;
+    }
+    const validation = validateSnapshot(snapshot);
+    if (validation.checkStatus !== "PASS") {
+      failedReasons.push("SNAPSHOT_CHECK_FAILED");
+    }
+    if (
+      item.contentHash !== snapshot.contentHash ||
+      validation.hashMatched !== true
+    ) {
+      failedReasons.push("SNAPSHOT_HASH_MISMATCH");
+      hashMismatchCount += 1;
+    }
+    const expectedItem = {
+      date: snapshot.date,
+      path: item.path,
+      schemaVersion: snapshot.schemaVersion,
+      source: snapshot.source,
+      sourceGeneratedAt: snapshot.sourceGeneratedAt,
+      contentHash: snapshot.contentHash,
+      raceCount: validation.raceCount,
+      riderCount: validation.riderCount,
+      fullRegistrationRaceCount:
+        validation.fullRegistrationRaceCount,
+      blockedRaceCount: validation.blockedRaceCount,
+      checkStatus: validation.checkStatus,
+      hashMatched: validation.hashMatched,
+      sizeBytes: fileStat.size,
+    };
+    if (JSON.stringify(item) !== JSON.stringify(expectedItem)) {
+      failedReasons.push("SNAPSHOT_INDEX_ENTRY_MISMATCH");
+    }
+  }
+
+  const duplicateDateCount = countDuplicates(
+    snapshots.map((snapshot) => snapshot.date),
+  );
+  const duplicatePathCount = countDuplicates(
+    snapshots.map((snapshot) => snapshot.path),
+  );
+  const expectedBlockedReasons = [];
+  if (snapshots.length === 0) {
+    expectedBlockedReasons.push("SNAPSHOT_COUNT_ZERO");
+  }
+  if (snapshots.some((snapshot) => snapshot.checkStatus !== "PASS")) {
+    expectedBlockedReasons.push("SNAPSHOT_CHECK_FAILED");
+  }
+  if (duplicateDateCount > 0) {
+    expectedBlockedReasons.push("DUPLICATE_DATE");
+  }
+  if (duplicatePathCount > 0) {
+    expectedBlockedReasons.push("DUPLICATE_PATH");
+  }
+  if (missingSnapshotFileCount > 0) {
+    expectedBlockedReasons.push("SNAPSHOT_FILE_MISSING");
+  }
+  if (hashMismatchCount > 0) {
+    expectedBlockedReasons.push("SNAPSHOT_HASH_MISMATCH");
+  }
+  const expectedQuality = {
+    allSnapshotsPass:
+      snapshots.length > 0 &&
+      snapshots.every(
+        (snapshot) =>
+          snapshot.checkStatus === "PASS" &&
+          snapshot.hashMatched === true,
+      ) &&
+      missingSnapshotFileCount === 0 &&
+      hashMismatchCount === 0,
+    duplicateDateCount,
+    duplicatePathCount,
+    missingSnapshotFileCount,
+    hashMismatchCount,
+    blockedReasons: expectedBlockedReasons,
+  };
+  if (
+    JSON.stringify(payload?.quality) !==
+    JSON.stringify(expectedQuality)
+  ) {
+    failedReasons.push("QUALITY_FILE_AUDIT_MISMATCH");
+  }
+
+  return {
+    ...metadata,
+    checkStatus: failedReasons.length === 0 ? "PASS" : "FAIL",
+    failedReasons: [...new Set(failedReasons)],
+    quality: expectedQuality,
+  };
 }
 
 export function snapshotPathForDate(date) {
