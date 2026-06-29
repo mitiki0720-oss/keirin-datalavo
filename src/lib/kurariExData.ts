@@ -22,6 +22,9 @@ import type {
   KurariExRiderExactStatus,
   KurariExRiderMetric,
   KurariExRiderQuality,
+  KurariExStartersAvailabilitySummary,
+  KurariExStartersSource,
+  KurariExStartersSourceIndex,
   KurariExStatus,
   KurariExVenue,
   KurariExVenueBundle,
@@ -33,6 +36,9 @@ const EX_ROOT = "/data/analytics/kurari-ex";
 const EXACT_ROOT = `${EX_ROOT}/exact`;
 const RIDER_EXACT_ROOT = `${EXACT_ROOT}/riders`;
 const MATCHUP_EXACT_ROOT = `${EXACT_ROOT}/matchups`;
+const STARTERS_SOURCE_INDEX_PATH = `${EX_ROOT}/source/starters/index.generated.json`;
+const STARTERS_SOURCE_INDEX_SCHEMA_VERSION = "kurari-ex-starters-source-index/v1";
+const STARTERS_SOURCE_SCHEMA_VERSION = "kurari-ex-starters-from-today-registration/v1";
 
 export const KURARI_EX_ACCUMULATION_RULES = [
   "fake補完は禁止。存在しない成績・対戦・登録番号は作らない。",
@@ -218,6 +224,56 @@ async function fetchJson<T>(path: string): Promise<T> {
   const response = await fetch(toPublicPath(path), { cache: "no-store" });
   if (!response.ok) throw new Error(`KURARI EX fetch failed: ${response.status} ${path}`);
   return response.json() as Promise<T>;
+}
+
+function normalizePublicDataPath(path: string) {
+  const normalized = path.replaceAll("\\", "/");
+  if (normalized.startsWith("public/")) return `/${normalized.slice("public/".length)}`;
+  if (normalized.startsWith("/public/")) return `/${normalized.slice("/public/".length)}`;
+  if (normalized.startsWith("data/")) return `/${normalized}`;
+  return normalized.startsWith("/") ? normalized : `/${normalized}`;
+}
+
+function assertKurariExStartersSourceIndex(index: KurariExStartersSourceIndex) {
+  if (index.schemaVersion !== STARTERS_SOURCE_INDEX_SCHEMA_VERSION) {
+    throw new Error(`KURARI EX starters source index schema mismatch: ${index.schemaVersion}`);
+  }
+  if (index.quality.checkStatus !== "PASS") {
+    throw new Error("KURARI EX starters source index checkStatus is not PASS");
+  }
+  if (!index.latest?.path) {
+    throw new Error("KURARI EX starters source latest path is missing");
+  }
+  if (index.latest.checkStatus !== "PASS") {
+    throw new Error("KURARI EX starters source latest checkStatus is not PASS");
+  }
+}
+
+function assertKurariExStartersSource(source: KurariExStartersSource) {
+  if (source.schemaVersion !== STARTERS_SOURCE_SCHEMA_VERSION) {
+    throw new Error(`KURARI EX starters source schema mismatch: ${source.schemaVersion}`);
+  }
+  if (source.quality.checkStatus !== "PASS") {
+    throw new Error("KURARI EX starters source checkStatus is not PASS");
+  }
+  if (source.summary.starterCount <= 0) {
+    throw new Error("KURARI EX starters source has no starters");
+  }
+  if (source.summary.registrationNoCompleteCount !== source.summary.starterCount) {
+    throw new Error("KURARI EX starters source registrationNo coverage is incomplete");
+  }
+  if (source.summary.blockedStarterRaceCount !== 0) {
+    throw new Error("KURARI EX starters source has blocked races");
+  }
+  if (source.quality.fakeCompletionPerformed) {
+    throw new Error("KURARI EX starters source performed fake completion");
+  }
+  if (source.quality.fuzzyMatchingPerformed) {
+    throw new Error("KURARI EX starters source performed fuzzy matching");
+  }
+  if (source.quality.resultLineupPredictionUsedAsStarterSource) {
+    throw new Error("KURARI EX starters source used result/lineup/prediction source");
+  }
 }
 
 export async function loadKurariExIndex(): Promise<KurariExIndex> {
@@ -723,6 +779,59 @@ export async function loadKurariExMatchupExactInitialData(): Promise<KurariExMat
 
 export async function loadKurariExMatchupExactByFile(file: string): Promise<KurariExMatchupExact> {
   return fetchJson<KurariExMatchupExact>(file);
+}
+
+export async function loadKurariExStartersSourceIndex(): Promise<KurariExStartersSourceIndex> {
+  const index = await fetchJson<KurariExStartersSourceIndex>(STARTERS_SOURCE_INDEX_PATH);
+  assertKurariExStartersSourceIndex(index);
+  return index;
+}
+
+export function summarizeKurariExStartersAvailability(
+  index: KurariExStartersSourceIndex,
+  source: KurariExStartersSource,
+): KurariExStartersAvailabilitySummary {
+  const starterCount = source.summary.starterCount;
+  const registrationNoCompleteCount = source.summary.registrationNoCompleteCount;
+  return {
+    status: "PASS",
+    latestDate: source.date,
+    raceCount: source.summary.raceCount,
+    starterCount,
+    registrationNoCompleteCount,
+    registrationNoCoverageLabel: `${registrationNoCompleteCount.toLocaleString("ja-JP")} / ${starterCount.toLocaleString("ja-JP")}`,
+    sourcePath: index.latest?.path ?? null,
+    identityKey: "registrationNo",
+    currentTodayCompatibilityStatus: "SAVED_SOURCE_SEPARATED_FROM_CURRENT_TODAY",
+    warning: "保存済み starters source を読み取り専用で表示しています。current today.generated.json との差分や古さはこのカードでは非ブロッキングです。",
+    previewRaces: source.races.slice(0, 3).map((race) => ({
+      date: race.date,
+      venueName: race.venueName,
+      raceNumber: race.raceNumber,
+      starterCount: race.starterCount,
+      starters: race.starters.slice(0, 2).map((starter) => ({
+        carNo: starter.carNo,
+        name: starter.name,
+        registrationNo: starter.registrationNo,
+      })),
+    })),
+  };
+}
+
+export async function loadLatestKurariExStartersSource(): Promise<{
+  index: KurariExStartersSourceIndex;
+  source: KurariExStartersSource;
+  summary: KurariExStartersAvailabilitySummary;
+}> {
+  const index = await loadKurariExStartersSourceIndex();
+  const sourcePath = normalizePublicDataPath(index.latest?.path ?? "");
+  const source = await fetchJson<KurariExStartersSource>(sourcePath);
+  assertKurariExStartersSource(source);
+  return {
+    index,
+    source,
+    summary: summarizeKurariExStartersAvailability(index, source),
+  };
 }
 
 export function formatKurariExRiderMetric(metric?: KurariExRiderMetric | null) {

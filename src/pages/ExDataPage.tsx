@@ -10,6 +10,7 @@ import {
   loadKurariExInitialData,
   loadKurariExMatchupExactByFile,
   loadKurariExMatchupExactInitialData,
+  loadLatestKurariExStartersSource,
   loadKurariExRiderExactByFile,
   loadKurariExRiderExactInitialData,
   loadKurariExVenueBundle,
@@ -83,6 +84,7 @@ import type {
   KurariExRiderExactIndexItem,
   KurariExRiderExactInitialData,
   KurariExRiderQuality,
+  KurariExStartersAvailabilitySummary,
 } from "../types/kurariEx";
 import { SiteHeader, useIsMobile } from "./PageImplementations";
 
@@ -1113,10 +1115,12 @@ export default function ExDataPage() {
   const [riderCategoryStatus, setRiderCategoryStatus] = useState<"loading" | "ready" | "error">("loading");
   const [conditionDataTab, setConditionDataTab] = useState<KurariExConditionDataTab>("bankLength");
   const [roleDataTab, setRoleDataTab] = useState<KurariExRoleDataTab>("front");
-    const [riderCoverageAudit, setRiderCoverageAudit] = useState<KurariExRiderCoverageAudit | null>(null);
-    const [riderCoverageAuditStatus, setRiderCoverageAuditStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [riderCoverageAudit, setRiderCoverageAudit] = useState<KurariExRiderCoverageAudit | null>(null);
+  const [riderCoverageAuditStatus, setRiderCoverageAuditStatus] = useState<"loading" | "ready" | "error">("loading");
   const [todayRecommendation, setTodayRecommendation] = useState<KurariExTodayRecommendation | null>(null);
   const [todayRecommendationStatus, setTodayRecommendationStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [startersSourceSummary, setStartersSourceSummary] = useState<KurariExStartersAvailabilitySummary | null>(null);
+  const [startersSourceStatus, setStartersSourceStatus] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
     let active = true;
@@ -1163,6 +1167,24 @@ export default function ExDataPage() {
       .catch(() => {
         if (!active) return;
         setExactInitialStatus("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    loadLatestKurariExStartersSource()
+      .then(({ summary }) => {
+        if (!active) return;
+        setStartersSourceSummary(summary);
+        setStartersSourceStatus("ready");
+      })
+      .catch(() => {
+        if (!active) return;
+        setStartersSourceSummary(null);
+        setStartersSourceStatus("error");
       });
     return () => {
       active = false;
@@ -2314,6 +2336,97 @@ export default function ExDataPage() {
             <strong>SEED + EXACT</strong>
             <div className="ex-badges"><span className="ex-badge">SEED INSIGHT</span><span className="ex-badge is-exact">{exactInitialStatus === "ready" ? "EXACT ANALYTICS" : "EXACT：未生成"}</span><span className="ex-badge is-exact">{matchupInitialStatus === "ready" ? "MATCHUP EX" : "MATCHUP：未生成"}</span></div>
           </aside>
+        </section>
+
+        <section className="ex-panel ex-section">
+          <SectionTitle
+            eyebrow="EXACT STARTERS SOURCE"
+            title="正確出走選手ソース"
+            lead="保存済み starters source を読み取り専用で表示します。current today から再生成せず、登録番号を identityKey として扱います。"
+          />
+          <div className="ex-health-grid">
+            <MetricCard
+              label="SOURCE STATUS"
+              value={startersSourceStatus === "loading" ? "…" : startersSourceStatus === "ready" ? startersSourceSummary?.status ?? "unavailable" : "unavailable"}
+              note="saved source"
+              warning={startersSourceStatus === "error"}
+            />
+            <MetricCard
+              label="LATEST DATE"
+              value={startersSourceStatus === "loading" ? "…" : formatDate(startersSourceSummary?.latestDate)}
+              note="index.latest"
+              warning={startersSourceStatus === "error"}
+            />
+            <MetricCard
+              label="RACES"
+              value={startersSourceStatus === "loading" ? "…" : valueText(startersSourceSummary?.raceCount)}
+              note="saved source"
+            />
+            <MetricCard
+              label="STARTERS"
+              value={startersSourceStatus === "loading" ? "…" : valueText(startersSourceSummary?.starterCount)}
+              note="registrationNo source"
+            />
+            <MetricCard
+              label="REGISTRATION NO"
+              value={startersSourceStatus === "loading" ? "…" : startersSourceSummary?.registrationNoCoverageLabel ?? "--"}
+              note="identityKey"
+              warning={startersSourceStatus === "error"}
+            />
+            <MetricCard
+              label="IDENTITY KEY"
+              value={startersSourceStatus === "loading" ? "…" : startersSourceSummary?.identityKey ?? "--"}
+              note="no fuzzy matching"
+            />
+          </div>
+          {startersSourceStatus === "error" ? (
+            <EmptyState text="Exact starters source は取得不可です。保存済みindex/sourceがPASSでない場合は unavailable として表示します。" />
+          ) : (
+            <>
+              <div className="ex-empty">
+                {startersSourceSummary?.warning ?? "保存済み starters source を確認中です。fake補完・fuzzy matching・result/lineup/prediction source 由来のidentity生成は行いません。"}
+              </div>
+              <div className="ex-muted">
+                source path: {startersSourceSummary?.sourcePath ?? "--"} / compatibility: {startersSourceSummary?.currentTodayCompatibilityStatus ?? "SAVED_SOURCE_SEPARATED_FROM_CURRENT_TODAY"}
+              </div>
+              {startersSourceSummary?.previewRaces.length ? (
+                <div className="ex-table-wrap" style={{ marginTop: 14 }}>
+                  <table className="ex-data-table">
+                    <thead>
+                      <tr>
+                        <th>日付</th>
+                        <th>会場</th>
+                        <th>R</th>
+                        <th>出走数</th>
+                        <th>preview</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {startersSourceSummary.previewRaces.map((race) => (
+                        <tr key={`${race.date}-${race.venueName}-${race.raceNumber}`}>
+                          <td>{race.date}</td>
+                          <td>{race.venueName}</td>
+                          <td>{race.raceNumber}R</td>
+                          <td>{race.starterCount.toLocaleString("ja-JP")}</td>
+                          <td>
+                            {race.starters.map((starter) => (
+                              <span key={`${race.date}-${race.venueName}-${race.raceNumber}-${starter.carNo}`} className="ex-badge">
+                                {starter.carNo}番車 {starter.name} / {starter.registrationNo}
+                              </span>
+                            ))}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : startersSourceStatus === "loading" ? (
+                <EmptyState text="Exact starters source を読み込み中です。" />
+              ) : (
+                <EmptyState text="preview可能な starters source がありません。" />
+              )}
+            </>
+          )}
         </section>
 
         <section className="ex-panel ex-section ex-location">

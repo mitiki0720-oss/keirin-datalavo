@@ -79,6 +79,7 @@ export const KURARI_EX_ANALYSIS_STATUS_META: Record<
 };
 
 export const KURARI_EX_ANALYSIS_INVENTORY = [
+  item("exact-starters-source", "既存セクション", "正確出走選手ソース", "existing", "Exact starters source", ["source/starters/index.generated.json", "source/starters/latest", "registrationNo"], null, "保存済みsourceを読み取り専用で表示", "2026-06-29 source: 64 races / 464 starters / identityKey registrationNo", "current todayとは分離した保存済みsource。fake補完・fuzzy matching・result/lineup/prediction source由来のidentity生成は禁止。"),
   item("current-position", "既存セクション", "KURARI EX 現在地", "existing", "KURARI EX 現在地", ["coverage", "quality"], null, "現行表示を維持", "既存集計のみ", "EX全体の実装状況を示す既存セクション。"),
   item("rider-exact-list", "既存セクション", "選手別EXACT一覧", "existing", "選手別EXACT一覧", ["exact/riders", "quality", "coverage"], null, "現行表示を維持", "保存済み選手EXACT", "新しい選手一覧を重複追加しない。"),
   item("search-filter", "既存セクション", "検索・フィルタ", "existing", "選手別EXACT一覧", ["exact/riders/index", "exact/matchups/index"], "rider-exact-list", "既存一覧を絞り込む", "保存済みindexと個別EXACT", "独立した検索ページを重複実装しない。"),

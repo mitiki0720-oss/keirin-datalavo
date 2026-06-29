@@ -466,3 +466,149 @@ export type KurariExMatchupExactInitialData = {
   index: KurariExMatchupExactIndex;
   status: KurariExMatchupExactStatus;
 };
+
+export type KurariExStartersSourceCheckStatus = "PASS" | "FAIL";
+
+export type KurariExStartersSourceQuality = {
+  checkStatus?: KurariExStartersSourceCheckStatus;
+  fakeCompletionPerformed: boolean;
+  fuzzyMatchingPerformed: boolean;
+  resultLineupPredictionUsedAsStarterSource: boolean;
+  blockedReasons: string[];
+};
+
+export type KurariExStartersSourceSummary = {
+  raceCount: number;
+  starterCount: number;
+  fullStarterRaceCount: number;
+  blockedStarterRaceCount: number;
+  registrationNoCompleteCount: number;
+  sourceMetadataCompleteCount: number;
+};
+
+export type KurariExStarter = {
+  carNo: number;
+  name: string;
+  registrationNo: string;
+  prefecture?: string;
+  age?: number;
+  term?: string;
+  className?: string;
+  source: string;
+  registrationNoSource: string;
+  registrationNoSourceDate: string;
+  registrationNoSourcePath: string;
+  registrationNoSourceHash: string;
+};
+
+export type KurariExStarterRace = {
+  date: string;
+  venueName: string;
+  raceNumber: number;
+  joinKeyType: string | null;
+  starterCount: number;
+  starters: KurariExStarter[];
+  quality: {
+    starterStatus: string;
+    carNoUnique: boolean;
+    registrationNoComplete: boolean;
+    registrationNoUnique: boolean;
+    todayRegistrationBridgeValidated: boolean;
+    fakeCompletionPerformed: boolean;
+    fuzzyMatchingPerformed: boolean;
+    resultLineupPredictionUsedAsStarterSource: boolean;
+    blockedReasons: string[];
+  };
+};
+
+export type KurariExStartersSource = {
+  schemaVersion: "kurari-ex-starters-from-today-registration/v1";
+  source: string;
+  date: string;
+  sourceTodayPath: string;
+  sourceBridgeVersion: string;
+  starterBridgeVersion: string;
+  sourceSnapshotPath: string;
+  sourceSnapshotHash: string;
+  sourceTodayHash: string;
+  sourceGeneratedAt?: string;
+  contentHash: string;
+  summary: KurariExStartersSourceSummary;
+  quality: KurariExStartersSourceQuality & {
+    checkStatus: KurariExStartersSourceCheckStatus;
+  };
+  races: KurariExStarterRace[];
+};
+
+export type KurariExStartersSourceIndexEntry = KurariExStartersSourceSummary & {
+  date: string;
+  path: string;
+  schemaVersion: "kurari-ex-starters-from-today-registration/v1";
+  source: string;
+  sourceTodayPath: string;
+  sourceSnapshotPath: string;
+  sourceTodayHash: string;
+  sourceSnapshotHash: string;
+  contentHash: string;
+  checkStatus: KurariExStartersSourceCheckStatus;
+  quality: KurariExStartersSourceQuality;
+};
+
+export type KurariExStartersSourceIndex = {
+  schemaVersion: "kurari-ex-starters-source-index/v1";
+  sourceRoot: string;
+  sourcePattern: string;
+  contentHash: string;
+  summary: {
+    sourceFileCount: number;
+    indexedSourceCount: number;
+    passSourceCount: number;
+    failSourceCount: number;
+    duplicateDateCount: number;
+    duplicatePathCount: number;
+    totalRaceCount: number;
+    totalStarterCount: number;
+    fullStarterRaceCount: number;
+    blockedStarterRaceCount: number;
+    registrationNoCompleteCount: number;
+    sourceMetadataCompleteCount: number;
+  };
+  latest: {
+    date: string;
+    path: string;
+    contentHash: string;
+    sourceTodayHash: string;
+    sourceSnapshotHash: string;
+    raceCount: number;
+    starterCount: number;
+    checkStatus: KurariExStartersSourceCheckStatus;
+  } | null;
+  sources: KurariExStartersSourceIndexEntry[];
+  quality: KurariExStartersSourceQuality & {
+    checkStatus: KurariExStartersSourceCheckStatus;
+  };
+};
+
+export type KurariExStartersAvailabilitySummary = {
+  status: "PASS" | "unavailable";
+  latestDate: string | null;
+  raceCount: number;
+  starterCount: number;
+  registrationNoCompleteCount: number;
+  registrationNoCoverageLabel: string;
+  sourcePath: string | null;
+  identityKey: "registrationNo";
+  currentTodayCompatibilityStatus: "SAVED_SOURCE_SEPARATED_FROM_CURRENT_TODAY";
+  warning: string;
+  previewRaces: {
+    date: string;
+    venueName: string;
+    raceNumber: number;
+    starterCount: number;
+    starters: {
+      carNo: number;
+      name: string;
+      registrationNo: string;
+    }[];
+  }[];
+};
