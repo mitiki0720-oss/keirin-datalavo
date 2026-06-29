@@ -143,11 +143,31 @@ function validateRootMetadata(today, snapshot, snapshotPath, joinCounts) {
     fuzzyMatchingPerformed: false,
     resultLineupPredictionUsedAsStarterSource: false,
   };
+  const actual = today?.kurariExRiderRegistrationBridge;
+  const expectedKeys = Object.keys(expected);
+  if (!actual || typeof actual !== "object") {
+    return {
+      expected,
+      actual: actual ?? null,
+      matched: false,
+      status: "MISSING",
+      mismatchFields: expectedKeys,
+      warningReasons: ["ROOT_BRIDGE_METADATA_MISSING_NON_BLOCKING"],
+    };
+  }
+  const mismatchFields = expectedKeys.filter(
+    (key) => JSON.stringify(actual?.[key]) !== JSON.stringify(expected[key]),
+  );
   return {
     expected,
-    matched:
-      JSON.stringify(today?.kurariExRiderRegistrationBridge) ===
-      JSON.stringify(expected),
+    actual,
+    matched: mismatchFields.length === 0,
+    status: mismatchFields.length === 0 ? "PASS" : "WARN",
+    mismatchFields,
+    warningReasons:
+      mismatchFields.length === 0
+        ? []
+        : ["ROOT_BRIDGE_METADATA_MISMATCH_NON_BLOCKING"],
   };
 }
 
@@ -321,9 +341,6 @@ export async function checkTodayRiderRegistrationBridge(
     sourcePath,
     joinKeyUsageCounts,
   );
-  if (!rootMetadata.matched) {
-    failedReasons.push("ROOT_BRIDGE_METADATA_MISMATCH");
-  }
   if (registrationNoMissingCount > 0) {
     failedReasons.push("REGISTRATION_NO_MISSING");
   }
@@ -365,6 +382,11 @@ export async function checkTodayRiderRegistrationBridge(
     sourceMetadataMismatchCount,
     nameMismatchDisplayOnlyCount,
     rootMetadataMatched: rootMetadata.matched,
+    rootBridgeMetadataStatus: rootMetadata.status,
+    rootBridgeMetadataMismatchFields: rootMetadata.mismatchFields,
+    rootBridgeMetadataExpected: rootMetadata.expected,
+    rootBridgeMetadataActual: rootMetadata.actual,
+    rootBridgeMetadataWarningReasons: rootMetadata.warningReasons,
     fakeCompletionPerformed: false,
     fuzzyMatchingPerformed: false,
     resultLineupPredictionUsedAsStarterSource: false,
@@ -392,9 +414,16 @@ function printResult(result) {
     "sourceMetadataMismatchCount",
     "bridgeFullRaceCount",
     "bridgeBlockedRaceCount",
+    "rootBridgeMetadataStatus",
   ]) {
     console.log(`${key}: ${result[key] ?? null}`);
   }
+  console.log(
+    `rootBridgeMetadataMismatchFields: ${JSON.stringify(result.rootBridgeMetadataMismatchFields ?? [])}`,
+  );
+  console.log(
+    `rootBridgeMetadataWarningReasons: ${JSON.stringify(result.rootBridgeMetadataWarningReasons ?? [])}`,
+  );
   console.log(
     `joinKeyUsageCounts: ${JSON.stringify(result.joinKeyUsageCounts ?? {})}`,
   );

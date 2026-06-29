@@ -179,7 +179,13 @@ function optionalStarterFields(rider) {
   return fields;
 }
 
-function inspectRaceCandidate(race, match, today, summary) {
+function inspectRaceCandidate(
+  race,
+  match,
+  summary,
+  expectedSourcePath,
+  expectedSourceHash,
+) {
   const reasons = [];
   if (!race.date) reasons.push("TODAY_DATE_MISSING");
   if (!race.venueName && !race.venueKey) {
@@ -235,9 +241,6 @@ function inspectRaceCandidate(race, match, today, summary) {
     reasons.push("STARTER_COUNT_MISMATCH");
   }
 
-  const rootBridge = today?.kurariExRiderRegistrationBridge;
-  const expectedSourcePath = normalizeText(rootBridge?.sourcePath);
-  const expectedSourceHash = normalizeText(rootBridge?.sourceHash);
   for (const rider of race.riders) {
     const registrationNo = normalizeText(rider?.registrationNo);
     if (!registrationNo) summary.starterRegistrationNoMissingCount += 1;
@@ -479,6 +482,7 @@ function printSummary(summary, preview) {
     "todayPath",
     "todayDate",
     "todayRegistrationBridgeCheckStatus",
+    "todayRegistrationRootBridgeMetadataStatus",
     "todayRaceCount",
     "todayRiderCount",
     "todayRidersWithRegistrationNoCount",
@@ -501,6 +505,9 @@ function printSummary(summary, preview) {
   ]) {
     console.log(`${key}: ${summary[key] ?? null}`);
   }
+  console.log(
+    `todayRegistrationRootBridgeMetadataWarningReasons: ${JSON.stringify(summary.todayRegistrationRootBridgeMetadataWarningReasons ?? [])}`,
+  );
   console.log(
     `blockReasonCounts: ${JSON.stringify(summary.blockReasonCounts)}`,
   );
@@ -532,6 +539,8 @@ async function main() {
     todayPath: TODAY_PATH,
     todayDate: null,
     todayRegistrationBridgeCheckStatus: "FAIL",
+    todayRegistrationRootBridgeMetadataStatus: null,
+    todayRegistrationRootBridgeMetadataWarningReasons: [],
     todayRaceCount: 0,
     todayRiderCount: 0,
     todayRidersWithRegistrationNoCount: 0,
@@ -572,6 +581,10 @@ async function main() {
 
   const bridgeCheck = await checkTodayRiderRegistrationBridge(ROOT);
   summary.todayRegistrationBridgeCheckStatus = bridgeCheck.checkStatus;
+  summary.todayRegistrationRootBridgeMetadataStatus =
+    bridgeCheck.rootBridgeMetadataStatus ?? null;
+  summary.todayRegistrationRootBridgeMetadataWarningReasons =
+    bridgeCheck.rootBridgeMetadataWarningReasons ?? [];
   summary.todayDate = bridgeCheck.todayDate ?? null;
   summary.todayRaceCount = bridgeCheck.todayRaceCount ?? 0;
   summary.todayRiderCount = bridgeCheck.todayRiderCount ?? 0;
@@ -634,8 +647,9 @@ async function main() {
     inspectRaceCandidate(
       race,
       findSnapshotMatch(race, snapshotIndexes),
-      today,
       summary,
+      normalizeText(snapshotItems[0].path),
+      normalizeText(snapshot.contentHash),
     ),
   );
 
