@@ -612,3 +612,107 @@ export type KurariExStartersAvailabilitySummary = {
     }[];
   }[];
 };
+
+export type KurariExHistoryMode =
+  | "STARTERS_PARSED"
+  | "NO_STARTERS"
+  | "MIXED"
+  | "UNKNOWN";
+
+export type KurariExRegistrationNoStatus =
+  | "HAS_REGISTRATION_NO"
+  | "MISSING_REGISTRATION_NO"
+  | "NO_STARTERS";
+
+export type KurariExHistoryIndexItem = {
+  date: string;
+  file: string;
+  raceCount: number;
+  settledRaceCount: number;
+  cancelledRaceCount: number;
+  bytes: number;
+};
+
+export type KurariExHistoryIndex = {
+  schemaVersion: number;
+  generatedAt?: string;
+  period: {
+    from: string;
+    to: string;
+  };
+  dayCount: number;
+  raceCount: number;
+  settledRaceCount: number;
+  cancelledRaceCount: number;
+  totalBytes: number;
+  items: KurariExHistoryIndexItem[];
+};
+
+export type KurariExHistoryStarter = {
+  carNo: number;
+  name: string;
+  registrationNo: string | null;
+  identityStatus?: string;
+};
+
+export type KurariExHistoryRace = {
+  raceKey: string;
+  raceId?: string;
+  date: string;
+  venueKey: string;
+  venueName: string;
+  raceNumber: number;
+  grade?: string;
+  timeslot?: string;
+  raceClass?: string;
+  operationStatus?: string;
+  starterCount: number;
+  starters: KurariExHistoryStarter[];
+  lineup?: Record<string, unknown>;
+  weather?: Record<string, unknown>;
+  result?: {
+    status?: string;
+    [key: string]: unknown;
+  };
+  prediction?: Record<string, unknown>;
+  predictionEnrichment?: {
+    status?: string;
+    matchedBy?: string;
+  };
+  reviewEnrichment?: {
+    status?: string;
+    matchedBy?: string;
+    summaryFile?: string;
+  };
+  quality?: {
+    resultParsed?: boolean;
+    predictionParsed?: boolean;
+    lineupParsed?: boolean;
+    starterParsed?: boolean;
+    marker?: string;
+    warnings?: string[];
+  };
+};
+
+export type KurariExHistoryDaily = {
+  schemaVersion: number;
+  date: string;
+  raceCount: number;
+  settledRaceCount: number;
+  cancelledRaceCount: number;
+  predictionCoverage?: {
+    matched?: number;
+    missing?: number;
+    [key: string]: unknown;
+  };
+  items: KurariExHistoryRace[];
+};
+
+export type KurariExSameNameCandidateWarning = {
+  name: string;
+  registrationNos: readonly string[];
+  selectedDailyOccurrenceCount: number;
+  unresolvedRecordCount: number;
+  status: "SEPARATED_BY_REGISTRATION_NO" | "MANUAL_REVIEW_REQUIRED";
+  message: string;
+};

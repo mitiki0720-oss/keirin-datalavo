@@ -184,6 +184,12 @@ export const KURARI_EX_ANALYSIS_INVENTORY = [
   item("same-prefecture-adjustment", "将来指数", "同県連携補正", "not-generated/fake-prohibited", "未表示", [], "same-prefecture-start", "同県同乗データ蓄積後に検討", "登録番号一致・同走・連携の明示根拠", "同県だけで補正しない。"),
   item("local-area-adjustment", "将来指数", "地元/地区補正", "not-generated/fake-prohibited", "未表示", [], null, "会場・地区定義後に検討", "登録番号一致・所属・会場・検証", "府県名だけで有利不利を作らない。"),
   item("recent-form-adjustment", "将来指数", "直近調子補正", "future-accumulation", "未表示", [], null, "時系列分析として将来追加", "日付順の確定結果と期間定義", "現時点では補正値を生成しない。"),
+  item("history-index-consumer", "History consumer", "History index consumer", "existing", "KURARI EX History Overview", ["history/index.generated.json", "items[].file"], null, "58日・4373R・latest path を読み取り専用表示", "保存済み history index", "implemented。index の値を生成・変更しない。"),
+  item("history-daily-consumer", "History consumer", "History daily consumer", "existing", "Selected Daily Summary / Venue / Race Preview", ["history/daily/YYYY-MM/YYYY-MM-DD.generated.json"], null, "index item の file path から選択日を表示", "保存済み daily payload", "implemented。STARTERS_PARSED / NO_STARTERS / MIXED を欠損補完なしで分類する。"),
+  item("history-registration-no-coverage", "Identity safety", "History registrationNo coverage", "partial", "Selected Daily Summary", ["items[].starters[].registrationNo"], null, "あり・なし・NO_STARTERS を区別して表示", "保存済み registrationNo のみ", "2480件の欠損は missing のまま扱う。"),
+  item("history-same-name-warning", "Identity safety", "Same-name candidate warning", "existing", "Identity Safety Notes", ["starters[].name", "starters[].registrationNo"], null, "既知候補を注意表示し自動統合しない", "registrationNo と同姓同名候補監査", "implemented。山口貴弘の未割当9件は手動確認対象。"),
+  item("history-registration-no-auto-backfill", "Identity safety", "Automatic registrationNo backfill", "not-generated/fake-prohibited", "Identity Safety Notes", ["starters[].registrationNo"], null, "source 不足は欠損として維持", "正規 source が必要", "source-missing。名前・予測・結果・review から生成しない。"),
+  item("history-daily-automation", "History consumer", "History daily automation", "future-accumulation", "未実装", [], null, "将来の収集・検証・index 更新ジョブとして計画", "安全な source collection と writer/checker", "planned / not implemented。今回の page consumer には含めない。"),
 ] as const satisfies readonly KurariExAnalysisInventoryItem[];
 
 export const KURARI_EX_ANALYSIS_INVENTORY_STATUSES = Object.keys(

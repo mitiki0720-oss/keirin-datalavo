@@ -1,6 +1,12 @@
 import type {
   KurariExGlobalKpi,
   KurariExGuidance,
+  KurariExHistoryDaily,
+  KurariExHistoryIndex,
+  KurariExHistoryMode,
+  KurariExHistoryRace,
+  KurariExRegistrationNoStatus,
+  KurariExSameNameCandidateWarning,
   KurariExExactGlobalKpi,
   KurariExExactIndex,
   KurariExExactInitialData,
@@ -36,6 +42,7 @@ const EX_ROOT = "/data/analytics/kurari-ex";
 const EXACT_ROOT = `${EX_ROOT}/exact`;
 const RIDER_EXACT_ROOT = `${EXACT_ROOT}/riders`;
 const MATCHUP_EXACT_ROOT = `${EXACT_ROOT}/matchups`;
+const HISTORY_INDEX_PATH = `${EX_ROOT}/history/index.generated.json`;
 const STARTERS_SOURCE_INDEX_PATH = `${EX_ROOT}/source/starters/index.generated.json`;
 const STARTERS_SOURCE_INDEX_SCHEMA_VERSION = "kurari-ex-starters-source-index/v1";
 const STARTERS_SOURCE_SCHEMA_VERSION = "kurari-ex-starters-from-today-registration/v1";
@@ -214,10 +221,14 @@ const venueNameMap: Record<string, string> = {
   yahiko: "弥彦",
 };
 
-function toPublicPath(relativePath: string) {
+export function getKurariExAssetPath(path: string): string {
   const base = import.meta.env.BASE_URL.replace(/\/$/u, "");
-  const normalized = relativePath.startsWith("/") ? relativePath : `/${relativePath}`;
+  const normalized = path.startsWith("/") ? path : `/${path}`;
   return `${base}${normalized}`;
+}
+
+function toPublicPath(relativePath: string) {
+  return getKurariExAssetPath(relativePath);
 }
 
 async function fetchJson<T>(path: string): Promise<T> {
@@ -278,6 +289,148 @@ function assertKurariExStartersSource(source: KurariExStartersSource) {
 
 export async function loadKurariExIndex(): Promise<KurariExIndex> {
   return fetchJson<KurariExIndex>(`${EX_ROOT}/index.generated.json`);
+}
+
+export async function loadKurariExHistoryIndex(): Promise<KurariExHistoryIndex> {
+  return fetchJson<KurariExHistoryIndex>(HISTORY_INDEX_PATH);
+}
+
+export async function loadKurariExHistoryDailyByPath(
+  publicPath: string,
+): Promise<KurariExHistoryDaily> {
+  return fetchJson<KurariExHistoryDaily>(normalizePublicDataPath(publicPath));
+}
+
+export async function loadKurariExHistoryDailyByDate(
+  date: string,
+  index?: KurariExHistoryIndex,
+): Promise<KurariExHistoryDaily | null> {
+  const historyIndex = index ?? await loadKurariExHistoryIndex();
+  const entry = historyIndex.items.find((item) => item.date === date);
+  return entry ? loadKurariExHistoryDailyByPath(entry.file) : null;
+}
+
+export function summarizeKurariExHistoryIndex(index: KurariExHistoryIndex) {
+  const latest = [...index.items].sort((left, right) => right.date.localeCompare(left.date))[0] ?? null;
+  return {
+    registeredDays: index.dayCount,
+    raceCount: index.raceCount,
+    settledRaceCount: index.settledRaceCount,
+    cancelledRaceCount: index.cancelledRaceCount,
+    totalBytes: index.totalBytes,
+    periodFrom: index.period.from,
+    periodTo: index.period.to,
+    latestDate: latest?.date ?? null,
+    latestPath: latest?.file ?? null,
+  };
+}
+
+export function classifyKurariExHistoryDailyMode(
+  daily: KurariExHistoryDaily,
+): KurariExHistoryMode {
+  if (!daily.items.length) return "UNKNOWN";
+  const racesWithStarters = daily.items.filter((race) => race.starters.length > 0).length;
+  if (racesWithStarters === daily.items.length) return "STARTERS_PARSED";
+  if (racesWithStarters === 0) return "NO_STARTERS";
+  return "MIXED";
+}
+
+export function summarizeRegistrationNoCoverage(daily: KurariExHistoryDaily) {
+  let hasRegistrationNoCount = 0;
+  let missingRegistrationNoCount = 0;
+  let noStartersRaceCount = 0;
+  for (const race of daily.items) {
+    if (!race.starters.length) noStartersRaceCount += 1;
+    for (const starter of race.starters) {
+      if (starter.registrationNo) hasRegistrationNoCount += 1;
+      else missingRegistrationNoCount += 1;
+    }
+  }
+  return {
+    hasRegistrationNoCount,
+    missingRegistrationNoCount,
+    noStartersRaceCount,
+    starterTotal: hasRegistrationNoCount + missingRegistrationNoCount,
+  };
+}
+
+export function getKurariExRaceRegistrationNoStatus(
+  race: KurariExHistoryRace,
+): KurariExRegistrationNoStatus {
+  if (!race.starters.length) return "NO_STARTERS";
+  return race.starters.every((starter) => Boolean(starter.registrationNo))
+    ? "HAS_REGISTRATION_NO"
+    : "MISSING_REGISTRATION_NO";
+}
+
+const KURARI_EX_SAME_NAME_CANDIDATES = [
+  {
+    name: "石井貴子",
+    registrationNos: ["014962", "015023"],
+    unresolvedRecordCount: 0,
+  },
+  {
+    name: "山中貴雄",
+    registrationNos: ["013264", "014108"],
+    unresolvedRecordCount: 0,
+  },
+  {
+    name: "山口貴弘",
+    registrationNos: ["013615", "014268"],
+    unresolvedRecordCount: 9,
+  },
+] as const;
+
+export function getSameNameCandidateWarnings(
+  daily: KurariExHistoryDaily,
+): KurariExSameNameCandidateWarning[] {
+  const selectedNames = daily.items.flatMap((race) => race.starters.map((starter) => starter.name));
+  return KURARI_EX_SAME_NAME_CANDIDATES.map((candidate) => ({
+    name: candidate.name,
+    registrationNos: candidate.registrationNos,
+    selectedDailyOccurrenceCount: selectedNames.filter((name) => name === candidate.name).length,
+    unresolvedRecordCount: candidate.unresolvedRecordCount,
+    status: candidate.unresolvedRecordCount
+      ? "MANUAL_REVIEW_REQUIRED" as const
+      : "SEPARATED_BY_REGISTRATION_NO" as const,
+    message: candidate.unresolvedRecordCount
+      ? `${candidate.unresolvedRecordCount} records remain unassigned and require manual review.`
+      : "Distinct players remain separated by registrationNo.",
+  }));
+}
+
+export function summarizeKurariExHistoryDaily(daily: KurariExHistoryDaily) {
+  const registrationNo = summarizeRegistrationNoCoverage(daily);
+  const venues = new Map<string, { venueKey: string; venueName: string; raceCount: number }>();
+  let resultLinkedCount = 0;
+  let predictionLinkedCount = 0;
+  let reviewLinkedCount = 0;
+  let warningCount = 0;
+  for (const race of daily.items) {
+    const venue = venues.get(race.venueKey);
+    if (venue) venue.raceCount += 1;
+    else venues.set(race.venueKey, {
+      venueKey: race.venueKey,
+      venueName: race.venueName,
+      raceCount: 1,
+    });
+    if (race.quality?.resultParsed || (race.result && race.result.status !== "missing")) resultLinkedCount += 1;
+    if (race.quality?.predictionParsed || race.predictionEnrichment?.status === "matched") predictionLinkedCount += 1;
+    if (race.reviewEnrichment?.status === "matched") reviewLinkedCount += 1;
+    warningCount += race.quality?.warnings?.length ?? 0;
+  }
+  return {
+    date: daily.date,
+    raceCount: daily.raceCount,
+    venueCount: venues.size,
+    mode: classifyKurariExHistoryDailyMode(daily),
+    ...registrationNo,
+    resultLinkedCount,
+    predictionLinkedCount,
+    reviewLinkedCount,
+    warningCount,
+    venues: [...venues.values()].sort((left, right) => left.venueName.localeCompare(right.venueName, "ja")),
+  };
 }
 
 export async function loadKurariExExactIndex(): Promise<KurariExExactIndex> {

@@ -2,11 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import {
   formatKurariExMetric,
   formatKurariExRiderMetric,
+  getKurariExRaceRegistrationNoStatus,
+  getSameNameCandidateWarnings,
   getKurariExRiderQualityLabel,
   KURARI_EX_ACCUMULATION_RULES,
   KURARI_EX_DATA_INVENTORY,
   KURARI_EX_TACTIC_EVENT_RULES,
   loadKurariExExactInitialData,
+  loadKurariExHistoryDailyByDate,
+  loadKurariExHistoryIndex,
   loadKurariExInitialData,
   loadKurariExMatchupExactByFile,
   loadKurariExMatchupExactInitialData,
@@ -15,6 +19,8 @@ import {
   loadKurariExRiderExactInitialData,
   loadKurariExVenueBundle,
   loadKurariExVenueExact,
+  summarizeKurariExHistoryDaily,
+  summarizeKurariExHistoryIndex,
 } from "../lib/kurariExData";
 import {
   KURARI_EX_ANALYSIS_INVENTORY,
@@ -70,6 +76,8 @@ import type {
 } from "../data/kurariExSourceSchemaPlan";
 import type {
   KurariExExactInitialData,
+  KurariExHistoryDaily,
+  KurariExHistoryIndex,
   KurariExMetric,
   KurariExInitialData,
   KurariExMatchupComparableStats,
@@ -1121,6 +1129,13 @@ export default function ExDataPage() {
   const [todayRecommendationStatus, setTodayRecommendationStatus] = useState<"loading" | "ready" | "error">("loading");
   const [startersSourceSummary, setStartersSourceSummary] = useState<KurariExStartersAvailabilitySummary | null>(null);
   const [startersSourceStatus, setStartersSourceStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [historyIndex, setHistoryIndex] = useState<KurariExHistoryIndex | null>(null);
+  const [historyIndexStatus, setHistoryIndexStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [historyIndexError, setHistoryIndexError] = useState<string | null>(null);
+  const [selectedHistoryDate, setSelectedHistoryDate] = useState("");
+  const [historyDaily, setHistoryDaily] = useState<KurariExHistoryDaily | null>(null);
+  const [historyDailyStatus, setHistoryDailyStatus] = useState<"idle" | "loading" | "ready" | "empty" | "error">("idle");
+  const [historyDailyError, setHistoryDailyError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -1190,6 +1205,49 @@ export default function ExDataPage() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    loadKurariExHistoryIndex()
+      .then((index) => {
+        if (!active) return;
+        const summary = summarizeKurariExHistoryIndex(index);
+        setHistoryIndex(index);
+        setSelectedHistoryDate(summary.latestDate ?? "");
+        setHistoryIndexStatus("ready");
+        setHistoryIndexError(null);
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        setHistoryIndexStatus("error");
+        setHistoryIndexError(error instanceof Error ? error.message : "History index load failed.");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!historyIndex || !selectedHistoryDate) return;
+    let active = true;
+    setHistoryDailyStatus("loading");
+    setHistoryDailyError(null);
+    loadKurariExHistoryDailyByDate(selectedHistoryDate, historyIndex)
+      .then((daily) => {
+        if (!active) return;
+        setHistoryDaily(daily);
+        setHistoryDailyStatus(daily ? "ready" : "empty");
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        setHistoryDaily(null);
+        setHistoryDailyStatus("error");
+        setHistoryDailyError(error instanceof Error ? error.message : "History daily load failed.");
+      });
+    return () => {
+      active = false;
+    };
+  }, [historyIndex, selectedHistoryDate]);
 
   useEffect(() => {
     let active = true;
@@ -1270,6 +1328,19 @@ export default function ExDataPage() {
     }
     return [...venues.values()].sort((left, right) => left.venueName.localeCompare(right.venueName, "ja"));
   }, [exactInitialData?.venues, initialData?.venues]);
+
+  const historyIndexSummary = useMemo(
+    () => historyIndex ? summarizeKurariExHistoryIndex(historyIndex) : null,
+    [historyIndex],
+  );
+  const historyDailySummary = useMemo(
+    () => historyDaily ? summarizeKurariExHistoryDaily(historyDaily) : null,
+    [historyDaily],
+  );
+  const historyIdentityWarnings = useMemo(
+    () => historyDaily ? getSameNameCandidateWarnings(historyDaily) : [],
+    [historyDaily],
+  );
 
   const selectVenue = (item: { venueKey: string; venueName: string }) => {
     setSelectedKey(item.venueKey);
@@ -2336,6 +2407,167 @@ export default function ExDataPage() {
             <strong>SEED + EXACT</strong>
             <div className="ex-badges"><span className="ex-badge">SEED INSIGHT</span><span className="ex-badge is-exact">{exactInitialStatus === "ready" ? "EXACT ANALYTICS" : "EXACT：未生成"}</span><span className="ex-badge is-exact">{matchupInitialStatus === "ready" ? "MATCHUP EX" : "MATCHUP：未生成"}</span></div>
           </aside>
+        </section>
+
+        <section className="ex-panel ex-section" data-testid="kurari-ex-history-overview">
+          <SectionTitle
+            eyebrow="HISTORY INDEX / DAILY CONSUMER"
+            title="KURARI EX History Overview"
+            lead="保存済み history index と選択日の daily を読み取り専用で表示します。欠損 identity の生成・補完・名寄せは行いません。"
+          />
+          <div className="ex-health-grid">
+            <MetricCard
+              label="INDEX STATUS"
+              value={historyIndexStatus === "loading" ? "LOADING" : historyIndexStatus.toUpperCase()}
+              note="/history/index.generated.json"
+              warning={historyIndexStatus === "error"}
+            />
+            <MetricCard
+              label="REGISTERED DAYS"
+              value={valueText(historyIndexSummary?.registeredDays)}
+              note={historyIndexSummary ? `${historyIndexSummary.periodFrom} – ${historyIndexSummary.periodTo}` : "index period"}
+            />
+            <MetricCard
+              label="RACES"
+              value={valueText(historyIndexSummary?.raceCount)}
+              note="registered history races"
+            />
+            <MetricCard
+              label="LATEST DATE"
+              value={historyIndexSummary?.latestDate ?? "--"}
+              note="latest index item"
+            />
+          </div>
+
+          {historyIndexStatus === "error" ? (
+            <EmptyState text={`History index を読み込めませんでした。${historyIndexError ?? ""}`} />
+          ) : historyIndexStatus === "loading" ? (
+            <EmptyState text="History index を読み込み中です。" />
+          ) : historyIndex && historyIndex.items.length ? (
+            <>
+              <div className="ex-empty" style={{ marginTop: 14 }}>
+                <strong>latestPath:</strong> {historyIndexSummary?.latestPath ?? "--"}
+              </div>
+              <div className="ex-muted" style={{ marginTop: 10 }}>
+                Mode: STARTERS_PARSED = 全 race に保存済み starters あり / NO_STARTERS = starters なし（正常な履歴状態） /
+                MIXED = 同日内で混在 / UNKNOWN = race なし。既存監査では STARTERS_PARSED 5日、NO_STARTERS 39日、
+                MIXED 14日、source 不足 4日です。
+              </div>
+              <div className="ex-muted" style={{ marginTop: 8 }}>
+                Data policy: fake completion なし / fuzzy matching なし / registrationNo・選手名・carNo の生成なし /
+                同姓同名候補の自動統合なし。
+              </div>
+
+              <div style={{ display: "grid", gap: 14, marginTop: 20 }}>
+                <label style={{ display: "grid", gap: 7, maxWidth: 360 }}>
+                  <span className="ex-eyebrow">HISTORY DATE SELECTOR</span>
+                  <select
+                    aria-label="History date"
+                    value={selectedHistoryDate}
+                    onChange={(event) => setSelectedHistoryDate(event.target.value)}
+                    style={{ padding: "11px 12px", border: "1px solid #dfe4eb", borderRadius: 10, background: "#fff" }}
+                  >
+                    {[...historyIndex.items]
+                      .sort((left, right) => right.date.localeCompare(left.date))
+                      .map((item) => (
+                        <option key={item.date} value={item.date}>
+                          {item.date} — {item.raceCount.toLocaleString("ja-JP")}R
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              </div>
+            </>
+          ) : (
+            <EmptyState text="History index に登録日がありません。" />
+          )}
+
+          <div style={{ marginTop: 24 }}>
+            <SectionTitle
+              eyebrow="SELECTED DAILY SUMMARY"
+              title={selectedHistoryDate || "日付未選択"}
+              lead="index の file path を使用して daily を読み込みます。"
+            />
+            {historyDailyStatus === "loading" ? (
+              <EmptyState text="選択日の daily を読み込み中です。" />
+            ) : historyDailyStatus === "error" ? (
+              <EmptyState text={`選択日の daily を読み込めませんでした。${historyDailyError ?? ""}`} />
+            ) : historyDailyStatus === "empty" ? (
+              <EmptyState text="選択日は index にありません。" />
+            ) : historyDaily && historyDailySummary ? (
+              <>
+                <div className="ex-health-grid">
+                  <MetricCard label="DATE / MODE" value={historyDailySummary.date} note={historyDailySummary.mode} />
+                  <MetricCard label="RACES / VENUES" value={`${historyDailySummary.raceCount} / ${historyDailySummary.venueCount}`} note="daily / unique venues" />
+                  <MetricCard label="STARTERS" value={valueText(historyDailySummary.starterTotal)} note={`no-starters races: ${historyDailySummary.noStartersRaceCount}`} />
+                  <MetricCard label="REGISTRATION NO" value={valueText(historyDailySummary.hasRegistrationNoCount)} note={`missing: ${historyDailySummary.missingRegistrationNoCount}`} warning={historyDailySummary.missingRegistrationNoCount > 0} />
+                  <MetricCard label="RESULT LINKED" value={valueText(historyDailySummary.resultLinkedCount)} note="parsed or present" />
+                  <MetricCard label="PREDICTION LINKED" value={valueText(historyDailySummary.predictionLinkedCount)} note="parsed or matched" />
+                  <MetricCard label="REVIEW LINKED" value={valueText(historyDailySummary.reviewLinkedCount)} note="matched enrichment only" />
+                  <MetricCard label="WARNINGS" value={valueText(historyDailySummary.warningCount)} note="source quality notices" warning={historyDailySummary.warningCount > 0} />
+                </div>
+
+                <div className="ex-table-wrap" style={{ marginTop: 16 }}>
+                  <table className="ex-data-table">
+                    <thead><tr><th>会場</th><th>race count</th></tr></thead>
+                    <tbody>
+                      {historyDailySummary.venues.map((venue) => (
+                        <tr key={venue.venueKey}><td>{venue.venueName}</td><td>{venue.raceCount}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <h3 style={{ margin: "22px 0 10px", fontFamily: serif }}>Venue / Race Preview</h3>
+                <div className="ex-table-wrap">
+                  <table className="ex-data-table">
+                    <thead>
+                      <tr><th>date</th><th>会場</th><th>R</th><th>result</th><th>prediction</th><th>review</th><th>starters</th><th>registrationNo</th></tr>
+                    </thead>
+                    <tbody>
+                      {historyDaily.items.slice(0, 20).map((race) => (
+                        <tr key={race.raceKey}>
+                          <td>{race.date}</td>
+                          <td>{race.venueName}</td>
+                          <td>{race.raceNumber}R</td>
+                          <td>{race.quality?.resultParsed || (race.result && race.result.status !== "missing") ? "linked" : "missing"}</td>
+                          <td>{race.quality?.predictionParsed || race.predictionEnrichment?.status === "matched" ? "linked" : "missing"}</td>
+                          <td>{race.reviewEnrichment?.status === "matched" ? "linked" : "missing"}</td>
+                          <td>{race.starters.length}</td>
+                          <td>{getKurariExRaceRegistrationNoStatus(race)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style={{ marginTop: 24 }} data-testid="kurari-ex-identity-safety-notes">
+                  <SectionTitle
+                    eyebrow="IDENTITY SAFETY"
+                    title="Identity Safety Notes"
+                    lead="registrationNo がない starter は削除せず「選手名ベース参考」として扱い、別選手との同一視には使用しません。"
+                  />
+                  <div className="ex-empty">
+                    同一 race 内 duplicate carNo: 0 / duplicate registrationNo: 0 / cross-date・venue・race mix: 0 /
+                    generated・fake identity: 0（2026-05-01〜2026-07-01 監査結果）
+                  </div>
+                  <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
+                    {historyIdentityWarnings.map((warning) => (
+                      <div className="ex-empty" key={warning.name}>
+                        <strong>{warning.name}</strong> — registrationNo {warning.registrationNos.join(" / ")} —
+                        {warning.status === "MANUAL_REVIEW_REQUIRED"
+                          ? ` ${warning.unresolvedRecordCount}件は未割当・手動確認対象`
+                          : " registrationNo 別の選手として分離維持"}
+                        {warning.selectedDailyOccurrenceCount ? `（選択日 ${warning.selectedDailyOccurrenceCount}件）` : ""}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <EmptyState text="日付を選択すると daily summary を表示します。" />
+            )}
+          </div>
         </section>
 
         <section className="ex-panel ex-section">
