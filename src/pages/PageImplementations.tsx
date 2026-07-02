@@ -16,6 +16,7 @@ import {
   buildKeirinPredictionExport,
   downloadKeirinPredictionExport,
 } from "../lib/keirinPredictionExport";
+import { buildPredictionGptMaterialSourceContract } from "../lib/predictionGptSourceContract";
 import {
   buildKurariExConditionMaterial,
   buildKurariExPredictionMaterial,
@@ -3865,6 +3866,7 @@ const buildPredictionVenueSummaryExportLines = ({
 
 export const buildPredictionExportText = ({
   date,
+  feed,
   venue,
   race,
   materialRace,
@@ -3886,6 +3888,7 @@ export const buildPredictionExportText = ({
   kurariExGuidanceText = "",
 }: {
   date: string;
+  feed?: PredictionTodayFeed | null;
   venue: PredictionVenueItem;
   race: PredictionRaceItem;
   materialRace?: PredictionRaceItem;
@@ -3907,11 +3910,23 @@ export const buildPredictionExportText = ({
   kurariExGuidanceText?: string;
 }) => {
   const exportRace = materialRace ?? race;
+  const exportRiders = materialRiders?.length
+    ? materialRiders
+    : getPredictionMaterialRidersForKeirinRace(exportRace, venue);
+  const exSourceContractText = buildPredictionGptMaterialSourceContract({
+    date,
+    feed,
+    venue,
+    race: exportRace,
+    riders: exportRiders,
+  });
   if (isPredictionRaceExcludedByOperation(venue, exportRace)) {
     const operationLabel = isPredictionVenueOperationExcluded(venue) ? "開催中止" : "レース中止";
     const sourceLabel = getPredictionOperationLabel(venue, exportRace) || operationLabel;
     const reason = getPredictionOperationReason(venue, exportRace);
     return [
+      exSourceContractText,
+      "",
       "[A. レース基本情報]",
       `会場名: ${normalizePredictionExportValue(venue.venue, "会場情報なし")}`,
       `日付: ${normalizePredictionExportValue(date, "日付情報なし")}`,
@@ -3924,9 +3939,6 @@ export const buildPredictionExportText = ({
       "このレースは中止です。予想対象から除外してください。",
     ].join("\n");
   }
-  const exportRiders = materialRiders?.length
-    ? materialRiders
-    : getPredictionMaterialRidersForKeirinRace(exportRace, venue);
   const exportContexts = buildPredictionExportContextsFromRiders(exportRiders);
   const resolvedRiderBasicText = riderBasicText.trim() || buildPredictionBasicRiderExport(exportContexts, exportRace);
   const resolvedPlayerCardInsightText = playerCardInsightText.trim() || buildPredictionPlayerCardInsightExport(exportContexts);
@@ -3947,6 +3959,8 @@ export const buildPredictionExportText = ({
   void memo;
 
   return [
+    exSourceContractText,
+    "",
     "[A. レース基本情報]",
     `会場名: ${normalizePredictionExportValue(venue.venue, "会場情報なし")}`,
     `日付: ${normalizePredictionExportValue(date, "日付情報なし")}`,
@@ -11399,6 +11413,7 @@ if (
     if (!predictionFeed || !selectedPredictionMaterialVenue || !selectedPredictionMaterialRace) return "対象レースを選択してください。";
     return buildPredictionExportText({
       date: predictionFeed.date,
+      feed: predictionFeed,
       venue: selectedPredictionMaterialVenue,
       race: selectedPredictionMaterialRace,
       materialRace: selectedPredictionMaterialRace,
