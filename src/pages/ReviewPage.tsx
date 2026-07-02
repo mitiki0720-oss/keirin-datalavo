@@ -10,6 +10,11 @@ import {
   resolveRacePayoutByBetType,
   type PredictionWeatherData,
 } from "./PageImplementations";
+import {
+  buildKurariExResultOutputBlock,
+  type KurariExResultRaceStatus,
+  type ReviewResultFinishLike,
+} from "../lib/reviewResultOutputContract";
 
 type PredictionSlotRecord = {
   raceKey: string;
@@ -61,6 +66,11 @@ type PredictionRaceResultEntry = {
   sMark?: boolean;
   hMark?: boolean;
   bMark?: boolean;
+  registrationNo?: string | number;
+  registration?: string | number;
+  registrationNumber?: string | number;
+  registrationNoSource?: string;
+  registrationNoTrustStatus?: string;
 };
 
 type PredictionRaceResultWeatherActual = {
@@ -83,6 +93,11 @@ type PredictionRaceFinishOrderItem = {
   kimarite?: string;
   mark?: string;
   status?: string;
+  registrationNo?: string | number;
+  registration?: string | number;
+  registrationNumber?: string | number;
+  registrationNoSource?: string;
+  registrationNoTrustStatus?: string;
 };
 
 type PredictionRaceResult = {
@@ -100,6 +115,9 @@ type PredictionRaceResult = {
   sLeaderCarNo?: string;
   hLeaderCarNo?: string;
   bLeaderCarNo?: string;
+  officialResultSource?: string;
+  sourceFetchedAt?: string;
+  sourceHash?: string;
 };
 
 type PredictionOddsPreviewItem = {
@@ -130,6 +148,7 @@ type PredictionRaceItem = {
   time?: string;
   title?: string;
   lineup?: string;
+  raceOperationStatus?: "scheduled" | "cancelled" | "postponed" | "suspended" | "unknown" | "finished";
   isGirls?: boolean;
   sourceNote?: string;
   resultNote?: string;
@@ -145,6 +164,20 @@ type PredictionRaceItem = {
   resultTop3?: PredictionRaceResultEntry[];
   payouts?: PredictionRaceResultPayoutItem[];
   result?: PredictionRaceResult;
+  riders?: Array<{
+    carNo?: string;
+    name?: string;
+    fullName?: string;
+    registrationNo?: string | number;
+    registration?: string | number;
+    registrationNumber?: string | number;
+    registrationId?: string | number;
+    registrationNoSource?: string;
+    registrationNoTrustStatus?: string;
+  }>;
+  officialResultSource?: string;
+  sourceFetchedAt?: string;
+  sourceHash?: string;
 };
 
 type ReviewFinalTrifectaFavoriteOdds = {
@@ -883,6 +916,7 @@ function compactReviewRaceResultSnapshot(race: PredictionRaceItem): PredictionRa
     time: race.time,
     title: race.title,
     lineup: race.lineup,
+    raceOperationStatus: race.raceOperationStatus,
     isGirls: race.isGirls,
     sourceNote: race.sourceNote,
     resultNote: race.resultNote,
@@ -898,6 +932,10 @@ function compactReviewRaceResultSnapshot(race: PredictionRaceItem): PredictionRa
     resultTop3: race.resultTop3,
     payouts: race.payouts,
     result: race.result,
+    riders: race.riders,
+    officialResultSource: race.officialResultSource,
+    sourceFetchedAt: race.sourceFetchedAt,
+    sourceHash: race.sourceHash,
   };
 }
 
@@ -1008,6 +1046,7 @@ function mergeReviewRaceWithSnapshot(
     time: feedRace.time || snapshotRace.time,
     title: feedRace.title || snapshotRace.title,
     lineup: feedRace.lineup || snapshotRace.lineup,
+    raceOperationStatus: feedRace.raceOperationStatus || snapshotRace.raceOperationStatus,
     isGirls: feedRace.isGirls ?? snapshotRace.isGirls,
     oddsPreview: pickReviewOddsPreview(feedRace, snapshotRace),
     oddsTrifecta: pickReviewTrifectaOdds(feedRace, snapshotRace),
@@ -1020,6 +1059,10 @@ function mergeReviewRaceWithSnapshot(
     resultTop3: feedRace.resultTop3?.length ? feedRace.resultTop3 : snapshotRace.resultTop3,
     payouts: feedRace.payouts ?? snapshotRace.payouts,
     result: mergePredictionRaceResult(feedRace.result, snapshotRace.result),
+    riders: feedRace.riders?.length ? feedRace.riders : snapshotRace.riders,
+    officialResultSource: feedRace.officialResultSource || snapshotRace.officialResultSource,
+    sourceFetchedAt: feedRace.sourceFetchedAt || snapshotRace.sourceFetchedAt,
+    sourceHash: feedRace.sourceHash || snapshotRace.sourceHash,
     sourceNote: feedRace.sourceNote || snapshotRace.sourceNote,
     resultNote: feedRace.resultNote || snapshotRace.resultNote,
     oddsNote: feedRace.oddsNote || snapshotRace.oddsNote,
@@ -2077,10 +2120,67 @@ function findReviewFeedRace(
   return venue?.races?.find((item) => item.raceNo === race.raceNumber);
 }
 
+type ReviewResultOutputLinks = {
+  linkedPredictionFile?: string;
+  linkedSummaryFile?: string;
+  linkedReviewFile?: string;
+};
+
+function resolveKurariExResultRaceStatus(
+  feedRace?: PredictionRaceItem,
+): KurariExResultRaceStatus {
+  if (feedRace?.raceOperationStatus === "postponed") return "postponed";
+  if (feedRace?.raceOperationStatus === "cancelled" || isReviewAllRefundRace(feedRace)) {
+    return "cancelled";
+  }
+  if (
+    feedRace?.raceOperationStatus === "finished"
+    || feedRace?.result?.status === "confirmed"
+    || feedRace?.resultStatus === "confirmed"
+  ) {
+    return "finished";
+  }
+  return "unknown";
+}
+
+function getKurariExResultFinishOrder(
+  feedRace?: PredictionRaceItem,
+): ReviewResultFinishLike[] {
+  const finishOrder = feedRace?.result?.finishOrder ?? [];
+  if (finishOrder.length > 0) {
+    return finishOrder.map((item, index) => (
+      typeof item === "string"
+        ? { rank: String(index + 1), carNo: item }
+        : {
+            rank: item.rank || item.status,
+            carNo: item.carNo,
+            playerName: item.name,
+            registrationNo: item.registrationNo,
+            registration: item.registration,
+            registrationNumber: item.registrationNumber,
+            registrationNoSource: item.registrationNoSource,
+            registrationNoTrustStatus: item.registrationNoTrustStatus,
+          }
+    ));
+  }
+
+  return (feedRace?.resultTop3 ?? []).map((item) => ({
+    rank: item.place,
+    carNo: item.carNo,
+    playerName: item.name,
+    registrationNo: item.registrationNo,
+    registration: item.registration,
+    registrationNumber: item.registrationNumber,
+    registrationNoSource: item.registrationNoSource,
+    registrationNoTrustStatus: item.registrationNoTrustStatus,
+  }));
+}
+
 function buildResultCopy(
   group: VenueReviewGroup,
   reviewWeatherActualMap: ReviewWeatherActualMap = {},
   latestFeed?: PredictionTodayFeed | null,
+  outputLinks: ReviewResultOutputLinks = {},
 ) {
   const lines = [`${group.venue}｜${formatDateLabel(group.date)}｜結果照合用`];
   lines.push("");
@@ -2162,6 +2262,45 @@ function buildResultCopy(
 
     lines.push("【払戻】");
     buildReviewPayoutLines(race.feedRace).forEach((line) => lines.push(line));
+    lines.push("");
+
+    lines.push(buildKurariExResultOutputBlock({
+      date: race.date,
+      venueName: race.venue,
+      raceNumber: race.raceNumber,
+      raceStatus: resolveKurariExResultRaceStatus(race.feedRace),
+      finishOrder: getKurariExResultFinishOrder(race.feedRace),
+      entries: race.feedRace?.riders ?? [],
+      payout: {
+        twoExact: race.feedRace?.result?.payout2tan
+          ?? findPayoutByBetType(race.feedRace?.payouts, "2車単"),
+        twoQuinella: race.feedRace?.result?.payout2fuku
+          ?? [findPayoutByBetType(race.feedRace?.payouts, "2車複")].filter(
+            (item): item is PredictionRaceResultPayoutItem => Boolean(item),
+          ),
+        threeExact: race.feedRace?.result?.payout3tan
+          ?? findPayoutByBetType(race.feedRace?.payouts, "3連単"),
+        threeQuinella: race.feedRace?.result?.payout3fuku
+          ?? findPayoutByBetType(race.feedRace?.payouts, "3連複"),
+        wide: race.feedRace?.result?.payoutWide
+          ?? (race.feedRace?.payouts ?? []).filter(
+            (item) => normalizeBetTypeLabel(item.betType) === "ワイド",
+          ),
+      },
+      source: {
+        officialResultSource:
+          race.feedRace?.result?.officialResultSource
+          ?? race.feedRace?.officialResultSource,
+        sourceFetchedAt:
+          race.feedRace?.result?.sourceFetchedAt
+          ?? race.feedRace?.sourceFetchedAt
+          ?? latestFeed?.generatedAt,
+        sourceHash:
+          race.feedRace?.result?.sourceHash
+          ?? race.feedRace?.sourceHash,
+      },
+      links: outputLinks,
+    }));
     lines.push("");
 
     lines.push("【最終オッズ参考】");
@@ -2642,7 +2781,16 @@ export default function ReviewPage() {
     () => {
       if (isLocalReviewSelected) {
         if (selectedVenueGroup?.races.length) {
-          return buildResultCopy(selectedVenueGroup, reviewWeatherActualMap, todayFeed);
+          return buildResultCopy(
+            selectedVenueGroup,
+            reviewWeatherActualMap,
+            todayFeed,
+            {
+              linkedPredictionFile: selectedReviewFileGroup?.predictionFile,
+              linkedSummaryFile: selectedReviewFileGroup?.summaryFile,
+              linkedReviewFile: selectedReviewFileGroup?.resultFile,
+            },
+          );
         }
         return selectedReviewFileGroup?.resultText ?? "";
       }
@@ -2651,7 +2799,16 @@ export default function ReviewPage() {
       if (fileResultText.trim()) return fileResultText;
 
       return selectedFileFallbackVenueGroup
-        ? buildResultCopy(selectedFileFallbackVenueGroup, reviewWeatherActualMap, todayFeed)
+        ? buildResultCopy(
+            selectedFileFallbackVenueGroup,
+            reviewWeatherActualMap,
+            todayFeed,
+            {
+              linkedPredictionFile: selectedReviewFileGroup?.predictionFile,
+              linkedSummaryFile: selectedReviewFileGroup?.summaryFile,
+              linkedReviewFile: selectedReviewFileGroup?.resultFile,
+            },
+          )
         : fileResultText;
     },
     [isLocalReviewSelected, reviewWeatherActualMap, selectedFileFallbackVenueGroup, selectedReviewFileGroup, selectedVenueGroup, todayFeed],
