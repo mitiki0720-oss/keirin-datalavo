@@ -14,6 +14,7 @@ const WRITER_DECISIONS = [
   "ALLOW_RACE_ONLY_NO_STARTERS_WRITE",
   "BLOCK_EXACT_WRITE_ALLOW_PARTIAL_WITH_HUMAN_CONFIRMATION",
   "BLOCK_WRITE_MANUAL_REVIEW_REQUIRED",
+  "BLOCK_WRITE_TRUST_GATE_REQUIRED",
   "BLOCK_WRITE",
 ];
 
@@ -162,6 +163,8 @@ async function bridgeRecord(validation, options) {
       && validation.startersMissingRegistrationNo === 0
       && validation.sameNameManualReviewRequired === 0
       && validation.futureRegistrationNoContractValidation === "PASS"
+      && !validation.trustGateBlocked
+      && validation.registrationNoTrustedRows === validation.startersDetected
       && validatedRaceRows > 0
       && sourceHash,
     );
@@ -218,6 +221,14 @@ async function bridgeRecord(validation, options) {
     writerModeAllowed = "blocked";
     blockReasons.push("MANUAL_REVIEW_REQUIRED", "SAME_NAME_AUTO_MERGE_PROHIBITED");
     nextAction = "Resolve ambiguous identity with authoritative evidence, then rerun validation.";
+  } else if (
+    validation.validationDecision === "STOP_REGISTRATIONNO_TRUST_GATE"
+  ) {
+    writerDecision = "BLOCK_WRITE_TRUST_GATE_REQUIRED";
+    writerModeAllowed = "blocked";
+    blockReasons.push("REGISTRATIONNO_TRUST_GATE_REQUIRED");
+    nextAction =
+      "Do not write; require an authoritative same-date snapshot, matching provenance hash, or existing authoritative history match.";
   } else if (String(validation.validationDecision).startsWith("STOP_")) {
     writerDecision = "BLOCK_WRITE";
     writerModeAllowed = "blocked";
@@ -252,6 +263,19 @@ async function bridgeRecord(validation, options) {
     exactDailyWriteAllowed,
     raceOnlyWriteAllowed,
     partialWriteAllowedWithHumanConfirmation,
+    registrationNoTrustStatusCounts:
+      validation.registrationNoTrustStatusCounts ?? {},
+    registrationNoTrustedRows:
+      validation.registrationNoTrustedRows ?? 0,
+    registrationNoTrustBlockedRows:
+      validation.registrationNoTrustBlockedRows ?? 0,
+    knownBadRawRegistrationNoCount:
+      validation.knownBadRawRegistrationNoCount ?? 0,
+    rawOnlyNeedsTrustConfirmationCount:
+      validation.rawOnlyNeedsTrustConfirmationCount ?? 0,
+    conflictWithAuthoritativeHistoryCount:
+      validation.conflictWithAuthoritativeHistoryCount ?? 0,
+    trustGateBlocked: Boolean(validation.trustGateBlocked),
     blocked,
     requiredHumanConfirmation: partialWriteAllowedWithHumanConfirmation,
     blockReasons: [...new Set(blockReasons)],
@@ -334,6 +358,8 @@ export async function auditKurariExDailyWriterPreflightBridge({
       decisionCounts.BLOCK_EXACT_WRITE_ALLOW_PARTIAL_WITH_HUMAN_CONFIRMATION,
     blockManualReviewRequiredCount:
       decisionCounts.BLOCK_WRITE_MANUAL_REVIEW_REQUIRED,
+    blockTrustGateRequiredCount:
+      decisionCounts.BLOCK_WRITE_TRUST_GATE_REQUIRED,
     blockStopCount:
       writerPreflightRecord.filter((record) =>
         String(record.validationDecision).startsWith("STOP_"),

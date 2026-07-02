@@ -14,6 +14,35 @@ const REPRESENTATIVE_DATES = [
   "2026-06-21",
 ];
 const SAME_NAME_CANDIDATES = new Set(["石井貴子", "山中貴雄", "山口貴弘"]);
+export const REGISTRATION_NO_TRUST_STATUSES = [
+  "TRUSTED_AUTHORITATIVE_SNAPSHOT_MATCH",
+  "TRUSTED_PROVENANCE_HASH_MATCH",
+  "TRUSTED_EXISTING_HISTORY_MATCH",
+  "RAW_ONLY_NEEDS_TRUST_CONFIRMATION",
+  "KNOWN_BAD_RAW_REGISTRATIONNO",
+  "CONFLICT_WITH_AUTHORITATIVE_HISTORY",
+  "TRUST_BLOCKED_UNKNOWN",
+];
+export const KNOWN_BAD_RAW_REGISTRATION_NO_RECORDS = [
+  ["2026-06-29", "ito", 3, 4, "伊藤翼", "014376", "014382"],
+  ["2026-06-29", "ito", 4, 5, "関戸努", "013474", "013454"],
+  ["2026-06-29", "ito", 7, 6, "鈴木規純", "013383", "012938"],
+  ["2026-06-29", "kochi", 3, 6, "山本淳", "014501", "014385"],
+  ["2026-06-29", "kochi", 4, 3, "後藤彰仁", "014304", "014245"],
+  ["2026-06-29", "kochi", 4, 6, "山崎翼", "014594", "014494"],
+  ["2026-06-29", "kochi", 5, 4, "磯島康祐", "014954", "014981"],
+  ["2026-06-29", "kochi", 5, 5, "伊藤世哉", "013911", "013864"],
+  ["2026-06-29", "toride", 1, 5, "西岡拓朗", "014867", "014617"],
+  ["2026-06-29", "toride", 5, 5, "橋本智昭", "014694", "014714"],
+].map(([date, venueKey, raceNumber, carNo, playerName, raw, correct]) => ({
+  date,
+  venueKey,
+  raceNumber,
+  carNo,
+  playerName,
+  rawRegistrationNo: raw,
+  authoritativeRegistrationNo: correct,
+}));
 const DECISIONS = [
   "PASS_READY_FOR_DAILY_WRITE",
   "PASS_RACE_ONLY_NO_STARTERS",
@@ -23,6 +52,7 @@ const DECISIONS = [
   "STOP_DUPLICATE_IDENTITY",
   "STOP_FAKE_OR_GENERATED_IDENTITY",
   "STOP_PROHIBITED_SOURCE_USE",
+  "STOP_REGISTRATIONNO_TRUST_GATE",
   "STOP_CONTRACT_VIOLATION",
 ];
 
@@ -36,6 +66,14 @@ function array(value) {
 
 function clean(value) {
   return String(value ?? "").normalize("NFKC").trim();
+}
+
+export function normalizeSourceDelimiterLine(line) {
+  return clean(String(line ?? "").replaceAll("／", "/").replaceAll("｜", "|"));
+}
+
+export function splitStarterSourceRow(line) {
+  return normalizeSourceDelimiterLine(line).split(/[\/|]/u).map(clean);
 }
 
 function normalizeName(value) {
@@ -86,7 +124,7 @@ function sourceKind(file) {
   return "unknown";
 }
 
-function parseEntryTableRows({ content, date, file, venueKey }) {
+export function parseEntryTableRows({ content, date, file, venueKey }) {
   const rows = [];
   let raceNumber = null;
   let inEntryTable = false;
@@ -119,7 +157,8 @@ function parseEntryTableRows({ content, date, file, venueKey }) {
     const registrationNo = /^\d{5,6}$/u.test(registrationToken)
       ? registrationToken.padStart(6, "0")
       : null;
-    const firstField = clean(rowBody.split(/[／/]/u)[0]);
+    const sourceColumns = splitStarterSourceRow(rowBody);
+    const firstField = sourceColumns[0];
     const playerName = clean(
       firstField
         .replace(/(?:車番|番車)\s*[1-9].*$/u, "")
@@ -143,6 +182,10 @@ function parseEntryTableRows({ content, date, file, venueKey }) {
       sourceHash: sha256(content),
       registrationMarkerPresent,
       malformedRegistrationNo,
+      sourceColumnCount: sourceColumns.length,
+      brokenNameColumn:
+        /登録番号|車番|番車/u.test(playerName)
+        || /[\/|]/u.test(playerName),
       rawLine: line,
     });
   }
@@ -182,6 +225,104 @@ function groupByRace(rows) {
   return groups;
 }
 
+function starterKey(date, venueKey, raceNumber, carNo) {
+  return `${date}:${venueKey}:${raceNumber}:${carNo}`;
+}
+
+function knownBadKey(record) {
+  return [
+    record.date,
+    record.venueKey,
+    record.raceNumber,
+    record.carNo,
+    normalizeName(record.playerName),
+    record.rawRegistrationNo,
+  ].join(":");
+}
+
+const KNOWN_BAD_KEYS =
+  new Map(KNOWN_BAD_RAW_REGISTRATION_NO_RECORDS.map((record) => [
+    knownBadKey(record),
+    record,
+  ]));
+
+function historyStarterMap(daily) {
+  const map = new Map();
+  for (const race of array(daily?.items)) {
+    for (const starter of array(race.starters)) {
+      map.set(
+        starterKey(race.date, race.venueKey, race.raceNumber, starter.carNo),
+        starter,
+      );
+    }
+  }
+  return map;
+}
+
+async function authoritativeSnapshotMap(date, daily) {
+  const snapshotPath =
+    `public/data/races/entries-history/${date}/keirin-jp-entries.generated.json`;
+  if (!existsSync(abs(snapshotPath))) {
+    return { snapshotPath: null, snapshotHash: null, entries: new Map() };
+  }
+  const snapshot = JSON.parse(await readFile(abs(snapshotPath), "utf8"));
+  const venueKeys = new Map(
+    array(daily?.items).map((race) => [
+      normalizeName(race.venueName),
+      race.venueKey,
+    ]),
+  );
+  const entries = new Map();
+  for (const race of array(snapshot.races)) {
+    const venueKey = venueKeys.get(normalizeName(race.venueName));
+    for (const entry of array(race.entries)) {
+      entries.set(
+        starterKey(date, venueKey, race.raceNumber, entry.carNo),
+        entry,
+      );
+    }
+  }
+  return {
+    snapshotPath,
+    snapshotHash: snapshot.contentHash ?? null,
+    entries,
+  };
+}
+
+function classifyRegistrationNoTrust({
+  row,
+  authoritativeEntry,
+  existingStarter,
+}) {
+  if (!row.registrationNo) return "TRUST_BLOCKED_UNKNOWN";
+  const knownBad = KNOWN_BAD_KEYS.get(knownBadKey({
+    date: row.date,
+    venueKey: row.venueKey,
+    raceNumber: row.raceNumber,
+    carNo: row.carNo,
+    playerName: row.playerName,
+    rawRegistrationNo: row.registrationNo,
+  }));
+  if (knownBad) return "KNOWN_BAD_RAW_REGISTRATIONNO";
+  if (authoritativeEntry) {
+    return (
+      normalizeName(authoritativeEntry.name) === normalizeName(row.playerName)
+      && authoritativeEntry.registrationNo === row.registrationNo
+    )
+      ? "TRUSTED_AUTHORITATIVE_SNAPSHOT_MATCH"
+      : "CONFLICT_WITH_AUTHORITATIVE_HISTORY";
+  }
+  if (existingStarter) {
+    return (
+      normalizeName(existingStarter.name) === normalizeName(row.playerName)
+      && existingStarter.registrationNo === row.registrationNo
+    )
+      ? "TRUSTED_EXISTING_HISTORY_MATCH"
+      : "CONFLICT_WITH_AUTHORITATIVE_HISTORY";
+  }
+  return "RAW_ONLY_NEEDS_TRUST_CONFIRMATION";
+}
+
 async function validateDate({ date, sourceDir, index }) {
   const item = array(index.items).find((entry) => entry.date === date) ?? null;
   const dailyPath = item?.file ? `public${item.file}` : null;
@@ -194,6 +335,33 @@ async function validateDate({ date, sourceDir, index }) {
   const { rows, selectedFiles } =
     await detectSourceRows(date, sourceDir, sourceFiles);
   const raceGroups = groupByRace(rows);
+  const existingStarters = historyStarterMap(daily);
+  const authoritativeSnapshot = await authoritativeSnapshotMap(date, daily);
+  for (const row of rows) {
+    const key = starterKey(date, row.venueKey, row.raceNumber, row.carNo);
+    row.registrationNoTrustStatus = classifyRegistrationNoTrust({
+      row,
+      authoritativeEntry: authoritativeSnapshot.entries.get(key),
+      existingStarter: existingStarters.get(key),
+    });
+  }
+  const registrationNoTrustStatusCounts = Object.fromEntries(
+    REGISTRATION_NO_TRUST_STATUSES.map((status) => [
+      status,
+      rows.filter((row) => row.registrationNoTrustStatus === status).length,
+    ]),
+  );
+  const trustedStatuses = new Set([
+    "TRUSTED_AUTHORITATIVE_SNAPSHOT_MATCH",
+    "TRUSTED_PROVENANCE_HASH_MATCH",
+    "TRUSTED_EXISTING_HISTORY_MATCH",
+  ]);
+  const registrationNoTrustedRows =
+    rows.filter((row) => trustedStatuses.has(row.registrationNoTrustStatus));
+  const trustGateBlockedRows =
+    rows.filter((row) => !trustedStatuses.has(row.registrationNoTrustStatus));
+  const brokenNameColumnCount =
+    rows.filter((row) => row.brokenNameColumn).length;
 
   let duplicateCarNoInRace = 0;
   let duplicateRegistrationNoInRace = 0;
@@ -212,6 +380,7 @@ async function validateDate({ date, sourceDir, index }) {
     || !Number.isInteger(row.raceNumber)
     || !Number.isInteger(row.carNo)
     || !row.playerName
+    || row.brokenNameColumn
     || row.malformedRegistrationNo
   );
   const exactRows = rows.filter((row) =>
@@ -243,6 +412,13 @@ async function validateDate({ date, sourceDir, index }) {
     noStartersAllowed && rows.length === 0;
   const blockReasons = [];
   const warnings = [];
+  const knownBadRawRegistrationNoCount =
+    registrationNoTrustStatusCounts.KNOWN_BAD_RAW_REGISTRATIONNO;
+  const conflictWithAuthoritativeHistoryCount =
+    registrationNoTrustStatusCounts.CONFLICT_WITH_AUTHORITATIVE_HISTORY;
+  const rawOnlyNeedsTrustConfirmationCount =
+    registrationNoTrustStatusCounts.RAW_ONLY_NEEDS_TRUST_CONFIRMATION;
+  const trustGateBlocked = trustGateBlockedRows.length > 0;
   let validationDecision;
   let nextAction;
 
@@ -284,7 +460,30 @@ async function validateDate({ date, sourceDir, index }) {
   } else if (missingRegistrationRows.length) {
     validationDecision = "WARN_PARTIAL_REGISTRATION_NO";
     warnings.push("Rows without registrationNo are excluded from EXACT player analysis.");
+    if (trustGateBlocked) {
+      warnings.push("Rows with untrusted raw registrationNo remain blocked by the trust gate.");
+    }
     nextAction = "Write only as partial data after explicit warning acceptance; never backfill by name.";
+  } else if (trustGateBlocked) {
+    validationDecision = "STOP_REGISTRATIONNO_TRUST_GATE";
+    blockReasons.push(
+      ...(knownBadRawRegistrationNoCount
+        ? ["KNOWN_BAD_RAW_REGISTRATIONNO_DETECTED"]
+        : []),
+      ...(conflictWithAuthoritativeHistoryCount
+        ? ["CONFLICT_WITH_AUTHORITATIVE_HISTORY"]
+        : []),
+      ...(rawOnlyNeedsTrustConfirmationCount
+        ? ["RAW_ONLY_NEEDS_TRUST_CONFIRMATION"]
+        : []),
+      ...(!knownBadRawRegistrationNoCount
+        && !conflictWithAuthoritativeHistoryCount
+        && !rawOnlyNeedsTrustConfirmationCount
+        ? ["TRUST_BLOCKED_UNKNOWN"]
+        : []),
+    );
+    nextAction =
+      "Do not write; confirm registrationNo against an authoritative same-date snapshot or existing authoritative history.";
   } else {
     validationDecision = "PASS_READY_FOR_DAILY_WRITE";
     nextAction = "Proceed to a separate guarded daily writer and post-write checker.";
@@ -306,6 +505,7 @@ async function validateDate({ date, sourceDir, index }) {
     startersMissingRegistrationNo: missingRegistrationRows.length,
     exactSourceContractRows: exactRows.length,
     invalidSourceRows: invalidRows.length,
+    brokenNameColumnCount,
     futureRegistrationNoContractValidation:
       invalidRows.length
       || duplicateCarNoInRace
@@ -318,6 +518,15 @@ async function validateDate({ date, sourceDir, index }) {
             : "NOT_READY",
     duplicateCarNoInRace,
     duplicateRegistrationNoInRace,
+    authoritativeSnapshotPath: authoritativeSnapshot.snapshotPath,
+    authoritativeSnapshotHash: authoritativeSnapshot.snapshotHash,
+    registrationNoTrustStatusCounts,
+    registrationNoTrustedRows: registrationNoTrustedRows.length,
+    registrationNoTrustBlockedRows: trustGateBlockedRows.length,
+    knownBadRawRegistrationNoCount,
+    rawOnlyNeedsTrustConfirmationCount,
+    conflictWithAuthoritativeHistoryCount,
+    trustGateBlocked,
     sameNameCandidateRecords: sameNameRows.length,
     sameNameManualReviewRequired: sameNameManualRows.length,
     noStartersAllowed,
@@ -365,7 +574,8 @@ export async function auditKurariExDailyIngestionValidationGate({
       stopSourceMissingCount: 0,
       stopDuplicateIdentityCount: 0,
       stopFakeGeneratedIdentityCount: 0,
-      stopProhibitedSourceUseCount: 0,
+    stopProhibitedSourceUseCount: 0,
+      stopRegistrationNoTrustGateCount: 0,
       stopContractViolationCount: 0,
       failures: [`History index missing: ${options.historyIndex}`],
       finalStatus: "DAILY_INGESTION_VALIDATION_GATE_FAIL",
@@ -399,6 +609,7 @@ export async function auditKurariExDailyIngestionValidationGate({
     counts.PASS_RACE_ONLY_NO_STARTERS
     + counts.WARN_PARTIAL_REGISTRATION_NO
     + counts.WARN_MANUAL_REVIEW_REQUIRED
+    + counts.STOP_REGISTRATIONNO_TRUST_GATE
     + counts.STOP_SOURCE_MISSING;
   const finalStatus = hardStopCount
     ? "DAILY_INGESTION_VALIDATION_GATE_FAIL"
@@ -415,6 +626,8 @@ export async function auditKurariExDailyIngestionValidationGate({
     stopDuplicateIdentityCount: counts.STOP_DUPLICATE_IDENTITY,
     stopFakeGeneratedIdentityCount: counts.STOP_FAKE_OR_GENERATED_IDENTITY,
     stopProhibitedSourceUseCount: counts.STOP_PROHIBITED_SOURCE_USE,
+    stopRegistrationNoTrustGateCount:
+      counts.STOP_REGISTRATIONNO_TRUST_GATE,
     stopContractViolationCount: counts.STOP_CONTRACT_VIOLATION,
     writePerformed: false,
     finalStatus,

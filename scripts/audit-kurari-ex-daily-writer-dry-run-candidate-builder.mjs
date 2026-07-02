@@ -5,6 +5,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import {
   auditKurariExDailyIngestionValidationGate,
+  splitStarterSourceRow,
 } from "./audit-kurari-ex-daily-ingestion-validation-gate.mjs";
 import {
   auditKurariExDailyWriterPreflightBridge,
@@ -132,7 +133,7 @@ async function parseValidatedSourceRows(validation) {
       const registrationNo = /^\d{5,6}$/u.test(registrationToken)
         ? registrationToken.padStart(6, "0")
         : null;
-      const parts = rowBody.split(/[／/]/u).map(clean);
+      const parts = splitStarterSourceRow(rowBody);
       const playerName = clean(
         parts[0]
           .replace(/(?:車番|番車)\s*[1-9].*$/u, "")
@@ -383,6 +384,14 @@ async function buildRecord({ date, validation, preflight }) {
     warnings.push("Partial writer requires a separate human-confirmed task.");
   } else if (preflight.writerDecision === "BLOCK_WRITE_MANUAL_REVIEW_REQUIRED") {
     blockReasons.push("MANUAL_REVIEW_REQUIRED", "SAME_NAME_AUTO_MERGE_PROHIBITED");
+  } else if (preflight.writerDecision === "BLOCK_WRITE_TRUST_GATE_REQUIRED") {
+    blockReasons.push("REGISTRATIONNO_TRUST_GATE_REQUIRED");
+    if (Number(validation.knownBadRawRegistrationNoCount ?? 0) > 0) {
+      blockReasons.push("KNOWN_BAD_RAW_REGISTRATIONNO_DETECTED");
+    }
+    if (Number(validation.rawOnlyNeedsTrustConfirmationCount ?? 0) > 0) {
+      blockReasons.push("RAW_ONLY_NEEDS_TRUST_CONFIRMATION");
+    }
   } else {
     blockReasons.push("PREFLIGHT_BLOCKED_WRITE");
   }
@@ -438,6 +447,19 @@ async function buildRecord({ date, validation, preflight }) {
     duplicateRegistrationNoInRace: integrity.duplicateRegistrationNoInRace,
     sameNameManualReviewRequired:
       Number(validation.sameNameManualReviewRequired ?? 0),
+    registrationNoTrustStatusCounts:
+      validation.registrationNoTrustStatusCounts ?? {},
+    registrationNoTrustedRows:
+      Number(validation.registrationNoTrustedRows ?? 0),
+    registrationNoTrustBlockedRows:
+      Number(validation.registrationNoTrustBlockedRows ?? 0),
+    knownBadRawRegistrationNoCount:
+      Number(validation.knownBadRawRegistrationNoCount ?? 0),
+    rawOnlyNeedsTrustConfirmationCount:
+      Number(validation.rawOnlyNeedsTrustConfirmationCount ?? 0),
+    conflictWithAuthoritativeHistoryCount:
+      Number(validation.conflictWithAuthoritativeHistoryCount ?? 0),
+    trustGateBlocked: Boolean(validation.trustGateBlocked),
     fakeGeneratedIdentityDetected,
     fuzzyMatchingDetected,
     prohibitedSourceUseDetected,
@@ -518,13 +540,14 @@ export async function auditKurariExDailyWriterDryRunCandidateBuilder({
   }
 
   const allowed = dryRunCandidateRecord.filter((record) => record.candidateBuildAllowed);
-  const unexpectedBlocks =
+  const unsafeTrustGateAllows =
     dryRunCandidateRecord.filter((record) =>
-      ["2026-06-29", "2026-06-30"].includes(record.date)
-      && !record.candidateBuildAllowed,
+      record.trustGateBlocked && record.candidateBuildAllowed,
     );
-  if (unexpectedBlocks.length) {
-    failures.push(`Expected exact candidate blocked: ${unexpectedBlocks.map((record) => record.date).join(",")}`);
+  if (unsafeTrustGateAllows.length) {
+    failures.push(
+      `Trust-gate blocked candidate was allowed: ${unsafeTrustGateAllows.map((record) => record.date).join(",")}`,
+    );
   }
   const integrityFailures =
     allowed.filter((record) =>
@@ -569,6 +592,8 @@ export async function auditKurariExDailyWriterDryRunCandidateBuilder({
       allowed.filter((record) =>
         record.candidateChangeType === "NO_STARTERS_TO_STARTERS_BACKFILL",
       ).length,
+    trustGateBlockedCount:
+      dryRunCandidateRecord.filter((record) => record.trustGateBlocked).length,
     duplicateCount:
       allowed.reduce(
         (sum, record) =>

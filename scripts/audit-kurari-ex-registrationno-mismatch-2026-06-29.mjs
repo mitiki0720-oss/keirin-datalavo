@@ -3,6 +3,9 @@ import { existsSync } from "node:fs";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import {
+  splitStarterSourceRow,
+} from "./audit-kurari-ex-daily-ingestion-validation-gate.mjs";
 
 const ROOT = process.cwd();
 const TARGET_DATE = "2026-06-29";
@@ -45,9 +48,11 @@ function entryKey(venueKey, raceNumber, carNo) {
 }
 
 function parsePlayerName(rowBody, delimiterAware) {
-  const separator = delimiterAware ? /[／/｜|]/u : /[／/]/u;
+  const fields = delimiterAware
+    ? splitStarterSourceRow(rowBody)
+    : clean(rowBody).split(/[／/]/u).map(clean);
   return clean(
-    clean(rowBody.split(separator)[0])
+    clean(fields[0])
       .replace(/(?:車番|番車)\s*[1-9].*$/u, "")
       .replace(/[（(].*?[）)]/gu, ""),
   );
