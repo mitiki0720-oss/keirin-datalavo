@@ -16,7 +16,10 @@ import {
   buildKeirinPredictionExport,
   downloadKeirinPredictionExport,
 } from "../lib/keirinPredictionExport";
-import { buildPredictionGptMaterialSourceContract } from "../lib/predictionGptSourceContract";
+import {
+  buildPredictionGptMaterialSourceContract,
+  type PredictionRegistrationIdentityCandidate,
+} from "../lib/predictionGptSourceContract";
 import {
   buildKurariExConditionMaterial,
   buildKurariExPredictionMaterial,
@@ -289,6 +292,35 @@ export type PredictionTodayFeed = {
   venues: PredictionVenueItem[];
 };
 
+type PredictionRegistrationIdentitySourceIndex = {
+  sources?: Array<{
+    path?: string;
+    checkStatus?: string;
+    sourceSnapshotHash?: string;
+  }>;
+};
+
+type PredictionRegistrationIdentitySource = {
+  sourceSnapshotHash?: string;
+  quality?: {
+    checkStatus?: string;
+    fakeCompletionPerformed?: boolean;
+    fuzzyMatchingPerformed?: boolean;
+    resultLineupPredictionUsedAsStarterSource?: boolean;
+  };
+  races?: Array<{
+    starters?: Array<{
+      name?: string;
+      registrationNo?: string;
+      prefecture?: string;
+      term?: string;
+      className?: string;
+      registrationNoSource?: string;
+      registrationNoSourceHash?: string;
+    }>;
+  }>;
+};
+
 type PredictionVenueOperationStatus = "scheduled" | "cancelled" | "postponed" | "suspended" | "unknown";
 type PredictionRaceOperationStatus = PredictionVenueOperationStatus | "finished";
 
@@ -500,6 +532,7 @@ export type PredictionRiderItem = {
   name: string;
   fullName?: string;
   registrationNo?: string | number;
+  registration?: string | number;
   registrationNumber?: string | number;
   registrationId?: string | number;
   playerId?: string | number;
@@ -959,6 +992,8 @@ export const UPCOMING_SCHEDULE_DATA_URL = toPublicPath("/data/races/upcoming-sch
 export const DAILY_PREDICTION_INDEX_URL = toPublicPath("/data/predictions/daily/index.generated.json");
 export const PREDICTION_VENUE_BANK_INDEX_URL = toPublicPath("/data/venues/banks/index.json");
 export const PREDICTION_VENUE_INSIGHT_INDEX_URL = toPublicPath("/data/venues/bank-insights/index.json");
+export const PREDICTION_REGISTRATION_IDENTITY_SOURCE_INDEX_URL =
+  toPublicPath("/data/analytics/kurari-ex/source/starters/index.generated.json");
 export const PREDICTION_OPEN_METEO_GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search";
 export const PREDICTION_OPEN_METEO_FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
 export const PREDICTION_WEATHER_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -3871,6 +3906,7 @@ export const buildPredictionExportText = ({
   race,
   materialRace,
   materialRiders,
+  registrationCandidates = [],
   gradeLabel,
   venueSummary,
   weather,
@@ -3893,6 +3929,7 @@ export const buildPredictionExportText = ({
   race: PredictionRaceItem;
   materialRace?: PredictionRaceItem;
   materialRiders?: PredictionRiderItem[];
+  registrationCandidates?: PredictionRegistrationIdentityCandidate[];
   gradeLabel: string;
   venueSummary: PredictionVenueSummary;
   weather: PredictionWeatherData | null;
@@ -3919,6 +3956,7 @@ export const buildPredictionExportText = ({
     venue,
     race: exportRace,
     riders: exportRiders,
+    registrationCandidates,
   });
   if (isPredictionRaceExcludedByOperation(venue, exportRace)) {
     const operationLabel = isPredictionVenueOperationExcluded(venue) ? "開催中止" : "レース中止";
@@ -9399,6 +9437,7 @@ export function PredictionPage() {
   const [kurariExExactIndexStatus, setKurariExExactIndexStatus] = useState<"loading" | "ready" | "error">("loading");
   const [kurariExRiderExactIndex, setKurariExRiderExactIndex] = useState<KurariExRiderExactIndex | null>(null);
   const [kurariExRiderExactIndexStatus, setKurariExRiderExactIndexStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [predictionRegistrationIdentityCandidates, setPredictionRegistrationIdentityCandidates] = useState<PredictionRegistrationIdentityCandidate[]>([]);
   const [kurariExRiderExactCacheVersion, setKurariExRiderExactCacheVersion] = useState(0);
   const [selectedKurariExRiderStatus, setSelectedKurariExRiderStatus] = useState<"idle" | "loading" | "ready" | "missing" | "error">("loading");
   const [kurariExMatchupExactIndex, setKurariExMatchupExactIndex] = useState<KurariExMatchupExactIndex | null>(null);
@@ -9598,6 +9637,82 @@ useEffect(() => {
         setKurariExRiderExactIndex(null);
         setKurariExRiderExactIndexStatus("error");
       });
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+    const loadRegistrationIdentityCandidates = async () => {
+      try {
+        const indexResponse = await fetch(
+          PREDICTION_REGISTRATION_IDENTITY_SOURCE_INDEX_URL,
+          { cache: "no-cache" },
+        );
+        if (!indexResponse.ok) throw new Error("registration-identity-index-missing");
+        const index =
+          await indexResponse.json() as PredictionRegistrationIdentitySourceIndex;
+        const trustedSources = (index.sources ?? []).filter(
+          (source) =>
+            source.checkStatus === "PASS"
+            && Boolean(source.path)
+            && Boolean(source.sourceSnapshotHash),
+        );
+        const sourceDocuments = await Promise.all(
+          trustedSources.map(async (source) => {
+            const sourcePath = String(source.path).replace(/^public/u, "");
+            const response = await fetch(toPublicPath(sourcePath), {
+              cache: "force-cache",
+            });
+            if (!response.ok) return null;
+            const document =
+              await response.json() as PredictionRegistrationIdentitySource;
+            if (
+              document.quality?.checkStatus !== "PASS"
+              || document.quality?.fakeCompletionPerformed
+              || document.quality?.fuzzyMatchingPerformed
+              || document.quality?.resultLineupPredictionUsedAsStarterSource
+              || document.sourceSnapshotHash !== source.sourceSnapshotHash
+            ) {
+              return null;
+            }
+            return document;
+          }),
+        );
+        const candidates = sourceDocuments
+          .filter(
+            (document): document is PredictionRegistrationIdentitySource =>
+              Boolean(document),
+          )
+          .flatMap((document) =>
+            (document.races ?? []).flatMap((race) =>
+              (race.starters ?? [])
+                .filter(
+                  (starter) =>
+                    starter.registrationNoSource === "entries-history-snapshot"
+                    && starter.registrationNoSourceHash
+                      === document.sourceSnapshotHash,
+                )
+                .map((starter): PredictionRegistrationIdentityCandidate => ({
+                  registrationNo: starter.registrationNo,
+                  playerName: starter.name,
+                  prefecture: starter.prefecture,
+                  term: starter.term,
+                  className: starter.className,
+                  source: "kurari-ex-rider-identity",
+                  ambiguous: false,
+                  sameNameCandidate: false,
+                  fuzzyMatched: false,
+                })),
+            ),
+          );
+        if (isActive) setPredictionRegistrationIdentityCandidates(candidates);
+      } catch {
+        if (isActive) setPredictionRegistrationIdentityCandidates([]);
+      }
+    };
+    loadRegistrationIdentityCandidates();
     return () => {
       isActive = false;
     };
@@ -10599,6 +10714,25 @@ if (
     () => getPredictionMaterialRidersForKeirinRace(selectedPredictionMaterialRace, selectedPredictionMaterialVenue),
     [selectedPredictionMaterialRace, selectedPredictionMaterialVenue]
   );
+  const selectedPredictionRegistrationCandidates = useMemo<
+    PredictionRegistrationIdentityCandidate[]
+  >(
+    () => [
+      ...predictionRegistrationIdentityCandidates,
+      ...(kurariExRiderExactIndex?.items ?? []).map((item) => ({
+        registrationNo: item.registrationNo,
+        playerName: item.name,
+        prefecture: item.prefecture,
+        term: null,
+        className: item.class,
+        source: "kurari-ex-rider-exact" as const,
+        ambiguous: false,
+        sameNameCandidate: false,
+        fuzzyMatched: false,
+      })),
+    ],
+    [kurariExRiderExactIndex, predictionRegistrationIdentityCandidates],
+  );
   const selectedKurariExRiderMatches = useMemo(
     () => kurariExRiderExactIndex
       ? matchKurariExRidersForRace(
@@ -11418,6 +11552,7 @@ if (
       race: selectedPredictionMaterialRace,
       materialRace: selectedPredictionMaterialRace,
       materialRiders: selectedPredictionMaterialRiders,
+      registrationCandidates: selectedPredictionRegistrationCandidates,
       gradeLabel: selectedVenueGradeLabel,
       venueSummary: selectedVenueSummary,
       weather: selectedWeather,
@@ -11434,7 +11569,7 @@ if (
       monthlyGuidanceText: selectedPredictionMonthlyGuidanceText,
       kurariExGuidanceText: selectedKurariExGuidanceText,
     });
-  }, [predictionFeed, selectedKurariExGuidanceText, selectedPredictionDataAnalysisText, selectedPredictionMatchupText, selectedPredictionMaterialRace, selectedPredictionMaterialRiders, selectedPredictionMaterialVenue, selectedPredictionMemoText, selectedPredictionMonthlyGuidanceText, selectedPredictionOddsText, selectedPredictionPlayerCardInsightText, selectedPredictionRecentPerformanceText, selectedPredictionRecentRaceText, selectedPredictionRiderBasicText, selectedPredictionTrackAffinityText, selectedVenueGradeLabel, selectedVenueSummary, selectedWeather, selectedWeatherFallbackText]);
+  }, [predictionFeed, selectedKurariExGuidanceText, selectedPredictionDataAnalysisText, selectedPredictionMatchupText, selectedPredictionMaterialRace, selectedPredictionMaterialRiders, selectedPredictionMaterialVenue, selectedPredictionMemoText, selectedPredictionMonthlyGuidanceText, selectedPredictionOddsText, selectedPredictionPlayerCardInsightText, selectedPredictionRecentPerformanceText, selectedPredictionRecentRaceText, selectedPredictionRegistrationCandidates, selectedPredictionRiderBasicText, selectedPredictionTrackAffinityText, selectedVenueGradeLabel, selectedVenueSummary, selectedWeather, selectedWeatherFallbackText]);
   const gptExportLineCount = useMemo(() => gptExportText.split(/\r?\n/).length, [gptExportText]);
   const gptExportCharCount = useMemo(() => gptExportText.length, [gptExportText]);
   const selectedPredictionTargetLabel = selectedVenue && selectedRace ? `${selectedVenue.venue} ${selectedRace.raceNo}R` : "レース選択待ち";
