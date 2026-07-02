@@ -114,6 +114,82 @@ async function fetchJson(url) {
   return response.json();
 }
 
+function getRaceListDates(listData) {
+  const venueList = Array.isArray(listData?.RaceList) ? listData.RaceList : [];
+
+  return [
+    ...new Set(
+      venueList
+        .map((venue) =>
+          normalizeDate(
+            venue.kaisaiDate ??
+              venue.selKaisai ??
+              venue.kaisaiDateDisp ??
+              venue.kaisaiBi ??
+              "",
+          ),
+        )
+        .filter(Boolean),
+    ),
+  ].sort();
+}
+
+function listUrlWithKaisaiDateKbn(baseUrl, kaisaiDateKbn) {
+  const url = new URL(baseUrl.toString());
+  url.searchParams.set("kaisaibikbn", String(kaisaiDateKbn));
+  return url;
+}
+
+async function fetchExpectedListData() {
+  if (!expectedDate) {
+    const data = await fetchJson(listUrl);
+    return {
+      data,
+      url: listUrl,
+      kaisaiDateKbn: clean(listUrl.searchParams.get("kaisaibikbn")),
+      attempts: [],
+    };
+  }
+
+  const currentKbn = clean(listUrl.searchParams.get("kaisaibikbn"));
+  const candidates = [
+    currentKbn,
+    "1",
+    "0",
+    "-1",
+    "2",
+  ].filter((value, index, values) => value && values.indexOf(value) === index);
+
+  const attempts = [];
+
+  for (const kbn of candidates) {
+    const candidateUrl = listUrlWithKaisaiDateKbn(listUrl, kbn);
+    const data = await fetchJson(candidateUrl);
+    const dates = getRaceListDates(data);
+
+    attempts.push({
+      kaisaiDateKbn: kbn,
+      dates,
+      venueCount: Array.isArray(data?.RaceList) ? data.RaceList.length : 0,
+    });
+
+    if (dates.length === 1 && dates[0] === expectedDate) {
+      return {
+        data,
+        url: candidateUrl,
+        kaisaiDateKbn: kbn,
+        attempts,
+      };
+    }
+  }
+
+  throw new Error(
+    `KEIRIN.JP JSJ048 could not resolve expected date ${expectedDate}; attempts=${JSON.stringify(
+      attempts,
+    )}; output was not written.`,
+  );
+}
+
 function normalizeEntry(row) {
   return {
     carNo: clean(row.syaban),
@@ -463,7 +539,8 @@ async function main() {
     );
   }
 
-  const listData = await fetchJson(listUrl);
+  const resolvedList = await fetchExpectedListData();
+  const listData = resolvedList.data;
 
   const venueList = Array.isArray(listData.RaceList)
     ? listData.RaceList
@@ -517,6 +594,10 @@ async function main() {
       lineupType: "JSJ005",
       endpoint: "/pc/json",
       kaisaiDateKbn: clean(listData.kaisaiDateKbn),
+      expectedDate,
+      resolvedKaisaiDateKbn: resolvedList.kaisaiDateKbn,
+      resolvedListUrl: resolvedList.url.toString(),
+      resolutionAttempts: resolvedList.attempts,
     },
     date: dates[0],
     venues,
