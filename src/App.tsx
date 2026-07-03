@@ -4,11 +4,9 @@ import DashboardPage from "./pages/DashboardPage";
 import ExDataPage from "./pages/ExDataPage";
 import MobileDashboardPage from "./pages/MobileDashboardPage";
 import MonthlyReviewPage from "./pages/MonthlyReviewPage";
-import PlayersPage from "./pages/PlayersPage";
 import PredictionPage from "./pages/PredictionPage";
 import RacesPage from "./pages/RacesPage";
 import ReviewPage from "./pages/ReviewPage";
-import VenueFeaturesPage from "./pages/VenueFeaturesPage";
 
 const normalizeHashRoute = (hash: string) => {
   const value = hash.replace(/^#/, "").trim();
@@ -84,10 +82,6 @@ export default function App() {
     return <MobileDashboardPage />;
   }
 
-  if (route.startsWith("players-page")) {
-    return <PlayersPage />;
-  }
-
   if (route.startsWith("ex-data-page")) {
     return <ExDataPage />;
   }
@@ -110,10 +104,6 @@ export default function App() {
 
   if (route.startsWith("analysis-material-page")) {
     return <AnalysisMaterialPage />;
-  }
-
-  if (route.startsWith("venue-features-page")) {
-    return <VenueFeaturesPage />;
   }
 
   return <DashboardPage />;
