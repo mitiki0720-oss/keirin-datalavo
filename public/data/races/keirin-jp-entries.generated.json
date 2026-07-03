@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-03T14:03:46.771Z",
+  "generatedAt": "2026-07-03T14:07:21.723Z",
   "source": {
     "provider": "KEIRIN.JP",
     "listType": "JSJ048",
@@ -12150,8 +12150,8 @@
         {
           "raceNumber": 6,
           "entryStatus": "available",
-          "operationStatus": "scheduled",
-          "raceEnded": false,
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
           "lastUpdateTime": "2026/07/03 10:59 更新",
@@ -12171,47 +12171,11 @@
             "backCount1CarNo": "2",
             "backCount2CarNo": "1,7"
           },
-          "lineup": "1 6 4 7 3 2 5",
+          "lineup": "",
           "officialLineup": {
-            "lineup": "1 6 4 7 3 2 5",
-            "positions": [
-              {
-                "position": 1,
-                "carNo": "1",
-                "className": "base_color_1"
-              },
-              {
-                "position": 2,
-                "carNo": "6",
-                "className": "base_color_6"
-              },
-              {
-                "position": 4,
-                "carNo": "4",
-                "className": "base_color_4"
-              },
-              {
-                "position": 5,
-                "carNo": "7",
-                "className": "base_color_7"
-              },
-              {
-                "position": 7,
-                "carNo": "3",
-                "className": "base_color_3"
-              },
-              {
-                "position": 9,
-                "carNo": "2",
-                "className": "base_color_2"
-              },
-              {
-                "position": 10,
-                "carNo": "5",
-                "className": "base_color_5"
-              }
-            ],
-            "source": "KEIRIN.JP:JSJ005:narabiyoso"
+            "lineup": "",
+            "positions": [],
+            "source": ""
           },
           "entries": [
             {
@@ -12402,8 +12366,10 @@
             "hasEntries": true,
             "hasRegistrationNumbers": true,
             "hasNames": true,
-            "hasLineup": true,
-            "warnings": []
+            "hasLineup": false,
+            "warnings": [
+              "official lineup missing"
+            ]
           }
         },
         {
@@ -12671,7 +12637,7 @@
       "missingRaceCount": 0,
       "errorCount": 0,
       "totalEntryCount": 47,
-      "lineupRaceCount": 2
+      "lineupRaceCount": 1
     },
     {
       "date": "2026-07-03",
@@ -17611,6 +17577,6 @@
   "missingRaceCount": 0,
   "errorCount": 0,
   "totalEntryCount": 542,
-  "lineupRaceCount": 4,
+  "lineupRaceCount": 3,
   "preservedCompleteRaceCount": 0
 }
