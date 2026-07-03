@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import { raceScheduleData } from "../data/raceScheduleData";
 import { useRef } from "react";
 import type { DailyMetricItem } from "../types/dailyMetrics";
@@ -11047,6 +11047,56 @@ if (
     selectedPredictionMaterialRace,
     selectedPredictionMaterialVenue,
   ]);
+  const selectedPredictionMaterialRegistrationCandidates = useMemo<
+    PredictionRegistrationIdentityCandidate[]
+  >(
+    () => [
+      ...selectedPredictionRiderContexts.flatMap((context) => {
+        const item = context.indexItem;
+        if (
+          !item?.registrationNo
+          || !selectedPredictionPlayerCardInsightText.includes(item.registrationNo)
+        ) {
+          return [];
+        }
+        return [{
+          carNo: context.rider.carNo,
+          registrationNo: item.registrationNo,
+          playerName: item.name,
+          prefecture: item.prefecture,
+          term: null,
+          className: item.grade,
+          source: "material-registered-player-card" as const,
+          ambiguous: false,
+          sameNameCandidate: false,
+          fuzzyMatched: false,
+        }];
+      }),
+      ...selectedKurariExRiderEntries.flatMap((entry) => {
+        if (!selectedKurariExRiderMaterial.text.includes(entry.registrationNo)) {
+          return [];
+        }
+        return [{
+          carNo: entry.carNo,
+          registrationNo: entry.registrationNo,
+          playerName: entry.riderName || entry.exact.name,
+          prefecture: entry.indexItem.prefecture,
+          term: null,
+          className: entry.indexItem.class,
+          source: "material-player-exact-detail" as const,
+          ambiguous: false,
+          sameNameCandidate: false,
+          fuzzyMatched: false,
+        }];
+      }),
+    ],
+    [
+      selectedKurariExRiderEntries,
+      selectedKurariExRiderMaterial.text,
+      selectedPredictionPlayerCardInsightText,
+      selectedPredictionRiderContexts,
+    ],
+  );
   const selectedKurariExConditionBankLength = useMemo(() => {
     const candidates = [
       selectedVenueSummary.bankLength,
@@ -11552,7 +11602,10 @@ if (
       race: selectedPredictionMaterialRace,
       materialRace: selectedPredictionMaterialRace,
       materialRiders: selectedPredictionMaterialRiders,
-      registrationCandidates: selectedPredictionRegistrationCandidates,
+      registrationCandidates: [
+        ...selectedPredictionRegistrationCandidates,
+        ...selectedPredictionMaterialRegistrationCandidates,
+      ],
       gradeLabel: selectedVenueGradeLabel,
       venueSummary: selectedVenueSummary,
       weather: selectedWeather,
@@ -11569,7 +11622,7 @@ if (
       monthlyGuidanceText: selectedPredictionMonthlyGuidanceText,
       kurariExGuidanceText: selectedKurariExGuidanceText,
     });
-  }, [predictionFeed, selectedKurariExGuidanceText, selectedPredictionDataAnalysisText, selectedPredictionMatchupText, selectedPredictionMaterialRace, selectedPredictionMaterialRiders, selectedPredictionMaterialVenue, selectedPredictionMemoText, selectedPredictionMonthlyGuidanceText, selectedPredictionOddsText, selectedPredictionPlayerCardInsightText, selectedPredictionRecentPerformanceText, selectedPredictionRecentRaceText, selectedPredictionRegistrationCandidates, selectedPredictionRiderBasicText, selectedPredictionTrackAffinityText, selectedVenueGradeLabel, selectedVenueSummary, selectedWeather, selectedWeatherFallbackText]);
+  }, [predictionFeed, selectedKurariExGuidanceText, selectedPredictionDataAnalysisText, selectedPredictionMatchupText, selectedPredictionMaterialRace, selectedPredictionMaterialRegistrationCandidates, selectedPredictionMaterialRiders, selectedPredictionMaterialVenue, selectedPredictionMemoText, selectedPredictionMonthlyGuidanceText, selectedPredictionOddsText, selectedPredictionPlayerCardInsightText, selectedPredictionRecentPerformanceText, selectedPredictionRecentRaceText, selectedPredictionRegistrationCandidates, selectedPredictionRiderBasicText, selectedPredictionTrackAffinityText, selectedVenueGradeLabel, selectedVenueSummary, selectedWeather, selectedWeatherFallbackText]);
   const gptExportLineCount = useMemo(() => gptExportText.split(/\r?\n/).length, [gptExportText]);
   const gptExportCharCount = useMemo(() => gptExportText.length, [gptExportText]);
   const selectedPredictionTargetLabel = selectedVenue && selectedRace ? `${selectedVenue.venue} ${selectedRace.raceNo}R` : "レース選択待ち";

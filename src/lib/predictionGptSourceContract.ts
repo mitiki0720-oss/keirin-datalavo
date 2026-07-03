@@ -47,16 +47,20 @@ export type PredictionRegistrationNoSource =
   | "entry"
   | "kurari-ex-rider-exact"
   | "kurari-ex-rider-identity"
+  | "material-registered-player-card"
+  | "material-player-exact-detail"
   | "none";
 
 export type PredictionRegistrationNoTrustStatus =
   | "explicit-entry-registration"
   | "safe-identity-match"
+  | "safe-material-match"
   | "unavailable"
   | "ambiguous-blocked"
   | "conflict-blocked";
 
 export type PredictionRegistrationIdentityCandidate = {
+  carNo?: unknown;
   registrationNo?: unknown;
   playerName?: unknown;
   prefecture?: unknown;
@@ -64,7 +68,9 @@ export type PredictionRegistrationIdentityCandidate = {
   className?: unknown;
   source:
     | "kurari-ex-rider-exact"
-    | "kurari-ex-rider-identity";
+    | "kurari-ex-rider-identity"
+    | "material-registered-player-card"
+    | "material-player-exact-detail";
   ambiguous?: boolean;
   sameNameCandidate?: boolean;
   fuzzyMatched?: boolean;
@@ -99,6 +105,13 @@ const explicitRegistrationNo = (rider: PredictionGptRiderLike) => {
 
 const normalizeIdentityText = (value: unknown) =>
   String(value ?? "").normalize("NFKC").replace(/[\s　・]/gu, "").trim();
+
+const normalizeIdentityPrefecture = (value: unknown) =>
+  String(value ?? "")
+    .normalize("NFKC")
+    .replace(/[\s　]/gu, "")
+    .replace(/[都道府県]$/u, "")
+    .trim();
 
 const normalizeIdentityTerm = (value: unknown) =>
   String(value ?? "").normalize("NFKC").replace(/\s|期/gu, "").trim();
@@ -164,15 +177,49 @@ const resolveRegistrationNo = (
     };
   }
 
-  const riderPrefecture = normalizeIdentityText(rider.prefecture);
+  const riderPrefecture = normalizeIdentityPrefecture(rider.prefecture);
   const riderTerm = normalizeIdentityTerm(rider.term);
   const riderClass = normalizeIdentityClass(rider.className || rider.grade);
+  const riderCarNo = contractValue(rider.carNo);
   let conflictDetected = false;
   const safeCandidates = sameNameCandidates.filter((candidate) => {
     const registrationNo = contractValue(candidate.registrationNo);
-    const candidatePrefecture = normalizeIdentityText(candidate.prefecture);
+    const candidatePrefecture = normalizeIdentityPrefecture(candidate.prefecture);
     const candidateTerm = normalizeIdentityTerm(candidate.term);
     const candidateClass = normalizeIdentityClass(candidate.className);
+    const materialCandidate =
+      candidate.source === "material-registered-player-card"
+      || candidate.source === "material-player-exact-detail";
+    if (materialCandidate) {
+      const candidateCarNo = contractValue(candidate.carNo);
+      if (
+        registrationNo === "null"
+        || riderCarNo === "null"
+        || candidateCarNo === "null"
+        || candidateCarNo !== riderCarNo
+      ) {
+        conflictDetected =
+          candidateCarNo !== "null" && candidateCarNo !== riderCarNo;
+        return false;
+      }
+      if (
+        candidatePrefecture
+        && riderPrefecture
+        && candidatePrefecture !== riderPrefecture
+      ) {
+        conflictDetected = true;
+        return false;
+      }
+      if (candidateTerm && riderTerm && candidateTerm !== riderTerm) {
+        conflictDetected = true;
+        return false;
+      }
+      if (candidateClass && riderClass && candidateClass !== riderClass) {
+        conflictDetected = true;
+        return false;
+      }
+      return true;
+    }
     if (
       registrationNo === "null"
       || !candidatePrefecture
@@ -213,11 +260,18 @@ const resolveRegistrationNo = (
   const preferredCandidate =
     safeCandidates.find(
       (candidate) => candidate.source === "kurari-ex-rider-identity",
-    ) ?? safeCandidates[0];
+    )
+    ?? safeCandidates.find(
+      (candidate) => candidate.source === "kurari-ex-rider-exact",
+    )
+    ?? safeCandidates[0];
+  const materialMatch =
+    preferredCandidate.source === "material-registered-player-card"
+    || preferredCandidate.source === "material-player-exact-detail";
   return {
     registrationNo,
     source: preferredCandidate.source,
-    status: "safe-identity-match",
+    status: materialMatch ? "safe-material-match" : "safe-identity-match",
   };
 };
 
