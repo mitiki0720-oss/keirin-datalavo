@@ -85,3 +85,11 @@ from entries selected by the existing duplicate-name-blocking EXACT matcher.
 - no parsing prose into riders
 - no public data, history, review, or private-input writes
 
+## 27-05 class-only soft match
+
+登録番号の素材内持ち上げでは、府県・期の不一致は引き続き `conflict-blocked` とする。
+
+ただし級班は時期により変動するため、級班差だけでは `conflict-blocked` にしない。
+級班差は `classMismatchSoft` として扱い、車番・選手名・府県・期の安全条件を満たす場合は `safe-material-match` または `safe-identity-match` を許可する。
+
+fake補完・名前だけ補完・曖昧候補の採用は禁止のまま維持する。

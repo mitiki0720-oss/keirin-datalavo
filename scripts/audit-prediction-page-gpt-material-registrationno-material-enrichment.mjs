@@ -60,8 +60,12 @@ export async function auditPredictionPageGptMaterialRegistrationNoMaterialEnrich
       helper.includes(
         "candidatePrefecture !== riderPrefecture",
       )
-      && helper.includes("candidateTerm !== riderTerm")
-      && helper.includes("candidateClass !== riderClass"),
+      && helper.includes("candidateTerm !== riderTerm"),
+    classOnlyMismatchSoft:
+      helper.includes("const classMismatchSoft =")
+      && helper.includes("candidateClass !== riderClass")
+      && !helper.includes("if (candidateClass && riderClass && candidateClass !== riderClass)")
+      && !helper.includes("|| (candidateClass && riderClass && candidateClass !== riderClass)"),
     uniqueRegistrationNoRequired:
       helper.includes("distinctNameRegistrationNos.size > 1")
       && helper.includes("safeRegistrationNos.size > 1"),
@@ -119,6 +123,7 @@ export async function auditPredictionPageGptMaterialRegistrationNoMaterialEnrich
     materialCarNoAndExactNameRequired:
       checks.materialCarNoExactMatch && checks.playerNameExactMatch,
     prefectureAdministrativeSuffixOnly: checks.prefectureSuffixOnly,
+    classOnlyMismatchSoft: checks.classOnlyMismatchSoft,
     nameOnlyCompletionDetected: false,
     fuzzyMatchingDetected: !checks.noFuzzyMatching,
     generatedRegistrationNoDetected: !checks.noRegistrationGeneration,

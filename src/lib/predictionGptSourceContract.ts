@@ -214,10 +214,9 @@ const resolveRegistrationNo = (
         conflictDetected = true;
         return false;
       }
-      if (candidateClass && riderClass && candidateClass !== riderClass) {
-        conflictDetected = true;
-        return false;
-      }
+      const classMismatchSoft =
+        candidateClass && riderClass && candidateClass !== riderClass;
+      void classMismatchSoft;
       return true;
     }
     if (
@@ -232,7 +231,6 @@ const resolveRegistrationNo = (
     if (
       candidatePrefecture !== riderPrefecture
       || candidateTerm !== riderTerm
-      || (candidateClass && riderClass && candidateClass !== riderClass)
     ) {
       conflictDetected = true;
       return false;
