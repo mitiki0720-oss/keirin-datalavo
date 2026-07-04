@@ -1030,6 +1030,21 @@ EXページを出目ランキング、荒れ指数、レース連鎖、風速×�
 
 32-04候補は、`date + venue + raceNumber`のrace keyを使うレース連鎖分析、前Rが荒れた後の次R傾向、荒れ連鎖 / 本命戻り / 中穴継続とLOW SAMPLE表示とする。
 
+## 32-04 EX内部タブ / レース連鎖 v1
+
+- EX全表示を棚卸しし、OVERVIEW / IDENTITY / DATA COVERAGE / TREND LAB / 出目ランキング / 荒れ指数 / レース連鎖 / WEATHER / EX ANALYSISへ整理した
+- 既存のidentity、source coverage、history、data health、analysis inventory、会場・選手・対戦・条件・役割分析は削除していない
+- OVERVIEWでregistrationNo coverage、official entries、source-backed-alias、fake/fuzzy方針、Trend Lab実装状態を動的表示する
+- DATA COVERAGEでtoday.generated、official entries、starter source、history、official results、取得日時を表示する
+- EX公開datasetに専用Slack通知stateがないため、推測せず`UNAVAILABLE`と表示する
+- レース連鎖v1はKEIRIN.JP / JSJ048のofficial result onlyで、同日・同会場・一意race key・R→R+1・confirmed・実3連単払戻金を満たすpairだけを集計する
+- 本命戻り / 荒れ連鎖 / 中穴継続 / 波乱加速 / 堅め継続 / その他、transition matrix、前R荒れ以上の次R比率、代表例最大5件を動的算出する
+- 2026-07-04 snapshotではcandidate 56組、eligible 45組、excluded 11組。未confirmed 9組、着順・3連単不正または未取得2組
+- LOW SAMPLEは参考のみで、予想の主根拠にしない
+- registrationNo 463 / 463、official 459人、source-backed-alias 4人、3連単ランキングv1、荒れ指数v1を維持した
+- `public/data/**`は読み取りのみで、生成・変更・削除していない
+- `public/data/reviews/**`は変更、stash、削除、退避、stageしていない
+
 ## 触っていないもの
 
 - `public/data/reviews/**` は触っていない

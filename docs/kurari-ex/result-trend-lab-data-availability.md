@@ -368,3 +368,57 @@ A級 / S級はcurrent official resultにraceClassがないため`future-accumula
 
 32-04候補はレース連鎖分析とする。`date + venue + raceNumber`のrace keyで同日同会場を並べ、前Rが荒れた後の次R傾向、荒れ連鎖、本命戻り、中穴継続を、前後ともeligibleなofficial resultの場合だけ集計しLOW SAMPLEを表示する。
 
+## 32-04 EX情報棚卸し / 内部タブ / レース連鎖 v1
+
+既存EXページの表示を削除せず棚卸しし、1画面の縦積みから内部タブ切替へ整理した。指定8カテゴリに加え、既存の会場・選手・対戦・条件・役割分析を保持するため`EX ANALYSIS`を追加した。
+
+### 内部タブと既存表示の割当
+
+1. `OVERVIEW`: registrationNo coverage、official entries、source-backed-alias、fake/fuzzy方針、自動更新簡易状態、Result Trend Lab要約、KURARI EX現在地、品質legend、GLOBAL KPI
+2. `IDENTITY`: official entries接続、starter source fallback、source-backed-alias、foreign rider alias、mismatch audit、registrationNo source、provenance、fake/fuzzyなし
+3. `DATA COVERAGE`: today.generated、official entries、starter source、EX history、official results、取得日時、公開EX import、Slack専用stateのavailability、DATA HEALTH、RAW STATUS
+4. `TREND LAB`: data availability、analysis coverage / inventory、source capability、available focus、future accumulation、raw field schema、LOW SAMPLE / fake禁止roadmap
+5. `出目ランキング`: 3連単出目、1着 / 2着 / 3着車番、車番別3着内率、filter readiness
+6. `荒れ指数`: 実払戻金分類、平均 / 中央値 / 最大、R別 / 会場別 / Gレース別、最低オッズ比future
+7. `レース連鎖`: 32-04 official transition分析
+8. `WEATHER`: 風速bucket、決まり手、会場別、級班別のpartial / future-accumulation
+9. `EX ANALYSIS`: 会場カルテ、PLAYER EXACT、条件別、位置・役割、MATCHUP、関係性、戦法イベント、today recommendation、VENUE / PLAYER / MATCHUP個別画面
+
+非アクティブpanelはEX専用`[hidden]`ルールで非表示にし、既存component・fetch・集計を削除していない。全ページ共通CSSは変更していない。
+
+### レース連鎖 v1 eligible
+
+transition candidateは同一date・同一venueCode内のraceをraceNumber昇順に並べた隣接source recordとする。次をすべて満たすpairだけをeligibleとする。
+
+- feedがKEIRIN.JP / JSJ048でsource date・source取得日時が妥当
+- 前後race keyが一意
+- 前後ともconfirmedでcancelled / no-raceではない
+- raceNumberが正の整数で、次R = 前R + 1
+- 前後とも妥当な1〜3着と保存済み3連単が一致
+- 前後とも正の3連単実払戻金があり、荒れカテゴリを確定できる
+- dateまたぎ、会場またぎをpairとして形成しない
+
+raceNumber欠損・非連続、重複race key、未confirmed、中止、着順・3連単不正、払戻金・カテゴリ欠損は理由別にexcludedとする。推測補完やmissing raceを跨ぐ接続はしない。
+
+### 連鎖分類
+
+- 本命戻り: 前Rが荒れ / 大荒れ / 超荒れ、次Rが堅め
+- 荒れ連鎖: 前後とも荒れ / 大荒れ / 超荒れ
+- 中穴継続: 前後とも中穴
+- 波乱加速: 前Rが堅め / 中穴、次Rが荒れ / 大荒れ / 超荒れ
+- 堅め継続: 前後とも堅め
+- その他: 上記以外
+
+件数・割合、5×5 category transition matrix、前R荒れ以上からの本命戻り率 / 荒れ連鎖率、実払戻金が大きい代表例最大5件を動的算出する。LOW SAMPLEは既存基準をpair数にも適用し、予想の主根拠にしない。
+
+2026-07-04 official result snapshotの画面検証値はcandidate 56組、eligible 45組、excluded 11組。主な除外は未confirmed 9組、着順・3連単結果不正または未取得2組。これはハードコード値ではなくfeed更新に追随する。
+
+### 保護
+
+- registrationNo coverage 463 / 463、official entries 459人、source-backed-alias 4人を維持
+- 3連単ランキングv1、荒れ指数v1、既存identity/source/会場/選手/対戦分析を維持
+- unknown / unavailableをimplementedへ昇格しない
+- fakeデータ、fake払戻、fake source、fuzzy matchingを追加しない
+- `public/data/**`は読み取りのみ
+- `public/data/reviews/**`は変更、stash、削除、退避、stageしていない
+

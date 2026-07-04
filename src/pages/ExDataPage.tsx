@@ -109,6 +109,33 @@ import { SiteHeader, useIsMobile } from "./PageImplementations";
 const serif = '"Yu Mincho", "Hiragino Mincho ProN", "Times New Roman", serif';
 const sans = '"Helvetica Neue", Arial, "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif';
 
+type ExSectionTab =
+  | "overview"
+  | "identity"
+  | "coverage"
+  | "trend"
+  | "ranking"
+  | "turbulence"
+  | "chain"
+  | "weather"
+  | "analysis";
+
+const EX_SECTION_TABS: Array<{
+  key: ExSectionTab;
+  label: string;
+  sublabel: string;
+}> = [
+  { key: "overview", label: "OVERVIEW", sublabel: "全体サマリー" },
+  { key: "identity", label: "IDENTITY", sublabel: "選手source" },
+  { key: "coverage", label: "DATA COVERAGE", sublabel: "自動更新・source" },
+  { key: "trend", label: "TREND LAB", sublabel: "ロードマップ" },
+  { key: "ranking", label: "出目ランキング", sublabel: "3連単 v1" },
+  { key: "turbulence", label: "荒れ指数", sublabel: "実払戻 v1" },
+  { key: "chain", label: "レース連鎖", sublabel: "transition v1" },
+  { key: "weather", label: "WEATHER", sublabel: "風速×決まり手" },
+  { key: "analysis", label: "EX ANALYSIS", sublabel: "会場・選手・対戦" },
+];
+
 function formatBytes(bytes?: number | null) {
   if (!Number.isFinite(bytes)) return "--";
   if ((bytes ?? 0) < 1000) return `${bytes} B`;
@@ -126,6 +153,16 @@ function formatDate(value?: string | null) {
     month: "2-digit",
     day: "2-digit",
   }).format(date);
+}
+
+function sourceFreshness(value?: string | null, freshHours = 48) {
+  if (!value) return { status: "unavailable" as const, label: "UNAVAILABLE" };
+  const timestamp = Date.parse(value);
+  if (Number.isNaN(timestamp)) return { status: "unavailable" as const, label: "UNAVAILABLE" };
+  const ageHours = (Date.now() - timestamp) / 36e5;
+  return ageHours <= freshHours
+    ? { status: "fresh" as const, label: "FRESH" }
+    : { status: "stale" as const, label: "STALE" };
 }
 
 function valueText(value?: number | null, suffix = "") {
@@ -1187,6 +1224,7 @@ export default function ExDataPage() {
   const [initialStatus, setInitialStatus] = useState<"loading" | "ready" | "error">("loading");
   const [exactInitialData, setExactInitialData] = useState<KurariExExactInitialData | null>(null);
   const [exactInitialStatus, setExactInitialStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [activeSectionTab, setActiveSectionTab] = useState<ExSectionTab>("overview");
   const [activeView, setActiveView] = useState<"venue" | "player" | "matchup">("venue");
   const [query, setQuery] = useState("");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -1849,6 +1887,7 @@ export default function ExDataPage() {
   const selectedExact = selectedKey ? exactVenueCache[selectedKey] : null;
   const selectedExactLoadStatus = selectedKey ? exactVenueStatus[selectedKey] : undefined;
   const status = initialData?.status;
+  const publicExFreshness = sourceFreshness(status?.lastImportAt);
   const global = initialData?.globalKpi.kpi;
   const exactStatus = exactInitialData?.status;
   const exactGlobal = exactInitialData?.globalKpi;
@@ -2175,6 +2214,15 @@ export default function ExDataPage() {
           linear-gradient(180deg, #f7f5ff 0%, #f5faff 45%, #f7fffb 100%); }
         .ex-main { box-sizing: border-box; width: calc(100% - ${isMobile ? "32px" : "48px"}); max-width: 1600px; min-width: 0; margin-inline: auto; padding: ${isMobile ? "24px 0 64px" : "42px 0 92px"}; display: grid; gap: 24px; }
         .ex-main > * { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
+        .ex-main [hidden] { display: none !important; }
+        .ex-section-tabs { display: grid; grid-template-columns: repeat(auto-fit,minmax(${isMobile ? "128px" : "150px"},1fr)); gap: 9px; padding: 12px; border: 1px solid rgba(190,194,224,.62); border-radius: 24px; background: rgba(255,255,255,.82); box-shadow: 0 16px 40px rgba(82,74,135,.08); }
+        .ex-section-tab { min-width: 0; cursor: pointer; display: grid; gap: 4px; padding: 12px 13px; border: 1px solid #e2e2ed; border-radius: 16px; background: rgba(248,249,253,.9); color: #657187; text-align: left; }
+        .ex-section-tab strong { overflow-wrap: anywhere; font-size: 11px; line-height: 1.25; letter-spacing: .06em; }
+        .ex-section-tab span { color: #9099a9; font-size: 9px; line-height: 1.35; }
+        .ex-section-tab.is-active { border-color: #9f8bd6; color: #4f3b8e; background: linear-gradient(135deg,#f2ecff,#edf8ff); box-shadow: 0 8px 20px rgba(91,75,151,.14); }
+        .ex-section-tab.is-active span { color: #6e5ca8; }
+        .ex-section-tab:focus-visible { outline: 3px solid rgba(112,90,179,.24); outline-offset: 2px; }
+        .ex-overview-status { display: flex; flex-wrap: wrap; gap: 8px; }
         .ex-panel { border: 1px solid rgba(190,194,224,.62); border-radius: 30px; background: rgba(255,255,255,.78); box-shadow: 0 22px 55px rgba(82,74,135,.09); backdrop-filter: blur(18px); }
         .ex-hero { padding: ${isMobile ? "26px 22px" : "46px 48px"}; display: grid; grid-template-columns: ${isMobile ? "1fr" : "minmax(0,1.35fr) minmax(300px,.65fr)"}; gap: 28px; align-items: center; overflow: hidden; position: relative; }
         .ex-hero:after { content: ""; position: absolute; width: 360px; height: 360px; right: -90px; top: -170px; border-radius: 50%; background: linear-gradient(145deg, rgba(183,161,255,.42), rgba(153,219,255,.28)); }
@@ -2371,6 +2419,18 @@ export default function ExDataPage() {
         .ex-turbulence-breakdown { min-width: 0; padding: 18px; border: 1px solid #e2e5ed; border-radius: 21px; background: rgba(255,255,255,.76); }
         .ex-turbulence-breakdown h3 { margin: 0; color: #263650; font: 800 18px/1.35 ${serif}; }
         .ex-turbulence-table { min-width: 760px; }
+        .ex-chain-type-grid { display: grid; grid-template-columns: repeat(${isMobile ? 2 : 6},minmax(0,1fr)); gap: 10px; }
+        .ex-chain-type-card { min-width: 0; display: grid; gap: 6px; padding: 15px; border: 1px solid #dfe4ef; border-radius: 18px; background: linear-gradient(145deg,#fff,#f5f7fd); }
+        .ex-chain-type-card strong { color: #34435b; font-size: 12px; }
+        .ex-chain-type-card b { color: #5c4595; font: 850 25px/1 ${serif}; }
+        .ex-chain-type-card span { color: #758197; font-size: 10px; font-weight: 850; }
+        .ex-chain-matrix { min-width: 760px; }
+        .ex-chain-matrix td, .ex-chain-matrix th { text-align: center; }
+        .ex-chain-matrix td:first-child, .ex-chain-matrix th:first-child { text-align: left; }
+        .ex-chain-examples { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 2},minmax(0,1fr)); gap: 11px; }
+        .ex-chain-example { min-width: 0; display: grid; gap: 7px; padding: 17px; border: 1px solid #e1ddeb; border-radius: 19px; background: linear-gradient(145deg,#fff,#f8f5ff); }
+        .ex-chain-example h3 { margin: 0; color: #30405a; font: 800 17px/1.35 ${serif}; }
+        .ex-chain-example p { margin: 0; color: #68758a; font-size: 11px; line-height: 1.65; }
         .ex-data-table { width: 100%; border-collapse: collapse; min-width: 580px; color: #526078; font-size: 12px; }
         .ex-data-table th, .ex-data-table td { padding: 10px 9px; border-bottom: 1px solid #edf0f4; text-align: left; white-space: nowrap; }
         .ex-data-table th { color: #7765ae; font-size: 10px; letter-spacing: .08em; }
@@ -2578,20 +2638,104 @@ export default function ExDataPage() {
           </aside>
         </section>
 
-        <section className="ex-panel ex-section" data-testid="result-trend-lab-roadmap">
+        <nav className="ex-section-tabs" role="tablist" aria-label="KURARI EX内部ページ" data-testid="ex-section-tabs">
+          {EX_SECTION_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              className={`ex-section-tab${activeSectionTab === tab.key ? " is-active" : ""}`}
+              type="button"
+              role="tab"
+              aria-label={tab.label}
+              aria-selected={activeSectionTab === tab.key}
+              aria-controls={["trend", "ranking", "turbulence", "chain", "weather"].includes(tab.key)
+                ? "ex-section-trend-lab"
+                : `ex-section-${tab.key}`}
+              onClick={() => setActiveSectionTab(tab.key)}
+            >
+              <strong>{tab.label}</strong>
+              <span>{tab.sublabel}</span>
+            </button>
+          ))}
+        </nav>
+
+        <section
+          className="ex-panel ex-section"
+          data-testid="ex-section-overview"
+          id="ex-section-overview"
+          hidden={activeSectionTab !== "overview"}
+        >
+          <SectionTitle
+            eyebrow="KURARI EX OVERVIEW"
+            title="EX全体サマリー"
+            lead="identity・source・Result Trend Lab・既存EX分析の現在地を、保存済み値だけで簡潔に表示します。"
+          />
+          <div className="ex-health-grid">
+            <MetricCard
+              label="REGISTRATION NO COVERAGE"
+              value={identitySourceStatus === "loading"
+                ? "…"
+                : `${valueText(identitySourceSummary?.registrationNoCompleteCount)} / ${valueText(identitySourceSummary?.starterCount)}`}
+              note={`未取得 ${valueText(identitySourceSummary?.registrationNoMissingCount, "人")}`}
+              warning={(identitySourceSummary?.registrationNoMissingCount ?? 0) > 0}
+            />
+            <MetricCard label="OFFICIAL ENTRIES" value={valueText(identitySourceSummary?.officialEntriesCount, "人")} note="KEIRIN.JP exact connection" />
+            <MetricCard label="SOURCE-BACKED ALIAS" value={valueText(identitySourceSummary?.sourceBackedAliasCount, "人")} note="official directとは分離" />
+            <MetricCard
+              label="AUTO UPDATE"
+              value={initialStatus === "loading" ? "CHECKING" : publicExFreshness.label}
+              note={status?.lastImportAt ?? "取得日時 未取得"}
+              warning={publicExFreshness.status !== "fresh"}
+            />
+          </div>
+          <div className="ex-health-grid">
+            <MetricCard
+              label="TRIFECTA RANKING"
+              value={trifectaTrend?.status === "ready" ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "CHECKING"}
+              note={trifectaTrend ? `${trifectaTrend.eligibleRaceCount.toLocaleString("ja-JP")} eligible races` : "official result only"}
+              warning={trifectaTrendStatus === "error"}
+            />
+            <MetricCard
+              label="TURBULENCE INDEX"
+              value={trifectaTrend?.turbulence.status === "ready" ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "CHECKING"}
+              note={trifectaTrend ? formatPayoutYen(trifectaTrend.turbulence.averagePayoutYen) : "actual trifecta payout"}
+              warning={trifectaTrendStatus === "error"}
+            />
+            <MetricCard
+              label="RACE CHAIN"
+              value={trifectaTrend?.chain.status === "ready" ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "CHECKING"}
+              note={trifectaTrend ? `${trifectaTrend.chain.eligiblePairCount.toLocaleString("ja-JP")} eligible pairs` : "official result only"}
+              warning={trifectaTrendStatus === "error"}
+            />
+            <MetricCard label="SLACK NOTIFICATION STATE" value="UNAVAILABLE" note="EX公開datasetに専用stateなし" warning />
+          </div>
+          <div className="ex-overview-status">
+            <span className="ex-trend-status-pill is-ready">fake completion: なし</span>
+            <span className="ex-trend-status-pill is-ready">fuzzy matching: なし</span>
+            <span className="ex-trend-status-pill is-ready">official result only</span>
+            <span className="ex-trend-status-pill is-caution">LOW SAMPLEは参考のみ</span>
+            <span className="ex-trend-status-pill is-future-accumulation">unknown / unavailableは未実装扱い</span>
+          </div>
+        </section>
+
+        <section
+          className="ex-panel ex-section"
+          data-testid="result-trend-lab-roadmap"
+          id="ex-section-trend-lab"
+          hidden={!["trend", "ranking", "turbulence", "chain", "weather"].includes(activeSectionTab)}
+        >
           <SectionTitle
             eyebrow="KURARI EX RESULT TREND LAB"
             title="出目と流れを読む、次世代分析ラボ"
-            lead="official result onlyで育てる分析ラボです。3連単出目ランキングと、実払戻金だけで算出する荒れ指数v1を表示します。"
+            lead="official result onlyで育てる分析ラボです。3連単出目、実払戻金による荒れ指数、同日同会場のレース連鎖を安全条件ごとに分けて表示します。"
           />
-          <div className="ex-health-grid">
+          <div className="ex-health-grid" hidden={activeSectionTab !== "trend"}>
             <MetricCard label="DATA AVAILABILITY AUDIT" value="IMPLEMENTED" note="schema / coverage / provenance監査" />
             <MetricCard label="RANKING / PAYOUT ENGINE" value="IMPLEMENTED v1" note="official 3連単結果・実払戻金のみ" />
             <MetricCard label="ODDS GAP ANALYSIS" value="FUTURE" note="最低オッズ未取得・fake prohibited" warning />
             <MetricCard label="WIND × FINISH TREND" value="PARTIAL" note="風速・決まり手に欠損とprovenance課題" warning />
           </div>
 
-          <div className="ex-subsection" data-testid="result-trend-lab-ranking-v1">
+          <div className="ex-subsection" data-testid="result-trend-lab-ranking-v1" hidden={activeSectionTab !== "ranking"}>
             <SectionTitle
               eyebrow="TRIFECTA OUTCOME RANKING v1"
               title="3連単出目ランキング v1"
@@ -2685,7 +2829,7 @@ export default function ExDataPage() {
             ) : null}
           </div>
 
-          <div className="ex-subsection" data-testid="result-trend-lab-turbulence-v1">
+          <div className="ex-subsection" data-testid="result-trend-lab-turbulence-v1" hidden={activeSectionTab !== "turbulence"}>
             <SectionTitle
               eyebrow="KURARI EX TURBULENCE INDEX v1"
               title="荒れ指数 v1"
@@ -2837,17 +2981,259 @@ export default function ExDataPage() {
             ) : null}
           </div>
 
-          <div className="ex-empty">
-            <strong>ROADMAP / FUTURE-ACCUMULATION</strong><br />
-            最低オッズ比 / レース連鎖分析 / 風速×決まり手 / 会場クセ / 今日の流れメーター
+          <div className="ex-subsection" data-testid="result-trend-lab-chain-v1" hidden={activeSectionTab !== "chain"}>
+            <SectionTitle
+              eyebrow="KURARI EX RACE CHAIN v1"
+              title="レース連鎖分析 v1"
+              lead="同日・同会場でraceNumberが1つ違い、前後ともeligibleなofficial 3連単実払戻金を持つpairだけを集計します。"
+            />
+            {trifectaTrendStatus === "loading" ? <EmptyState text="official transition pairを確認しています。" /> : null}
+            {trifectaTrendStatus === "error" ? (
+              <EmptyState text="No eligible official transition data / official sourceを取得できませんでした。" />
+            ) : null}
+            {trifectaTrend ? (
+              <>
+                <div className="ex-health-grid">
+                  <MetricCard label="SOURCE" value="official result only" note={trifectaTrend.sourceName} />
+                  <MetricCard
+                    label="ELIGIBLE PAIRS"
+                    value={trifectaTrend.chain.eligiblePairCount.toLocaleString("ja-JP")}
+                    note={`candidate ${trifectaTrend.chain.transitionCandidateCount.toLocaleString("ja-JP")} pairs`}
+                  />
+                  <MetricCard
+                    label="EXCLUDED PAIRS"
+                    value={trifectaTrend.chain.excludedPairCount.toLocaleString("ja-JP")}
+                    note="strict pair eligibilityで除外"
+                    warning={trifectaTrend.chain.excludedPairCount > 0}
+                  />
+                  <MetricCard
+                    label="SAMPLE STATUS"
+                    value={trifectaTrend.chain.sampleLabel}
+                    note={trifectaTrend.chain.sampleStatus === "low-sample"
+                      ? "参考のみ"
+                      : trifectaTrend.chain.sampleStatus === "caution"
+                        ? "傾向注意"
+                        : "予想の主根拠ではなく補助"}
+                    warning={trifectaTrend.chain.sampleStatus !== "usable"}
+                  />
+                </div>
+
+                {trifectaTrend.chain.status === "ready" ? (
+                  <>
+                    <div className="ex-chain-type-grid">
+                      {trifectaTrend.chain.chainTypes.map((item) => (
+                        <article className="ex-chain-type-card" key={item.key}>
+                          <strong>{item.label}</strong>
+                          <b>{item.count.toLocaleString("ja-JP")}組</b>
+                          <span>{item.rate.toFixed(1)}%</span>
+                        </article>
+                      ))}
+                    </div>
+
+                    <div className="ex-health-grid">
+                      <MetricCard
+                        label="AFTER UPSET SAMPLE"
+                        value={`${trifectaTrend.chain.afterUpset.sampleSize.toLocaleString("ja-JP")}組`}
+                        note="前Rが荒れ以上"
+                        warning={trifectaTrend.chain.afterUpset.sampleSize < 30}
+                      />
+                      <MetricCard
+                        label="FAVORITE RETURN"
+                        value={`${trifectaTrend.chain.afterUpset.favoriteReturnRate.toFixed(1)}%`}
+                        note={`${trifectaTrend.chain.afterUpset.favoriteReturnCount.toLocaleString("ja-JP")} / ${trifectaTrend.chain.afterUpset.sampleSize.toLocaleString("ja-JP")}組`}
+                        warning={trifectaTrend.chain.afterUpset.sampleSize < 30}
+                      />
+                      <MetricCard
+                        label="UPSET CHAIN"
+                        value={`${trifectaTrend.chain.afterUpset.upsetChainRate.toFixed(1)}%`}
+                        note={`${trifectaTrend.chain.afterUpset.upsetChainCount.toLocaleString("ja-JP")} / ${trifectaTrend.chain.afterUpset.sampleSize.toLocaleString("ja-JP")}組`}
+                        warning={trifectaTrend.chain.afterUpset.sampleSize < 30}
+                      />
+                      <MetricCard label="PAIR RULE" value="R → R+1" note="同日 / 同会場 / 一意race key" />
+                    </div>
+
+                    <div className="ex-location-grid">
+                      <article className="ex-location-card">
+                        <div className="ex-location-head">
+                          <h3>連鎖 excluded理由</h3>
+                          <span className="ex-location-status is-warning">EXCLUDED</span>
+                        </div>
+                        {trifectaTrend.chain.exclusionReasons.length ? (
+                          <ul className="ex-trend-reasons">
+                            {trifectaTrend.chain.exclusionReasons.map((reason) => (
+                              <li key={reason.key}>{reason.label}: {reason.count.toLocaleString("ja-JP")}組</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <div className="ex-muted">除外なし</div>
+                        )}
+                      </article>
+                      <article className="ex-location-card">
+                        <div className="ex-location-head">
+                          <h3>SAFETY CONTRACT</h3>
+                          <span className="ex-location-status is-ready">STRICT</span>
+                        </div>
+                        <div className="ex-overview-status">
+                          <span className="ex-trend-status-pill is-ready">date一致</span>
+                          <span className="ex-trend-status-pill is-ready">venueCode一致</span>
+                          <span className="ex-trend-status-pill is-ready">confirmed</span>
+                          <span className="ex-trend-status-pill is-ready">実払戻金</span>
+                          <span className="ex-trend-status-pill is-ready">fakeなし</span>
+                        </div>
+                      </article>
+                    </div>
+
+                    <article className="ex-turbulence-breakdown">
+                      <div className="ex-location-head">
+                        <h3>category transition matrix</h3>
+                        <span className="ex-location-status is-partial">COUNT</span>
+                      </div>
+                      <div className="ex-table-wrap">
+                        <table className="ex-data-table ex-chain-matrix">
+                          <thead>
+                            <tr>
+                              <th>前R ＼ 次R</th>
+                              {trifectaTrend.turbulence.categories.map((category) => (
+                                <th key={category.key}>{category.label}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {trifectaTrend.turbulence.categories.map((previous) => (
+                              <tr key={previous.key}>
+                                <td><strong>{previous.label}</strong></td>
+                                {trifectaTrend.turbulence.categories.map((next) => {
+                                  const cell = trifectaTrend.chain.transitionMatrix.find(
+                                    (item) => item.previousCategory === previous.key && item.nextCategory === next.key,
+                                  );
+                                  return <td key={`${previous.key}-${next.key}`}>{cell?.count ?? 0}</td>;
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </article>
+
+                    <div className="ex-subsection">
+                      <div className="ex-eyebrow">REPRESENTATIVE EXAMPLES / MAX 5</div>
+                      <div className="ex-chain-examples">
+                        {trifectaTrend.chain.examples.map((example) => (
+                          <article
+                            className="ex-chain-example"
+                            key={`${example.date}-${example.venueCode}-${example.previousRaceNumber}`}
+                          >
+                            <div className="ex-trend-status-pill is-partial">{example.chainTypeLabel}</div>
+                            <h3>{example.date} {example.venueName} {example.previousRaceNumber}R → {example.nextRaceNumber}R</h3>
+                            <p>
+                              {example.previousCategoryLabel} {formatPayoutYen(example.previousPayoutYen)}
+                              {" → "}
+                              {example.nextCategoryLabel} {formatPayoutYen(example.nextPayoutYen)}
+                            </p>
+                          </article>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <EmptyState text="No eligible official transition data" />
+                )}
+              </>
+            ) : null}
           </div>
-          <div className="ex-muted">
+
+          <div className="ex-subsection" data-testid="result-trend-lab-weather-roadmap" hidden={activeSectionTab !== "weather"}>
+            <SectionTitle
+              eyebrow="WEATHER / WIND × FINISH TREND"
+              title="風速×決まり手"
+              lead="32-05以降の実装候補です。現時点では欠損とprovenance課題があるためpartial / future-accumulationとして表示します。"
+            />
+            <div className="ex-health-grid">
+              <MetricCard label="WIND BUCKET" value="PARTIAL" note="0〜1m / 1〜3m / 3〜5m / 5m以上" warning />
+              <MetricCard label="WINNING METHOD" value="PARTIAL" note="逃げ / 捲り / 差し / マーク" warning />
+              <MetricCard label="BY VENUE" value="FUTURE" note="LOW SAMPLE aware" warning />
+              <MetricCard label="BY CLASS" value="FUTURE" note="raceClass source不足" warning />
+            </div>
+            <div className="ex-empty">
+              fake風速・fake決まり手は生成しません。保存済みofficial sourceと欠損率を監査してから実装します。
+            </div>
+          </div>
+
+          <div className="ex-empty" hidden={activeSectionTab !== "trend"}>
+            <strong>ROADMAP / FUTURE-ACCUMULATION</strong><br />
+            最低オッズ比 / 風速×決まり手 / 会場クセ / 今日の流れメーター
+          </div>
+          <div className="ex-muted" hidden={activeSectionTab !== "trend"}>
             official result only / fake prohibited / LOW SAMPLE aware。
             30R未満は参考のみ、30〜99Rは傾向注意、100R以上でも予想の主根拠ではなく補助として扱います。
           </div>
         </section>
 
-        <section className="ex-panel ex-section" data-testid="kurari-ex-history-overview">
+        <section
+          className="ex-panel ex-section"
+          data-testid="ex-section-coverage"
+          id="ex-section-coverage"
+          hidden={activeSectionTab !== "coverage"}
+        >
+          <SectionTitle
+            eyebrow="DATA COVERAGE / AUTO UPDATE"
+            title="自動更新・source現在地"
+            lead="today.generated、official entries、starter source、EX history、official resultsの保存済み状態と取得日時を表示します。"
+          />
+          <div className="ex-health-grid">
+            <MetricCard
+              label="TODAY.GENERATED"
+              value={identitySourceStatus === "loading" ? "…" : formatDate(identitySourceSummary?.todayDate)}
+              note={identitySourceSummary?.todayGeneratedAt ?? "取得日時 未取得"}
+              warning={!identitySourceSummary?.todayDate}
+            />
+            <MetricCard
+              label="OFFICIAL ENTRIES"
+              value={identitySourceStatus === "loading" ? "…" : valueText(identitySourceSummary?.officialEntriesCount, "人")}
+              note={identitySourceSummary?.officialEntriesFetchedAt ?? "取得日時 未取得"}
+              warning={!identitySourceSummary?.officialEntriesDate}
+            />
+            <MetricCard
+              label="STARTER SOURCE"
+              value={startersSourceStatus === "loading" ? "…" : startersSourceSummary?.status ?? "unavailable"}
+              note={identitySourceSummary?.starterSourceFetchedAt ?? "取得日時 未取得"}
+              warning={startersSourceStatus === "error"}
+            />
+            <MetricCard
+              label="EX HISTORY"
+              value={historyIndexStatus === "loading" ? "…" : valueText(historyIndexSummary?.registeredDays, "日")}
+              note={historyIndexSummary?.latestDate ?? "latest 未取得"}
+              warning={historyIndexStatus === "error"}
+            />
+            <MetricCard
+              label="OFFICIAL RESULTS"
+              value={trifectaTrendStatus === "loading" ? "…" : trifectaTrend?.sourceName ?? "unavailable"}
+              note={trifectaTrend?.sourceFetchedAt ?? "取得日時 未取得"}
+              warning={trifectaTrendStatus === "error"}
+            />
+            <MetricCard
+              label="PUBLIC EX IMPORT"
+              value={initialStatus === "loading" ? "CHECKING" : publicExFreshness.label}
+              note={status?.lastImportAt ?? "取得日時 未取得"}
+              warning={publicExFreshness.status !== "fresh"}
+            />
+            <MetricCard label="SLACK NOTIFICATION STATE" value="UNAVAILABLE" note="EX公開datasetに専用stateなし" warning />
+            <MetricCard
+              label="COVERAGE STATUS"
+              value={identitySourceSummary?.status ?? (identitySourceStatus === "loading" ? "CHECKING" : "unavailable")}
+              note="unknown / unavailableは補完しない"
+              warning={identitySourceSummary?.status !== "ready"}
+            />
+          </div>
+          <div className="ex-overview-status">
+            <span className="ex-trend-status-pill is-ready">public/data: read-only</span>
+            <span className="ex-trend-status-pill is-ready">fake completion: なし</span>
+            <span className="ex-trend-status-pill is-ready">fuzzy matching: なし</span>
+            <span className="ex-trend-status-pill is-future-accumulation">専用Slack state: unavailable</span>
+          </div>
+        </section>
+
+        <section className="ex-panel ex-section" data-testid="kurari-ex-history-overview" hidden={activeSectionTab !== "coverage"}>
           <SectionTitle
             eyebrow="HISTORY INDEX / DAILY CONSUMER"
             title="KURARI EX History Overview"
@@ -3008,7 +3394,7 @@ export default function ExDataPage() {
           </div>
         </section>
 
-        <section className="ex-panel ex-section">
+        <section className="ex-panel ex-section" data-testid="ex-section-identity" id="ex-section-identity" hidden={activeSectionTab !== "identity"}>
           <SectionTitle
             eyebrow="IDENTITY SOURCE CONNECTION"
             title="出走選手・登録番号 source coverage"
@@ -3364,7 +3750,7 @@ export default function ExDataPage() {
           )}
         </section>
 
-        <section className="ex-panel ex-section">
+        <section className="ex-panel ex-section" hidden={activeSectionTab !== "coverage"}>
           <SectionTitle
             eyebrow="EXACT STARTERS SOURCE"
             title="正確出走選手ソース"
@@ -3455,7 +3841,7 @@ export default function ExDataPage() {
           )}
         </section>
 
-        <section className="ex-panel ex-section ex-location">
+        <section className="ex-panel ex-section ex-location" hidden={activeSectionTab !== "overview"}>
           <SectionTitle
             eyebrow="KURARI EX POSITION"
             title="KURARI EX 現在地"
@@ -3556,7 +3942,7 @@ export default function ExDataPage() {
           </p>
         </section>
 
-        <section className="ex-panel ex-section">
+        <section className="ex-panel ex-section" hidden={activeSectionTab !== "analysis"}>
           <SectionTitle
             eyebrow="PLAYER EXACT OVERVIEW"
             title="選手別EXACT一覧"
@@ -3722,7 +4108,7 @@ export default function ExDataPage() {
           </p>
         </section>
 
-        <section className="ex-panel ex-section">
+        <section className="ex-panel ex-section" hidden={activeSectionTab !== "analysis"}>
           <SectionTitle
             eyebrow="CONDITION EXACT DATA"
             title="条件別データ"
@@ -3831,7 +4217,7 @@ export default function ExDataPage() {
           </p>
         </section>
 
-        <section className="ex-panel ex-section">
+        <section className="ex-panel ex-section" hidden={activeSectionTab !== "analysis"}>
           <SectionTitle
             eyebrow="POSITION / ROLE EXACT"
             title="位置・役割別成績"
@@ -3935,7 +4321,7 @@ export default function ExDataPage() {
           </p>
         </section>
 
-        <section className="ex-panel ex-section">
+        <section className="ex-panel ex-section" hidden={activeSectionTab !== "analysis"}>
           <SectionTitle
             eyebrow="MATCHUP EXACT OVERVIEW"
             title="MATCHUP / 相性データ一覧"
@@ -4040,7 +4426,7 @@ export default function ExDataPage() {
           </p>
         </section>
 
-        <section className="ex-panel ex-section">
+        <section className="ex-panel ex-section" hidden={activeSectionTab !== "analysis"}>
           <SectionTitle
             eyebrow="LINE / RELATIONSHIP NOTES"
             title="ライン・関係性メモ"
@@ -4122,7 +4508,7 @@ export default function ExDataPage() {
           </p>
         </section>
 
-        <section className="ex-panel ex-section">
+        <section className="ex-panel ex-section" hidden={activeSectionTab !== "analysis"}>
           <SectionTitle
             eyebrow="TACTIC EVENT RULE MANAGEMENT"
             title="戦法イベント管理欄"
@@ -4180,12 +4566,12 @@ export default function ExDataPage() {
         </section>
 
         {initialStatus === "error" ? (
-          <section className="ex-panel ex-section">
+          <section className="ex-panel ex-section" hidden={activeSectionTab !== "analysis"}>
             <EmptyState text="KURARI EX DATAはまだ生成されていません。private-inputへ原本を追加し、importスクリプトを実行してください。" />
           </section>
         ) : null}
 
-        <section className="ex-panel ex-section ex-today">
+        <section className="ex-panel ex-section ex-today" hidden={activeSectionTab !== "analysis"}>
           <SectionTitle
             eyebrow="TODAY RECOMMENDATION"
             title={"\u4eca\u65e5\u306e\u63a8\u5968\u30e1\u30e2"}
@@ -4274,7 +4660,7 @@ export default function ExDataPage() {
           ) : null}
         </section>
 
-        <section className="ex-panel ex-section">
+        <section className="ex-panel ex-section" hidden={activeSectionTab !== "coverage"}>
           <SectionTitle eyebrow="DATA HEALTH" title="公開データの生成状態" lead={`最終取込 ${formatDate(status?.lastImportAt)}`} />
           <div className="ex-health-grid">
             {healthMetrics.map(([label, value, note]) => (
@@ -4301,7 +4687,7 @@ export default function ExDataPage() {
           ) : null}
         </section>
 
-        <section className="ex-panel ex-section">
+        <section className="ex-panel ex-section" hidden={activeSectionTab !== "trend"}>
           <SectionTitle eyebrow="EX ANALYSIS COVERAGE" title="分析項目チェックリスト" lead="実装済み・一部・蓄積予定・fake禁止を分けて管理します。" />
           <div className="ex-subsection">
             <div className="ex-eyebrow">COVERAGE MAP</div>
@@ -4342,7 +4728,7 @@ export default function ExDataPage() {
           <div className="ex-empty">POLICY: 未確定指標は推定で補完しません。正確に蓄積できるデータだけをEXACTとして昇格します。</div>
         </section>
 
-        <section className="ex-panel ex-section">
+        <section className="ex-panel ex-section" hidden={activeSectionTab !== "trend"}>
           <SectionTitle
             eyebrow="EX ANALYSIS INVENTORY"
             title="分析項目マップ / 重複防止"
@@ -4403,7 +4789,7 @@ export default function ExDataPage() {
           </div>
         </section>
 
-        <section className="ex-panel ex-section">
+        <section className="ex-panel ex-section" hidden={activeSectionTab !== "trend"}>
           <SectionTitle
             eyebrow="SOURCE CAPABILITY AUDIT"
             title="データ根拠監査 / 生成可能性"
@@ -4442,7 +4828,7 @@ export default function ExDataPage() {
           </div>
         </section>
 
-        <section className="ex-panel ex-section">
+        <section className="ex-panel ex-section" hidden={activeSectionTab !== "trend"}>
           <SectionTitle
             eyebrow="AVAILABLE ANALYSIS FOCUS"
             title="実データで使える分析"
@@ -4473,7 +4859,7 @@ export default function ExDataPage() {
           </div>
         </section>
 
-        <section className="ex-panel ex-section">
+        <section className="ex-panel ex-section" hidden={activeSectionTab !== "trend"}>
           <SectionTitle
             eyebrow="FUTURE ACCUMULATION PLAN"
             title="蓄積設計 / available昇格条件"
@@ -4518,7 +4904,7 @@ export default function ExDataPage() {
           </div>
         </section>
 
-        <section className="ex-panel ex-section">
+        <section className="ex-panel ex-section" hidden={activeSectionTab !== "trend"}>
           <SectionTitle
             eyebrow="RAW FIELD SCHEMA PLAN"
             title="生成前スキーマ設計 / RAW FIELD"
@@ -4570,7 +4956,7 @@ export default function ExDataPage() {
           </div>
         </section>
 
-        <section className="ex-panel ex-section">
+        <section className="ex-panel ex-section" hidden={activeSectionTab !== "overview"}>
           <SectionTitle eyebrow="QUALITY LEGEND" title="データ品質の4段階" lead="SEEDとEXACTを分離して公開しています。" />
           <div className="ex-legend">
             {[
@@ -4582,7 +4968,7 @@ export default function ExDataPage() {
           </div>
         </section>
 
-        <section className="ex-panel ex-section">
+        <section className="ex-panel ex-section" hidden={activeSectionTab !== "overview"}>
           <SectionTitle eyebrow="GLOBAL KPI" title="全体傾向" lead="Summaryに明記された値だけを集計。" />
           <div className="ex-eyebrow">SEED / Summary由来の初期知識</div>
           <div className="ex-kpi-grid">
@@ -4613,13 +4999,14 @@ export default function ExDataPage() {
           </div>
         </section>
 
+        <div hidden={activeSectionTab !== "analysis"} style={{ display: activeSectionTab === "analysis" ? "contents" : "none" }}>
         <div className="ex-view-tabs" role="tablist" aria-label="EX表示切替">
           <button className={`ex-view-tab${activeView === "venue" ? " is-active" : ""}`} type="button" role="tab" aria-selected={activeView === "venue"} onClick={() => setActiveView("venue")}>VENUE EX</button>
           <button className={`ex-view-tab${activeView === "player" ? " is-active" : ""}`} type="button" role="tab" aria-selected={activeView === "player"} onClick={() => setActiveView("player")}>PLAYER EX</button>
           <button className={`ex-view-tab${activeView === "matchup" ? " is-active" : ""}`} type="button" role="tab" aria-selected={activeView === "matchup"} onClick={() => setActiveView("matchup")}>MATCHUP EX</button>
         </div>
 
-        <section className="ex-panel ex-section ex-analysis">
+        <section className="ex-panel ex-section ex-analysis" id="ex-section-analysis" hidden={activeSectionTab !== "analysis"}>
           <SectionTitle
             eyebrow="VENUE SCORE ANALYSIS"
             title="会場カルテランキング"
@@ -5342,8 +5729,9 @@ export default function ExDataPage() {
           </>
         )}
 
+        </div>
 
-        <details className="ex-panel ex-section ex-raw">
+        <details className="ex-panel ex-section ex-raw" hidden={activeSectionTab !== "coverage"}>
           <summary>RAW STATUS / 生成状態を見る</summary>
           <div className="ex-raw-grid">
             {status ? Object.entries(status).map(([key, value]) => (

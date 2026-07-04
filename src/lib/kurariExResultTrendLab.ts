@@ -80,6 +80,61 @@ export type KurariExTurbulenceV1 = {
   }>;
 };
 
+export type KurariExRaceChainTypeKey =
+  | "favorite-return"
+  | "upset-chain"
+  | "mid-upset-continues"
+  | "upset-acceleration"
+  | "firm-continues"
+  | "other";
+
+export type KurariExRaceChainV1 = {
+  status: "ready" | "no-eligible-data";
+  sourcePolicy: "official result only";
+  eligiblePairCount: number;
+  excludedPairCount: number;
+  transitionCandidateCount: number;
+  exclusionReasons: Array<{ key: string; label: string; count: number }>;
+  sampleStatus: KurariExTrendSampleStatus;
+  sampleLabel: string;
+  chainTypes: Array<{
+    key: KurariExRaceChainTypeKey;
+    label: string;
+    count: number;
+    rate: number;
+  }>;
+  transitionMatrix: Array<{
+    previousCategory: KurariExTurbulenceCategoryKey;
+    previousLabel: string;
+    nextCategory: KurariExTurbulenceCategoryKey;
+    nextLabel: string;
+    count: number;
+    rate: number;
+  }>;
+  afterUpset: {
+    sampleSize: number;
+    favoriteReturnCount: number;
+    favoriteReturnRate: number;
+    upsetChainCount: number;
+    upsetChainRate: number;
+  };
+  examples: Array<{
+    date: string;
+    venueCode: string;
+    venueName: string;
+    previousRaceNumber: number;
+    nextRaceNumber: number;
+    previousCategory: KurariExTurbulenceCategoryKey;
+    previousCategoryLabel: string;
+    nextCategory: KurariExTurbulenceCategoryKey;
+    nextCategoryLabel: string;
+    previousPayoutYen: number;
+    nextPayoutYen: number;
+    chainType: KurariExRaceChainTypeKey;
+    chainTypeLabel: string;
+  }>;
+};
+
 export type KurariExTrifectaTrendV1 = {
   status: "ready" | "no-eligible-data";
   sourcePolicy: "official result only";
@@ -99,6 +154,7 @@ export type KurariExTrifectaTrendV1 = {
   carTop3RateRanking: KurariExTrendCarTop3Row[];
   filterReadiness: KurariExTrendFilterReadiness[];
   turbulence: KurariExTurbulenceV1;
+  chain: KurariExRaceChainV1;
 };
 
 type OfficialFinishRow = {
@@ -163,6 +219,27 @@ const TURBULENCE_CATEGORY_DEFINITIONS: Array<{
   { key: "extreme-upset", label: "超荒れ", min: 100_000, max: null, rangeLabel: "100,000円以上" },
 ];
 
+const CHAIN_TYPE_LABELS: Record<KurariExRaceChainTypeKey, string> = {
+  "favorite-return": "本命戻り",
+  "upset-chain": "荒れ連鎖",
+  "mid-upset-continues": "中穴継続",
+  "upset-acceleration": "波乱加速",
+  "firm-continues": "堅め継続",
+  other: "その他",
+};
+
+const CHAIN_EXCLUSION_LABELS: Record<string, string> = {
+  "date-or-venue-unavailable": "dateまたはvenueCodeが未取得",
+  "race-number-missing": "raceNumberが未取得・不正",
+  "race-number-not-contiguous": "前Rと次Rが連続していない",
+  "duplicate-race-key": "同一race keyが重複",
+  "source-unavailable": "official source条件を満たさない",
+  "not-confirmed": "前後いずれかがconfirmedではない",
+  "cancelled-or-no-race": "前後いずれかがcancelled / no race",
+  "payout-or-category-unavailable": "前後いずれかの3連単払戻金・荒れカテゴリが未取得",
+  "race-result-unavailable": "前後いずれかの着順・3連単結果が不正または未取得",
+};
+
 function clean(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -201,6 +278,28 @@ function payoutCategoryKey(payoutYen: number) {
     (definition) => payoutYen >= definition.min
       && (definition.max == null || payoutYen <= definition.max),
   )?.key ?? "extreme-upset";
+}
+
+function payoutCategoryLabel(key: KurariExTurbulenceCategoryKey) {
+  return TURBULENCE_CATEGORY_DEFINITIONS.find((definition) => definition.key === key)?.label ?? key;
+}
+
+function isUpsetOrAbove(key: KurariExTurbulenceCategoryKey) {
+  return key === "upset" || key === "major-upset" || key === "extreme-upset";
+}
+
+function chainType(
+  previous: KurariExTurbulenceCategoryKey,
+  next: KurariExTurbulenceCategoryKey,
+): KurariExRaceChainTypeKey {
+  if (isUpsetOrAbove(previous) && next === "firm") return "favorite-return";
+  if (isUpsetOrAbove(previous) && isUpsetOrAbove(next)) return "upset-chain";
+  if (previous === "mid-upset" && next === "mid-upset") return "mid-upset-continues";
+  if ((previous === "firm" || previous === "mid-upset") && isUpsetOrAbove(next)) {
+    return "upset-acceleration";
+  }
+  if (previous === "firm" && next === "firm") return "firm-continues";
+  return "other";
 }
 
 function payoutCategories(payouts: number[]): KurariExTurbulenceCategory[] {
@@ -298,7 +397,9 @@ export function buildKurariExTrifectaTrendV1(
   const positionCounts = [new Map<string, number>(), new Map<string, number>(), new Map<string, number>()];
   const top3Counts = new Map<string, number>();
   const recordedStartCounts = new Map<string, number>();
+  const candidateExclusionReasons: Array<string | null> = candidates.map(() => null);
   const eligiblePayoutRaces: Array<{
+    raceKey: string;
     date: string;
     venueCode: string;
     venueName: string;
@@ -309,30 +410,31 @@ export function buildKurariExTrifectaTrendV1(
   }> = [];
   let eligibleRaceCount = 0;
 
-  const exclude = (reason: string) => {
+  const exclude = (reason: string, candidateIndex: number) => {
     exclusionCounts.set(reason, (exclusionCounts.get(reason) ?? 0) + 1);
+    candidateExclusionReasons[candidateIndex] = reason;
   };
 
   candidates.forEach(({ venue, race }, index) => {
     const raceKey = raceKeys[index];
     if (!sourceIsOfficial) {
-      exclude("source-unavailable");
+      exclude("source-unavailable", index);
       return;
     }
     if (!raceKey) {
-      exclude("race-key-missing");
+      exclude("race-key-missing", index);
       return;
     }
     if ((keyCounts.get(raceKey) ?? 0) !== 1) {
-      exclude("duplicate-race-key");
+      exclude("duplicate-race-key", index);
       return;
     }
     if (["cancelled", "no-race"].includes(clean(race.operationStatus).toLowerCase())) {
-      exclude("cancelled-or-no-race");
+      exclude("cancelled-or-no-race", index);
       return;
     }
     if (clean(race.resultStatus) !== "confirmed") {
-      exclude("not-confirmed");
+      exclude("not-confirmed", index);
       return;
     }
     const ranked = (race.finishOrder ?? [])
@@ -340,31 +442,32 @@ export function buildKurariExTrifectaTrendV1(
       .filter((row) => Number.isInteger(row.rank) && row.rank >= 1 && row.rank <= 3)
       .sort((left, right) => left.rank - right.rank);
     if (ranked.length !== 3 || ranked.some((row, position) => row.rank !== position + 1)) {
-      exclude("finish-order-missing");
+      exclude("finish-order-missing", index);
       return;
     }
     if (ranked.some((row) => row.carNo == null)) {
-      exclude("invalid-car-number");
+      exclude("invalid-car-number", index);
       return;
     }
     const top3 = ranked.map((row) => row.carNo as number);
     if (new Set(top3).size !== 3) {
-      exclude("invalid-car-number");
+      exclude("invalid-car-number", index);
       return;
     }
     const combination = top3.join("-");
     if (clean(race.payout3tan?.combination) !== combination) {
-      exclude("trifecta-missing-or-mismatch");
+      exclude("trifecta-missing-or-mismatch", index);
       return;
     }
     const payoutYen = positiveYen(race.payout3tan?.payoutYen);
     if (payoutYen == null) {
-      exclude("payout-missing-or-invalid");
+      exclude("payout-missing-or-invalid", index);
       return;
     }
 
     eligibleRaceCount += 1;
     eligiblePayoutRaces.push({
+      raceKey,
       date: clean(venue.date || sourceDate),
       venueCode: clean(venue.venueCode),
       venueName: clean(venue.venueName) || clean(venue.venueCode),
@@ -430,6 +533,162 @@ export function buildKurariExTrifectaTrendV1(
     null,
   );
   const turbulenceSample = sampleStatus(eligibleRaceCount);
+  const eligibleRaceByKey = new Map(eligiblePayoutRaces.map((race) => [race.raceKey, race]));
+  const chainExclusionCounts = new Map<string, number>();
+  const chainPairs: Array<{
+    previous: typeof eligiblePayoutRaces[number];
+    next: typeof eligiblePayoutRaces[number];
+    previousCategory: KurariExTurbulenceCategoryKey;
+    nextCategory: KurariExTurbulenceCategoryKey;
+    type: KurariExRaceChainTypeKey;
+  }> = [];
+  let transitionCandidateCount = 0;
+  const excludeChain = (reason: string) => {
+    chainExclusionCounts.set(reason, (chainExclusionCounts.get(reason) ?? 0) + 1);
+  };
+  const chainReasonForRace = (reason: string | null) => {
+    if (reason === "source-unavailable") return "source-unavailable";
+    if (reason === "duplicate-race-key") return "duplicate-race-key";
+    if (reason === "cancelled-or-no-race") return "cancelled-or-no-race";
+    if (reason === "not-confirmed") return "not-confirmed";
+    if (reason === "payout-missing-or-invalid") return "payout-or-category-unavailable";
+    if (reason) return "race-result-unavailable";
+    return null;
+  };
+  const chainGroups = new Map<string, Array<{
+    index: number;
+    raceKey: string;
+    raceNumber: number;
+  }>>();
+  candidates.forEach(({ venue, race }, index) => {
+    const date = clean(venue.date || sourceDate);
+    const venueCode = clean(venue.venueCode);
+    const raceNumber = Number(race.raceNumber);
+    if (!date || !venueCode) {
+      transitionCandidateCount += 1;
+      excludeChain("date-or-venue-unavailable");
+      return;
+    }
+    if (!Number.isInteger(raceNumber) || raceNumber <= 0) {
+      transitionCandidateCount += 1;
+      excludeChain("race-number-missing");
+      return;
+    }
+    const groupKey = `${date}|${venueCode}`;
+    const group = chainGroups.get(groupKey) ?? [];
+    group.push({ index, raceKey: raceKeys[index], raceNumber });
+    chainGroups.set(groupKey, group);
+  });
+  chainGroups.forEach((group) => {
+    const sorted = [...group].sort((left, right) => left.raceNumber - right.raceNumber);
+    for (let index = 0; index < sorted.length - 1; index += 1) {
+      transitionCandidateCount += 1;
+      const previousCandidate = sorted[index];
+      const nextCandidate = sorted[index + 1];
+      const previousReason = chainReasonForRace(candidateExclusionReasons[previousCandidate.index]);
+      const nextReason = chainReasonForRace(candidateExclusionReasons[nextCandidate.index]);
+      if (previousReason === "duplicate-race-key" || nextReason === "duplicate-race-key") {
+        excludeChain("duplicate-race-key");
+        continue;
+      }
+      if (nextCandidate.raceNumber !== previousCandidate.raceNumber + 1) {
+        excludeChain("race-number-not-contiguous");
+        continue;
+      }
+      if (previousReason || nextReason) {
+        excludeChain(previousReason ?? nextReason ?? "race-result-unavailable");
+        continue;
+      }
+      const previous = eligibleRaceByKey.get(previousCandidate.raceKey);
+      const next = eligibleRaceByKey.get(nextCandidate.raceKey);
+      if (!previous || !next) {
+        excludeChain("payout-or-category-unavailable");
+        continue;
+      }
+      const previousCategory = payoutCategoryKey(previous.payoutYen);
+      const nextCategory = payoutCategoryKey(next.payoutYen);
+      chainPairs.push({
+        previous,
+        next,
+        previousCategory,
+        nextCategory,
+        type: chainType(previousCategory, nextCategory),
+      });
+    }
+  });
+  const chainSample = sampleStatus(chainPairs.length);
+  const chainTypeCounts = new Map<KurariExRaceChainTypeKey, number>();
+  const matrixCounts = new Map<string, number>();
+  chainPairs.forEach((pair) => {
+    chainTypeCounts.set(pair.type, (chainTypeCounts.get(pair.type) ?? 0) + 1);
+    const matrixKey = `${pair.previousCategory}|${pair.nextCategory}`;
+    matrixCounts.set(matrixKey, (matrixCounts.get(matrixKey) ?? 0) + 1);
+  });
+  const afterUpsetPairs = chainPairs.filter((pair) => isUpsetOrAbove(pair.previousCategory));
+  const favoriteReturnCount = afterUpsetPairs.filter((pair) => pair.nextCategory === "firm").length;
+  const upsetChainCount = afterUpsetPairs.filter((pair) => isUpsetOrAbove(pair.nextCategory)).length;
+  const categoryKeys = TURBULENCE_CATEGORY_DEFINITIONS.map((definition) => definition.key);
+  const chainResult: KurariExRaceChainV1 = {
+    status: chainPairs.length ? "ready" : "no-eligible-data",
+    sourcePolicy: "official result only",
+    eligiblePairCount: chainPairs.length,
+    excludedPairCount: transitionCandidateCount - chainPairs.length,
+    transitionCandidateCount,
+    exclusionReasons: [...chainExclusionCounts.entries()].map(([key, count]) => ({
+      key,
+      label: CHAIN_EXCLUSION_LABELS[key] ?? key,
+      count,
+    })),
+    sampleStatus: chainSample.status,
+    sampleLabel: chainSample.label,
+    chainTypes: (Object.entries(CHAIN_TYPE_LABELS) as Array<[KurariExRaceChainTypeKey, string]>)
+      .map(([key, label]) => {
+        const count = chainTypeCounts.get(key) ?? 0;
+        return { key, label, count, rate: rate(count, chainPairs.length) };
+      }),
+    transitionMatrix: categoryKeys.flatMap((previousCategory) =>
+      categoryKeys.map((nextCategory) => {
+        const count = matrixCounts.get(`${previousCategory}|${nextCategory}`) ?? 0;
+        return {
+          previousCategory,
+          previousLabel: payoutCategoryLabel(previousCategory),
+          nextCategory,
+          nextLabel: payoutCategoryLabel(nextCategory),
+          count,
+          rate: rate(count, chainPairs.length),
+        };
+      }),
+    ),
+    afterUpset: {
+      sampleSize: afterUpsetPairs.length,
+      favoriteReturnCount,
+      favoriteReturnRate: rate(favoriteReturnCount, afterUpsetPairs.length),
+      upsetChainCount,
+      upsetChainRate: rate(upsetChainCount, afterUpsetPairs.length),
+    },
+    examples: [...chainPairs]
+      .sort((left, right) =>
+        Math.max(right.previous.payoutYen, right.next.payoutYen)
+        - Math.max(left.previous.payoutYen, left.next.payoutYen)
+        || left.previous.raceKey.localeCompare(right.previous.raceKey, "ja", { numeric: true }),
+      )
+      .slice(0, 5)
+      .map((pair) => ({
+        date: pair.previous.date,
+        venueCode: pair.previous.venueCode,
+        venueName: pair.previous.venueName,
+        previousRaceNumber: pair.previous.raceNumber,
+        nextRaceNumber: pair.next.raceNumber,
+        previousCategory: pair.previousCategory,
+        previousCategoryLabel: payoutCategoryLabel(pair.previousCategory),
+        nextCategory: pair.nextCategory,
+        nextCategoryLabel: payoutCategoryLabel(pair.nextCategory),
+        previousPayoutYen: pair.previous.payoutYen,
+        nextPayoutYen: pair.next.payoutYen,
+        chainType: pair.type,
+        chainTypeLabel: CHAIN_TYPE_LABELS[pair.type],
+      })),
+  };
 
   return {
     status: eligibleRaceCount > 0 ? "ready" : "no-eligible-data",
@@ -511,6 +770,7 @@ export function buildKurariExTrifectaTrendV1(
         },
       ],
     },
+    chain: chainResult,
   };
 }
 
