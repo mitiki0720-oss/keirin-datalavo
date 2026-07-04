@@ -324,7 +324,7 @@ current `today.generated.json`をEX主要sourceとして直接再生成するの
   - `scripts/kurari-ex-rider-registration-overrides.json`とrace overrideが存在する
   - private mapping pathもloaderに定義されているが、今回`private-input/**`は確認・変更していない
   - これらは値のランダム生成ではないが、「official feedからそのraceの登録番号を直接取得した値」と同一ではない。source/trust statusをconsumerに明示しない場合はfake補完と誤認される余地がある
-- 結論: random/fuzzy fake completionは防止されている。一方、名前一致・manual mapping provenanceは31-07で明確化が必要
+- 結論: random/fuzzy fake completionは防止されている。current出走表は31-08でofficial/starter/today provenanceを明示し、historicalの名前一致・manual mapping provenanceは31-09以降の課題として残す
 
 ### 低サンプル・未実装指標
 
@@ -380,8 +380,8 @@ current `today.generated.json`をEX主要sourceとして直接再生成するの
 
 ### partial
 
-- today feedとofficial entriesが別ファイルで、today riderに登録番号がない
-- current race feedに統一`sourceType/sourceFetchedAt/registrationNoSource/registrationNoTrustStatus`がない
+- today feedとofficial entriesは別ファイルでtoday rider自体には登録番号がない。31-08のEX read-only接続で安全に照合する
+- current race feed自体には統一`sourceType/sourceFetchedAt/registrationNoSource/registrationNoTrustStatus`がない。31-08のEX接続viewで派生provenanceを明示する
 - KURARI EX historyは2026-07-01まで、starter sourceは2026-06-29まで
 - exact/analysisのperiodが2026-06-23または24付近で止まり、today recommendationもcurrent dateではない
 - historical rider identityでunique-name/manual mappingを使用
@@ -427,8 +427,8 @@ current `today.generated.json`をEX主要sourceとして直接再生成するの
 
 1. scheduled 23:53 backfillのofficial results条件修正は31-07で完了。GitHub Actions実runで対象日とcomplete checkの運用結果を確認する。
 2. EX用の鮮度manifestまたはcheckを追加し、history latest、starter latest、venue/rider/matchup/analysis periodを一括で比較する。古いtoday recommendationをcurrent扱いしない。
-3. today feedとKEIRIN.JP entriesをrace/carNoで安全にjoinする設計をdry-run監査する。日付、会場code、race、carNo、選手名一致をgateにし、不一致時はnullのままにする。
-4. registrationNoに`direct-official / exact-name-reference / manual-override / unresolved`等のtrust/provenanceを付ける。既存値を一律officialへ変えない。
+3. today feedとKEIRIN.JP entriesの安全なread-only joinは31-08で実装。日付、会場code、race、carNo、選手名一致をgateにし、不一致時は未取得のままにする。
+4. current EX接続のregistrationNo provenanceは31-08で実装。historical側の`exact-name-reference / manual-override / unresolved`明示は引き続き候補とする。
 5. EXのname fallbackをUIで明示するか、direct registrationNoがないraceでは自動関連付けをしない方針を決める。
 6. Slack通知を1つのworkflowへ集約するか、共通concurrencyとclaim/state更新方式を導入して並行POSTを防ぐ。
 7. today feedの`generatedAt`をtimezone付きISOへ統一し、field単位またはrace単位の`sourceFetchedAt/sourceType`契約を設計する。
@@ -512,6 +512,110 @@ Slack通知はresults更新・検証より後である。通知済みstateと通
 - GitHub Actionsの実runで23:53 backfillの対象日、official result complete check、commit対象を確認する
 - 31-06で記録したEX鮮度manifest、registrationNo provenance、Slack並行送信lockは別タスクのまま維持する
 
+## 31-08 EX identity/source接続整理
+
+### 対応内容
+
+KURARI EXページへ、official entries、保存済みstarter source、today.generated、EX historyの役割と鮮度を分けて表示するread-onlyのidentity source connectionを追加した。
+
+- 実装ファイル:
+  - `src/pages/ExDataPage.tsx`
+  - `src/lib/kurariExData.ts`
+  - `src/types/kurariEx.ts`
+- 読み取りsource:
+  - `/data/races/today.generated.json`
+  - `/data/races/keirin-jp-entries.generated.json`
+  - `/data/analytics/kurari-ex/source/starters/index.generated.json`
+  - indexが指す保存済みstarter source
+  - 既存のEX history index
+- `public/data/**`は生成・変更・削除していない
+
+### sourceの役割と優先順位
+
+1. KEIRIN.JP official entries
+   - current出走選手の登録番号、府県、年齢、期、級班の最優先source
+   - `date + venueCode + R + carNo`で候補を特定し、選手名のNFKC・空白除去後の完全一致も必須とする
+   - 登録番号が6桁である場合だけ使用する
+   - `sourceType: official`
+   - `registrationNoTrustStatus: direct-official-entry`
+2. EX starter source
+   - official entriesで接続できない場合の次順位
+   - source index/sourceがPASS、登録番号complete、blocked race 0、fake補完なし、fuzzy matchingなしであることを既存assertで検証
+   - todayとsourceの日付が一致し、`date + venueName + R + carNo`と選手名完全一致の場合だけ使用する
+   - `sourceType: source-backed`
+   - `registrationNoTrustStatus: validated-starter-source`
+3. today.generated
+   - currentレース、会場、R、車番、選手名の基礎roster
+   - 登録番号sourceとしては使用しない
+   - 接続できない登録番号は`null`、画面では「未取得」
+   - `sourceType: today-generated-only`
+   - `registrationNoSource: none`
+   - `registrationNoTrustStatus: unavailable`
+4. historical identity
+   - 31-08のcurrent出走表接続では使用しない
+   - unique-name matchやmanual overrideをofficial扱いしない
+   - 将来利用する場合は`historical-identity / manual-override / partial`等のprovenanceを必須にする
+
+### registrationNo coverage表示
+
+EXページの既存カードデザイン内へ次を追加した。
+
+- 登録番号あり人数 / current starter総数
+- 登録番号未取得人数
+- official entries由来人数
+- starter source由来人数
+- today-generated-only人数
+- historical identity人数
+- manual override人数
+- unknown人数
+- unavailable人数
+- safe key候補があっても選手名不一致で接続を止めた人数
+
+2026-07-04のローカルsnapshotでは463人中459人がofficial entriesへ安全に接続された。4人はtodayとofficialで外国人名表記が異なったため接続を止め、登録番号未取得のtoday-generated-onlyとして表示した。名前を部分一致・fuzzy matchingして補完していない。
+
+### source coverage表示
+
+各preview rowに次を表示する。
+
+- 車番
+- 選手名
+- 登録番号
+- 府県
+- 年齢
+- 期
+- 級班
+- source名
+- source取得日時
+- source種別
+- `registrationNoSource`
+- `registrationNoTrustStatus`
+
+不明値は空欄にせず「未取得」、`unknown`、`unavailable`の契約を維持する。`unknown`やmanual overrideをofficialに変換しない。
+
+### data freshness表示
+
+- today.generatedの日付とgeneratedAt
+- official entriesの日付とgeneratedAt
+- starter sourceの日付とsourceGeneratedAt
+- EX history indexの最新日
+
+sourceごとの日付を別々に表示し、古いstarter sourceやhistoryをcurrent official dataのように見せない。
+
+### fake補完防止
+
+- 登録番号を選手名だけで決定しない
+- 選手名の部分一致・fuzzy matchingをしない
+- safe keyまたは日付が一致しないsourceを接続しない
+- registrationNoが欠けるtoday riderは未取得のまま残す
+- historical unique-name matchとmanual overrideはcurrent接続に使用しない
+- source不明値をofficial扱いしない
+
+### 31-09以降の候補
+
+- historical identity側のunique-name/manual override provenanceを個別成果物まで伝播する
+- current official entriesとstarter sourceの鮮度差を日数・警告レベルで表示する
+- current接続のsafe-key不一致理由を会場・race単位で監査出力する
+
 ## 触っていないもの
 
 - `public/data/reviews/**` は触っていない
@@ -524,7 +628,7 @@ Slack通知はresults更新・検証より後である。通知済みstateと通
 - `public/data/venues/**` は触っていない
 - `private-input/**` は触っていない
 - `package.json` / `package-lock.json` は触っていない
-- EXページ、Prediction Page、ReviewPage、RacesPageは触っていない
+- Prediction Page、ReviewPage、RacesPageは触っていない。EXページは31-08のidentity/source接続表示だけを変更した
 - 的中通知ログとSlack通知stateは触っていない
 - fakeデータ追加、fake補完、source推測補完、登録番号推測補完はしていない
 - `git add .`、git commit、git pushは実行していない

@@ -11,10 +11,10 @@ import {
   loadKurariExExactInitialData,
   loadKurariExHistoryDailyByDate,
   loadKurariExHistoryIndex,
+  loadKurariExIdentitySourceConnection,
   loadKurariExInitialData,
   loadKurariExMatchupExactByFile,
   loadKurariExMatchupExactInitialData,
-  loadLatestKurariExStartersSource,
   loadKurariExRiderExactByFile,
   loadKurariExRiderExactInitialData,
   loadKurariExVenueBundle,
@@ -78,6 +78,7 @@ import type {
   KurariExExactInitialData,
   KurariExHistoryDaily,
   KurariExHistoryIndex,
+  KurariExIdentitySourceConnectionSummary,
   KurariExMetric,
   KurariExInitialData,
   KurariExMatchupComparableStats,
@@ -1129,6 +1130,8 @@ export default function ExDataPage() {
   const [todayRecommendationStatus, setTodayRecommendationStatus] = useState<"loading" | "ready" | "error">("loading");
   const [startersSourceSummary, setStartersSourceSummary] = useState<KurariExStartersAvailabilitySummary | null>(null);
   const [startersSourceStatus, setStartersSourceStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [identitySourceSummary, setIdentitySourceSummary] = useState<KurariExIdentitySourceConnectionSummary | null>(null);
+  const [identitySourceStatus, setIdentitySourceStatus] = useState<"loading" | "ready" | "error">("loading");
   const [historyIndex, setHistoryIndex] = useState<KurariExHistoryIndex | null>(null);
   const [historyIndexStatus, setHistoryIndexStatus] = useState<"loading" | "ready" | "error">("loading");
   const [historyIndexError, setHistoryIndexError] = useState<string | null>(null);
@@ -1190,14 +1193,18 @@ export default function ExDataPage() {
 
   useEffect(() => {
     let active = true;
-    loadLatestKurariExStartersSource()
-      .then(({ summary }) => {
+    loadKurariExIdentitySourceConnection()
+      .then(({ summary, startersSource }) => {
         if (!active) return;
-        setStartersSourceSummary(summary);
-        setStartersSourceStatus("ready");
+        setIdentitySourceSummary(summary);
+        setIdentitySourceStatus("ready");
+        setStartersSourceSummary(startersSource?.summary ?? null);
+        setStartersSourceStatus(startersSource ? "ready" : "error");
       })
       .catch(() => {
         if (!active) return;
+        setIdentitySourceSummary(null);
+        setIdentitySourceStatus("error");
         setStartersSourceSummary(null);
         setStartersSourceStatus("error");
       });
@@ -2568,6 +2575,130 @@ export default function ExDataPage() {
               <EmptyState text="日付を選択すると daily summary を表示します。" />
             )}
           </div>
+        </section>
+
+        <section className="ex-panel ex-section">
+          <SectionTitle
+            eyebrow="IDENTITY SOURCE CONNECTION"
+            title="出走選手・登録番号 source coverage"
+            lead="official entries → 検証済み starter source → today.generated の順で接続します。日付・会場・R・車番・選手名が安全に一致しない場合は推測せず未取得として扱います。"
+          />
+          <div className="ex-health-grid">
+            <MetricCard
+              label="CONNECTION"
+              value={identitySourceStatus === "loading" ? "…" : identitySourceSummary?.status ?? "unavailable"}
+              note="read-only"
+              warning={identitySourceStatus === "error" || identitySourceSummary?.status === "unavailable"}
+            />
+            <MetricCard
+              label="TODAY.GENERATED"
+              value={identitySourceStatus === "loading" ? "…" : formatDate(identitySourceSummary?.todayDate)}
+              note={identitySourceSummary?.todayGeneratedAt ?? "取得日時 未取得"}
+              warning={identitySourceStatus === "error" || !identitySourceSummary?.todayDate}
+            />
+            <MetricCard
+              label="OFFICIAL ENTRIES"
+              value={identitySourceStatus === "loading" ? "…" : formatDate(identitySourceSummary?.officialEntriesDate)}
+              note={identitySourceSummary?.officialEntriesFetchedAt ?? "取得日時 未取得"}
+              warning={identitySourceStatus === "error" || !identitySourceSummary?.officialEntriesDate}
+            />
+            <MetricCard
+              label="STARTER SOURCE"
+              value={identitySourceStatus === "loading" ? "…" : formatDate(identitySourceSummary?.starterSourceDate)}
+              note={identitySourceSummary?.starterSourceFetchedAt ?? "取得日時 未取得"}
+              warning={identitySourceStatus === "error" || !identitySourceSummary?.starterSourceDate}
+            />
+            <MetricCard
+              label="EX HISTORY"
+              value={historyIndexStatus === "loading" ? "…" : formatDate(historyIndex ? summarizeKurariExHistoryIndex(historyIndex).latestDate : null)}
+              note="history latest"
+              warning={historyIndexStatus === "error"}
+            />
+            <MetricCard
+              label="REGISTRATION NO"
+              value={identitySourceStatus === "loading"
+                ? "…"
+                : `${valueText(identitySourceSummary?.registrationNoCompleteCount)} / ${valueText(identitySourceSummary?.starterCount)}`}
+              note={`未取得 ${valueText(identitySourceSummary?.registrationNoMissingCount, "人")}`}
+              warning={(identitySourceSummary?.registrationNoMissingCount ?? 0) > 0}
+            />
+          </div>
+
+          <div className="ex-health-grid" style={{ marginTop: 14 }}>
+            <MetricCard label="OFFICIAL" value={valueText(identitySourceSummary?.officialEntriesCount, "人")} note="KEIRIN.JP entries" />
+            <MetricCard label="SOURCE-BACKED" value={valueText(identitySourceSummary?.starterSourceCount, "人")} note="validated starter source" />
+            <MetricCard label="TODAY ONLY" value={valueText(identitySourceSummary?.todayGeneratedOnlyCount, "人")} note="registrationNo 未取得" warning={(identitySourceSummary?.todayGeneratedOnlyCount ?? 0) > 0} />
+            <MetricCard label="HISTORICAL" value={valueText(identitySourceSummary?.historicalIdentityCount, "人")} note="31-08 current接続では不使用" />
+            <MetricCard label="MANUAL OVERRIDE" value={valueText(identitySourceSummary?.manualOverrideCount, "人")} note="official扱い禁止" />
+            <MetricCard label="UNKNOWN" value={valueText(identitySourceSummary?.unknownCount, "人")} note="unknownのまま" warning={(identitySourceSummary?.unknownCount ?? 0) > 0} />
+            <MetricCard label="UNAVAILABLE" value={valueText(identitySourceSummary?.unavailableCount, "人")} note="推測補完なし" warning={(identitySourceSummary?.unavailableCount ?? 0) > 0} />
+          </div>
+
+          <div className="ex-empty" style={{ marginTop: 14 }}>
+            today.generated はレース・車番・選手名の基礎情報であり、登録番号完全データとして扱いません。
+            official entries は date + venueCode + R + carNo と選手名完全一致時だけ使用します。
+            starter source はPASS・fake補完なし・fuzzy matchingなしの既存contractを満たし、対象日が一致する場合だけ使用します。
+            historical identity / unique-name / manual override はcurrent出走表の確定sourceには使いません。
+            {(identitySourceSummary?.blockedNameMismatchCount ?? 0) > 0
+              ? ` 表記不一致で接続を止めた選手: ${identitySourceSummary?.blockedNameMismatchCount.toLocaleString("ja-JP")}人。`
+              : ""}
+            {identitySourceSummary?.sourceErrors.length
+              ? ` 未取得source: ${identitySourceSummary.sourceErrors.join(" / ")}。`
+              : ""}
+          </div>
+
+          {identitySourceSummary?.starters.length ? (
+            <>
+              <div className="ex-table-wrap" style={{ marginTop: 14 }}>
+                <table className="ex-data-table">
+                  <thead>
+                    <tr>
+                      <th>会場 / R</th>
+                      <th>車番</th>
+                      <th>選手名</th>
+                      <th>登録番号</th>
+                      <th>府県</th>
+                      <th>年齢</th>
+                      <th>期</th>
+                      <th>級班</th>
+                      <th>source名</th>
+                      <th>source取得日時</th>
+                      <th>source種別</th>
+                      <th>registrationNoSource</th>
+                      <th>registrationNoTrustStatus</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {identitySourceSummary.starters.slice(0, 12).map((starter) => (
+                      <tr key={`${starter.date}-${starter.venueCode}-${starter.venueName}-${starter.raceNumber}-${starter.carNo}`}>
+                        <td>{starter.venueName} {starter.raceNumber}R</td>
+                        <td>{starter.carNo}</td>
+                        <td>{starter.name || "未取得"}</td>
+                        <td>{starter.registrationNo ?? "未取得"}</td>
+                        <td>{starter.prefecture ?? "未取得"}</td>
+                        <td>{starter.age ?? "未取得"}</td>
+                        <td>{starter.term ?? "未取得"}</td>
+                        <td>{starter.className ?? "未取得"}</td>
+                        <td>{starter.sourceName || "unknown"}</td>
+                        <td>{starter.sourceFetchedAt ?? "未取得"}</td>
+                        <td>{starter.sourceType}</td>
+                        <td>{starter.registrationNoSource}</td>
+                        <td>{starter.registrationNoTrustStatus}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="ex-muted">
+                先頭12人を表示 / 全{identitySourceSummary.starterCount.toLocaleString("ja-JP")}人。
+                詳細値が不明な場合も空欄にせず未取得・unknown・unavailableを維持します。
+              </div>
+            </>
+          ) : identitySourceStatus === "loading" ? (
+            <EmptyState text="identity source connectionを確認中です。" />
+          ) : (
+            <EmptyState text="接続可能な出走選手sourceは未取得です。fake補完は行いません。" />
+          )}
         </section>
 
         <section className="ex-panel ex-section">

@@ -613,6 +613,70 @@ export type KurariExStartersAvailabilitySummary = {
   }[];
 };
 
+export type KurariExIdentitySourceType =
+  | "official"
+  | "source-backed"
+  | "today-generated-only"
+  | "historical-identity"
+  | "manual-override"
+  | "unknown"
+  | "unavailable";
+
+export type KurariExRegistrationNoTrustStatus =
+  | "direct-official-entry"
+  | "validated-starter-source"
+  | "partial"
+  | "unavailable";
+
+export type KurariExIdentitySourceStarter = {
+  date: string;
+  venueCode: string;
+  venueName: string;
+  raceNumber: number;
+  carNo: string;
+  name: string;
+  registrationNo: string | null;
+  prefecture: string | null;
+  age: number | null;
+  term: string | null;
+  className: string | null;
+  sourceName: string;
+  sourceFetchedAt: string | null;
+  sourceType: KurariExIdentitySourceType;
+  registrationNoSource: string;
+  registrationNoTrustStatus: KurariExRegistrationNoTrustStatus;
+  matchMethod:
+    | "date-venue-code-race-car-name"
+    | "date-venue-name-race-car-name"
+    | "official-entry-direct"
+    | "starter-source-direct"
+    | "today-roster-only";
+};
+
+export type KurariExIdentitySourceConnectionSummary = {
+  status: "ready" | "partial" | "unavailable";
+  todayDate: string | null;
+  todayGeneratedAt: string | null;
+  officialEntriesDate: string | null;
+  officialEntriesFetchedAt: string | null;
+  starterSourceDate: string | null;
+  starterSourceFetchedAt: string | null;
+  raceCount: number;
+  starterCount: number;
+  registrationNoCompleteCount: number;
+  registrationNoMissingCount: number;
+  officialEntriesCount: number;
+  starterSourceCount: number;
+  todayGeneratedOnlyCount: number;
+  historicalIdentityCount: number;
+  manualOverrideCount: number;
+  unknownCount: number;
+  unavailableCount: number;
+  blockedNameMismatchCount: number;
+  sourceErrors: string[];
+  starters: KurariExIdentitySourceStarter[];
+};
+
 export type KurariExHistoryMode =
   | "STARTERS_PARSED"
   | "NO_STARTERS"

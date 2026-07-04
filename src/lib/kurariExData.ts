@@ -5,6 +5,8 @@ import type {
   KurariExHistoryIndex,
   KurariExHistoryMode,
   KurariExHistoryRace,
+  KurariExIdentitySourceConnectionSummary,
+  KurariExIdentitySourceStarter,
   KurariExRegistrationNoStatus,
   KurariExSameNameCandidateWarning,
   KurariExExactGlobalKpi,
@@ -28,6 +30,8 @@ import type {
   KurariExRiderExactStatus,
   KurariExRiderMetric,
   KurariExRiderQuality,
+  KurariExStarter,
+  KurariExStarterRace,
   KurariExStartersAvailabilitySummary,
   KurariExStartersSource,
   KurariExStartersSourceIndex,
@@ -44,6 +48,8 @@ const RIDER_EXACT_ROOT = `${EXACT_ROOT}/riders`;
 const MATCHUP_EXACT_ROOT = `${EXACT_ROOT}/matchups`;
 const HISTORY_INDEX_PATH = `${EX_ROOT}/history/index.generated.json`;
 const STARTERS_SOURCE_INDEX_PATH = `${EX_ROOT}/source/starters/index.generated.json`;
+const TODAY_RACES_PATH = "/data/races/today.generated.json";
+const OFFICIAL_ENTRIES_PATH = "/data/races/keirin-jp-entries.generated.json";
 const STARTERS_SOURCE_INDEX_SCHEMA_VERSION = "kurari-ex-starters-source-index/v1";
 const STARTERS_SOURCE_SCHEMA_VERSION = "kurari-ex-starters-from-today-registration/v1";
 
@@ -984,6 +990,404 @@ export async function loadLatestKurariExStartersSource(): Promise<{
     index,
     source,
     summary: summarizeKurariExStartersAvailability(index, source),
+  };
+}
+
+type KurariExTodayRiderSource = {
+  carNo?: string | number;
+  name?: string | null;
+  fullName?: string | null;
+  prefecture?: string | null;
+  age?: string | number | null;
+  term?: string | number | null;
+  grade?: string | null;
+};
+
+type KurariExTodaySource = {
+  date?: string;
+  generatedAt?: string;
+  venues?: {
+    venueCode?: string | number;
+    venue?: string;
+    races?: {
+      raceNo?: string | number;
+      riders?: KurariExTodayRiderSource[];
+    }[];
+  }[];
+};
+
+type KurariExOfficialEntrySource = {
+  carNo?: string | number;
+  registrationNo?: string | number | null;
+  name?: string | null;
+  prefecture?: string | null;
+  age?: number | null;
+  graduationTerm?: string | number | null;
+  raceClass?: string | null;
+  previousClass?: string | null;
+  source?: string | null;
+};
+
+type KurariExOfficialEntriesSource = {
+  date?: string;
+  generatedAt?: string;
+  venues?: {
+    date?: string;
+    venueCode?: string | number;
+    venueName?: string;
+    races?: {
+      raceNumber?: string | number;
+      entries?: KurariExOfficialEntrySource[];
+    }[];
+  }[];
+};
+
+function normalizeKurariExVenueCode(value?: string | number | null) {
+  const digits = String(value ?? "").replace(/\D/gu, "");
+  return digits ? digits.padStart(2, "0") : "";
+}
+
+function normalizeKurariExIdentityVenueName(value?: string | null) {
+  return String(value ?? "")
+    .normalize("NFKC")
+    .replace(/競輪場|競輪/gu, "")
+    .replace(/[\s\u3000]/gu, "")
+    .trim();
+}
+
+function normalizeKurariExSourceNumber(value?: string | number | null) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function buildOfficialEntryJoinKey(
+  date: string,
+  venueCode: string,
+  raceNumber: number,
+  carNo: string,
+) {
+  return [date, venueCode, raceNumber, carNo].join("|");
+}
+
+function buildStarterSourceJoinKey(
+  date: string,
+  venueName: string,
+  raceNumber: number,
+  carNo: string,
+) {
+  return [date, normalizeKurariExIdentityVenueName(venueName), raceNumber, carNo].join("|");
+}
+
+function addUniqueSourceEntry<T>(map: Map<string, T | null>, key: string, entry: T) {
+  if (!key || map.has(key)) {
+    map.set(key, null);
+    return;
+  }
+  map.set(key, entry);
+}
+
+function officialEntryToIdentityStarter(
+  payload: KurariExOfficialEntriesSource,
+  venue: NonNullable<KurariExOfficialEntriesSource["venues"]>[number],
+  raceNumber: number,
+  entry: KurariExOfficialEntrySource,
+  matchMethod: KurariExIdentitySourceStarter["matchMethod"],
+): KurariExIdentitySourceStarter {
+  const registrationNo = normalizeKurariExRiderRegistrationNo(entry.registrationNo);
+  return {
+    date: String(venue.date || payload.date || ""),
+    venueCode: normalizeKurariExVenueCode(venue.venueCode),
+    venueName: String(venue.venueName ?? "").trim(),
+    raceNumber,
+    carNo: String(entry.carNo ?? "").trim(),
+    name: String(entry.name ?? "").trim(),
+    registrationNo: /^\d{6}$/u.test(registrationNo) ? registrationNo : null,
+    prefecture: String(entry.prefecture ?? "").trim() || null,
+    age: normalizeKurariExSourceNumber(entry.age),
+    term: String(entry.graduationTerm ?? "").trim() || null,
+    className: String(entry.raceClass || entry.previousClass || "").trim() || null,
+    sourceName: String(entry.source || "KEIRIN.JP:JSJ006"),
+    sourceFetchedAt: payload.generatedAt ?? null,
+    sourceType: "official",
+    registrationNoSource: String(entry.source || "KEIRIN.JP:JSJ006"),
+    registrationNoTrustStatus: /^\d{6}$/u.test(registrationNo)
+      ? "direct-official-entry"
+      : "unavailable",
+    matchMethod,
+  };
+}
+
+function starterSourceToIdentityStarter(
+  source: KurariExStartersSource,
+  race: KurariExStarterRace,
+  starter: KurariExStarter,
+  matchMethod: KurariExIdentitySourceStarter["matchMethod"],
+): KurariExIdentitySourceStarter {
+  const registrationNo = normalizeKurariExRiderRegistrationNo(starter.registrationNo);
+  return {
+    date: race.date,
+    venueCode: "",
+    venueName: race.venueName,
+    raceNumber: race.raceNumber,
+    carNo: String(starter.carNo),
+    name: starter.name,
+    registrationNo: /^\d{6}$/u.test(registrationNo) ? registrationNo : null,
+    prefecture: starter.prefecture?.trim() || null,
+    age: normalizeKurariExSourceNumber(starter.age),
+    term: starter.term?.trim() || null,
+    className: starter.className?.trim() || null,
+    sourceName: starter.source || source.source,
+    sourceFetchedAt: source.sourceGeneratedAt ?? null,
+    sourceType: "source-backed",
+    registrationNoSource: starter.registrationNoSource || source.source,
+    registrationNoTrustStatus: /^\d{6}$/u.test(registrationNo)
+      ? "validated-starter-source"
+      : "unavailable",
+    matchMethod,
+  };
+}
+
+function todayRiderToIdentityStarter(
+  payload: KurariExTodaySource,
+  venue: NonNullable<KurariExTodaySource["venues"]>[number],
+  raceNumber: number,
+  rider: KurariExTodayRiderSource,
+): KurariExIdentitySourceStarter {
+  return {
+    date: String(payload.date ?? ""),
+    venueCode: normalizeKurariExVenueCode(venue.venueCode),
+    venueName: String(venue.venue ?? "").trim(),
+    raceNumber,
+    carNo: String(rider.carNo ?? "").trim(),
+    name: String(rider.fullName || rider.name || "").trim(),
+    registrationNo: null,
+    prefecture: String(rider.prefecture ?? "").trim() || null,
+    age: normalizeKurariExSourceNumber(rider.age),
+    term: String(rider.term ?? "").trim() || null,
+    className: String(rider.grade ?? "").trim() || null,
+    sourceName: "today.generated",
+    sourceFetchedAt: payload.generatedAt ?? null,
+    sourceType: "today-generated-only",
+    registrationNoSource: "none",
+    registrationNoTrustStatus: "unavailable",
+    matchMethod: "today-roster-only",
+  };
+}
+
+export function summarizeKurariExIdentitySourceConnection(
+  today: KurariExTodaySource | null,
+  officialEntries: KurariExOfficialEntriesSource | null,
+  starterSource: KurariExStartersSource | null,
+  sourceErrors: string[] = [],
+): KurariExIdentitySourceConnectionSummary {
+  const officialByKey = new Map<string, KurariExIdentitySourceStarter | null>();
+  if (officialEntries?.date && (!today?.date || officialEntries.date === today.date)) {
+    for (const venue of officialEntries.venues ?? []) {
+      const date = String(venue.date || officialEntries.date);
+      const venueCode = normalizeKurariExVenueCode(venue.venueCode);
+      for (const race of venue.races ?? []) {
+        const raceNumber = normalizeKurariExSourceNumber(race.raceNumber);
+        if (!date || !venueCode || raceNumber == null) continue;
+        for (const entry of race.entries ?? []) {
+          const carNo = String(entry.carNo ?? "").trim();
+          if (!carNo) continue;
+          addUniqueSourceEntry(
+            officialByKey,
+            buildOfficialEntryJoinKey(date, venueCode, raceNumber, carNo),
+            officialEntryToIdentityStarter(
+              officialEntries,
+              venue,
+              raceNumber,
+              entry,
+              "date-venue-code-race-car-name",
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  const starterByKey = new Map<string, KurariExIdentitySourceStarter | null>();
+  if (starterSource?.date && (!today?.date || starterSource.date === today.date)) {
+    for (const race of starterSource.races) {
+      for (const starter of race.starters) {
+        addUniqueSourceEntry(
+          starterByKey,
+          buildStarterSourceJoinKey(
+            race.date,
+            race.venueName,
+            race.raceNumber,
+            String(starter.carNo),
+          ),
+          starterSourceToIdentityStarter(
+            starterSource,
+            race,
+            starter,
+            "date-venue-name-race-car-name",
+          ),
+        );
+      }
+    }
+  }
+
+  const starters: KurariExIdentitySourceStarter[] = [];
+  let blockedNameMismatchCount = 0;
+  const todayRiders = (today?.venues ?? []).flatMap((venue) =>
+    (venue.races ?? []).flatMap((race) => {
+      const raceNumber = normalizeKurariExSourceNumber(race.raceNo);
+      if (raceNumber == null) return [];
+      return (race.riders ?? []).map((rider) => ({ venue, raceNumber, rider }));
+    }),
+  );
+
+  if (today?.date && todayRiders.length > 0) {
+    for (const { venue, raceNumber, rider } of todayRiders) {
+      const todayStarter = todayRiderToIdentityStarter(today, venue, raceNumber, rider);
+      const officialKey = buildOfficialEntryJoinKey(
+        todayStarter.date,
+        todayStarter.venueCode,
+        raceNumber,
+        todayStarter.carNo,
+      );
+      const officialStarter = officialByKey.get(officialKey) ?? null;
+      if (officialStarter) {
+        if (
+          normalizeKurariExRiderName(officialStarter.name)
+          === normalizeKurariExRiderName(todayStarter.name)
+          && officialStarter.registrationNo
+        ) {
+          starters.push(officialStarter);
+          continue;
+        }
+        blockedNameMismatchCount += 1;
+      }
+
+      const starterKey = buildStarterSourceJoinKey(
+        todayStarter.date,
+        todayStarter.venueName,
+        raceNumber,
+        todayStarter.carNo,
+      );
+      const savedStarter = starterByKey.get(starterKey) ?? null;
+      if (savedStarter) {
+        if (
+          normalizeKurariExRiderName(savedStarter.name)
+          === normalizeKurariExRiderName(todayStarter.name)
+          && savedStarter.registrationNo
+        ) {
+          starters.push({
+            ...savedStarter,
+            venueCode: todayStarter.venueCode,
+            venueName: todayStarter.venueName,
+          });
+          continue;
+        }
+        blockedNameMismatchCount += 1;
+      }
+
+      starters.push(todayStarter);
+    }
+  } else if (officialEntries?.date) {
+    for (const venue of officialEntries.venues ?? []) {
+      for (const race of venue.races ?? []) {
+        const raceNumber = normalizeKurariExSourceNumber(race.raceNumber);
+        if (raceNumber == null) continue;
+        for (const entry of race.entries ?? []) {
+          starters.push(
+            officialEntryToIdentityStarter(
+              officialEntries,
+              venue,
+              raceNumber,
+              entry,
+              "official-entry-direct",
+            ),
+          );
+        }
+      }
+    }
+  } else if (starterSource) {
+    for (const race of starterSource.races) {
+      for (const starter of race.starters) {
+        starters.push(
+          starterSourceToIdentityStarter(
+            starterSource,
+            race,
+            starter,
+            "starter-source-direct",
+          ),
+        );
+      }
+    }
+  }
+
+  starters.sort((left, right) =>
+    left.date.localeCompare(right.date)
+    || left.venueCode.localeCompare(right.venueCode)
+    || left.venueName.localeCompare(right.venueName, "ja")
+    || left.raceNumber - right.raceNumber
+    || Number(left.carNo) - Number(right.carNo),
+  );
+
+  const countSource = (sourceType: KurariExIdentitySourceStarter["sourceType"]) =>
+    starters.filter((starter) => starter.sourceType === sourceType).length;
+  const registrationNoCompleteCount = starters.filter((starter) => starter.registrationNo).length;
+  const raceKeys = new Set(
+    starters.map((starter) =>
+      [starter.date, starter.venueCode || normalizeKurariExIdentityVenueName(starter.venueName), starter.raceNumber].join("|"),
+    ),
+  );
+
+  return {
+    status: starters.length === 0
+      ? "unavailable"
+      : registrationNoCompleteCount === starters.length
+        ? "ready"
+        : "partial",
+    todayDate: today?.date ?? null,
+    todayGeneratedAt: today?.generatedAt ?? null,
+    officialEntriesDate: officialEntries?.date ?? null,
+    officialEntriesFetchedAt: officialEntries?.generatedAt ?? null,
+    starterSourceDate: starterSource?.date ?? null,
+    starterSourceFetchedAt: starterSource?.sourceGeneratedAt ?? null,
+    raceCount: raceKeys.size,
+    starterCount: starters.length,
+    registrationNoCompleteCount,
+    registrationNoMissingCount: starters.length - registrationNoCompleteCount,
+    officialEntriesCount: countSource("official"),
+    starterSourceCount: countSource("source-backed"),
+    todayGeneratedOnlyCount: countSource("today-generated-only"),
+    historicalIdentityCount: countSource("historical-identity"),
+    manualOverrideCount: countSource("manual-override"),
+    unknownCount: countSource("unknown"),
+    unavailableCount: countSource("unavailable"),
+    blockedNameMismatchCount,
+    sourceErrors,
+    starters,
+  };
+}
+
+export async function loadKurariExIdentitySourceConnection(): Promise<{
+  summary: KurariExIdentitySourceConnectionSummary;
+  startersSource: Awaited<ReturnType<typeof loadLatestKurariExStartersSource>> | null;
+}> {
+  const [todayResult, officialResult, startersResult] = await Promise.allSettled([
+    fetchJson<KurariExTodaySource>(TODAY_RACES_PATH),
+    fetchJson<KurariExOfficialEntriesSource>(OFFICIAL_ENTRIES_PATH),
+    loadLatestKurariExStartersSource(),
+  ]);
+  const sourceErrors: string[] = [];
+  if (todayResult.status === "rejected") sourceErrors.push("today.generated: unavailable");
+  if (officialResult.status === "rejected") sourceErrors.push("official entries: unavailable");
+  if (startersResult.status === "rejected") sourceErrors.push("starter source: unavailable");
+  const startersSource = startersResult.status === "fulfilled" ? startersResult.value : null;
+  return {
+    summary: summarizeKurariExIdentitySourceConnection(
+      todayResult.status === "fulfilled" ? todayResult.value : null,
+      officialResult.status === "fulfilled" ? officialResult.value : null,
+      startersSource?.source ?? null,
+      sourceErrors,
+    ),
+    startersSource,
   };
 }
 
