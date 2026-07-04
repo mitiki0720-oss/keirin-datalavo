@@ -616,6 +616,7 @@ export type KurariExStartersAvailabilitySummary = {
 export type KurariExIdentitySourceType =
   | "official"
   | "source-backed"
+  | "source-backed-alias"
   | "today-generated-only"
   | "historical-identity"
   | "manual-override"
@@ -625,6 +626,7 @@ export type KurariExIdentitySourceType =
 export type KurariExRegistrationNoTrustStatus =
   | "direct-official-entry"
   | "validated-starter-source"
+  | "source-backed-alias"
   | "partial"
   | "unavailable";
 
@@ -643,13 +645,18 @@ export type KurariExIdentitySourceStarter = {
   sourceName: string;
   sourceFetchedAt: string | null;
   sourceType: KurariExIdentitySourceType;
+  identitySource: string;
   registrationNoSource: string;
   registrationNoTrustStatus: KurariExRegistrationNoTrustStatus;
+  adoptionStatus: "adopted" | null;
+  adoptionEligibility: KurariForeignRiderAliasAdoptionEligibility | null;
+  provenance: string | null;
   matchMethod:
     | "date-venue-code-race-car-name"
     | "date-venue-name-race-car-name"
     | "official-entry-direct"
     | "starter-source-direct"
+    | "exact-alias-pair"
     | "today-roster-only";
 };
 
@@ -692,7 +699,7 @@ export type KurariForeignRiderAliasStrictCondition = {
 
 export type KurariForeignRiderAliasAdoptionAssessment = {
   adoptionEligibility: KurariForeignRiderAliasAdoptionEligibility;
-  adoptionStatus: "not-adopted-yet" | "not-adopted";
+  adoptionStatus: "adopted" | "not-adopted-yet" | "not-adopted";
   eligibilityReason: string;
   requiredKeys: {
     date: string;
@@ -705,13 +712,16 @@ export type KurariForeignRiderAliasAdoptionAssessment = {
   };
   strictConditions: KurariForeignRiderAliasStrictCondition[];
   allStrictConditionsPassed: boolean;
-  nextAction: "31-12でsource-backed-aliasとして本採用検討" | "条件不一致を確認し未採用を維持";
+  nextAction:
+    | "source-backed-aliasとして採用済み"
+    | "31-12でsource-backed-aliasとして本採用検討"
+    | "条件不一致を確認し未採用を維持";
   plannedSourceDesign: {
     registrationNoSource: "foreign-rider-alias-registry";
     registrationNoTrustStatus: "source-backed-alias";
     sourceType: "source-backed-alias";
     matchMethod: "exact-alias-pair";
-    provenance: "KEIRIN.JP official entries + alias registry + strict keys matched";
+    provenance: "KEIRIN.JP official entries + foreign rider alias registry + strict keys matched";
   };
 };
 
@@ -735,7 +745,9 @@ export type KurariExIdentityMismatchDetail = {
   sourceType: "official-candidate";
   rawKey: string;
   safeKeyStatus: "key-fields-matched-name-mismatch";
-  processingResult: "not-connected-registration-unavailable";
+  processingResult:
+    | "adopted-source-backed-alias"
+    | "not-connected-registration-unavailable";
   aliasRegistryStatus: "registered" | "not-registered";
   aliasRegistryEntry: KurariForeignRiderAliasRegistryEntry | null;
   aliasAdoptionAssessment: KurariForeignRiderAliasAdoptionAssessment;
@@ -767,6 +779,10 @@ export type KurariExIdentitySourceConnectionSummary = {
   officialCandidateNotAdoptedCount: number;
   strictAdoptionEligibleCount: number;
   strictAdoptionNotEligibleCount: number;
+  sourceBackedAliasCount: number;
+  aliasRegistryAdoptedCount: number;
+  adoptedMismatchAliasCount: number;
+  mismatchDetectedCount: number;
   nameMismatchDetails: KurariExIdentityMismatchDetail[];
   sourceErrors: string[];
   starters: KurariExIdentitySourceStarter[];

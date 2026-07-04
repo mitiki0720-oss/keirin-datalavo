@@ -43,7 +43,11 @@ import type {
   KurariExVenueExact,
   KurariExVenueListItem,
 } from "../types/kurariEx";
-import { evaluateKurariForeignRiderAliasStrictAdoption } from "./kurariForeignRiderAliases";
+import {
+  evaluateKurariForeignRiderAliasStrictAdoption,
+  isKurariForeignRiderAliasStrictAdoptionApproved,
+  KURARI_FOREIGN_RIDER_ALIAS_PLANNED_SOURCE_DESIGN,
+} from "./kurariForeignRiderAliases";
 
 const EX_ROOT = "/data/analytics/kurari-ex";
 const EXACT_ROOT = `${EX_ROOT}/exact`;
@@ -1114,10 +1118,14 @@ function officialEntryToIdentityStarter(
     sourceName: String(entry.source || "KEIRIN.JP:JSJ006"),
     sourceFetchedAt: payload.generatedAt ?? null,
     sourceType: "official",
+    identitySource: String(entry.source || "KEIRIN.JP:JSJ006"),
     registrationNoSource: String(entry.source || "KEIRIN.JP:JSJ006"),
     registrationNoTrustStatus: /^\d{6}$/u.test(registrationNo)
       ? "direct-official-entry"
       : "unavailable",
+    adoptionStatus: null,
+    adoptionEligibility: null,
+    provenance: null,
     matchMethod,
   };
 }
@@ -1144,10 +1152,14 @@ function starterSourceToIdentityStarter(
     sourceName: starter.source || source.source,
     sourceFetchedAt: source.sourceGeneratedAt ?? null,
     sourceType: "source-backed",
+    identitySource: starter.source || source.source,
     registrationNoSource: starter.registrationNoSource || source.source,
     registrationNoTrustStatus: /^\d{6}$/u.test(registrationNo)
       ? "validated-starter-source"
       : "unavailable",
+    adoptionStatus: null,
+    adoptionEligibility: null,
+    provenance: null,
     matchMethod,
   };
 }
@@ -1173,8 +1185,12 @@ function todayRiderToIdentityStarter(
     sourceName: "today.generated",
     sourceFetchedAt: payload.generatedAt ?? null,
     sourceType: "today-generated-only",
+    identitySource: "today.generated",
     registrationNoSource: "none",
     registrationNoTrustStatus: "unavailable",
+    adoptionStatus: null,
+    adoptionEligibility: null,
+    provenance: null,
     matchMethod: "today-roster-only",
   };
 }
@@ -1369,7 +1385,19 @@ export function summarizeKurariExIdentitySourceConnection(
               fuzzyMatchingUsed: false,
               nameOnlyMatchingUsed: false,
             });
-          blockedNameMismatchCount += 1;
+          const adoptionApproved = isKurariForeignRiderAliasStrictAdoptionApproved(
+            aliasRegistryEntry,
+            aliasAdoptionAssessment,
+          );
+          const displayedAdoptionAssessment = adoptionApproved
+            ? {
+                ...aliasAdoptionAssessment,
+                adoptionStatus: "adopted" as const,
+                eligibilityReason: "17件のsource-backed-alias採用条件をすべて満たし、31-12で採用。",
+                nextAction: "source-backed-aliasとして採用済み" as const,
+              }
+            : aliasAdoptionAssessment;
+          if (!adoptionApproved) blockedNameMismatchCount += 1;
           nameMismatchDetails.push({
             date: todayStarter.date,
             venueName: todayStarter.venueName,
@@ -1396,11 +1424,36 @@ export function summarizeKurariExIdentitySourceConnection(
             sourceType: "official-candidate",
             rawKey: officialKey,
             safeKeyStatus: "key-fields-matched-name-mismatch",
-            processingResult: "not-connected-registration-unavailable",
+            processingResult: adoptionApproved
+              ? "adopted-source-backed-alias"
+              : "not-connected-registration-unavailable",
             aliasRegistryStatus: aliasRegistryEntry ? "registered" : "not-registered",
             aliasRegistryEntry,
-            aliasAdoptionAssessment,
+            aliasAdoptionAssessment: displayedAdoptionAssessment,
           });
+          if (adoptionApproved && aliasRegistryEntry) {
+            starters.push({
+              ...todayStarter,
+              registrationNo: aliasRegistryEntry.registrationNo,
+              prefecture: officialStarter.prefecture ?? todayStarter.prefecture,
+              age: officialStarter.age ?? todayStarter.age,
+              term: officialStarter.term ?? todayStarter.term,
+              className: officialStarter.className ?? todayStarter.className,
+              sourceName: "foreign-rider-alias-registry",
+              sourceFetchedAt: officialStarter.sourceFetchedAt,
+              sourceType: KURARI_FOREIGN_RIDER_ALIAS_PLANNED_SOURCE_DESIGN.sourceType,
+              identitySource: "foreign-rider-alias-registry",
+              registrationNoSource:
+                KURARI_FOREIGN_RIDER_ALIAS_PLANNED_SOURCE_DESIGN.registrationNoSource,
+              registrationNoTrustStatus:
+                KURARI_FOREIGN_RIDER_ALIAS_PLANNED_SOURCE_DESIGN.registrationNoTrustStatus,
+              adoptionStatus: "adopted",
+              adoptionEligibility: "strict-adoption-eligible",
+              provenance: KURARI_FOREIGN_RIDER_ALIAS_PLANNED_SOURCE_DESIGN.provenance,
+              matchMethod: KURARI_FOREIGN_RIDER_ALIAS_PLANNED_SOURCE_DESIGN.matchMethod,
+            });
+            continue;
+          }
         }
       }
 
@@ -1484,6 +1537,9 @@ export function summarizeKurariExIdentitySourceConnection(
   const strictAdoptionNotEligibleCount = nameMismatchDetails.filter(
     (detail) => detail.aliasAdoptionAssessment.adoptionEligibility === "not-eligible",
   ).length;
+  const adoptedMismatchAliasCount = nameMismatchDetails.filter(
+    (detail) => detail.processingResult === "adopted-source-backed-alias",
+  ).length;
   const raceKeys = new Set(
     starters.map((starter) =>
       [starter.date, starter.venueCode || normalizeKurariExIdentityVenueName(starter.venueName), starter.raceNumber].join("|"),
@@ -1508,6 +1564,7 @@ export function summarizeKurariExIdentitySourceConnection(
     registrationNoMissingCount: starters.length - registrationNoCompleteCount,
     officialEntriesCount: countSource("official"),
     starterSourceCount: countSource("source-backed"),
+    sourceBackedAliasCount: countSource("source-backed-alias"),
     todayGeneratedOnlyCount: Math.max(
       0,
       countSource("today-generated-only") - nameMismatchDetails.length,
@@ -1517,12 +1574,15 @@ export function summarizeKurariExIdentitySourceConnection(
     unknownCount: countSource("unknown"),
     unavailableCount: starters.length - registrationNoCompleteCount,
     blockedNameMismatchCount,
+    mismatchDetectedCount: nameMismatchDetails.length,
     mismatchCandidateCount: nameMismatchDetails.length,
     aliasRegistryRegisteredCount,
     foreignRiderAliasRegisteredCount,
-    officialCandidateNotAdoptedCount: nameMismatchDetails.length,
+    officialCandidateNotAdoptedCount: nameMismatchDetails.length - adoptedMismatchAliasCount,
     strictAdoptionEligibleCount,
     strictAdoptionNotEligibleCount,
+    aliasRegistryAdoptedCount: adoptedMismatchAliasCount,
+    adoptedMismatchAliasCount,
     nameMismatchDetails,
     sourceErrors,
     starters,

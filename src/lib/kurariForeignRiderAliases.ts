@@ -118,7 +118,7 @@ export const KURARI_FOREIGN_RIDER_ALIAS_PLANNED_SOURCE_DESIGN = {
   registrationNoTrustStatus: "source-backed-alias",
   sourceType: "source-backed-alias",
   matchMethod: "exact-alias-pair",
-  provenance: "KEIRIN.JP official entries + alias registry + strict keys matched",
+  provenance: "KEIRIN.JP official entries + foreign rider alias registry + strict keys matched",
 } as const;
 
 export function evaluateKurariForeignRiderAliasStrictAdoption(
@@ -178,4 +178,20 @@ export function evaluateKurariForeignRiderAliasStrictAdoption(
       plannedSourceDesign: KURARI_FOREIGN_RIDER_ALIAS_PLANNED_SOURCE_DESIGN,
     },
   };
+}
+
+export function isKurariForeignRiderAliasStrictAdoptionApproved(
+  registryEntry: KurariForeignRiderAliasRegistryEntry | null,
+  assessment: KurariForeignRiderAliasAdoptionAssessment,
+) {
+  const passed = new Map(
+    assessment.strictConditions.map((condition) => [condition.id, condition.passed]),
+  );
+  return assessment.adoptionEligibility === "strict-adoption-eligible"
+    && assessment.allStrictConditionsPassed
+    && registryEntry?.category === "foreign-rider-alias"
+    && registryEntry.matchMethod === "exact-alias-pair"
+    && registryEntry.trustStatus === "source-backed-manual"
+    && registryEntry.sourceType === "official-candidate"
+    && [1, 2, 3, 4, 5, 6, 7, 12, 15, 13, 14].every((id) => passed.get(id) === true);
 }

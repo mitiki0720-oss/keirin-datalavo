@@ -892,6 +892,87 @@ registry自体の4件は人間確認済みの固定データだが、coverageへ
 - provenanceをEXページに表示する
 - 採用後もfake補完・fuzzy matching禁止を維持する
 
+## 31-12 strict eligible aliasのsource-backed採用
+
+### 対応内容
+
+31-11で`strict-adoption-eligible`になった外国人alias 4人だけを、31-12で`source-backed-alias`としてcurrent starterのregistrationNoへ採用した。official entriesのplayerName完全一致による直接接続とは別枠であり、official接続人数には含めない。
+
+採用対象:
+
+| today.generated名 | official candidate名 | registrationNo | adoptionStatus |
+| --- | --- | --- | --- |
+| アンドルーズ 外国 | アンドルーズ | `130134` | `adopted` |
+| ファンデルワウ 外国 | ファンデルワ | `130135` | `adopted` |
+| トゥルーマン 外国 | トゥルーマン | `130127` | `adopted` |
+| リチャードソン 外国 | リチャードソ | `130133` | `adopted` |
+
+### 採用条件
+
+31-11の15条件に加え、`adoptionEligibility === strict-adoption-eligible`と`allStrictConditionsPassed === true`を再確認する。合計17条件をすべて満たす場合だけ採用し、1件でも不一致ならregistrationNo未取得のまま安全停止する。
+
+- date、venueCode、raceNumber、carNo完全一致
+- today.generated名、official entry名、registrationNoがregistryの3値と完全一致
+- category、matchMethod、trustStatus、sourceTypeがregistry policyと一致
+- 31-09 mismatch auditのofficial candidate
+- provenanceあり
+- fuzzy matching未使用
+- 名前だけの照合ではない
+
+### starterへ設定するsource情報
+
+- registrationNo: registryの確認済みregistrationNo
+- registrationNoSource: `foreign-rider-alias-registry`
+- registrationNoTrustStatus: `source-backed-alias`
+- identitySource: `foreign-rider-alias-registry`
+- sourceType: `source-backed-alias`
+- matchMethod: `exact-alias-pair`
+- adoptionStatus: `adopted`
+- adoptionEligibility: `strict-adoption-eligible`
+- provenance: `KEIRIN.JP official entries + foreign rider alias registry + strict keys matched`
+
+`sourceType: official`、`registrationNoTrustStatus: confirmed`、`registrationNoSource: official entries`にはしていない。source-backed-aliasはmanual overrideでもfake completionでもなく、strict keysで再検証したregistry採用sourceとして表示する。
+
+### coverage
+
+2026-07-04 current dataの動的集計:
+
+- current starters: 463人
+- registrationNo coverage: 463 / 463
+- official entries直接接続: 459人
+- source-backed-alias: 4人
+- alias registry adopted: 4人
+- strict adoption eligible: 4人
+- official candidate not adopted: 0人
+- mismatch detected: 4人
+- adopted from mismatch audit: 4人
+- mismatch stopped / unresolved: 0人
+- today generated only: 0人
+- unavailable: 0人
+
+mismatch detected 4件は監査履歴として残し、未解決停止0件と採用済み4件を分離した。これにより表記不一致が未解決であるようには表示しない。
+
+### EX表示
+
+- source-backed-alias採用人数とalias registry adopted人数を追加
+- IDENTITY MISMATCH AUDITで`adoptionStatus: adopted`を表示
+- official candidateからの採用でありofficial direct matchではないことを表示
+- strict条件全PASSを表示
+- registrationNoSource、trustStatus、sourceType、matchMethod、identitySourceを表示
+- provenanceを診断行とstarter source coverageへ表示
+- fake completionなし、fuzzy matchingなしを維持
+
+### 保護と31-13候補
+
+- fakeデータ追加・fake補完をしていない
+- fuzzy matchingをしていない
+- 名前だけ、unique-name、manual overrideで登録番号を補完していない
+- unknown / unavailableをofficial扱いしていない
+- `public/data/**`は生成・変更・削除していない
+- `public/data/reviews/**`は変更、stash、削除、退避、stageしていない
+
+31-13以降は、EX出走表のsource表示改善、source-backed-alias provenanceの折りたたみ、official / source-backed-alias / today-onlyの色分け、current starters identity coverage 100%の継続確認を候補とする。
+
 ## 触っていないもの
 
 - `public/data/reviews/**` は触っていない
@@ -904,7 +985,7 @@ registry自体の4件は人間確認済みの固定データだが、coverageへ
 - `public/data/venues/**` は触っていない
 - `private-input/**` は触っていない
 - `package.json` / `package-lock.json` は触っていない
-- Prediction Page、ReviewPage、RacesPageは触っていない。EXページは31-08のidentity/source接続表示、31-09の表記不一致診断、31-10のalias registry診断表示、31-11のstrict採用条件診断だけを変更した
+- Prediction Page、ReviewPage、RacesPageは触っていない。EXページは31-08のidentity/source接続表示、31-09の表記不一致診断、31-10のalias registry診断表示、31-11のstrict採用条件診断、31-12のsource-backed-alias採用表示だけを変更した
 - 的中通知ログとSlack通知stateは触っていない
 - fakeデータ追加、fake補完、source推測補完、登録番号推測補完はしていない
 - `git add .`、git commit、git pushは実行していない
