@@ -272,15 +272,6 @@ type ReviewFileCardMetrics = {
   summaryReady: boolean;
 };
 
-type MonthCell = {
-  isoDate: string;
-  dayNumber: number;
-  inCurrentMonth: boolean;
-  isSelected: boolean;
-  isToday: boolean;
-  isDisabled: boolean;
-};
-
 type VenueReviewRace = {
   venue: string;
   date: string;
@@ -328,7 +319,6 @@ const toPublicPath = (path: string) => {
 
 const PREDICTION_TODAY_DATA_URL = toPublicPath("/data/races/today.generated.json");
 const REVIEW_FILE_INDEX_URL = toPublicPath("/data/reviews/index.json");
-const REVIEW_CALENDAR_WEEKDAY_LABELS = ["月", "火", "水", "木", "金", "土", "日"];
 const REVIEW_PAGE_BACKGROUND_URL = toPublicPath("/review-page/backgrounds/review-page-bg-sky-water.png");
 
 async function fetchReviewTodayFeed(cacheMode: RequestCache = "no-cache") {
@@ -467,46 +457,6 @@ function formatDateShort(iso: string) {
     month: "numeric",
     day: "numeric",
   }).format(date);
-}
-
-function formatMonthLabel(isoMonth: string) {
-  if (!/^\d{4}-\d{2}$/.test(isoMonth)) return isoMonth;
-  const date = new Date(`${isoMonth}-01T00:00:00+09:00`);
-  if (Number.isNaN(date.getTime())) return isoMonth;
-  return new Intl.DateTimeFormat("ja-JP", {
-    timeZone: "Asia/Tokyo",
-    year: "numeric",
-    month: "long",
-  }).format(date);
-}
-
-function shiftReviewIsoMonth(isoMonth: string, months: number) {
-  const base = new Date(`${isoMonth}-01T00:00:00Z`);
-  if (Number.isNaN(base.getTime())) return isoMonth;
-  base.setUTCMonth(base.getUTCMonth() + months);
-  return base.toISOString().slice(0, 7);
-}
-
-function buildReviewMonthMatrix(isoMonth: string, selectedDate: string, todayDate: string) {
-  const firstDayIso = `${isoMonth}-01`;
-  const firstDay = new Date(`${firstDayIso}T00:00:00Z`);
-  if (Number.isNaN(firstDay.getTime())) return [] as MonthCell[][];
-
-  const startOffset = (firstDay.getUTCDay() + 6) % 7;
-  const startIso = shiftReviewIsoDateByDays(firstDayIso, -startOffset);
-  const cells = Array.from({ length: 42 }, (_, index) => {
-    const isoDate = shiftReviewIsoDateByDays(startIso, index);
-    return {
-      isoDate,
-      dayNumber: Number(isoDate.slice(8, 10)),
-      inCurrentMonth: isoDate.startsWith(isoMonth),
-      isSelected: isoDate === selectedDate,
-      isToday: isoDate === todayDate,
-      isDisabled: isoDate > todayDate,
-    } satisfies MonthCell;
-  });
-
-  return Array.from({ length: 6 }, (_, rowIndex) => cells.slice(rowIndex * 7, rowIndex * 7 + 7));
 }
 
 function formatYen(value?: number) {
@@ -2410,8 +2360,7 @@ export default function ReviewPage() {
   const [reportDraft, setReportDraft] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
   const [reportStatus, setReportStatus] = useState("");
-  const [selectedDate, setSelectedDate] = useState(operationalToday);
-  const [calendarMonth, setCalendarMonth] = useState(operationalToday.slice(0, 7));
+  const [selectedDate] = useState(operationalToday);
   const isTodaySelected = selectedDate === operationalToday;
   const isYesterdaySelected = selectedDate === yesterdayReviewDate;
   const isLocalReviewSelected = isTodaySelected || isYesterdaySelected;
@@ -2936,17 +2885,18 @@ export default function ReviewPage() {
     };
   }, [reviewFileGroups]);
 
-  const reviewFileDateSet = useMemo(
-    () => new Set(reviewFileIndexItems.map((item) => item.date)),
-    [reviewFileIndexItems],
+  const workbenchResultReadyCount = useMemo(
+    () => venueGroups.reduce(
+      (total, group) => total + group.races.filter((race) => isResultReviewReady(race)).length,
+      0,
+    ),
+    [venueGroups],
   );
-
-  const calendarWeeks = useMemo(
-    () => buildReviewMonthMatrix(calendarMonth, selectedDate, operationalToday),
-    [calendarMonth, operationalToday, selectedDate],
+  const workbenchSummaryReadyCount = useMemo(
+    () => reviewFileGroups.filter((group) => Boolean(group.summaryText.trim())).length,
+    [reviewFileGroups],
   );
-
-  const nextCalendarMonth = shiftReviewIsoMonth(calendarMonth, 1);
+  const workbenchMissingCount = Math.max(0, todaySummary.raceCount - workbenchResultReadyCount);
 
 const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
   const file = event.currentTarget.files?.[0];
@@ -3011,18 +2961,6 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
       text: "#6a43c3",
       accent: "#7b5be3",
     };
-
-  const openTodayReview = () => {
-    setSelectedDate(operationalToday);
-    setCalendarMonth(operationalToday.slice(0, 7));
-    setSelectedVenueName("");
-  };
-
-  const openYesterdayReview = () => {
-    setSelectedDate(yesterdayReviewDate);
-    setCalendarMonth(yesterdayReviewDate.slice(0, 7));
-    setSelectedVenueName("");
-  };
 
   return (
     <div
@@ -3185,102 +3123,54 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                 pointerEvents: "none",
               }}
             />
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
-              <div>
-                <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "8px" }}>REVIEW CALENDAR</div>
-                <div style={{ fontSize: "26px", fontWeight: 900, color: "#101828" }}>レビュー日付を選ぶ</div>
+            <div style={{ marginBottom: "16px" }}>
+              <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "8px" }}>REVIEW WORKBENCH</div>
+              <div style={{ fontSize: "26px", fontWeight: 900, color: "#101828" }}>今日の結果整理</div>
+              <div style={{ marginTop: "8px", fontSize: "12px", lineHeight: 1.75, color: "#6b7280" }}>
+                summary作成に使う結果素材を整理・コピーします。
               </div>
-              <div style={{ fontSize: "12px", lineHeight: 1.7, color: "#6b7280", textAlign: "right" }}>
-              </div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "14px" }}>
-              <button
-                onClick={() => setCalendarMonth((current) => shiftReviewIsoMonth(current, -1))}
-                style={{ border: "1px solid rgba(200, 184, 246, 0.82)", background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,240,252,0.98) 100%)", color: "#6542be", borderRadius: "999px", padding: "11px 16px", cursor: "pointer", fontWeight: 900, boxShadow: "0 10px 20px rgba(34, 33, 68, 0.05)" }}
-              >
-                前月
-              </button>
-              <div style={{ fontSize: "20px", fontWeight: 900, color: "#101828", letterSpacing: "-0.03em", padding: "0 12px", textAlign: "center" }}>{formatMonthLabel(calendarMonth)}</div>
-              <button
-                onClick={() => setCalendarMonth((current) => shiftReviewIsoMonth(current, 1))}
-                disabled={nextCalendarMonth > operationalToday.slice(0, 7)}
-                style={{ border: "1px solid rgba(200, 184, 246, 0.82)", background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(246,240,252,0.98) 100%)", color: nextCalendarMonth > operationalToday.slice(0, 7) ? "#b7b8c4" : "#6542be", borderRadius: "999px", padding: "11px 16px", cursor: nextCalendarMonth > operationalToday.slice(0, 7) ? "not-allowed" : "pointer", fontWeight: 900, boxShadow: "0 10px 20px rgba(34, 33, 68, 0.05)", opacity: nextCalendarMonth > operationalToday.slice(0, 7) ? 0.72 : 1 }}
-              >
-                次月
-              </button>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "6px", marginBottom: "10px", padding: "0 4px" }}>
-              {REVIEW_CALENDAR_WEEKDAY_LABELS.map((label) => (
-                <div key={label} style={{ textAlign: "center", fontSize: "11px", fontWeight: 900, color: "#8f84ab", letterSpacing: "0.12em" }}>
-                  {label}
-                </div>
-              ))}
-            </div>
-            <div style={{ display: "grid", gap: "6px" }}>
-              {calendarWeeks.map((week, weekIndex) => (
-                <div key={`${calendarMonth}:${weekIndex}`} style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "6px" }}>
-                  {week.map((cell) => (
-                    (() => {
-                      const hasReviewFiles = reviewFileDateSet.has(cell.isoDate);
 
-                      return (
-                        <button
-                          key={cell.isoDate}
-                          onClick={() => {
-                            setSelectedDate(cell.isoDate);
-                            setCalendarMonth(cell.isoDate.slice(0, 7));
-                          }}
-                          disabled={cell.isDisabled}
-                          style={{
-                            minHeight: "56px",
-                            borderRadius: "18px",
-                            border: cell.isSelected ? "1px solid rgba(123,91,227,0.96)" : cell.isToday ? "1px solid rgba(199, 182, 246, 0.96)" : "1px solid rgba(229,221,241,0.92)",
-                            background: cell.isSelected
-                              ? "linear-gradient(135deg, rgba(123,91,227,0.18) 0%, rgba(233,222,255,0.92) 100%)"
-                              : cell.isToday
-                                ? "linear-gradient(180deg, rgba(250,247,255,0.98) 0%, rgba(255,250,252,0.98) 100%)"
-                                : "linear-gradient(180deg, rgba(255,255,255,0.97) 0%, rgba(248,244,252,0.92) 100%)",
-                            color: cell.isDisabled ? "#c6c8d5" : cell.inCurrentMonth ? "#111827" : "#a7adbb",
-                            cursor: cell.isDisabled ? "not-allowed" : "pointer",
-                            fontWeight: cell.isSelected || cell.isToday ? 900 : 700,
-                            opacity: cell.isDisabled ? 0.55 : cell.inCurrentMonth ? 1 : 0.78,
-                            display: "flex",
-                            flexDirection: "column",
-                            justifyContent: "space-between",
-                            alignItems: "stretch",
-                            padding: "8px 8px 7px",
-                            boxShadow: cell.isSelected ? "0 12px 26px rgba(84, 64, 154, 0.14)" : "0 8px 18px rgba(31, 34, 57, 0.04)",
-                            overflow: "hidden",
-                          }}
-                        >
-                          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "6px" }}>
-                            <span style={{ fontSize: "15px", lineHeight: 1, fontWeight: cell.isSelected ? 900 : 800 }}>{cell.dayNumber}</span>
-                              {cell.isSelected ? <span style={{ width: "8px", height: "8px", borderRadius: "999px", background: "#8b5cf6", boxShadow: "0 0 0 3px rgba(139, 92, 246, 0.12)", flexShrink: 0, marginTop: "2px" }} /> : null}
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: "14px" }}>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
-                                {cell.isToday ? <span style={{ width: "6px", height: "6px", borderRadius: "999px", background: "#8b5cf6", opacity: 0.9 }} /> : null}
-                              </span>
-                              {hasReviewFiles ? <span style={{ width: "7px", height: "7px", borderRadius: "999px", background: "#d06e9b", boxShadow: "0 0 0 3px rgba(240, 221, 231, 0.45)", flexShrink: 0 }} /> : null}
-                          </div>
-                        </button>
-                      );
-                    })()
-                  ))}
+            <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.12em", color: "#8065bd", marginBottom: "10px" }}>今日のレビュー状況</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(132px, 1fr))", gap: "9px", marginBottom: "16px" }}>
+              {[
+                { label: "対象日", value: formatDateLabel(selectedDate) },
+                { label: "読込モード", value: "MERGED SOURCES" },
+                { label: "読込件数", value: `${todaySummary.raceCount}件` },
+                { label: "対象会場数", value: `${todaySummary.venueCount}会場` },
+                { label: "結果あり件数", value: `${workbenchResultReadyCount}件` },
+                { label: "summaryあり件数", value: `${workbenchSummaryReadyCount}件` },
+                { label: "未取得件数", value: `${workbenchMissingCount}件` },
+              ].map((item) => (
+                <div key={item.label} style={{ borderRadius: "17px", border: "1px solid rgba(225,216,240,0.95)", background: "rgba(255,255,255,0.9)", padding: "11px 12px", minWidth: 0 }}>
+                  <div style={{ fontSize: "9px", fontWeight: 900, letterSpacing: "0.1em", color: "#9384ae", marginBottom: "5px" }}>{item.label}</div>
+                  <div style={{ fontSize: "13px", fontWeight: 900, color: "#172033", lineHeight: 1.45, overflowWrap: "anywhere" }}>{item.value}</div>
                 </div>
               ))}
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "10px", marginTop: "16px" }}>
-              <SummaryChip label="対象日" value={formatDateLabel(selectedDate)} />
-              <SummaryChip label="表示モード" value={workbenchLabel} />
-              <SummaryChip label="対象会場" value={isLocalReviewSelected ? `${filteredVenueGroups.length}会場` : `${filteredReviewFileGroups.length}会場`} />
-            </div>
-            <div style={{ marginTop: "16px", fontSize: "12px", lineHeight: 1.8, color: "#6b7280" }}>
-              {isTodaySelected
-                ? "当日分は localStorage・today.generated.json・review保存ファイルを統合して表示します。"
-                : isYesterdaySelected
-                  ? "昨日分は localStorage・保存済みsnapshot・review保存ファイルを統合して表示します。"
-                  : "過去日付は public/data/reviews/index.json と TXT ファイルを fetch して表示します。"}
+
+            <div style={{ display: "grid", gap: "10px" }}>
+              <div style={{ borderRadius: "20px", border: "1px solid rgba(213,201,239,0.92)", background: "linear-gradient(135deg, rgba(250,247,255,0.96) 0%, rgba(247,250,255,0.96) 100%)", padding: "14px" }}>
+                <div style={{ fontSize: "11px", fontWeight: 900, color: "#6f52b2", marginBottom: "8px" }}>コピー素材</div>
+                <div style={{ fontSize: "12px", lineHeight: 1.8, color: "#5f6676" }}>
+                  結果まとめコピー / summary用素材 / 予想差分確認
+                  <br />
+                  払戻・全着順・上がり・着差・決まり手・天気・source情報を保持
+                </div>
+              </div>
+              <div style={{ borderRadius: "20px", border: "1px solid rgba(231,211,222,0.92)", background: "rgba(255,250,252,0.92)", padding: "14px" }}>
+                <div style={{ fontSize: "11px", fontWeight: 900, color: "#a44f76", marginBottom: "8px" }}>保護ルール</div>
+                <div style={{ fontSize: "12px", lineHeight: 1.8, color: "#685e67" }}>
+                  過去レビュー日付フォルダは削除禁止
+                  <br />
+                  public/data/reviews/** は保護対象
+                  <br />
+                  fake補完禁止 / source不明は unknown・未取得のまま扱う
+                </div>
+              </div>
+              <div style={{ borderRadius: "16px", background: "rgba(244,240,252,0.72)", padding: "10px 12px", fontSize: "10px", fontWeight: 800, lineHeight: 1.6, color: "#76658f" }}>
+                FILE ARCHIVE / INDEX JSON + TXT + SUMMARY の読み込み機能は維持
+              </div>
             </div>
           </article>
         </div>
@@ -3327,40 +3217,6 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
             <div>
               <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "8px" }}>VENUE REVIEW CARDS</div>
               <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>{isTodaySelected ? "今日予想した会場を、見やすいカードで振り返る" : isYesterdaySelected ? "昨日予想した会場を、朝に振り返る" : "保存ファイルがある会場を、見やすいカードで振り返る"}</h2>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginTop: "14px" }}>
-                {!isYesterdaySelected ? (
-                  <button
-                    onClick={openYesterdayReview}
-                    style={{
-                      border: "1px solid rgba(122,96,194,0.24)",
-                      cursor: "pointer",
-                      borderRadius: "999px",
-                      padding: "11px 18px",
-                      background: "white",
-                      color: "#6542be",
-                      fontWeight: 900,
-                    }}
-                  >
-                    昨日のレビューを見る
-                  </button>
-                ) : null}
-                {!isTodaySelected ? (
-                  <button
-                    onClick={openTodayReview}
-                    style={{
-                      border: "none",
-                      cursor: "pointer",
-                      borderRadius: "999px",
-                      padding: "11px 18px",
-                      background: "linear-gradient(135deg, #7b5be3 0%, #5d79e8 100%)",
-                      color: "white",
-                      fontWeight: 900,
-                    }}
-                  >
-                    今日のレビューに戻る
-                  </button>
-                ) : null}
-              </div>
             </div>
             <div style={{ fontSize: "12px", color: "#6d7687", lineHeight: 1.7, textAlign: "right" }}>
               <div>会場を押すと、左のコピー素材と</div>

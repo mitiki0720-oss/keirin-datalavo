@@ -29,3 +29,11 @@ Review Pageの「結果まとめをコピー」を、GPTへそのまま貼れる
 - Races Page / 本日のレースページ、EXページは変更していない。
 - `public/data/reviews/**`、`public/data/analytics/**`、`public/data/races/**`、`public/data/venues/**`は変更していない。
 - fakeデータ・fake補完は行わない。
+
+## 31-05 Review Workbench
+
+Review Page右側の`REVIEW CALENDAR / レビュー日付を選ぶ`と月移動・日付選択ボタンを廃止し、`REVIEW WORKBENCH / 今日の結果整理`へ置き換えた。Review Pageは過去日付を画面で選択する運用を行わず、当日の結果整理とsummary作成用素材の確認に集中する。
+
+Workbenchでは対象日、読込モード、読込件数、対象会場数、結果あり件数、summaryあり件数、未取得件数を表示する。結果まとめコピーが払戻・全着順・上がり・着差・決まり手・天気・source情報を保持することと、予想差分確認・summary作成に使うことも明示する。
+
+`FILE ARCHIVE`、`INDEX JSON + TXT + SUMMARY`、reviews indexとTXT/SUMMARYの読込処理は維持する。`public/data/reviews/**`は削除・変更・退避禁止の保護対象であり、過去レビュー日付フォルダも削除しない。fake補完は禁止し、source不明値は`unknown`または「未取得」のまま扱う。
