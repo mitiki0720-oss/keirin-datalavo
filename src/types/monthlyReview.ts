@@ -19,6 +19,8 @@ export type MonthlyReviewDigest = {
   headMiss?: string;
   targetHitRateAny?: string;
   targetHitRate3tan?: string;
+  targetHitRate2tan?: string;
+  targetRecoveryRate?: string;
   targetThirdOnlyMiss?: string;
   fixedFormat?: string;
   mission?: string;

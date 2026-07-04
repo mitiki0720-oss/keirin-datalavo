@@ -10930,7 +10930,7 @@ if (
       ? "素材生成済み"
       : "素材補完中";
   const monthlyReviewStateLabel = monthlyReviewStatus === "ready"
-    ? "月次振り返り: 反映済み"
+    ? "月次振り返り: 反映済み / 可変点数 v2026-07"
     : monthlyReviewStatus === "loading"
       ? "月次振り返り: 読み込み中"
       : "月次振り返り: 未登録";
