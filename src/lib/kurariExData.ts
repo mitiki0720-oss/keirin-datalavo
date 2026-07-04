@@ -5,6 +5,8 @@ import type {
   KurariExHistoryIndex,
   KurariExHistoryMode,
   KurariExHistoryRace,
+  KurariExIdentityMismatchDetail,
+  KurariExIdentityMismatchReason,
   KurariExIdentitySourceConnectionSummary,
   KurariExIdentitySourceStarter,
   KurariExRegistrationNoStatus,
@@ -1009,8 +1011,10 @@ type KurariExTodaySource = {
   venues?: {
     venueCode?: string | number;
     venue?: string;
+    raceIds?: Array<string | null>;
     races?: {
       raceNo?: string | number;
+      raceId?: string | null;
       riders?: KurariExTodayRiderSource[];
     }[];
   }[];
@@ -1174,6 +1178,84 @@ function todayRiderToIdentityStarter(
   };
 }
 
+function normalizeKurariExNameWithoutWhitespace(value?: string | null) {
+  return String(value ?? "").replace(/[\s\u3000]/gu, "");
+}
+
+function normalizeKurariExNameSymbols(value?: string | null) {
+  return String(value ?? "")
+    .normalize("NFKC")
+    .replace(/[\s\u3000・･·.\-‐‑‒–—―]/gu, "");
+}
+
+function normalizeKurariExOldNewKanji(value?: string | null) {
+  return normalizeKurariExRiderName(value)
+    .replace(/[髙﨑濵邊邉澤國廣齋齊嶋]/gu, (character) => ({
+      髙: "高",
+      﨑: "崎",
+      濵: "浜",
+      邊: "辺",
+      邉: "辺",
+      澤: "沢",
+      國: "国",
+      廣: "広",
+      齋: "斎",
+      齊: "斉",
+      嶋: "島",
+    })[character] ?? character);
+}
+
+function classifyKurariExIdentityNameMismatch(
+  todayName: string,
+  officialName: string,
+): KurariExIdentityMismatchReason {
+  if (
+    normalizeKurariExNameWithoutWhitespace(todayName)
+    === normalizeKurariExNameWithoutWhitespace(officialName)
+  ) {
+    return "whitespace-only-difference";
+  }
+  if (
+    normalizeKurariExRiderName(todayName)
+    === normalizeKurariExRiderName(officialName)
+  ) {
+    return "fullwidth-halfwidth-difference";
+  }
+  if (
+    normalizeKurariExOldNewKanji(todayName)
+    === normalizeKurariExOldNewKanji(officialName)
+  ) {
+    return "old-new-kanji-difference";
+  }
+  if (
+    normalizeKurariExNameSymbols(todayName)
+    === normalizeKurariExNameSymbols(officialName)
+  ) {
+    return "middle-dot-or-symbol-difference";
+  }
+  return "playerName-exact-mismatch";
+}
+
+function describeKurariExIdentityNameMismatch(todayName: string, officialName: string) {
+  const todayKey = normalizeKurariExRiderName(todayName);
+  const officialKey = normalizeKurariExRiderName(officialName);
+  const todayWithoutForeignLabel = todayKey.replace(/外国$/u, "");
+  if (todayWithoutForeignLabel === officialKey) {
+    return "today.generated側に「外国」ラベルがあり、official candidateにはありません。";
+  }
+  if (
+    todayKey.endsWith("外国")
+    && todayWithoutForeignLabel.startsWith(officialKey)
+    && todayWithoutForeignLabel !== officialKey
+  ) {
+    return "today.generated側に「外国」ラベルがあり、official candidate名はそれを除いた名前より短い表記です。";
+  }
+  if (todayKey.startsWith(officialKey) || officialKey.startsWith(todayKey)) {
+    return "一方の候補名が他方より短い表記です。";
+  }
+  return "安全キーの選手名完全一致条件を満たしません。";
+}
+
 export function summarizeKurariExIdentitySourceConnection(
   today: KurariExTodaySource | null,
   officialEntries: KurariExOfficialEntriesSource | null,
@@ -1231,17 +1313,23 @@ export function summarizeKurariExIdentitySourceConnection(
   }
 
   const starters: KurariExIdentitySourceStarter[] = [];
+  const nameMismatchDetails: KurariExIdentityMismatchDetail[] = [];
   let blockedNameMismatchCount = 0;
   const todayRiders = (today?.venues ?? []).flatMap((venue) =>
     (venue.races ?? []).flatMap((race) => {
       const raceNumber = normalizeKurariExSourceNumber(race.raceNo);
       if (raceNumber == null) return [];
-      return (race.riders ?? []).map((rider) => ({ venue, raceNumber, rider }));
+      const raceId = String(
+        race.raceId
+        || venue.raceIds?.[Math.max(0, raceNumber - 1)]
+        || "",
+      ).trim() || null;
+      return (race.riders ?? []).map((rider) => ({ venue, raceNumber, raceId, rider }));
     }),
   );
 
   if (today?.date && todayRiders.length > 0) {
-    for (const { venue, raceNumber, rider } of todayRiders) {
+    for (const { venue, raceNumber, raceId, rider } of todayRiders) {
       const todayStarter = todayRiderToIdentityStarter(today, venue, raceNumber, rider);
       const officialKey = buildOfficialEntryJoinKey(
         todayStarter.date,
@@ -1251,15 +1339,44 @@ export function summarizeKurariExIdentitySourceConnection(
       );
       const officialStarter = officialByKey.get(officialKey) ?? null;
       if (officialStarter) {
-        if (
+        const playerNameMatches =
           normalizeKurariExRiderName(officialStarter.name)
-          === normalizeKurariExRiderName(todayStarter.name)
-          && officialStarter.registrationNo
-        ) {
+          === normalizeKurariExRiderName(todayStarter.name);
+        if (playerNameMatches && officialStarter.registrationNo) {
           starters.push(officialStarter);
           continue;
         }
-        blockedNameMismatchCount += 1;
+        if (!playerNameMatches) {
+          blockedNameMismatchCount += 1;
+          nameMismatchDetails.push({
+            date: todayStarter.date,
+            venueName: todayStarter.venueName,
+            venueCode: todayStarter.venueCode,
+            raceNumber,
+            raceId,
+            carNo: todayStarter.carNo,
+            todayName: todayStarter.name,
+            officialCandidateName: officialStarter.name,
+            officialCandidateRegistrationNo: officialStarter.registrationNo,
+            officialCandidatePrefecture: officialStarter.prefecture,
+            officialCandidateAge: officialStarter.age,
+            officialCandidateTerm: officialStarter.term,
+            officialCandidateClassName: officialStarter.className,
+            reason: classifyKurariExIdentityNameMismatch(
+              todayStarter.name,
+              officialStarter.name,
+            ),
+            differenceNote: describeKurariExIdentityNameMismatch(
+              todayStarter.name,
+              officialStarter.name,
+            ),
+            sourceFetchedAt: officialStarter.sourceFetchedAt,
+            sourceType: "official-candidate",
+            rawKey: officialKey,
+            safeKeyStatus: "key-fields-matched-name-mismatch",
+            processingResult: "not-connected-registration-unavailable",
+          });
+        }
       }
 
       const starterKey = buildStarterSourceJoinKey(
@@ -1282,7 +1399,6 @@ export function summarizeKurariExIdentitySourceConnection(
           });
           continue;
         }
-        blockedNameMismatchCount += 1;
       }
 
       starters.push(todayStarter);
@@ -1355,12 +1471,17 @@ export function summarizeKurariExIdentitySourceConnection(
     registrationNoMissingCount: starters.length - registrationNoCompleteCount,
     officialEntriesCount: countSource("official"),
     starterSourceCount: countSource("source-backed"),
-    todayGeneratedOnlyCount: countSource("today-generated-only"),
+    todayGeneratedOnlyCount: Math.max(
+      0,
+      countSource("today-generated-only") - nameMismatchDetails.length,
+    ),
     historicalIdentityCount: countSource("historical-identity"),
     manualOverrideCount: countSource("manual-override"),
     unknownCount: countSource("unknown"),
-    unavailableCount: countSource("unavailable"),
+    unavailableCount: starters.length - registrationNoCompleteCount,
     blockedNameMismatchCount,
+    mismatchCandidateCount: nameMismatchDetails.length,
+    nameMismatchDetails,
     sourceErrors,
     starters,
   };

@@ -614,7 +614,110 @@ sourceごとの日付を別々に表示し、古いstarter sourceやhistoryをcu
 
 - historical identity側のunique-name/manual override provenanceを個別成果物まで伝播する
 - current official entriesとstarter sourceの鮮度差を日数・警告レベルで表示する
-- current接続のsafe-key不一致理由を会場・race単位で監査出力する
+- current接続のsafe-key表記不一致理由は31-09で会場・race単位の診断表示を実装。欠落・重複・key mismatchの詳細化は継続候補
+
+## 31-09 official entries表記不一致診断
+
+### 対応内容
+
+31-08で`date + venueCode + R + carNo`は一致したものの、選手名完全一致を満たさずofficial entries接続を停止した4人について、原因とofficial candidateをEXページ上で診断表示するようにした。
+
+- 表示タイトル: `IDENTITY MISMATCH AUDIT / 表記不一致チェック`
+- 対象件数は実データから動的集計
+- official candidateの登録番号は診断用の未採用値としてのみ表示
+- current出走表本体のregistrationNoは未取得のまま
+- fuzzy matching、unique-name match、manual overrideによる自動接続は行わない
+
+### 接続キーと停止条件
+
+- raw key: `date | venueCode | raceNumber | carNo`
+- safe key:
+  - date一致
+  - venueCode一致
+  - R一致
+  - carNo一致
+  - NFKC・空白除去後のplayerName完全一致
+- 最初の4項目で候補を特定できてもplayerName完全一致に失敗した場合:
+  - `safeKeyStatus: key-fields-matched-name-mismatch`
+  - `sourceType: official-candidate`
+  - `processingResult: not-connected-registration-unavailable`
+  - official candidate登録番号は本体に採用しない
+
+### 原因分類
+
+診断用に次のreason型を定義した。分類だけで接続許可はしない。
+
+- `playerName-exact-mismatch`
+- `whitespace-only-difference`
+- `fullwidth-halfwidth-difference`
+- `old-new-kanji-difference`
+- `middle-dot-or-symbol-difference`
+- `missing-official-entry`
+- `duplicate-candidate`
+- `key-mismatch`
+- `unknown`
+
+2026-07-04 snapshotの4人はすべて`playerName-exact-mismatch`である。空白・全角半角・旧新漢字だけの差ではない。
+
+### 対象4人
+
+| 会場 / R / 車番 | race_id | today.generated名 | official candidate名 | official candidate登録番号 | 診断 |
+| --- | --- | --- | --- | --- | --- |
+| 青森 6R 4番車 | `1220260703020006` | アンドルーズ 外国 | アンドルーズ | `130134` | today側に「外国」ラベルあり |
+| 青森 7R 3番車 | `1220260703020007` | ファンデルワウ 外国 | ファンデルワ | `130135` | 「外国」ラベル差に加えofficial candidate名が短い |
+| 青森 10R 4番車 | `1220260703020010` | トゥルーマン 外国 | トゥルーマン | `130127` | today側に「外国」ラベルあり |
+| 青森 11R 6番車 | `1220260703020011` | リチャードソン 外国 | リチャードソ | `130133` | 「外国」ラベル差に加えofficial candidate名が短い |
+
+上表の登録番号は`official candidate / 未採用`である。診断欄へ表示するが、31-09ではcurrent starterのregistrationNoへ接続していない。
+
+### EX表示
+
+- mismatch stopped人数
+- mismatch candidate人数
+- fake completionなし
+- fuzzy matchingなし
+- 会場、R、車番
+- date、venueCode、race_id
+- raw keyとsafe key状態
+- today.generated名
+- official candidate名
+- official candidate登録番号、府県、年齢、期、級班
+- 停止理由
+- 差分診断
+- sourceFetchedAt
+- 処理結果「未接続 / registrationNo未取得のまま」
+
+### coverage更新
+
+2026-07-04 snapshot:
+
+- official entries接続済み: 459人
+- today-generated-only（mismatch以外）: 0人
+- 表記不一致で接続停止: 4人
+- mismatch candidate: 4人
+- starter source: 0人
+- historical identity: 0人
+- registrationNo unavailable: 4人
+
+上記はJSONの人数から動的に算出し、固定値をUIへハードコードしていない。
+
+### fake補完防止
+
+- whitespace差だけでも31-09では自動接続しない
+- NFKC正規化だけで一致しても新しい許可ルールにはしない
+- old/new漢字候補を自動で同一人物扱いしない
+- official candidate名が短くても前方一致で採用しない
+- 「外国」ラベルを除去して登録番号を採用しない
+- official candidate登録番号を診断用表示から本体へコピーしない
+- manual overrideをofficial扱いしない
+
+### 31-10以降の候補
+
+- strict-safe normalization policyを別タスクで設計する
+- whitespace-only差をsource-backed接続対象にできるか個別検討する
+- NFKC正規化の採用可否を判定し、採用する場合もprovenanceを残す
+- old/new漢字差はmanual reviewとprovenanceを必須にする
+- 名前差分だけで登録番号を自動接続しない原則を維持する
 
 ## 触っていないもの
 
@@ -628,7 +731,7 @@ sourceごとの日付を別々に表示し、古いstarter sourceやhistoryをcu
 - `public/data/venues/**` は触っていない
 - `private-input/**` は触っていない
 - `package.json` / `package-lock.json` は触っていない
-- Prediction Page、ReviewPage、RacesPageは触っていない。EXページは31-08のidentity/source接続表示だけを変更した
+- Prediction Page、ReviewPage、RacesPageは触っていない。EXページは31-08のidentity/source接続表示と31-09の表記不一致診断だけを変更した
 - 的中通知ログとSlack通知stateは触っていない
 - fakeデータ追加、fake補完、source推測補完、登録番号推測補完はしていない
 - `git add .`、git commit、git pushは実行していない

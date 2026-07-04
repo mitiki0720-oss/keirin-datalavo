@@ -2628,6 +2628,7 @@ export default function ExDataPage() {
             <MetricCard label="OFFICIAL" value={valueText(identitySourceSummary?.officialEntriesCount, "人")} note="KEIRIN.JP entries" />
             <MetricCard label="SOURCE-BACKED" value={valueText(identitySourceSummary?.starterSourceCount, "人")} note="validated starter source" />
             <MetricCard label="TODAY ONLY" value={valueText(identitySourceSummary?.todayGeneratedOnlyCount, "人")} note="registrationNo 未取得" warning={(identitySourceSummary?.todayGeneratedOnlyCount ?? 0) > 0} />
+            <MetricCard label="MISMATCH STOPPED" value={valueText(identitySourceSummary?.blockedNameMismatchCount, "人")} note="official candidate 未採用" warning={(identitySourceSummary?.blockedNameMismatchCount ?? 0) > 0} />
             <MetricCard label="HISTORICAL" value={valueText(identitySourceSummary?.historicalIdentityCount, "人")} note="31-08 current接続では不使用" />
             <MetricCard label="MANUAL OVERRIDE" value={valueText(identitySourceSummary?.manualOverrideCount, "人")} note="official扱い禁止" />
             <MetricCard label="UNKNOWN" value={valueText(identitySourceSummary?.unknownCount, "人")} note="unknownのまま" warning={(identitySourceSummary?.unknownCount ?? 0) > 0} />
@@ -2645,6 +2646,89 @@ export default function ExDataPage() {
             {identitySourceSummary?.sourceErrors.length
               ? ` 未取得source: ${identitySourceSummary.sourceErrors.join(" / ")}。`
               : ""}
+          </div>
+
+          <div style={{ marginTop: 24 }}>
+            <SectionTitle
+              eyebrow="IDENTITY MISMATCH AUDIT"
+              title="表記不一致チェック"
+              lead="safe keyのdate + venueCode + R + carNoは一致したものの、playerName完全一致を満たさず接続を停止したofficial candidateを診断表示します。候補登録番号は出走表本体へ採用しません。"
+            />
+            <div className="ex-health-grid">
+              <MetricCard
+                label="MISMATCH STOPPED"
+                value={valueText(identitySourceSummary?.blockedNameMismatchCount, "人")}
+                note="registrationNo 未取得のまま"
+                warning={(identitySourceSummary?.blockedNameMismatchCount ?? 0) > 0}
+              />
+              <MetricCard
+                label="MISMATCH CANDIDATE"
+                value={valueText(identitySourceSummary?.mismatchCandidateCount, "人")}
+                note="診断用・未採用"
+                warning={(identitySourceSummary?.mismatchCandidateCount ?? 0) > 0}
+              />
+              <MetricCard label="FAKE COMPLETION" value="なし" note="candidate値を本体へ接続しない" />
+              <MetricCard label="FUZZY MATCHING" value="なし" note="部分一致による採用なし" />
+            </div>
+
+            {identitySourceSummary?.nameMismatchDetails.length ? (
+              <div className="ex-table-wrap" style={{ marginTop: 14 }}>
+                <table className="ex-data-table">
+                  <thead>
+                    <tr>
+                      <th>会場 / R / 車番</th>
+                      <th>today.generated名</th>
+                      <th>official candidate名</th>
+                      <th>official candidate登録番号</th>
+                      <th>停止理由</th>
+                      <th>差分診断</th>
+                      <th>sourceFetchedAt</th>
+                      <th>処理結果</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {identitySourceSummary.nameMismatchDetails.map((detail) => (
+                      <tr key={`${detail.rawKey}-${detail.todayName}-${detail.officialCandidateName}`}>
+                        <td>
+                          <strong>{detail.venueName} {detail.raceNumber}R {detail.carNo}番車</strong>
+                          <div className="ex-muted">
+                            date {detail.date} / venueCode {detail.venueCode} / race_id {detail.raceId ?? "未取得"}
+                          </div>
+                          <div className="ex-muted">
+                            raw key {detail.rawKey} / {detail.safeKeyStatus}
+                          </div>
+                        </td>
+                        <td>{detail.todayName || "未取得"}</td>
+                        <td>
+                          {detail.officialCandidateName || "未取得"}
+                          <div className="ex-muted">
+                            {detail.officialCandidatePrefecture ?? "府県未取得"} /
+                            {detail.officialCandidateAge == null ? "年齢未取得" : `${detail.officialCandidateAge}歳`} /
+                            {detail.officialCandidateTerm ? `${detail.officialCandidateTerm}期` : "期未取得"} /
+                            {detail.officialCandidateClassName ?? "級班未取得"}
+                          </div>
+                        </td>
+                        <td>
+                          {detail.officialCandidateRegistrationNo ?? "未取得"}
+                          <div className="ex-muted">official candidate / 未採用</div>
+                        </td>
+                        <td>{detail.reason}</td>
+                        <td>{detail.differenceNote}</td>
+                        <td>
+                          {detail.sourceFetchedAt ?? "未取得"}
+                          <div className="ex-muted">{detail.sourceType}</div>
+                        </td>
+                        <td>未接続 / registrationNo未取得のまま</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : identitySourceStatus === "loading" ? (
+              <EmptyState text="表記不一致候補を確認中です。" />
+            ) : (
+              <EmptyState text="表記不一致で接続停止したofficial candidateはありません。" />
+            )}
           </div>
 
           {identitySourceSummary?.starters.length ? (

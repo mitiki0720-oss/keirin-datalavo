@@ -653,6 +653,40 @@ export type KurariExIdentitySourceStarter = {
     | "today-roster-only";
 };
 
+export type KurariExIdentityMismatchReason =
+  | "playerName-exact-mismatch"
+  | "whitespace-only-difference"
+  | "fullwidth-halfwidth-difference"
+  | "old-new-kanji-difference"
+  | "middle-dot-or-symbol-difference"
+  | "missing-official-entry"
+  | "duplicate-candidate"
+  | "key-mismatch"
+  | "unknown";
+
+export type KurariExIdentityMismatchDetail = {
+  date: string;
+  venueName: string;
+  venueCode: string;
+  raceNumber: number;
+  raceId: string | null;
+  carNo: string;
+  todayName: string;
+  officialCandidateName: string;
+  officialCandidateRegistrationNo: string | null;
+  officialCandidatePrefecture: string | null;
+  officialCandidateAge: number | null;
+  officialCandidateTerm: string | null;
+  officialCandidateClassName: string | null;
+  reason: KurariExIdentityMismatchReason;
+  differenceNote: string;
+  sourceFetchedAt: string | null;
+  sourceType: "official-candidate";
+  rawKey: string;
+  safeKeyStatus: "key-fields-matched-name-mismatch";
+  processingResult: "not-connected-registration-unavailable";
+};
+
 export type KurariExIdentitySourceConnectionSummary = {
   status: "ready" | "partial" | "unavailable";
   todayDate: string | null;
@@ -673,6 +707,8 @@ export type KurariExIdentitySourceConnectionSummary = {
   unknownCount: number;
   unavailableCount: number;
   blockedNameMismatchCount: number;
+  mismatchCandidateCount: number;
+  nameMismatchDetails: KurariExIdentityMismatchDetail[];
   sourceErrors: string[];
   starters: KurariExIdentitySourceStarter[];
 };
