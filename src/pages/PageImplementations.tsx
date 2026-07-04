@@ -4051,6 +4051,47 @@ export const buildPredictionExportText = ({
   ].join("\n");
 };
 
+const buildPredictionBatchRaceCoreText = (material: string) => {
+  const excludedSections = new Set(["C", "D"]);
+  let excluded = false;
+
+  return material
+    .split(/\r?\n/)
+    .filter((line) => {
+      const section = line.match(/^\[([A-Z])\./u)?.[1];
+      if (section) excluded = excludedSections.has(section);
+      return !excluded;
+    })
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+};
+
+const extractPredictionBatchMonthlyMeta = (monthlyGuidanceText: string) => {
+  const lines = monthlyGuidanceText.split(/\r?\n/);
+  const start = lines.findIndex((line) => line === "【レースごとの可変点数メタ情報】");
+  if (start < 0) return "【R別 可変点数メタ情報】\n未取得";
+  const end = lines.findIndex((line, index) => index > start && line === "【予想依頼テンプレ】");
+  const body = lines.slice(start + 1, end < 0 ? undefined : end).join("\n").trim();
+  return `【R別 可変点数メタ情報】\n${body || "未取得"}`;
+};
+
+const extractPredictionBatchKurariExRaceMemo = (kurariExGuidanceText: string) => {
+  const notes = kurariExGuidanceText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) =>
+      /^-\s*(?:時間帯|級班|分戦数|風速帯|今回条件EX):/u.test(line)
+      || /^-\s*.*(?:3着だけ抜け|別線3着混入|単騎3着|同ライン1-2)/u.test(line)
+      || line === "母数が少ない指標は過信しないでください。"
+    );
+  const uniqueNotes = [...new Set(notes)];
+  return [
+    "【R別 KURARI EX注意メモ】",
+    ...(uniqueNotes.length > 0 ? uniqueNotes : ["未取得"]),
+  ].join("\n");
+};
+
 export type FeaturedSupplementRiderInfo = {
   rider: string;
   branch?: string;
@@ -10707,46 +10748,51 @@ if (
     const startR = targetRaces[0]?.raceNo ?? requestedStartR;
     const endR = targetRaces.at(-1)?.raceNo ?? requestedEndR;
 
+    const commonVenueText = buildPredictionVenueSummaryExportLines({
+      venue: selectedPredictionMaterialVenue,
+      race: targetRaces[0] ?? venueRaces[0] ?? { raceNo: startR },
+      gradeLabel: selectedVenueGradeLabel,
+      venueSummary: selectedVenueSummary,
+    }).join("\n");
+    const commonKurariExText = selectedKurariExAnyReady
+      ? buildKurariExPredictionMaterial(selectedKurariExBundle, selectedKurariExExact)
+      : selectedKurariExBothMissing
+        ? buildKurariExPredictionMaterial(null, null, null)
+        : "[P. KURARI EX DATA / 独自展開指標]\n\n未取得";
+    const commonKurariExWithAccumulation = commonKurariExText.includes("【KURARI EX 蓄積ルール】")
+      ? commonKurariExText
+      : `${commonKurariExText}\n\n【KURARI EX 蓄積ルール】\n未取得`;
     const commonRequest = [
+      "====================",
       "【まとめ予想依頼】",
       `${selectedPredictionMaterialVenue.venue}競輪場${selectedVenueGradeLabel}、${predictionFeed.date}、対象R: ${startR}R〜${endR}Rを、月次振り返り反映済みの可変点数ルールでまとめて予想してください。`,
       "",
-      "※1Rごとにコピーしやすい形で出してください。",
-      "※オッズは記載されているオッズをそのまま使うのではなく、展開・並び・KURARI EX・月次振り返りを重視してください。",
-      "※登録番号など不明な項目は、素材内のsource contractを優先し、fake補完しないでください。",
-      "※買い目はレースごとに ticketMode / recommendedPoints / investmentYen / reasonTags を見て、10〜18点可変で設計してください。",
-      "※1点100円固定です。",
+      "出力ルール: 対象Rごとに展開予想・買い目・買目設計メモを分けて出力する。",
+      "素材にない情報は未取得として扱い、fake補完しない。",
+      "====================",
       "",
+      "====================",
       "【共通ルール】",
       "- 月次振り返り: 反映済み / 可変点数ルール v2026-07",
       "- 1点100円固定",
-      "- 標準14点",
       "- 10〜18点可変",
-      "- 2車単は原則2点固定",
-      "- 追加点は3連単の3着保護・中穴枠に使う",
-      "- 点数を増やす理由を買目設計メモに必ず記録する",
-      "- fakeデータ、fake補完、根拠なし高配当寄せは禁止",
+      "- 標準14点",
+      "- ticketMode / recommendedPoints / investmentYen / reasonTags を使う",
+      "====================",
       "",
-      "【出力してほしい形式】",
-      "各Rごとに以下を必ず入れる。",
+      "====================",
+      "【共通会場・KURARI EXメモ】",
+      commonVenueText,
       "",
-      "1. 日付",
-      "2. 会場",
-      "3. R",
-      "4. 車番",
-      "5. 選手名",
-      "6. 登録番号",
-      "7. 府県",
-      "8. 年齢",
-      "9. 期",
-      "10. 級班",
-      "11. source名",
-      "12. source取得日時",
-      "13. source種別（official / user-entered-from-official / unknown）",
-      "14. 展開予想",
-      "15. 買い目",
-      "16. 買目設計メモ",
-      "17. ticketMode / recommendedPoints / investmentYen / reasonTags",
+      commonKurariExWithAccumulation,
+      "====================",
+      "",
+      "====================",
+      "【fake補完禁止ルール】",
+      "- 既存素材にある内容だけを使う。",
+      "- 存在しない情報は生成せず、未取得とする。",
+      "- 登録番号などは各Rのsource contractを優先する。",
+      "====================",
     ];
 
     const raceMaterials = targetRaces.map((race) => {
@@ -10775,7 +10821,7 @@ if (
         : selectedKurariExBothMissing
           ? buildKurariExPredictionMaterial(null, null, null)
           : "";
-      const material = buildPredictionExportText({
+      const material = buildPredictionBatchRaceCoreText(buildPredictionExportText({
         date: predictionFeed.date,
         feed: predictionFeed,
         venue: selectedPredictionMaterialVenue,
@@ -10794,13 +10840,17 @@ if (
         trackAffinityText: "",
         dataAnalysisText: "",
         oddsText: "",
-        monthlyGuidanceText,
-        kurariExGuidanceText,
-      });
+        monthlyGuidanceText: "",
+        kurariExGuidanceText: "",
+      }));
       return [
         "====================",
         `【${race.raceNo}R】`,
         material,
+        "",
+        extractPredictionBatchMonthlyMeta(monthlyGuidanceText),
+        "",
+        extractPredictionBatchKurariExRaceMemo(kurariExGuidanceText),
         "====================",
       ].join("\n");
     });
@@ -11692,7 +11742,7 @@ if (
                   <div>
                     <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.2em", color: "#745ab4", marginBottom: "8px" }}>PREDICTION BATCH MATERIAL</div>
                     <div style={{ fontSize: isPredictionCompactLayout ? "26px" : "32px", fontWeight: 900, color: "#081224", lineHeight: 1.15 }}>まとめGPT貼り付け用素材</div>
-                    <div style={{ marginTop: "9px", maxWidth: "820px", fontSize: "13px", lineHeight: 1.9, color: "#5f6f84" }}>選択会場の複数レースを、source contract・KURARI EX・月次可変点数ルール込みで一括コピーします。</div>
+                    <div style={{ marginTop: "9px", maxWidth: "820px", fontSize: "13px", lineHeight: 1.9, color: "#5f6f84" }}>標準軽量まとめ。共通情報は先頭に1回だけ、各Rはsource contract・出走表などレース固有情報中心で一括コピーします。</div>
                   </div>
                   {predictionBatchCopyStatus ? (
                     <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "7px 11px", background: predictionBatchCopyStatus.includes("失敗") || predictionBatchCopyStatus.includes("ありません") ? "#fff7ed" : "#ecfdf5", color: predictionBatchCopyStatus.includes("失敗") || predictionBatchCopyStatus.includes("ありません") ? "#9a3412" : "#047857", border: predictionBatchCopyStatus.includes("失敗") || predictionBatchCopyStatus.includes("ありません") ? "1px solid #fed7aa" : "1px solid #a7f3d0", fontSize: "10px", fontWeight: 900 }}>{predictionBatchCopyStatus}</span>
