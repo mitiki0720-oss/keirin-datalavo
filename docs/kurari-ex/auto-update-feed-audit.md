@@ -999,6 +999,21 @@ EXページを出目ランキング、荒れ指数、レース連鎖、風速×�
 
 `public/data/**`は生成・変更・削除していない。`public/data/reviews/**`も変更、stash、削除、退避、stageしていない。
 
+## 32-02 EX中央寄せ / Result Trend Lab ranking v1
+
+- EXページ専用main wrapperをviewport幅基準で中央寄せし、`100vw`依存と過剰な最大幅を解消した
+- 3連単出目、1着車番、2着車番、3着車番、車番別3着内率のランキングv1を追加した
+- current KEIRIN.JP result feedを読み取り、official source、確定結果、一意race key、妥当な1〜3着、保存済み3連単との一致をすべて満たすraceだけをeligibleとする
+- excluded件数と理由を表示し、eligibleがなければfakeランキングを表示しない
+- LOW SAMPLEは30R未満をreference only、30〜99Rをcaution、100R以上も予想の補助扱いとする
+- all / 7車 / 9車 / A級 / S級 / Gレース / 会場 / Rのfilter readinessを明示し、不明項目を推測分類しない
+- 荒れ指数、最低オッズ比、レース連鎖、風速×決まり手は未実装で、必要sourceの蓄積までfuture-accumulationを維持する
+- fakeデータ、fake補完、架空ランキングを生成していない
+- `public/data/**`は読み取りのみで、生成・変更・削除していない
+- `public/data/reviews/**`は変更、stash、削除、退避、stageしていない
+
+32-03候補は、保存済み3連単払戻金による荒れ指数v1、堅め / 中穴 / 荒れ / 大荒れ / 超荒れ分類、R別 / 会場別 / 級班別の荒れ傾向とする。最低オッズ比はデータ取得後に判断する。
+
 ## 触っていないもの
 
 - `public/data/reviews/**` は触っていない

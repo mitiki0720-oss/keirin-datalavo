@@ -271,3 +271,49 @@ current official resultはconfirmed 38Rで風速と決まり手を保持する�
 - official result履歴の保存期間とrace単位provenance contractの設計
 - `public/data/**`を書き換えず、既存official resultを読み取り集計するconsumerの検討
 
+## 32-02 3連単出目ランキング v1
+
+32-01のavailability監査を実装へ進め、EXページのResult Trend Labに読み取り専用の3連単出目ランキングv1を追加した。表示値は`public/data/races/keirin-jp-results.generated.json`から画面表示時に動的集計し、ランキング数字をハードコードしない。
+
+### official result only条件
+
+次をすべて満たすraceだけをeligibleとする。
+
+- source providerが`KEIRIN.JP`
+- listTypeが`JSJ048`
+- source dateとsource取得日時が妥当
+- `date + venueCode + raceNumber`から一意なrace keyを構成でき、同じkeyが重複しない
+- `resultStatus: confirmed`
+- cancelled / no-raceではない
+- 1〜3着の車番が1〜9の異なる整数として揃う
+- 1〜3着から構成した出目と保存済み`payout3tan.combination`が一致する
+- 3連単払戻値が欠損していない
+
+eligible raceから、3連単出目、1着車番、2着車番、3着車番、車番別3着内率を算出する。車番別3着内率の分母は、eligible raceのofficial `finishOrder`にその車番が記録された出走数とする。
+
+### excluded
+
+official source不成立、race key欠損・重複、中止・不成立、未確定、1〜3着不足、不正・重複車番、3連単欠損・着順との不一致は集計対象外とし、件数を理由別に表示する。eligibleが0件なら架空ランキングを作らず`No eligible official result data`を表示する。
+
+件数はfeed更新に追随する動的値であり、EXページ上でeligible / excluded / totalと除外理由を同時に確認する。
+
+### LOW SAMPLEとfilter readiness
+
+- 30R未満: `LOW SAMPLE / reference only`（参考のみ）
+- 30〜99R: `caution`（傾向注意）
+- 100R以上: `usable trend`（予想の主根拠ではなく補助）
+
+filter foundationはall、7車、9車、A級、S級、Gレース、会場、Rを定義した。現行schemaで安全に判定できるものだけ`ready`または`partial`とし、raceClass等がないA級・S級は`future-accumulation`のままにする。不明値を推測して分類しない。
+
+### レイアウト・保護・次段階
+
+EX専用main wrapperを`100%`基準、`max-width: 1600px`、`margin-inline: auto`へ変更し、`100vw`由来のずれを避けた。子要素へ`min-width: 0`と`max-width: 100%`を付け、100%表示での中央寄せとページ横overflow抑止を行った。
+
+- fakeランキング、fake補完、架空オッズ、架空風速、架空決まり手は生成しない
+- 荒れ指数、最低オッズ比、レース連鎖、風速×決まり手は未実装
+- 最低オッズ比はsource取得後まで`future-accumulation`
+- `public/data/**`は読み取りのみで生成・変更・削除していない
+- `public/data/reviews/**`は変更、stash、削除、退避、stageしていない
+
+32-03候補は、3連単払戻金をsource値のまま使う荒れ指数v1、堅め / 中穴 / 荒れ / 大荒れ / 超荒れ分類、R別 / 会場別 / 級班別傾向とする。最低オッズ比は必要なsourceが蓄積されるまで実装しない。
+

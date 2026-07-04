@@ -95,6 +95,14 @@ import type {
   KurariExRiderQuality,
   KurariExStartersAvailabilitySummary,
 } from "../types/kurariEx";
+import {
+  loadKurariExTrifectaTrendV1,
+} from "../lib/kurariExResultTrendLab";
+import type {
+  KurariExTrendCarTop3Row,
+  KurariExTrendRankingRow,
+  KurariExTrifectaTrendV1,
+} from "../lib/kurariExResultTrendLab";
 import { SiteHeader, useIsMobile } from "./PageImplementations";
 
 const serif = '"Yu Mincho", "Hiragino Mincho ProN", "Times New Roman", serif';
@@ -267,6 +275,42 @@ function MetricCard({ label, value, note, warning }: {
       <div className="ex-eyebrow">{label}</div>
       <div className="ex-metric-value">{value}</div>
       {note ? <div className="ex-muted">{note}</div> : null}
+    </article>
+  );
+}
+
+function TrendRankingCard({
+  title,
+  rows,
+  top3Rate = false,
+}: {
+  title: string;
+  rows: Array<KurariExTrendRankingRow | KurariExTrendCarTop3Row>;
+  top3Rate?: boolean;
+}) {
+  return (
+    <article className="ex-trend-ranking-card">
+      <div className="ex-trend-ranking-head">
+        <h3>{title}</h3>
+        <span>TOP {Math.min(rows.length, 10)}</span>
+      </div>
+      {rows.length ? (
+        <ol className="ex-trend-ranking-list">
+          {rows.slice(0, 10).map((row, index) => (
+            <li key={row.key}>
+              <span className="ex-trend-rank">{index + 1}</span>
+              <strong>{row.label}</strong>
+              <span>{row.count.toLocaleString("ja-JP")}回</span>
+              <b>{row.rate.toFixed(1)}%</b>
+              {top3Rate && "eligibleStarts" in row ? (
+                <small>{row.count.toLocaleString("ja-JP")} / {row.eligibleStarts.toLocaleString("ja-JP")}出走</small>
+              ) : null}
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <div className="ex-muted">No eligible official result data</div>
+      )}
     </article>
   );
 }
@@ -1139,6 +1183,26 @@ export default function ExDataPage() {
   const [historyDaily, setHistoryDaily] = useState<KurariExHistoryDaily | null>(null);
   const [historyDailyStatus, setHistoryDailyStatus] = useState<"idle" | "loading" | "ready" | "empty" | "error">("idle");
   const [historyDailyError, setHistoryDailyError] = useState<string | null>(null);
+  const [trifectaTrend, setTrifectaTrend] = useState<KurariExTrifectaTrendV1 | null>(null);
+  const [trifectaTrendStatus, setTrifectaTrendStatus] = useState<"loading" | "ready" | "error">("loading");
+
+  useEffect(() => {
+    let active = true;
+    loadKurariExTrifectaTrendV1()
+      .then((trend) => {
+        if (!active) return;
+        setTrifectaTrend(trend);
+        setTrifectaTrendStatus("ready");
+      })
+      .catch(() => {
+        if (!active) return;
+        setTrifectaTrend(null);
+        setTrifectaTrendStatus("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -2046,12 +2110,13 @@ export default function ExDataPage() {
     <div className="ex-page">
       <SiteHeader activeKey="ex-data" />
       <style>{`
-        .ex-page { min-height: 100vh; overflow-x: hidden; color: #172239; font-family: ${sans}; background:
+        .ex-page { width: 100%; max-width: 100%; min-height: 100vh; overflow-x: clip; color: #172239; font-family: ${sans}; background:
           radial-gradient(circle at 7% 4%, rgba(205,190,255,.48), transparent 24%),
           radial-gradient(circle at 91% 12%, rgba(181,224,255,.44), transparent 25%),
           radial-gradient(circle at 52% 80%, rgba(195,245,225,.42), transparent 32%),
           linear-gradient(180deg, #f7f5ff 0%, #f5faff 45%, #f7fffb 100%); }
-        .ex-main { width: ${isMobile ? "calc(100vw - 32px)" : "min(1760px, calc(100vw - 48px))"}; margin: 0 auto; padding: ${isMobile ? "24px 0 64px" : "42px 0 92px"}; display: grid; gap: 24px; }
+        .ex-main { box-sizing: border-box; width: calc(100% - ${isMobile ? "32px" : "48px"}); max-width: 1600px; min-width: 0; margin-inline: auto; padding: ${isMobile ? "24px 0 64px" : "42px 0 92px"}; display: grid; gap: 24px; }
+        .ex-main > * { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
         .ex-panel { border: 1px solid rgba(190,194,224,.62); border-radius: 30px; background: rgba(255,255,255,.78); box-shadow: 0 22px 55px rgba(82,74,135,.09); backdrop-filter: blur(18px); }
         .ex-hero { padding: ${isMobile ? "26px 22px" : "46px 48px"}; display: grid; grid-template-columns: ${isMobile ? "1fr" : "minmax(0,1.35fr) minmax(300px,.65fr)"}; gap: 28px; align-items: center; overflow: hidden; position: relative; }
         .ex-hero:after { content: ""; position: absolute; width: 360px; height: 360px; right: -90px; top: -170px; border-radius: 50%; background: linear-gradient(145deg, rgba(183,161,255,.42), rgba(153,219,255,.28)); }
@@ -2180,6 +2245,7 @@ export default function ExDataPage() {
         .ex-metric-card { min-width: 0; padding: 20px; border: 1px solid #e5e3f2; border-radius: 22px; background: linear-gradient(150deg,#fff,#f7f4ff 58%,#f2fbff); }
         .ex-metric-card.is-warning { border-color: #f0c9a7; background: #fff9f1; }
         .ex-metric-value { margin: 8px 0 4px; color: #172239; font: 850 ${isMobile ? "25px" : "32px"}/1 ${serif}; overflow-wrap: anywhere; }
+        .ex-panel[data-testid="result-trend-lab-roadmap"] .ex-metric-value { font-size: ${isMobile ? "22px" : "26px"}; line-height: 1.08; }
         .ex-muted { color: #8590a3; font-size: 11px; font-weight: 700; line-height: 1.5; }
         .ex-legend { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 4}, minmax(0,1fr)); gap: 14px; }
         .ex-legend article { padding: 20px; border-radius: 21px; border: 1px solid #e4e1ef; background: rgba(255,255,255,.8); }
@@ -2209,6 +2275,24 @@ export default function ExDataPage() {
         .ex-quality.is-identity-only { color: #687184; background: #eceef2; }
         .ex-sample-alert { padding: 18px; border: 1px solid #f0c98e; border-radius: 19px; background: #fff8e9; color: #78501d; line-height: 1.75; }
         .ex-sample-alert strong { display: block; margin-bottom: 5px; letter-spacing: .12em; }
+        .ex-trend-status-row { display: flex; flex-wrap: wrap; gap: 8px; }
+        .ex-trend-status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 999px; color: #40516c; background: #edf2fa; font-size: 10px; font-weight: 900; }
+        .ex-trend-status-pill.is-ready { color: #23664c; background: #daf5e8; }
+        .ex-trend-status-pill.is-partial { color: #925711; background: #fff0d3; }
+        .ex-trend-status-pill.is-future-accumulation { color: #687184; background: #eceef2; }
+        .ex-trend-ranking-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 2}, minmax(0,1fr)); gap: 13px; }
+        .ex-trend-ranking-card { min-width: 0; padding: 18px; border: 1px solid #e1e4f0; border-radius: 21px; background: linear-gradient(145deg,rgba(255,255,255,.96),rgba(247,246,255,.9)); }
+        .ex-trend-ranking-card:first-child { grid-column: ${isMobile ? "auto" : "1 / -1"}; }
+        .ex-trend-ranking-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+        .ex-trend-ranking-head h3 { margin: 0; color: #263650; font: 800 18px/1.35 ${serif}; }
+        .ex-trend-ranking-head span { color: #7866b5; font-size: 9px; font-weight: 950; letter-spacing: .1em; }
+        .ex-trend-ranking-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+        .ex-trend-ranking-list li { display: grid; grid-template-columns: 26px minmax(70px,1fr) auto auto; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 13px; background: rgba(247,249,253,.92); color: #657187; font-size: 11px; }
+        .ex-trend-ranking-list li strong { color: #273650; font-size: 13px; }
+        .ex-trend-ranking-list li b { color: #5e4b9d; font-size: 12px; }
+        .ex-trend-ranking-list li small { grid-column: 2 / -1; color: #8993a4; font-size: 9px; }
+        .ex-trend-rank { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: #6451a1; background: #eee9fb; font-weight: 950; }
+        .ex-trend-reasons { margin: 0; padding-left: 20px; color: #657187; font-size: 11px; line-height: 1.8; }
         .ex-data-table { width: 100%; border-collapse: collapse; min-width: 580px; color: #526078; font-size: 12px; }
         .ex-data-table th, .ex-data-table td { padding: 10px 9px; border-bottom: 1px solid #edf0f4; text-align: left; white-space: nowrap; }
         .ex-data-table th { color: #7765ae; font-size: 10px; letter-spacing: .08em; }
@@ -2420,22 +2504,116 @@ export default function ExDataPage() {
           <SectionTitle
             eyebrow="KURARI EX RESULT TREND LAB"
             title="出目と流れを読む、次世代分析ラボ"
-            lead="official result onlyで育てる分析roadmapです。32-01はdata availability auditのみを実装し、未集計のランキング数値は表示しません。"
+            lead="official result onlyで育てる分析ラボです。32-02では厳格な適格条件を通過した結果だけを3連単出目ランキングv1へ反映します。"
           />
           <div className="ex-health-grid">
             <MetricCard label="DATA AVAILABILITY AUDIT" value="IMPLEMENTED" note="schema / coverage / provenance監査" />
-            <MetricCard label="RANKING ENGINE" value="FUTURE" note="future-accumulation" />
+            <MetricCard label="RANKING ENGINE" value="IMPLEMENTED v1" note="official 3連単結果のみ" />
             <MetricCard label="ODDS GAP ANALYSIS" value="FUTURE" note="最低オッズ未取得・fake prohibited" warning />
             <MetricCard label="WIND × FINISH TREND" value="PARTIAL" note="風速・決まり手に欠損とprovenance課題" warning />
           </div>
-          <div className="ex-empty" style={{ marginTop: 14 }}>
-            <strong>ROADMAP</strong><br />
-            3連単出目ランキング / 荒れ指数 / レース連鎖分析 / 風速×決まり手 /
-            会場クセ / 今日の流れメーター
+
+          <div className="ex-subsection" data-testid="result-trend-lab-ranking-v1">
+            <SectionTitle
+              eyebrow="TRIFECTA OUTCOME RANKING v1"
+              title="3連単出目ランキング v1"
+              lead="KEIRIN.JP official resultのうち、race key・確定着順・3連単結果が一致するレースだけを動的集計します。"
+            />
+            {trifectaTrendStatus === "loading" ? <EmptyState text="official resultを確認しています。" /> : null}
+            {trifectaTrendStatus === "error" ? (
+              <EmptyState text="No eligible official result data / official sourceを取得できませんでした。" />
+            ) : null}
+            {trifectaTrend ? (
+              <>
+                <div className="ex-health-grid">
+                  <MetricCard
+                    label="SOURCE"
+                    value={trifectaTrend.sourceName}
+                    note={trifectaTrend.sourceFetchedAt
+                      ? `取得 ${new Date(trifectaTrend.sourceFetchedAt).toLocaleString("ja-JP")}`
+                      : "source unavailable"}
+                    warning={!trifectaTrend.sourceFetchedAt}
+                  />
+                  <MetricCard
+                    label="ELIGIBLE RACES"
+                    value={trifectaTrend.eligibleRaceCount.toLocaleString("ja-JP")}
+                    note={`全${trifectaTrend.totalRaceCount.toLocaleString("ja-JP")}R`}
+                  />
+                  <MetricCard
+                    label="EXCLUDED RACES"
+                    value={trifectaTrend.excludedRaceCount.toLocaleString("ja-JP")}
+                    note="strict eligibilityで除外"
+                    warning={trifectaTrend.excludedRaceCount > 0}
+                  />
+                  <MetricCard
+                    label="SAMPLE STATUS"
+                    value={trifectaTrend.sampleLabel}
+                    note={trifectaTrend.sampleStatus === "low-sample"
+                      ? "参考のみ"
+                      : trifectaTrend.sampleStatus === "caution"
+                        ? "傾向注意"
+                        : "予想の主根拠ではなく補助"}
+                    warning={trifectaTrend.sampleStatus !== "usable"}
+                  />
+                </div>
+
+                {trifectaTrend.status === "ready" ? (
+                  <div className="ex-trend-ranking-grid">
+                    <TrendRankingCard title="3連単出目 TOP" rows={trifectaTrend.trifectaRanking} />
+                    <TrendRankingCard title="1着車番 TOP" rows={trifectaTrend.firstCarRanking} />
+                    <TrendRankingCard title="2着車番 TOP" rows={trifectaTrend.secondCarRanking} />
+                    <TrendRankingCard title="3着車番 TOP" rows={trifectaTrend.thirdCarRanking} />
+                    <TrendRankingCard title="車番別3着内率" rows={trifectaTrend.carTop3RateRanking} top3Rate />
+                  </div>
+                ) : (
+                  <EmptyState text="No eligible official result data" />
+                )}
+
+                <div className="ex-location-grid">
+                  <article className="ex-location-card">
+                    <div className="ex-location-head">
+                      <h3>除外理由</h3>
+                      <span className="ex-location-status is-warning">EXCLUDED</span>
+                    </div>
+                    {trifectaTrend.exclusionReasons.length ? (
+                      <ul className="ex-trend-reasons">
+                        {trifectaTrend.exclusionReasons.map((reason) => (
+                          <li key={reason.key}>{reason.label}: {reason.count.toLocaleString("ja-JP")}R</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="ex-muted">除外なし</div>
+                    )}
+                  </article>
+                  <article className="ex-location-card">
+                    <div className="ex-location-head">
+                      <h3>FILTER READINESS</h3>
+                      <span className="ex-location-status is-partial">FOUNDATION</span>
+                    </div>
+                    <div className="ex-trend-status-row">
+                      {trifectaTrend.filterReadiness.map((filter) => (
+                        <span
+                          className={`ex-trend-status-pill is-${filter.status}`}
+                          key={filter.key}
+                          title={filter.note}
+                        >
+                          {filter.label}: {filter.status}
+                        </span>
+                      ))}
+                    </div>
+                  </article>
+                </div>
+              </>
+            ) : null}
           </div>
-          <div className="ex-muted" style={{ marginTop: 10 }}>
+
+          <div className="ex-empty">
+            <strong>ROADMAP / FUTURE-ACCUMULATION</strong><br />
+            荒れ指数 / 最低オッズ比 / レース連鎖分析 / 風速×決まり手 / 会場クセ / 今日の流れメーター
+          </div>
+          <div className="ex-muted">
             official result only / fake prohibited / LOW SAMPLE aware。
-            sampleSize 30未満はreference onlyとし、最低オッズ・人気順・オッズ変動はsource蓄積前に生成しません。
+            30R未満は参考のみ、30〜99Rは傾向注意、100R以上でも予想の主根拠ではなく補助として扱います。
           </div>
         </section>
 
