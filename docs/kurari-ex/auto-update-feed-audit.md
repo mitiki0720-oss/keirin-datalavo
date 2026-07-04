@@ -64,7 +64,7 @@ KURARI EX の次作業へ進む前に、race data、開催日程、KEIRIN.JP off
 - Slack: `SLACK_WEBHOOK_URL` secretを使用し、毎回通知判定を行う
 - status: `partial`
 - risk:
-  - 23:53 JSTのscheduled backfillはtoday feed側で `--phase backfill` になるが、KEIRIN.JP results更新stepの条件にこのcronが含まれていない。手動backfillはofficial resultsを更新するが、scheduled backfillでは更新しない
+  - 31-06時点では、23:53 JSTのscheduled backfillがtoday feed側で `--phase backfill` になる一方、KEIRIN.JP results更新stepの条件にこのcronが含まれていなかった。31-07で接続済み
   - today feed、official feed、Slack state、build/deployを1 workflowで扱うため、外部feed遅延やpush競合の影響範囲が広い
   - concurrency groupは`pages`で、KURARI EX更新系の`keirin-data-auto-update`とは別。データpush同士の完全な排他ではない
 - notes:
@@ -146,7 +146,7 @@ KURARI EX の次作業へ進む前に、race data、開催日程、KEIRIN.JP off
 | `scripts/update-keirin-upcoming-schedule.mjs` | 今後60日程度の開催日程を更新 | CTC開催日程ページ | `public/data/races/upcoming-schedule.generated.json` | CTC URL、ISO `generatedAt` | today feedの開催補助 | `implemented` | official entry/resultとは別source。開催内容の真正性はCTCページ解析に依存 |
 | `scripts/updateRaceSchedule.mjs` | legacy開催日程TSを更新 | CTC開催日程ページ | `src/data/raceScheduleData.ts` | CTC | today updaterの入力候補 | `partial` | 手動commandは存在するが現行workflowから呼ばれていない。コード生成物でありpublic scheduleと二重系統 |
 | `scripts/update-keirin-jp-entries.mjs` | KEIRIN.JP出走表・並びを取得 | KEIRIN.JP `JSJ048 / JSJ006 / JSJ005` | public write時は`keirin-jp-entries.generated.json`、通常はdebug local | providerとendpointをtop-level sourceに保持。entry sourceは`KEIRIN.JP:JSJ006` | official rider supplement、identity source候補 | `implemented` | `sourceType`、`sourceFetchedAt`、`registrationNoSource`、`registrationNoTrustStatus`という統一fieldはない |
-| `scripts/update-keirin-jp-results.mjs` | KEIRIN.JP結果・払戻を取得 | KEIRIN.JP `JSJ048`と結果detail | public write時は`keirin-jp-results.generated.json`、通常はdebug local | providerとendpointをtop-level sourceに保持 | history/Review系とrider identity source候補 | `implemented` | 日中はpendingが正常。scheduled 23:53 backfillへのworkflow接続漏れあり |
+| `scripts/update-keirin-jp-results.mjs` | KEIRIN.JP結果・払戻を取得 | KEIRIN.JP `JSJ048`と結果detail | public write時は`keirin-jp-results.generated.json`、通常はdebug local | providerとendpointをtop-level sourceに保持 | history/Review系とrider identity source候補 | `implemented` | 日中はpendingが正常。scheduled 23:53 backfillへのworkflow接続は31-07で修正済み |
 | `scripts/archive-kurari-ex-daily-facts.mjs` | 確定済みtoday feedと保存予想を日次FACTS化 | today feed、saved predictions | `analytics/kurari-ex/history/daily/**`とindex/status | FACTS archive。未確定・日付不一致をskip | EX履歴、venue/rider/matchup分析の基盤 | `implemented` | today riderに登録番号がない場合は別identity sourceに依存。pending日は蓄積しない |
 | `scripts/run-kurari-ex-nightly-update.mjs` | archive後にEX成果物を一括再生成 | daily FACTS、official feeds、player cards、identity mappings | `analytics/kurari-ex/**` | `EXACT`、`OFFICIAL_ENTRY`、`SEED*`など複数契約 | EXページの主要生成元 | `implemented` | 一部identity解決にexact-name、manual overrideを使う。全成果物が同じ最新periodとは限らない |
 | `scripts/check-kurari-ex-nightly-stale.mjs` | 対象日の日次FACTS蓄積漏れを検出 | daily FACTS、history index | 標準出力とexit code | source生成なし | recovery workflowのgate | `implemented` | analysis別鮮度は検査対象外 |
@@ -386,7 +386,7 @@ current `today.generated.json`をEX主要sourceとして直接再生成するの
 - exact/analysisのperiodが2026-06-23または24付近で止まり、today recommendationもcurrent dateではない
 - historical rider identityでunique-name/manual mappingを使用
 - Slackはstate dedupe済みだがworkflow間のatomicな二重送信防止がない
-- scheduled 23:53 backfillでKEIRIN.JP results stepが動かない
+- scheduled 23:53 backfillのKEIRIN.JP results接続漏れは31-07で解消
 - data更新workflowと通常deploy workflowが重複deployし得る
 
 ### unknown
@@ -402,7 +402,7 @@ current `today.generated.json`をEX主要sourceとして直接再生成するの
 - registrationNoごとの`registrationNoSource`と`registrationNoTrustStatus`
 - analysis全体をcurrent date/periodと照合する単一の鮮度gate
 - 2つのSlack呼出元をまたぐ送信lock
-- scheduled 23:53 backfillからKEIRIN.JP results updaterへの接続
+- scheduled 23:53 backfillからKEIRIN.JP results updaterへの接続は31-07で実装済み
 
 ### fake-prohibited
 
@@ -425,7 +425,7 @@ current `today.generated.json`をEX主要sourceとして直接再生成するの
 
 31-07以降で、次の順に小さく分けて対応する。
 
-1. scheduled 23:53 backfillのofficial results条件を修正し、final/backfillの対象日とcomplete checkをテストする。
+1. scheduled 23:53 backfillのofficial results条件修正は31-07で完了。GitHub Actions実runで対象日とcomplete checkの運用結果を確認する。
 2. EX用の鮮度manifestまたはcheckを追加し、history latest、starter latest、venue/rider/matchup/analysis periodを一括で比較する。古いtoday recommendationをcurrent扱いしない。
 3. today feedとKEIRIN.JP entriesをrace/carNoで安全にjoinする設計をdry-run監査する。日付、会場code、race、carNo、選手名一致をgateにし、不一致時はnullのままにする。
 4. registrationNoに`direct-official / exact-name-reference / manual-override / unresolved`等のtrust/provenanceを付ける。既存値を一律officialへ変えない。
@@ -436,6 +436,81 @@ current `today.generated.json`をEX主要sourceとして直接再生成するの
 9. raw watcher、manual mappings、bank insightsの運用責任者・更新手順を別docsに明記する。
 
 上記は候補記録のみで、31-06では修正していない。
+
+## 31-07 scheduled 23:53 backfill接続修正
+
+### 確認内容
+
+- workflow: `.github/workflows/update-today-race-data.yml`
+- scheduled backfill: cron `53 14 * * *`、JST 23:53相当
+- today race更新: cron判定で既に`--phase backfill`を指定していた
+- KEIRIN.JP results更新script: `scripts/update-keirin-jp-results.mjs`が既存
+- 手動command: `npm run update:keirin-jp-results:write -- --expect-date="$KEIRIN_JP_EXPECT_DATE"`
+- public output: `public/data/races/keirin-jp-results.generated.json`
+- 更新scriptはKEIRIN.JP source-backedの既存実装であり、fake result生成や登録番号推測を行う新規scriptは不要
+
+### 接続漏れの原因
+
+23:53 cronはtoday feed更新のcase文とresults完全性check内部には記載されていたが、次の3 stepの実行条件に含まれていなかった。
+
+1. `Resolve KEIRIN.JP expected result date`
+2. `Update KEIRIN.JP official results`
+3. `Validate KEIRIN.JP official results`
+
+そのため、scheduled 23:53 runではresults検証内部へ到達せず、既に書かれていた23:53用`--require-complete`分岐も実行されなかった。
+
+### 修正内容
+
+上記3 stepの`if`条件へ、同じscheduled event判定を追加した。
+
+```yaml
+github.event.schedule == '53 14 * * *'
+```
+
+workflow_dispatchの`final / backfill`条件、23:47 final、日中のofficial result checkpointは変更していない。既存のsource、sourceType、登録番号、結果parser、出力schemaも変更していない。
+
+### 実行順序
+
+23:53 scheduled backfillでは、次の順序になる。
+
+1. checkout、Node 22 setup、`npm ci`
+2. today race dataを`--phase backfill`で更新
+3. today race dataの空feed guard
+4. `KEIRIN_JP_EXPECT_DATE`をscheduled runの日付で解決
+5. 既存のKEIRIN.JP results updaterを`--write-public`相当で実行
+6. `--require-complete`でofficial resultsを検証
+7. upcoming schedule stepは条件外のためskip
+8. official results反映後にSlack hit/miss判定
+9. 明示されたrace data、official feeds、Slack stateだけをstageし、差分がある場合だけcommit/push
+10. 差分がある場合だけbuild/deploy
+
+Slack通知はresults更新・検証より後である。通知済みstateと通知script自体は31-07で変更していない。
+
+### commit/push対象
+
+既存workflowは`git add .`を使わず、次だけを明示stageする。
+
+- `public/data/races/today.generated.json`
+- `public/data/races/upcoming-schedule.generated.json`
+- `public/data/predictions/saved-predictions.generated.json`
+- `public/data/races/keirin-jp-results.generated.json`
+- `public/data/races/keirin-jp-entries.generated.json`
+
+`public/data/reviews/**`、`public/data/analytics/**`、`public/data/venues/**`、`private-input/**`はcommit対象に含まれない。
+
+### 31-07で実施していないこと
+
+- ローカルでresults updaterを実行していない
+- `public/data/**`を変更していない
+- fake data、fake result、登録番号、source情報を生成・推測していない
+- Slack通知stateを変更していない
+- EX、Prediction、Review、RacesのUIを変更していない
+- `git add .`、commit、pushを実行していない
+
+### 31-08以降の候補
+
+- GitHub Actionsの実runで23:53 backfillの対象日、official result complete check、commit対象を確認する
+- 31-06で記録したEX鮮度manifest、registrationNo provenance、Slack並行送信lockは別タスクのまま維持する
 
 ## 触っていないもの
 
