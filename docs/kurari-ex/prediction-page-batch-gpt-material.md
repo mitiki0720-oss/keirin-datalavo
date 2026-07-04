@@ -24,12 +24,15 @@ Prediction Pageを予想専用の「Prediction Cockpit」として整理し、�
 
 共通情報は素材の先頭に1回だけ出力する。
 
-- まとめ予想依頼と出力ルール
+- まとめ予想依頼
+- `まとめ予想依頼テンプレ / 最重要` と絶対必須13項目
 - 月次振り返り・可変点数ルール v2026-07
+- fake補完禁止ルール
 - 会場特徴、会場別マスター分析、Summary学習メモ
 - 会場別EXACT、会場別SEED
 - KURARI EX戦法イベント判定、データ棚卸し、蓄積ルール
-- fake補完禁止ルール
+
+最重要テンプレでは、日付、会場、R、車番、選手名、登録番号、府県、年齢、期、級班、source名、source取得日時、source種別の13項目を先頭で明示する。登録番号とsource情報は各RのEX source contractと出走表を根拠にし、`unknown`、`null`、`unavailable`は推測やfake補完をせず、その状態を維持する。
 
 各Rにはレース固有情報だけを出力する。
 
@@ -41,7 +44,7 @@ Prediction Pageを予想専用の「Prediction Cockpit」として整理し、�
 - R別の `ticketMode / recommendedPoints / investmentYen / reasonTags`
 - 既存KURARI EXデータから抽出できるR別注意メモ
 
-会場特徴、Summary学習メモ、月次ルール全文、予想依頼テンプレ全文、KURARI EX DATA全文は各Rへ重複させない。存在しないR別注意情報は生成せず、未取得とする。
+会場特徴、Summary学習メモ、月次ルール全文、予想依頼テンプレ全文、KURARI EX DATA全文は各Rへ重複させない。予想依頼テンプレはまとめ素材の先頭だけに出力する。存在しないR別注意情報は生成せず、未取得とする。
 
 ## 範囲ルール
 
