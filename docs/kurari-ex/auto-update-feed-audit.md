@@ -1069,3 +1069,13 @@ EXページを出目ランキング、荒れ指数、レース連鎖、風速×�
 - eligible / excluded、除外理由、bucket / 決まり手 / 会場別傾向はfeed更新ごとに動的再集計する
 - raceClassは安定source未整備のため`future-accumulation`
 - official result feedを読み取るだけで、`public/data/**`の生成・変更・削除は行わない
+
+## 32-06 official venue bias consumer
+
+- `会場クセ / venue bias v1`はKEIRIN.JP / JSJ048、confirmed、一意race key、妥当な1〜3着、保存済み3連単一致、正の実払戻金を満たすraceだけを基礎eligibleにする
+- eligible / excludedとreason、内枠・外枠・1番車・決まり手・配当傾向はfeed更新ごとに動的再集計する
+- 決まり手系は明確に正規化できる保存済み値だけを別分母で集計し、欠損や不明表記を車番・配当系の0件として扱わない
+- 1番車飛び率はresult行で1番車を確認でき、3連単1〜3着に1番車を含まない割合とする。欠車の厳密化はfuture refinement
+- LOW SAMPLEを全体・会場別に表示し、特徴ラベルはdocs記載の固定閾値と実データ率だけから生成する
+- 級班別、7車 / 9車別の厳密比較は`future-accumulation`
+- fake、推測補完、`public/data/**`への書込みは行わない

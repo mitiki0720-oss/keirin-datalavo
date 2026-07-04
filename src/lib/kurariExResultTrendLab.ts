@@ -199,6 +199,56 @@ export type KurariExWindDecisionV1 = {
   };
 };
 
+export type KurariExVenueBiasMetrics = {
+  sampleSize: number;
+  decisionEligibleCount: number;
+  oneCarEligibleCount: number;
+  innerFrameRate: number;
+  outsideInvolvementRate: number;
+  oneCarOutRate: number;
+  escapeRate: number;
+  sprintRate: number;
+  averageTrifectaPayoutYen: number | null;
+  highPayoutRate: number;
+};
+
+export type KurariExVenueBiasV1 = {
+  status: "ready" | "no-eligible-data";
+  sourcePolicy: "official result only";
+  totalRaceCount: number;
+  eligibleRaceCount: number;
+  excludedRaceCount: number;
+  exclusionReasons: Array<{ key: string; label: string; count: number }>;
+  decisionExclusionReasons: Array<{ key: string; label: string; count: number }>;
+  sampleStatus: KurariExTrendSampleStatus;
+  sampleLabel: string;
+  venueCount: number;
+  overall: KurariExVenueBiasMetrics;
+  highestOutsideInvolvementVenue: { venueName: string; rate: number } | null;
+  highestAveragePayoutVenue: { venueName: string; averagePayoutYen: number } | null;
+  byVenue: Array<KurariExVenueBiasMetrics & {
+    venueCode: string;
+    venueName: string;
+    sampleStatus: KurariExTrendSampleStatus;
+    sampleLabel: string;
+    featureLabels: string[];
+  }>;
+  examples: Array<{
+    raceKey: string;
+    date: string;
+    venueName: string;
+    raceNumber: number;
+    combination: string;
+    payoutYen: number;
+    decisionMethodLabel: string;
+    featureReason: string;
+  }>;
+  refinement: {
+    status: "partial";
+    note: string;
+  };
+};
+
 export type KurariExTrifectaTrendV1 = {
   status: "ready" | "no-eligible-data";
   sourcePolicy: "official result only";
@@ -220,6 +270,7 @@ export type KurariExTrifectaTrendV1 = {
   turbulence: KurariExTurbulenceV1;
   chain: KurariExRaceChainV1;
   weather: KurariExWindDecisionV1;
+  venueBias: KurariExVenueBiasV1;
 };
 
 type OfficialFinishRow = {
@@ -328,6 +379,39 @@ const DECISION_METHODS: Array<{ key: KurariExDecisionMethodKey; label: string }>
   { key: "mark", label: "マーク" },
 ];
 
+const DECISION_ALIASES = new Map<string, KurariExDecisionMethodKey>([
+  ["逃", "escape"],
+  ["逃げ", "escape"],
+  ["捲", "sprint"],
+  ["捲り", "sprint"],
+  ["差", "difference"],
+  ["差し", "difference"],
+  ["マ", "mark"],
+  ["マーク", "mark"],
+]);
+
+const VENUE_BIAS_FEATURE_THRESHOLDS = {
+  innerFrameRate: 35,
+  outsideInvolvementRate: 70,
+  oneCarOutRate: 60,
+  escapeRate: 25,
+  sprintRate: 35,
+  averageTrifectaPayoutYen: 20_000,
+  highPayoutRate: 25,
+} as const;
+
+const VENUE_BIAS_EXCLUSION_LABELS: Record<string, string> = {
+  "source-unavailable": "official source / provenanceを確認できない",
+  "race-key-missing": "date / venue / raceNumberから一意race keyを作れない",
+  "duplicate-race-key": "同一race keyが重複",
+  "cancelled-or-no-race": "cancelled / no race",
+  "not-confirmed": "resultStatusがconfirmedではない",
+  "finish-order-missing": "1〜3着車番が不足",
+  "invalid-car-number": "1〜3着車番が不正または重複",
+  "trifecta-missing-or-mismatch": "3連単結果が未取得、または1〜3着車番と不一致",
+  "payout-missing-or-invalid": "3連単払戻金が欠損、不正、または0円以下",
+};
+
 const WEATHER_EXCLUSION_LABELS: Record<string, string> = {
   "source-unavailable": "official source / provenanceを確認できない",
   "race-key-missing": "date / venue / raceNumberから一意race keyを作れない",
@@ -359,6 +443,26 @@ function positiveYen(value: unknown) {
   if (!/^\d+$/u.test(normalized)) return null;
   const payout = Number(normalized);
   return Number.isSafeInteger(payout) && payout > 0 ? payout : null;
+}
+
+function normalizedDecisionMethod(race: OfficialResultRace): {
+  method: KurariExDecisionMethodKey | null;
+  reason: "decision-missing" | "decision-unknown" | "decision-conflict" | null;
+} {
+  const winnerKimarite = clean(
+    (race.finishOrder ?? []).find((row) => Number(clean(row.rank)) === 1)?.kimarite,
+  );
+  const raceKimarite = clean(race.kimarite);
+  if (!raceKimarite && !winnerKimarite) return { method: null, reason: "decision-missing" };
+  const raceDecision = raceKimarite ? DECISION_ALIASES.get(raceKimarite) : undefined;
+  const winnerDecision = winnerKimarite ? DECISION_ALIASES.get(winnerKimarite) : undefined;
+  if ((raceKimarite && !raceDecision) || (winnerKimarite && !winnerDecision)) {
+    return { method: null, reason: "decision-unknown" };
+  }
+  if (raceDecision && winnerDecision && raceDecision !== winnerDecision) {
+    return { method: null, reason: "decision-conflict" };
+  }
+  return { method: raceDecision ?? winnerDecision ?? null, reason: null };
 }
 
 function rate(count: number, total: number) {
@@ -497,16 +601,6 @@ function buildKurariExWindDecisionV1(
     windBucket: KurariExWindBucketKey;
     decisionMethod: KurariExDecisionMethodKey;
   }> = [];
-  const decisionAliases = new Map<string, KurariExDecisionMethodKey>([
-    ["逃", "escape"],
-    ["逃げ", "escape"],
-    ["捲", "sprint"],
-    ["捲り", "sprint"],
-    ["差", "difference"],
-    ["差し", "difference"],
-    ["マ", "mark"],
-    ["マーク", "mark"],
-  ]);
   const exclude = (reason: string) => {
     exclusionCounts.set(reason, (exclusionCounts.get(reason) ?? 0) + 1);
   };
@@ -547,25 +641,12 @@ function buildKurariExWindDecisionV1(
       exclude("wind-out-of-range");
       return;
     }
-    const winnerKimarite = clean(
-      (race.finishOrder ?? []).find((row) => Number(clean(row.rank)) === 1)?.kimarite,
-    );
-    const raceKimarite = clean(race.kimarite);
-    if (!raceKimarite && !winnerKimarite) {
-      exclude("decision-missing");
+    const decision = normalizedDecisionMethod(race);
+    if (!decision.method) {
+      exclude(decision.reason ?? "decision-unknown");
       return;
     }
-    const raceDecision = raceKimarite ? decisionAliases.get(raceKimarite) : undefined;
-    const winnerDecision = winnerKimarite ? decisionAliases.get(winnerKimarite) : undefined;
-    if ((raceKimarite && !raceDecision) || (winnerKimarite && !winnerDecision)) {
-      exclude("decision-unknown");
-      return;
-    }
-    if (raceDecision && winnerDecision && raceDecision !== winnerDecision) {
-      exclude("decision-conflict");
-      return;
-    }
-    const decisionMethod = raceDecision ?? winnerDecision;
+    const decisionMethod = decision.method;
     const windBucket = WIND_BUCKETS.find((bucket) => bucket.includes(windSpeedMps))?.key;
     if (!decisionMethod || !windBucket) {
       exclude("decision-unknown");
@@ -690,6 +771,234 @@ function buildKurariExWindDecisionV1(
     classReadiness: {
       status: "future-accumulation",
       note: "current official resultではraceClassを安定取得できないため未集計",
+    },
+  };
+}
+
+function buildKurariExVenueBiasV1(
+  feed: OfficialResultFeed,
+  sourceIsOfficial: boolean,
+  sourceDate: string,
+): KurariExVenueBiasV1 {
+  const candidates = (feed.venues ?? []).flatMap((venue) =>
+    (venue.races ?? []).map((race) => ({ venue, race })),
+  );
+  const raceKeys = candidates.map(({ venue, race }) => {
+    const date = clean(venue.date || sourceDate);
+    const venueKey = clean(venue.venueCode) || clean(venue.venueName);
+    const raceNumber = Number(race.raceNumber);
+    return date && venueKey && Number.isInteger(raceNumber) && raceNumber > 0
+      ? `${date}|${venueKey}|${raceNumber}`
+      : "";
+  });
+  const keyCounts = new Map<string, number>();
+  raceKeys.filter(Boolean).forEach((key) => keyCounts.set(key, (keyCounts.get(key) ?? 0) + 1));
+  const exclusionCounts = new Map<string, number>();
+  const decisionExclusionCounts = new Map<string, number>();
+  const eligible: Array<{
+    raceKey: string;
+    date: string;
+    venueCode: string;
+    venueName: string;
+    raceNumber: number;
+    top3: number[];
+    oneCarConfirmed: boolean;
+    combination: string;
+    payoutYen: number;
+    decisionMethod: KurariExDecisionMethodKey | null;
+  }> = [];
+  const exclude = (reason: string) => {
+    exclusionCounts.set(reason, (exclusionCounts.get(reason) ?? 0) + 1);
+  };
+
+  candidates.forEach(({ venue, race }, index) => {
+    const raceKey = raceKeys[index];
+    if (!sourceIsOfficial) {
+      exclude("source-unavailable");
+      return;
+    }
+    if (!raceKey) {
+      exclude("race-key-missing");
+      return;
+    }
+    if ((keyCounts.get(raceKey) ?? 0) !== 1) {
+      exclude("duplicate-race-key");
+      return;
+    }
+    if (["cancelled", "no-race"].includes(clean(race.operationStatus).toLowerCase())) {
+      exclude("cancelled-or-no-race");
+      return;
+    }
+    if (clean(race.resultStatus) !== "confirmed") {
+      exclude("not-confirmed");
+      return;
+    }
+    const ranked = (race.finishOrder ?? [])
+      .map((row) => ({ rank: Number(clean(row.rank)), carNo: validCarNo(row.carNo) }))
+      .filter((row) => Number.isInteger(row.rank) && row.rank >= 1 && row.rank <= 3)
+      .sort((left, right) => left.rank - right.rank);
+    if (ranked.length !== 3 || ranked.some((row, position) => row.rank !== position + 1)) {
+      exclude("finish-order-missing");
+      return;
+    }
+    if (ranked.some((row) => row.carNo == null)) {
+      exclude("invalid-car-number");
+      return;
+    }
+    const top3 = ranked.map((row) => row.carNo as number);
+    if (new Set(top3).size !== 3) {
+      exclude("invalid-car-number");
+      return;
+    }
+    const combination = top3.join("-");
+    if (clean(race.payout3tan?.combination) !== combination) {
+      exclude("trifecta-missing-or-mismatch");
+      return;
+    }
+    const payoutYen = positiveYen(race.payout3tan?.payoutYen);
+    if (payoutYen == null) {
+      exclude("payout-missing-or-invalid");
+      return;
+    }
+    const decision = normalizedDecisionMethod(race);
+    if (!decision.method) {
+      const reason = decision.reason ?? "decision-unknown";
+      decisionExclusionCounts.set(reason, (decisionExclusionCounts.get(reason) ?? 0) + 1);
+    }
+    const recordedCars = new Set(
+      (race.finishOrder ?? [])
+        .map((row) => validCarNo(row.carNo))
+        .filter((carNo): carNo is number => carNo != null),
+    );
+    eligible.push({
+      raceKey,
+      date: clean(venue.date || sourceDate),
+      venueCode: clean(venue.venueCode),
+      venueName: clean(venue.venueName) || clean(venue.venueCode),
+      raceNumber: Number(race.raceNumber),
+      top3,
+      oneCarConfirmed: recordedCars.has(1),
+      combination,
+      payoutYen,
+      decisionMethod: decision.method,
+    });
+  });
+
+  const summarize = (rows: typeof eligible): KurariExVenueBiasMetrics => {
+    const decisionRows = rows.filter((row) => row.decisionMethod != null);
+    const oneCarRows = rows.filter((row) => row.oneCarConfirmed);
+    const payoutTotal = rows.reduce((sum, row) => sum + row.payoutYen, 0);
+    return {
+      sampleSize: rows.length,
+      decisionEligibleCount: decisionRows.length,
+      oneCarEligibleCount: oneCarRows.length,
+      innerFrameRate: rate(rows.filter((row) => row.top3.every((carNo) => carNo <= 3)).length, rows.length),
+      outsideInvolvementRate: rate(rows.filter((row) => row.top3.some((carNo) => carNo >= 5)).length, rows.length),
+      oneCarOutRate: rate(oneCarRows.filter((row) => !row.top3.includes(1)).length, oneCarRows.length),
+      escapeRate: rate(decisionRows.filter((row) => row.decisionMethod === "escape").length, decisionRows.length),
+      sprintRate: rate(decisionRows.filter((row) => row.decisionMethod === "sprint").length, decisionRows.length),
+      averageTrifectaPayoutYen: rows.length ? Math.round(payoutTotal / rows.length) : null,
+      highPayoutRate: rate(rows.filter((row) => row.payoutYen >= 10_000).length, rows.length),
+    };
+  };
+  const featureLabels = (metrics: KurariExVenueBiasMetrics, status: KurariExTrendSampleStatus) => {
+    const labels: string[] = [];
+    if (metrics.innerFrameRate >= VENUE_BIAS_FEATURE_THRESHOLDS.innerFrameRate) labels.push("内枠寄り");
+    if (metrics.outsideInvolvementRate >= VENUE_BIAS_FEATURE_THRESHOLDS.outsideInvolvementRate) labels.push("外枠絡み注意");
+    if (metrics.oneCarEligibleCount && metrics.oneCarOutRate >= VENUE_BIAS_FEATURE_THRESHOLDS.oneCarOutRate) {
+      labels.push("1番車飛び多め");
+    }
+    if (metrics.decisionEligibleCount && metrics.escapeRate >= VENUE_BIAS_FEATURE_THRESHOLDS.escapeRate) labels.push("逃げ寄り");
+    if (metrics.decisionEligibleCount && metrics.sprintRate >= VENUE_BIAS_FEATURE_THRESHOLDS.sprintRate) labels.push("捲り寄り");
+    if (
+      (metrics.averageTrifectaPayoutYen ?? 0) >= VENUE_BIAS_FEATURE_THRESHOLDS.averageTrifectaPayoutYen
+      || metrics.highPayoutRate >= VENUE_BIAS_FEATURE_THRESHOLDS.highPayoutRate
+    ) {
+      labels.push("配当荒れ寄り");
+    }
+    if (status === "low-sample") labels.push("LOW SAMPLE / 参考");
+    return labels.length ? labels : ["明確な閾値超えなし"];
+  };
+  const venueGroups = new Map<string, typeof eligible>();
+  eligible.forEach((row) => {
+    const key = row.venueCode || row.venueName;
+    const group = venueGroups.get(key) ?? [];
+    group.push(row);
+    venueGroups.set(key, group);
+  });
+  const byVenue = [...venueGroups.entries()]
+    .map(([venueCode, rows]) => {
+      const metrics = summarize(rows);
+      const sample = sampleStatus(rows.length);
+      return {
+        venueCode,
+        venueName: rows[0]?.venueName ?? venueCode,
+        ...metrics,
+        sampleStatus: sample.status,
+        sampleLabel: sample.label,
+        featureLabels: featureLabels(metrics, sample.status),
+      };
+    })
+    .sort((left, right) => right.sampleSize - left.sampleSize || left.venueCode.localeCompare(right.venueCode));
+  const highestOutside = [...byVenue].sort(
+    (left, right) => right.outsideInvolvementRate - left.outsideInvolvementRate || right.sampleSize - left.sampleSize,
+  )[0];
+  const highestAverage = [...byVenue].sort(
+    (left, right) => (right.averageTrifectaPayoutYen ?? 0) - (left.averageTrifectaPayoutYen ?? 0)
+      || right.sampleSize - left.sampleSize,
+  )[0];
+  const sample = sampleStatus(eligible.length);
+
+  return {
+    status: eligible.length ? "ready" : "no-eligible-data",
+    sourcePolicy: "official result only",
+    totalRaceCount: candidates.length,
+    eligibleRaceCount: eligible.length,
+    excludedRaceCount: candidates.length - eligible.length,
+    exclusionReasons: [...exclusionCounts.entries()].map(([key, count]) => ({
+      key,
+      label: VENUE_BIAS_EXCLUSION_LABELS[key] ?? key,
+      count,
+    })),
+    decisionExclusionReasons: [...decisionExclusionCounts.entries()].map(([key, count]) => ({
+      key,
+      label: WEATHER_EXCLUSION_LABELS[key] ?? key,
+      count,
+    })),
+    sampleStatus: sample.status,
+    sampleLabel: sample.label,
+    venueCount: byVenue.length,
+    overall: summarize(eligible),
+    highestOutsideInvolvementVenue: highestOutside
+      ? { venueName: highestOutside.venueName, rate: highestOutside.outsideInvolvementRate }
+      : null,
+    highestAveragePayoutVenue: highestAverage?.averageTrifectaPayoutYen != null
+      ? { venueName: highestAverage.venueName, averagePayoutYen: highestAverage.averageTrifectaPayoutYen }
+      : null,
+    byVenue,
+    examples: [...eligible]
+      .sort((left, right) => right.payoutYen - left.payoutYen || left.raceKey.localeCompare(right.raceKey))
+      .slice(0, 5)
+      .map((row) => {
+        const reasons = [
+          row.payoutYen >= 10_000 ? "万車券" : "",
+          row.top3.some((carNo) => carNo >= 5) ? "外枠絡み" : "",
+          row.oneCarConfirmed && !row.top3.includes(1) ? "1番車3着外" : "",
+        ].filter(Boolean);
+        return {
+          raceKey: row.raceKey,
+          date: row.date,
+          venueName: row.venueName,
+          raceNumber: row.raceNumber,
+          combination: row.combination,
+          payoutYen: row.payoutYen,
+          decisionMethodLabel: DECISION_METHODS.find((method) => method.key === row.decisionMethod)?.label ?? "unavailable",
+          featureReason: reasons.join(" / ") || "eligible official result",
+        };
+      }),
+    refinement: {
+      status: "partial",
+      note: "1番車欠車・出走確認の厳密化、級班別、7車/9車別はfuture refinement / future-accumulation",
     },
   };
 }
@@ -1100,6 +1409,7 @@ export function buildKurariExTrifectaTrendV1(
     },
     chain: chainResult,
     weather: buildKurariExWindDecisionV1(feed, sourceIsOfficial, sourceDate),
+    venueBias: buildKurariExVenueBiasV1(feed, sourceIsOfficial, sourceDate),
   };
 }
 

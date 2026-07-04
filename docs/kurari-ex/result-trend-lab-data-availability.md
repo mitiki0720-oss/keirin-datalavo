@@ -438,3 +438,28 @@ WEATHERタブをfuture placeholderからofficial result onlyの実集計へ更�
 
 EX wrapperは`width: min(1880px, calc(100% - 40px))`相当へ広げ、各panel / grid childへ`min-width: 0`と長文折返しを適用した。横長tableはdocumentではなくcard内だけでscroll可能とする。
 
+## 32-06 会場クセ分析 v1
+
+独立した`会場クセ / venue bias v1`タブを追加し、KEIRIN.JP / JSJ048のconfirmed official resultだけから全体・会場別傾向を動的算出する。date、venueCodeまたはvenueName、raceNumberによるrace keyが一意で、1〜3着車番、保存済み3連単、正の実払戻金が一致するraceをeligibleとする。未confirmed、race key欠損・重複、着順不正、3連単不一致、払戻金欠損・不正はreason別にexcludedとする。
+
+### v1集計定義
+
+- 内枠決着率: 1〜3着がすべて1〜3番車のrace割合。4番車以上が1台でも入れば対象外
+- 外枠絡み率: 1〜3着のどこかに5番車以上が入るrace割合。4番車は中枠
+- 1番車飛び率: resultの出走行で1番車を確認できたraceのうち、3連単1〜3着に1番車を含まない割合。欠車・出走確認の厳密化はfuture refinement
+- 逃げ / 捲り決着率: raceまたは1着行の決まり手が、逃 / 逃げ、捲 / 捲りへ明確に正規化できるraceだけを分母にする
+- 平均3連単配当: eligible official payoutの算術平均
+- 万車券率: 3連単実払戻金が10,000円以上のeligible race割合
+
+決まり手欠損、不明表記、raceと1着行の不一致は、車番・配当系のeligibleからは外さず決まり手系分母だけから除外する。3連単結果や着順から決まり手を推測しない。
+
+### 特徴ラベルとLOW SAMPLE
+
+特徴ラベルの固定閾値は、内枠35%以上、外枠70%以上、1番車飛び60%以上、逃げ25%以上、捲り35%以上、平均3連単20,000円以上または万車券25%以上。閾値は表示文言とコードに明記し、実集計率からだけ判定する。
+
+30R未満は`LOW SAMPLE / 参考のみ`、30〜99Rは`caution / 傾向注意`、100R以上も予想の補助に限定する。会場別LOW SAMPLEでは特徴ラベルへ`LOW SAMPLE / 参考`を付け、断定根拠にしない。級班別、7車 / 9車別、欠車を含む1番車出走確認の厳密化は`future-accumulation / future refinement`とする。
+
+fake車番、fake払戻金、fake決まり手、推測補完は行わず、eligible / excluded / reason / 会場別数値は保存済みfeedから毎回再計算する。
+
+2026-07-05の画面検証snapshotでは全63R、eligible 62R、excluded 1Rで、除外理由は1〜3着車番不足1R。これはUI固定値ではなく、feed更新に追随する監査記録である。
+

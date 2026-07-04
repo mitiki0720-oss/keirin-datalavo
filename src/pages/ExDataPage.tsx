@@ -118,6 +118,7 @@ type ExSectionTab =
   | "turbulence"
   | "chain"
   | "weather"
+  | "venue-bias"
   | "analysis";
 
 const EX_SECTION_TABS: Array<{
@@ -133,6 +134,7 @@ const EX_SECTION_TABS: Array<{
   { key: "turbulence", label: "荒れ指数", sublabel: "実払戻 v1" },
   { key: "chain", label: "レース連鎖", sublabel: "transition v1" },
   { key: "weather", label: "WEATHER", sublabel: "風速×決まり手" },
+  { key: "venue-bias", label: "会場クセ", sublabel: "venue bias v1" },
   { key: "analysis", label: "EX ANALYSIS", sublabel: "会場・選手・対戦" },
 ];
 
@@ -2216,8 +2218,8 @@ export default function ExDataPage() {
         .ex-main > * { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
         .ex-panel, .ex-section, .ex-subsection, .ex-detail, .ex-workspace, .ex-table-wrap { min-width: 0; max-width: 100%; box-sizing: border-box; }
         .ex-main h1, .ex-main h2, .ex-main h3, .ex-main h4, .ex-main p, .ex-main li, .ex-main td, .ex-main th, .ex-main span, .ex-main strong { overflow-wrap: anywhere; }
-        .ex-health-grid, .ex-kpi-grid, .ex-location-grid, .ex-category-grid, .ex-insights, .ex-note-grid, .ex-trend-ranking-grid, .ex-turbulence-category-grid, .ex-chain-type-grid, .ex-chain-examples, .ex-weather-bucket-grid, .ex-weather-venue-grid { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
-        .ex-health-grid > *, .ex-kpi-grid > *, .ex-location-grid > *, .ex-category-grid > *, .ex-insights > *, .ex-note-grid > *, .ex-trend-ranking-grid > *, .ex-turbulence-category-grid > *, .ex-chain-type-grid > *, .ex-chain-examples > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
+        .ex-health-grid, .ex-kpi-grid, .ex-location-grid, .ex-category-grid, .ex-insights, .ex-note-grid, .ex-trend-ranking-grid, .ex-turbulence-category-grid, .ex-chain-type-grid, .ex-chain-examples, .ex-weather-bucket-grid, .ex-weather-venue-grid, .ex-venue-bias-grid, .ex-venue-definition-grid { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+        .ex-health-grid > *, .ex-kpi-grid > *, .ex-location-grid > *, .ex-category-grid > *, .ex-insights > *, .ex-note-grid > *, .ex-trend-ranking-grid > *, .ex-turbulence-category-grid > *, .ex-chain-type-grid > *, .ex-chain-examples > *, .ex-venue-bias-grid > *, .ex-venue-definition-grid > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
         .ex-main [hidden] { display: none !important; }
         .ex-section-tabs { display: grid; grid-template-columns: repeat(auto-fit,minmax(${isMobile ? "128px" : "150px"},1fr)); gap: 9px; padding: 12px; border: 1px solid rgba(190,194,224,.62); border-radius: 24px; background: rgba(255,255,255,.82); box-shadow: 0 16px 40px rgba(82,74,135,.08); }
         .ex-section-tab { min-width: 0; cursor: pointer; display: grid; gap: 4px; padding: 12px 13px; border: 1px solid #e2e2ed; border-radius: 16px; background: rgba(248,249,253,.9); color: #657187; text-align: left; }
@@ -2443,6 +2445,19 @@ export default function ExDataPage() {
         .ex-weather-venue-card p { margin: 0; color: #657187; font-size: 11px; line-height: 1.7; }
         .ex-weather-example-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
         .ex-weather-example-list li { min-width: 0; padding: 11px 13px; border-radius: 13px; background: #f7f9fc; color: #58687e; font-size: 11px; line-height: 1.65; }
+        .ex-venue-bias-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(330px,100%),1fr)); gap: 12px; }
+        .ex-venue-bias-card { min-width: 0; display: grid; gap: 11px; padding: 18px; border: 1px solid #dfe5ef; border-radius: 20px; background: linear-gradient(145deg,#fff,#f7f5ff); }
+        .ex-venue-bias-card h3 { margin: 0; color: #263650; font: 800 20px/1.35 ${serif}; }
+        .ex-venue-bias-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+        .ex-venue-bias-metrics { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
+        .ex-venue-bias-metrics div { min-width: 0; padding: 9px 10px; border-radius: 12px; background: rgba(247,249,253,.96); color: #748096; font-size: 9px; line-height: 1.45; }
+        .ex-venue-bias-metrics strong { display: block; margin-top: 3px; color: #263650; font-size: 13px; }
+        .ex-venue-bias-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+        .ex-venue-bias-tags span { padding: 5px 8px; border-radius: 999px; background: #eee8ff; color: #5f4a99; font-size: 9px; font-weight: 900; }
+        .ex-venue-definition-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(240px,100%),1fr)); gap: 9px; }
+        .ex-venue-definition-grid article { min-width: 0; padding: 14px; border: 1px solid #e1e5ed; border-radius: 16px; background: rgba(255,255,255,.84); }
+        .ex-venue-definition-grid h4 { margin: 0 0 6px; color: #4e4382; font-size: 12px; }
+        .ex-venue-definition-grid p { margin: 0; color: #69768b; font-size: 10px; line-height: 1.7; }
         .ex-chain-example h3 { margin: 0; color: #30405a; font: 800 17px/1.35 ${serif}; }
         .ex-chain-example p { margin: 0; color: #68758a; font-size: 11px; line-height: 1.65; }
         .ex-data-table { width: 100%; border-collapse: collapse; min-width: 580px; color: #526078; font-size: 12px; }
@@ -2666,7 +2681,7 @@ export default function ExDataPage() {
               role="tab"
               aria-label={tab.label}
               aria-selected={activeSectionTab === tab.key}
-              aria-controls={["trend", "ranking", "turbulence", "chain", "weather"].includes(tab.key)
+              aria-controls={["trend", "ranking", "turbulence", "chain", "weather", "venue-bias"].includes(tab.key)
                 ? "ex-section-trend-lab"
                 : `ex-section-${tab.key}`}
               onClick={() => setActiveSectionTab(tab.key)}
@@ -2725,6 +2740,12 @@ export default function ExDataPage() {
               note={trifectaTrend ? `${trifectaTrend.chain.eligiblePairCount.toLocaleString("ja-JP")} eligible pairs` : "official result only"}
               warning={trifectaTrendStatus === "error"}
             />
+            <MetricCard
+              label="VENUE BIAS"
+              value={trifectaTrend?.venueBias.status === "ready" ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "CHECKING"}
+              note={trifectaTrend ? `${trifectaTrend.venueBias.venueCount.toLocaleString("ja-JP")} venues` : "official result only"}
+              warning={trifectaTrendStatus === "error"}
+            />
             <MetricCard label="SLACK NOTIFICATION STATE" value="UNAVAILABLE" note="EX公開datasetに専用stateなし" warning />
           </div>
           <div className="ex-overview-status">
@@ -2740,12 +2761,12 @@ export default function ExDataPage() {
           className="ex-panel ex-section"
           data-testid="result-trend-lab-roadmap"
           id="ex-section-trend-lab"
-          hidden={!["trend", "ranking", "turbulence", "chain", "weather"].includes(activeSectionTab)}
+          hidden={!["trend", "ranking", "turbulence", "chain", "weather", "venue-bias"].includes(activeSectionTab)}
         >
           <SectionTitle
             eyebrow="KURARI EX RESULT TREND LAB"
             title="出目と流れを読む、次世代分析ラボ"
-            lead="official result onlyで育てる分析ラボです。3連単出目、実払戻金による荒れ指数、同日同会場のレース連鎖を安全条件ごとに分けて表示します。"
+            lead="official result onlyで育てる分析ラボです。3連単出目、実払戻金による荒れ指数、同日同会場のレース連鎖、会場ごとの決着傾向を安全条件ごとに分けて表示します。"
           />
           <div className="ex-health-grid" hidden={activeSectionTab !== "trend"}>
             <MetricCard label="DATA AVAILABILITY AUDIT" value="IMPLEMENTED" note="schema / coverage / provenance監査" />
@@ -2755,6 +2776,12 @@ export default function ExDataPage() {
               label="WIND × FINISH TREND"
               value={trifectaTrend?.weather.status === "ready" ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "CHECKING"}
               note={trifectaTrend ? `${trifectaTrend.weather.eligibleRaceCount.toLocaleString("ja-JP")} eligible races` : "official result only"}
+              warning={trifectaTrendStatus === "error"}
+            />
+            <MetricCard
+              label="VENUE BIAS"
+              value={trifectaTrend?.venueBias.status === "ready" ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "CHECKING"}
+              note={trifectaTrend ? `${trifectaTrend.venueBias.eligibleRaceCount.toLocaleString("ja-JP")} eligible races` : "official result only"}
               warning={trifectaTrendStatus === "error"}
             />
           </div>
@@ -3340,9 +3367,202 @@ export default function ExDataPage() {
             ) : null}
           </div>
 
+          <div className="ex-subsection" data-testid="result-trend-lab-venue-bias-v1" hidden={activeSectionTab !== "venue-bias"}>
+            <SectionTitle
+              eyebrow="VENUE BIAS / OFFICIAL RESULT v1"
+              title="会場クセ分析 v1"
+              lead="一意race keyを持つconfirmed official resultだけから、会場ごとの枠・決まり手・3連単配当傾向を動的集計します。"
+            />
+            <div className="ex-overview-status">
+              <span className="ex-trend-status-pill is-ready">official result only</span>
+              <span className="ex-trend-status-pill is-ready">confirmed only</span>
+              <span className="ex-trend-status-pill is-ready">fake prohibited</span>
+              <span className="ex-trend-status-pill is-caution">LOW SAMPLE</span>
+              <span className="ex-trend-status-pill is-partial">definitions fixed v1</span>
+            </div>
+            {trifectaTrendStatus === "loading" ? <EmptyState text="official venue resultを確認しています。" /> : null}
+            {trifectaTrendStatus === "error" ? (
+              <EmptyState text="No eligible official venue result data / official sourceを取得できませんでした。" />
+            ) : null}
+            {trifectaTrend ? (
+              <>
+                <div className="ex-kpi-grid">
+                  <MetricCard
+                    label="ELIGIBLE RACES"
+                    value={trifectaTrend.venueBias.eligibleRaceCount.toLocaleString("ja-JP")}
+                    note={`全${trifectaTrend.venueBias.totalRaceCount.toLocaleString("ja-JP")}R`}
+                  />
+                  <MetricCard
+                    label="EXCLUDED RACES"
+                    value={trifectaTrend.venueBias.excludedRaceCount.toLocaleString("ja-JP")}
+                    note="strict eligibilityで除外"
+                    warning={trifectaTrend.venueBias.excludedRaceCount > 0}
+                  />
+                  <MetricCard
+                    label="SAMPLE STATUS"
+                    value={trifectaTrend.venueBias.sampleLabel}
+                    note="LOW SAMPLEは主根拠にしない"
+                    warning={trifectaTrend.venueBias.sampleStatus !== "usable"}
+                  />
+                  <MetricCard
+                    label="VENUE COUNT"
+                    value={trifectaTrend.venueBias.venueCount.toLocaleString("ja-JP")}
+                    note="eligible venue"
+                  />
+                  <MetricCard
+                    label="HIGHEST OUTSIDE"
+                    value={trifectaTrend.venueBias.highestOutsideInvolvementVenue?.venueName ?? "--"}
+                    note={trifectaTrend.venueBias.highestOutsideInvolvementVenue
+                      ? `${trifectaTrend.venueBias.highestOutsideInvolvementVenue.rate.toFixed(1)}%`
+                      : "unavailable"}
+                    warning={trifectaTrend.venueBias.byVenue.every((venue) => venue.sampleStatus !== "usable")}
+                  />
+                  <MetricCard
+                    label="HIGHEST TRIFECTA AVG"
+                    value={trifectaTrend.venueBias.highestAveragePayoutVenue?.venueName ?? "--"}
+                    note={formatPayoutYen(trifectaTrend.venueBias.highestAveragePayoutVenue?.averagePayoutYen ?? null)}
+                    warning={trifectaTrend.venueBias.byVenue.every((venue) => venue.sampleStatus !== "usable")}
+                  />
+                </div>
+
+                {trifectaTrend.venueBias.status === "ready" ? (
+                  <>
+                    <div>
+                      <SectionTitle eyebrow="OVERALL TREND" title="全体傾向" />
+                      <div className="ex-health-grid">
+                        <MetricCard label="内枠決着率" value={`${trifectaTrend.venueBias.overall.innerFrameRate.toFixed(1)}%`} note="1〜3着がすべて1〜3番車" />
+                        <MetricCard label="外枠絡み率" value={`${trifectaTrend.venueBias.overall.outsideInvolvementRate.toFixed(1)}%`} note="1〜3着に5番車以上" />
+                        <MetricCard
+                          label="1番車飛び率"
+                          value={trifectaTrend.venueBias.overall.oneCarEligibleCount
+                            ? `${trifectaTrend.venueBias.overall.oneCarOutRate.toFixed(1)}%`
+                            : "--"}
+                          note={`1番車確認 ${trifectaTrend.venueBias.overall.oneCarEligibleCount.toLocaleString("ja-JP")}R`}
+                          warning={!trifectaTrend.venueBias.overall.oneCarEligibleCount}
+                        />
+                        <MetricCard
+                          label="逃げ決着率"
+                          value={trifectaTrend.venueBias.overall.decisionEligibleCount
+                            ? `${trifectaTrend.venueBias.overall.escapeRate.toFixed(1)}%`
+                            : "--"}
+                          note={`決まり手取得 ${trifectaTrend.venueBias.overall.decisionEligibleCount.toLocaleString("ja-JP")}R`}
+                          warning={!trifectaTrend.venueBias.overall.decisionEligibleCount}
+                        />
+                        <MetricCard
+                          label="捲り決着率"
+                          value={trifectaTrend.venueBias.overall.decisionEligibleCount
+                            ? `${trifectaTrend.venueBias.overall.sprintRate.toFixed(1)}%`
+                            : "--"}
+                          note={`決まり手取得 ${trifectaTrend.venueBias.overall.decisionEligibleCount.toLocaleString("ja-JP")}R`}
+                          warning={!trifectaTrend.venueBias.overall.decisionEligibleCount}
+                        />
+                        <MetricCard label="平均3連単配当" value={formatPayoutYen(trifectaTrend.venueBias.overall.averageTrifectaPayoutYen)} note="eligible official payout平均" />
+                        <MetricCard label="万車券率" value={`${trifectaTrend.venueBias.overall.highPayoutRate.toFixed(1)}%`} note="3連単10,000円以上" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <SectionTitle
+                        eyebrow="BY VENUE"
+                        title="会場別傾向"
+                        lead="特徴ラベルは固定閾値から算出し、LOW SAMPLE会場では「参考」として表示します。"
+                      />
+                      <div className="ex-venue-bias-grid">
+                        {trifectaTrend.venueBias.byVenue.map((venue) => (
+                          <article className="ex-venue-bias-card" key={venue.venueCode}>
+                            <div className="ex-venue-bias-card-head">
+                              <div>
+                                <div className="ex-eyebrow">{venue.venueCode || "VENUE"}</div>
+                                <h3>{venue.venueName}</h3>
+                              </div>
+                              <span className={`ex-location-status is-${venue.sampleStatus === "usable" ? "ready" : "warning"}`}>
+                                {venue.sampleSize.toLocaleString("ja-JP")}R
+                              </span>
+                            </div>
+                            <div className="ex-muted">{venue.sampleLabel}</div>
+                            <div className="ex-venue-bias-metrics">
+                              <div>内枠決着率<strong>{venue.innerFrameRate.toFixed(1)}%</strong></div>
+                              <div>外枠絡み率<strong>{venue.outsideInvolvementRate.toFixed(1)}%</strong></div>
+                              <div>1番車飛び率<strong>{venue.oneCarEligibleCount ? `${venue.oneCarOutRate.toFixed(1)}%` : "--"}</strong></div>
+                              <div>逃げ決着率<strong>{venue.decisionEligibleCount ? `${venue.escapeRate.toFixed(1)}%` : "--"}</strong></div>
+                              <div>捲り決着率<strong>{venue.decisionEligibleCount ? `${venue.sprintRate.toFixed(1)}%` : "--"}</strong></div>
+                              <div>平均3連単<strong>{formatPayoutYen(venue.averageTrifectaPayoutYen)}</strong></div>
+                              <div>万車券率<strong>{venue.highPayoutRate.toFixed(1)}%</strong></div>
+                              <div>決まり手分母<strong>{venue.decisionEligibleCount.toLocaleString("ja-JP")}R</strong></div>
+                            </div>
+                            <div className="ex-venue-bias-tags">
+                              {venue.featureLabels.map((label) => <span key={label}>{label}</span>)}
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                ) : <EmptyState text="No eligible official venue bias data" />}
+
+                <div className="ex-location-grid">
+                  <article className="ex-location-card">
+                    <div className="ex-location-head">
+                      <h3>除外理由</h3>
+                      <span className="ex-location-status is-warning">EXCLUDED</span>
+                    </div>
+                    {trifectaTrend.venueBias.exclusionReasons.length ? (
+                      <ul className="ex-trend-reasons">
+                        {trifectaTrend.venueBias.exclusionReasons.map((reason) => (
+                          <li key={reason.key}>{reason.label}: {reason.count.toLocaleString("ja-JP")}R</li>
+                        ))}
+                      </ul>
+                    ) : <div className="ex-muted">除外なし</div>}
+                    {trifectaTrend.venueBias.decisionExclusionReasons.length ? (
+                      <>
+                        <h4>決まり手系のみ除外</h4>
+                        <ul className="ex-trend-reasons">
+                          {trifectaTrend.venueBias.decisionExclusionReasons.map((reason) => (
+                            <li key={reason.key}>{reason.label}: {reason.count.toLocaleString("ja-JP")}R</li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : null}
+                  </article>
+                  <article className="ex-location-card">
+                    <div className="ex-location-head">
+                      <h3>代表例</h3>
+                      <span className="ex-location-status is-partial">MAX 5</span>
+                    </div>
+                    <ul className="ex-weather-example-list">
+                      {trifectaTrend.venueBias.examples.map((example) => (
+                        <li key={example.raceKey}>
+                          {example.date} {example.venueName} {example.raceNumber}R /
+                          {" "}3連単 {example.combination} / {formatPayoutYen(example.payoutYen)} /
+                          {" "}{example.decisionMethodLabel} / {example.featureReason}
+                        </li>
+                      ))}
+                    </ul>
+                  </article>
+                </div>
+
+                <div>
+                  <SectionTitle eyebrow="DEFINITIONS FIXED v1" title="定義メモ" />
+                  <div className="ex-venue-definition-grid">
+                    <article><h4>内枠決着率</h4><p>1〜3着がすべて1〜3番車のrace割合。4番車以上が1台でも入れば対象外。</p></article>
+                    <article><h4>外枠絡み率</h4><p>1〜3着のどこかに5番車以上が入るrace割合。4番車は中枠。</p></article>
+                    <article><h4>1番車飛び率</h4><p>1番車出走をresult行で確認でき、3連単1〜3着に1番車を含まない割合。欠車の厳密化はfuture refinement。</p></article>
+                    <article><h4>逃げ / 捲り決着率</h4><p>明確に正規化できる決まり手取得raceだけを分母にする。着順から推測しない。</p></article>
+                    <article><h4>万車券率</h4><p>eligibleな3連単払戻金が10,000円以上のrace割合。</p></article>
+                    <article><h4>特徴ラベル閾値</h4><p>内枠35%以上、外枠70%以上、1番車飛び60%以上、逃げ25%以上、捲り35%以上、平均2万円以上または万車券25%以上。</p></article>
+                  </div>
+                </div>
+                <div className="ex-empty">
+                  <strong>{trifectaTrend.venueBias.refinement.status} / future refinement</strong><br />
+                  {trifectaTrend.venueBias.refinement.note}。
+                </div>
+              </>
+            ) : null}
+          </div>
+
           <div className="ex-empty" hidden={activeSectionTab !== "trend"}>
             <strong>ROADMAP / FUTURE-ACCUMULATION</strong><br />
-            最低オッズ比 / 会場クセ / 今日の流れメーター
+            最低オッズ比 / 今日の流れメーター
           </div>
           <div className="ex-muted" hidden={activeSectionTab !== "trend"}>
             official result only / fake prohibited / LOW SAMPLE aware。
