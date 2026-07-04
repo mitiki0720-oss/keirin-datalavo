@@ -2416,6 +2416,29 @@ export default function ExDataPage() {
           </aside>
         </section>
 
+        <section className="ex-panel ex-section" data-testid="result-trend-lab-roadmap">
+          <SectionTitle
+            eyebrow="KURARI EX RESULT TREND LAB"
+            title="出目と流れを読む、次世代分析ラボ"
+            lead="official result onlyで育てる分析roadmapです。32-01はdata availability auditのみを実装し、未集計のランキング数値は表示しません。"
+          />
+          <div className="ex-health-grid">
+            <MetricCard label="DATA AVAILABILITY AUDIT" value="IMPLEMENTED" note="schema / coverage / provenance監査" />
+            <MetricCard label="RANKING ENGINE" value="FUTURE" note="future-accumulation" />
+            <MetricCard label="ODDS GAP ANALYSIS" value="FUTURE" note="最低オッズ未取得・fake prohibited" warning />
+            <MetricCard label="WIND × FINISH TREND" value="PARTIAL" note="風速・決まり手に欠損とprovenance課題" warning />
+          </div>
+          <div className="ex-empty" style={{ marginTop: 14 }}>
+            <strong>ROADMAP</strong><br />
+            3連単出目ランキング / 荒れ指数 / レース連鎖分析 / 風速×決まり手 /
+            会場クセ / 今日の流れメーター
+          </div>
+          <div className="ex-muted" style={{ marginTop: 10 }}>
+            official result only / fake prohibited / LOW SAMPLE aware。
+            sampleSize 30未満はreference onlyとし、最低オッズ・人気順・オッズ変動はsource蓄積前に生成しません。
+          </div>
+        </section>
+
         <section className="ex-panel ex-section" data-testid="kurari-ex-history-overview">
           <SectionTitle
             eyebrow="HISTORY INDEX / DAILY CONSUMER"

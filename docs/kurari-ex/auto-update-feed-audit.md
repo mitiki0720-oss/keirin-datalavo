@@ -973,6 +973,32 @@ mismatch detected 4件は監査履歴として残し、未解決停止0件と採
 
 31-13以降は、EX出走表のsource表示改善、source-backed-alias provenanceの折りたたみ、official / source-backed-alias / today-onlyの色分け、current starters identity coverage 100%の継続確認を候補とする。
 
+## 32-01 Result Trend Lab data availability audit
+
+EXページを出目ランキング、荒れ指数、レース連鎖、風速×決まり手、会場クセ、今日の流れへ育てる前段として、保存済みresult dataのavailability監査を実施した。
+
+- 新規docs: `docs/kurari-ex/result-trend-lab-data-availability.md`
+- KEIRIN.JP current official result、KURARI EX history、review result contract、生成script、workflowを読み取り調査
+- official result onlyを基本方針とする
+- fakeデータ、架空ランキング、架空オッズ、架空風速、架空決まり手を生成しない
+- LOW SAMPLEは主根拠にせず、30未満をreference onlyとする暫定policyを記録
+- 最低オッズ、締切直前オッズ、全組み合わせ人気順、オッズ変動はsource未整備のためfuture-accumulation
+- `favoriteTrifecta.odds`を契約確認なしに最低オッズへ読み替えない
+- 32-01では集計engineとランキング数値を実装していない
+- EXページには数値なしの`KURARI EX RESULT TREND LAB` roadmapだけを追加
+
+監査snapshotでは、当日KEIRIN.JP resultに3連単結果・払戻・finishOrder・決まり手・天候・風速・grade・source情報がある。一方、長期EX historyは各fieldに欠損があり、race単位のofficial source名とsourceFetchedAtを保持しないため、official-onlyの長期分析は`partial`とした。
+
+32-02以降の候補:
+
+- official result onlyの3連単出目ランキングv1
+- 7車/9車、A級/S級/G、会場、R別フィルター
+- LOW SAMPLE表示
+- official result履歴とrace単位provenance contractの設計
+- `public/data/**`を書き換えず、既存official resultから読み取り集計するconsumer
+
+`public/data/**`は生成・変更・削除していない。`public/data/reviews/**`も変更、stash、削除、退避、stageしていない。
+
 ## 触っていないもの
 
 - `public/data/reviews/**` は触っていない
@@ -985,7 +1011,7 @@ mismatch detected 4件は監査履歴として残し、未解決停止0件と採
 - `public/data/venues/**` は触っていない
 - `private-input/**` は触っていない
 - `package.json` / `package-lock.json` は触っていない
-- Prediction Page、ReviewPage、RacesPageは触っていない。EXページは31-08のidentity/source接続表示、31-09の表記不一致診断、31-10のalias registry診断表示、31-11のstrict採用条件診断、31-12のsource-backed-alias採用表示だけを変更した
+- Prediction Page、ReviewPage、RacesPageは触っていない。EXページは31-08〜31-12のidentity/source対応と、32-01のResult Trend Lab roadmapだけを変更した
 - 的中通知ログとSlack通知stateは触っていない
 - fakeデータ追加、fake補完、source推測補完、登録番号推測補完はしていない
 - `git add .`、git commit、git pushは実行していない
