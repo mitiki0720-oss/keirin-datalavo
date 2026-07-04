@@ -43,7 +43,7 @@ import type {
   KurariExVenueExact,
   KurariExVenueListItem,
 } from "../types/kurariEx";
-import { findKurariForeignRiderAlias } from "./kurariForeignRiderAliases";
+import { evaluateKurariForeignRiderAliasStrictAdoption } from "./kurariForeignRiderAliases";
 
 const EX_ROOT = "/data/analytics/kurari-ex";
 const EXACT_ROOT = `${EX_ROOT}/exact`;
@@ -1348,11 +1348,27 @@ export function summarizeKurariExIdentitySourceConnection(
           continue;
         }
         if (!playerNameMatches) {
-          const aliasRegistryEntry = findKurariForeignRiderAlias(
-            todayStarter.name,
-            officialStarter.name,
-            officialStarter.registrationNo,
-          );
+          const { registryEntry: aliasRegistryEntry, assessment: aliasAdoptionAssessment } =
+            evaluateKurariForeignRiderAliasStrictAdoption({
+              today: {
+                date: todayStarter.date,
+                venueCode: todayStarter.venueCode,
+                raceNumber,
+                carNo: todayStarter.carNo,
+                name: todayStarter.name,
+              },
+              officialCandidate: {
+                date: officialStarter.date,
+                venueCode: officialStarter.venueCode,
+                raceNumber: officialStarter.raceNumber,
+                carNo: officialStarter.carNo,
+                name: officialStarter.name,
+                registrationNo: officialStarter.registrationNo,
+              },
+              detectedByMismatchAudit: true,
+              fuzzyMatchingUsed: false,
+              nameOnlyMatchingUsed: false,
+            });
           blockedNameMismatchCount += 1;
           nameMismatchDetails.push({
             date: todayStarter.date,
@@ -1383,6 +1399,7 @@ export function summarizeKurariExIdentitySourceConnection(
             processingResult: "not-connected-registration-unavailable",
             aliasRegistryStatus: aliasRegistryEntry ? "registered" : "not-registered",
             aliasRegistryEntry,
+            aliasAdoptionAssessment,
           });
         }
       }
@@ -1461,6 +1478,12 @@ export function summarizeKurariExIdentitySourceConnection(
   const foreignRiderAliasRegisteredCount = nameMismatchDetails.filter(
     (detail) => detail.aliasRegistryEntry?.category === "foreign-rider-alias",
   ).length;
+  const strictAdoptionEligibleCount = nameMismatchDetails.filter(
+    (detail) => detail.aliasAdoptionAssessment.adoptionEligibility === "strict-adoption-eligible",
+  ).length;
+  const strictAdoptionNotEligibleCount = nameMismatchDetails.filter(
+    (detail) => detail.aliasAdoptionAssessment.adoptionEligibility === "not-eligible",
+  ).length;
   const raceKeys = new Set(
     starters.map((starter) =>
       [starter.date, starter.venueCode || normalizeKurariExIdentityVenueName(starter.venueName), starter.raceNumber].join("|"),
@@ -1498,6 +1521,8 @@ export function summarizeKurariExIdentitySourceConnection(
     aliasRegistryRegisteredCount,
     foreignRiderAliasRegisteredCount,
     officialCandidateNotAdoptedCount: nameMismatchDetails.length,
+    strictAdoptionEligibleCount,
+    strictAdoptionNotEligibleCount,
     nameMismatchDetails,
     sourceErrors,
     starters,

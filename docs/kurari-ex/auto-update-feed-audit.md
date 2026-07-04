@@ -791,6 +791,107 @@ registry自体の4件は人間確認済みの固定データだが、coverageへ
 
 31-11以降は、`date + venueCode + R + carNo + exact-alias-pair + registrationNo`一致の場合だけ本採用するか、採用時のsourceType名、official entriesとは別の`source-backed-alias`として表示するかを検討する。
 
+## 31-11 foreign rider alias strict採用条件
+
+### 目的
+
+31-10で登録したforeign rider alias registryについて、31-12以降にregistrationNoへ安全に採用できるか判断するためのstrict条件と診断処理を実装した。31-11は設計・eligibility判定・可視化だけを行い、eligibleでもstarter本体へは採用しない。
+
+### strict採用条件
+
+次の15条件をコード上で個別評価し、すべてPASSの場合だけ`strict-adoption-eligible`とする。
+
+1. todayとofficial candidateのdateが完全一致
+2. venueCodeが完全一致
+3. raceNumberが完全一致
+4. carNoが完全一致
+5. today.generated名がregistry.todayGeneratedNameと文字列完全一致
+6. official entries名がregistry.officialEntryNameと文字列完全一致
+7. official candidate registrationNoがregistry.registrationNoと完全一致
+8. registry.categoryが`foreign-rider-alias`
+9. registry.matchMethodが`exact-alias-pair`
+10. registry.trustStatusが`source-backed-manual`
+11. registry.sourceTypeが`official-candidate`
+12. 31-09 mismatch auditでofficial candidateとして検出済み
+13. fuzzy matching未使用
+14. 名前だけの照合ではない
+15. registry provenanceが1件以上存在
+
+判定結果:
+
+- 全条件PASS:
+  - `adoptionEligibility: strict-adoption-eligible`
+  - `adoptionStatus: not-adopted-yet`
+  - `allStrictConditionsPassed: true`
+  - `nextAction: 31-12でsource-backed-aliasとして本採用検討`
+- 1件でもFAIL:
+  - `adoptionEligibility: not-eligible`
+  - `adoptionStatus: not-adopted`
+  - `eligibilityReason`へ未通過条件を記録
+  - `nextAction: 条件不一致を確認し未採用を維持`
+
+### EX診断表示とcoverage
+
+`FOREIGN RIDER ALIAS ADOPTION POLICY / 外国人alias採用条件`を追加し、次を表示する。
+
+- strict adoption eligible人数
+- not eligible人数
+- registrationNo本体への反映なし
+- fake completionなし
+- fuzzy matchingなし
+- 31-12で採用可否判断
+- 個別候補のadoptionEligibility、adoptionStatus、eligibilityReason
+- required keys: date、venueCode、raceNumber、carNo、todayGeneratedName、officialEntryName、registrationNo
+- 15条件それぞれのPASS / FAIL
+- allStrictConditionsPassed
+- nextAction
+
+2026-07-04 current dataの動的集計:
+
+- official entries接続済み: 459人
+- alias registry registered: 4人
+- strict adoption eligible: 4人
+- strict adoption not eligible: 0人
+- official candidate not adopted: 4人
+- mismatch stopped: 4人
+- unavailable: 4人
+
+人数はcurrent mismatch dataとregistryを照合して算出し、UIへ固定値をハードコードしていない。
+
+### 31-12以降の採用時source設計
+
+31-12以降でeligible候補を本採用する場合の予定値を、診断欄とコード上の設計定数へ記録した。
+
+- registrationNoSource: `foreign-rider-alias-registry`
+- registrationNoTrustStatus: `source-backed-alias`
+- sourceType: `source-backed-alias`
+- matchMethod: `exact-alias-pair`
+- provenance: `KEIRIN.JP official entries + alias registry + strict keys matched`
+
+これらは31-11ではstarter本体に設定していない。source-backed-aliasはofficialとは別枠であり、registrationNoTrustStatusを`confirmed`にしない。
+
+### 未採用と保護ルール
+
+- eligible 4人のstarter.registrationNoは引き続き`null`
+- registrationNoSource、registrationNoTrustStatus、sourceTypeは変更していない
+- official entries接続済み459人を463人へ増やしていない
+- unavailable 4人を減らしていない
+- official candidate registrationNoは診断用途のみ
+- fakeデータ追加・fake補完をしていない
+- fuzzy matchingをしていない
+- 名前だけ、unique-name、manual overrideで登録番号を補完していない
+- unknown / unavailableをofficial扱いしていない
+- `public/data/**`は生成・変更・削除していない
+- `public/data/reviews/**`は変更、stash、削除、退避、stageしていない
+
+### 31-12候補
+
+- `strict-adoption-eligible`の外国人aliasだけを`source-backed-alias`としてregistrationNo本体へ採用するか判断する
+- official entriesとは別枠でsource-backed-aliasを表示する
+- registrationNoTrustStatusは`confirmed`ではなく`source-backed-alias`とする
+- provenanceをEXページに表示する
+- 採用後もfake補完・fuzzy matching禁止を維持する
+
 ## 触っていないもの
 
 - `public/data/reviews/**` は触っていない
@@ -803,7 +904,7 @@ registry自体の4件は人間確認済みの固定データだが、coverageへ
 - `public/data/venues/**` は触っていない
 - `private-input/**` は触っていない
 - `package.json` / `package-lock.json` は触っていない
-- Prediction Page、ReviewPage、RacesPageは触っていない。EXページは31-08のidentity/source接続表示、31-09の表記不一致診断、31-10のalias registry診断表示だけを変更した
+- Prediction Page、ReviewPage、RacesPageは触っていない。EXページは31-08のidentity/source接続表示、31-09の表記不一致診断、31-10のalias registry診断表示、31-11のstrict採用条件診断だけを変更した
 - 的中通知ログとSlack通知stateは触っていない
 - fakeデータ追加、fake補完、source推測補完、登録番号推測補完はしていない
 - `git add .`、git commit、git pushは実行していない

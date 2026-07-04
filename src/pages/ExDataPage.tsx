@@ -2630,6 +2630,8 @@ export default function ExDataPage() {
             <MetricCard label="TODAY ONLY" value={valueText(identitySourceSummary?.todayGeneratedOnlyCount, "人")} note="registrationNo 未取得" warning={(identitySourceSummary?.todayGeneratedOnlyCount ?? 0) > 0} />
             <MetricCard label="MISMATCH STOPPED" value={valueText(identitySourceSummary?.blockedNameMismatchCount, "人")} note="official candidate 未採用" warning={(identitySourceSummary?.blockedNameMismatchCount ?? 0) > 0} />
             <MetricCard label="ALIAS REGISTERED" value={valueText(identitySourceSummary?.aliasRegistryRegisteredCount, "人")} note="診断用・本体未採用" />
+            <MetricCard label="STRICT ELIGIBLE" value={valueText(identitySourceSummary?.strictAdoptionEligibleCount, "人")} note="31-11では未採用" />
+            <MetricCard label="STRICT NOT ELIGIBLE" value={valueText(identitySourceSummary?.strictAdoptionNotEligibleCount, "人")} note="条件不一致" warning={(identitySourceSummary?.strictAdoptionNotEligibleCount ?? 0) > 0} />
             <MetricCard label="CANDIDATE NOT ADOPTED" value={valueText(identitySourceSummary?.officialCandidateNotAdoptedCount, "人")} note="registrationNo 未接続" />
             <MetricCard label="HISTORICAL" value={valueText(identitySourceSummary?.historicalIdentityCount, "人")} note="31-08 current接続では不使用" />
             <MetricCard label="MANUAL OVERRIDE" value={valueText(identitySourceSummary?.manualOverrideCount, "人")} note="official扱い禁止" />
@@ -2681,7 +2683,40 @@ export default function ExDataPage() {
               />
               <MetricCard label="FAKE COMPLETION" value="なし" note="candidate値を本体へ接続しない" />
               <MetricCard label="FUZZY MATCHING" value="なし" note="部分一致による採用なし" />
-              <MetricCard label="REGISTRATION REFLECTION" value="なし" note="31-11以降でstrict採用条件を検討" />
+              <MetricCard label="REGISTRATION REFLECTION" value="なし" note="31-12で本採用可否を判断" />
+            </div>
+
+            <div style={{ marginTop: 24 }}>
+              <SectionTitle
+                eyebrow="FOREIGN RIDER ALIAS ADOPTION POLICY"
+                title="外国人alias採用条件"
+                lead="date・venueCode・R・車番・alias 3値・registry属性・mismatch検出経路・非fuzzy・非name-only・provenanceの15条件をすべて満たす候補だけをstrict-adoption-eligibleと診断します。31-11では登録番号本体へ反映しません。"
+              />
+              <div className="ex-health-grid">
+                <MetricCard
+                  label="STRICT ADOPTION ELIGIBLE"
+                  value={valueText(identitySourceSummary?.strictAdoptionEligibleCount, "人")}
+                  note="not-adopted-yet"
+                />
+                <MetricCard
+                  label="NOT ELIGIBLE"
+                  value={valueText(identitySourceSummary?.strictAdoptionNotEligibleCount, "人")}
+                  note="reasonを個別表示"
+                  warning={(identitySourceSummary?.strictAdoptionNotEligibleCount ?? 0) > 0}
+                />
+                <MetricCard label="REGISTRATION REFLECTION" value="なし" note="31-12で採用可否判断" />
+                <MetricCard label="FAKE COMPLETION" value="なし" note="名前・登録番号の推測なし" />
+                <MetricCard label="FUZZY MATCHING" value="なし" note="完全一致条件のみ" />
+              </div>
+              <div className="ex-empty" style={{ marginTop: 14 }}>
+                採用予定source設計（31-12候補）:
+                registrationNoSource = foreign-rider-alias-registry /
+                registrationNoTrustStatus = source-backed-alias /
+                sourceType = source-backed-alias /
+                matchMethod = exact-alias-pair /
+                provenance = KEIRIN.JP official entries + alias registry + strict keys matched。
+                現在のstarter本体には未設定です。
+              </div>
             </div>
 
             {identitySourceSummary?.nameMismatchDetails.length ? (
@@ -2694,6 +2729,7 @@ export default function ExDataPage() {
                       <th>official candidate名</th>
                       <th>official candidate登録番号</th>
                       <th>alias registry</th>
+                      <th>strict adoption</th>
                       <th>停止理由</th>
                       <th>差分診断</th>
                       <th>sourceFetchedAt</th>
@@ -2742,6 +2778,38 @@ export default function ExDataPage() {
                               </div>
                             </>
                           ) : null}
+                        </td>
+                        <td>
+                          <strong>{detail.aliasAdoptionAssessment.adoptionEligibility}</strong>
+                          <div className="ex-muted">
+                            adoptionStatus: {detail.aliasAdoptionAssessment.adoptionStatus}
+                          </div>
+                          <div className="ex-muted">
+                            allStrictConditionsPassed: {String(detail.aliasAdoptionAssessment.allStrictConditionsPassed)}
+                          </div>
+                          <div className="ex-muted">
+                            eligibilityReason: {detail.aliasAdoptionAssessment.eligibilityReason}
+                          </div>
+                          <div className="ex-muted">
+                            required keys:
+                            date={detail.aliasAdoptionAssessment.requiredKeys.date} /
+                            venueCode={detail.aliasAdoptionAssessment.requiredKeys.venueCode} /
+                            raceNumber={detail.aliasAdoptionAssessment.requiredKeys.raceNumber} /
+                            carNo={detail.aliasAdoptionAssessment.requiredKeys.carNo} /
+                            todayGeneratedName={detail.aliasAdoptionAssessment.requiredKeys.todayGeneratedName} /
+                            officialEntryName={detail.aliasAdoptionAssessment.requiredKeys.officialEntryName} /
+                            registrationNo={detail.aliasAdoptionAssessment.requiredKeys.registrationNo ?? "未取得"}
+                          </div>
+                          <div className="ex-muted">
+                            strict conditions:
+                            {" "}
+                            {detail.aliasAdoptionAssessment.strictConditions
+                              .map((condition) => `${condition.id}.${condition.key}=${condition.passed ? "PASS" : "FAIL"}`)
+                              .join(" / ")}
+                          </div>
+                          <div className="ex-muted">
+                            nextAction: {detail.aliasAdoptionAssessment.nextAction}
+                          </div>
                         </td>
                         <td>{detail.reason}</td>
                         <td>{detail.differenceNote}</td>

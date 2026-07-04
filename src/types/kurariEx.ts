@@ -679,6 +679,42 @@ export type KurariForeignRiderAliasRegistryEntry = {
   readonly note: string;
 };
 
+export type KurariForeignRiderAliasAdoptionEligibility =
+  | "strict-adoption-eligible"
+  | "not-eligible";
+
+export type KurariForeignRiderAliasStrictCondition = {
+  id: number;
+  key: string;
+  label: string;
+  passed: boolean;
+};
+
+export type KurariForeignRiderAliasAdoptionAssessment = {
+  adoptionEligibility: KurariForeignRiderAliasAdoptionEligibility;
+  adoptionStatus: "not-adopted-yet" | "not-adopted";
+  eligibilityReason: string;
+  requiredKeys: {
+    date: string;
+    venueCode: string;
+    raceNumber: number;
+    carNo: string;
+    todayGeneratedName: string;
+    officialEntryName: string;
+    registrationNo: string | null;
+  };
+  strictConditions: KurariForeignRiderAliasStrictCondition[];
+  allStrictConditionsPassed: boolean;
+  nextAction: "31-12でsource-backed-aliasとして本採用検討" | "条件不一致を確認し未採用を維持";
+  plannedSourceDesign: {
+    registrationNoSource: "foreign-rider-alias-registry";
+    registrationNoTrustStatus: "source-backed-alias";
+    sourceType: "source-backed-alias";
+    matchMethod: "exact-alias-pair";
+    provenance: "KEIRIN.JP official entries + alias registry + strict keys matched";
+  };
+};
+
 export type KurariExIdentityMismatchDetail = {
   date: string;
   venueName: string;
@@ -702,6 +738,7 @@ export type KurariExIdentityMismatchDetail = {
   processingResult: "not-connected-registration-unavailable";
   aliasRegistryStatus: "registered" | "not-registered";
   aliasRegistryEntry: KurariForeignRiderAliasRegistryEntry | null;
+  aliasAdoptionAssessment: KurariForeignRiderAliasAdoptionAssessment;
 };
 
 export type KurariExIdentitySourceConnectionSummary = {
@@ -728,6 +765,8 @@ export type KurariExIdentitySourceConnectionSummary = {
   aliasRegistryRegisteredCount: number;
   foreignRiderAliasRegisteredCount: number;
   officialCandidateNotAdoptedCount: number;
+  strictAdoptionEligibleCount: number;
+  strictAdoptionNotEligibleCount: number;
   nameMismatchDetails: KurariExIdentityMismatchDetail[];
   sourceErrors: string[];
   starters: KurariExIdentitySourceStarter[];
