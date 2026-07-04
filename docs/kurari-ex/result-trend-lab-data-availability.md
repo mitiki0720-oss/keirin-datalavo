@@ -317,3 +317,54 @@ EX専用main wrapperを`100%`基準、`max-width: 1600px`、`margin-inline: auto
 
 32-03候補は、3連単払戻金をsource値のまま使う荒れ指数v1、堅め / 中穴 / 荒れ / 大荒れ / 超荒れ分類、R別 / 会場別 / 級班別傾向とする。最低オッズ比は必要なsourceが蓄積されるまで実装しない。
 
+## 32-03 荒れ指数 v1
+
+Result Trend Labへ、保存済みKEIRIN.JP official resultの3連単実払戻金だけを使う荒れ指数v1を追加した。平均・中央値・最大値、最高配当race、分類別件数・割合を画面表示時に動的算出し、払戻金や集計数字をハードコードしない。
+
+### eligible / excluded
+
+32-02と同じofficial result only条件を再利用する。
+
+- providerが`KEIRIN.JP`、listTypeが`JSJ048`
+- source date / source取得日時が妥当
+- `date + venueCode + raceNumber`が一意
+- confirmedかつcancelled / no-raceではない
+- 1〜3着車番が妥当で重複しない
+- 保存済み3連単出目と1〜3着が一致する
+- 3連単払戻金が実在し、カンマ、空白、円記号を安全に除去した後も正の安全な整数になる
+
+欠損、unknown、不正値、0円以下の払戻金は除外する。最低オッズからの逆算や推測補完はしない。除外理由はsource不成立、race key欠損・重複、中止、未確定、着順不足、不正車番、3連単不一致、払戻金欠損・不正に分けて表示する。
+
+### 暫定分類
+
+- 堅め: 1〜2,999円（仕様上の0円は不正値として除外）
+- 中穴: 3,000〜9,999円
+- 荒れ: 10,000〜29,999円
+- 大荒れ: 30,000〜99,999円
+- 超荒れ: 100,000円以上
+
+この境界値はv1の暫定値であり、将来ユーザー調整可能にする候補とする。
+
+### LOW SAMPLE / breakdown
+
+32-02と同じ基準を全体、R別、会場別、Gレース別へ適用する。
+
+- 30R未満: `LOW SAMPLE / reference only`
+- 30〜99R: `caution / 傾向注意`
+- 100R以上: `usable trend / 予想の補助`
+
+R別は保存済みraceNumber、会場別はvenueCode / venueNameから平均・中央値・最大・sample数を算出する。会場またはRが不明なraceを推測分類しない。
+
+A級 / S級はcurrent official resultにraceClassがないため`future-accumulation`。Gレースはvenue gradeが`G1`〜`G3`等と明示されたraceだけを`partial`集計する。F1/F2からA級・S級を推測しない。
+
+### 未実装・保護
+
+- 最低3連単オッズ、1番人気オッズ、人気順、締切直前オッズ、オッズ変動、実配当÷最低オッズは未実装
+- 最低オッズ比は安定したsourceが蓄積されるまで`future-accumulation`
+- fake払戻金、fakeオッズ、架空荒れ指数を生成しない
+- 荒れ指数は予想の主根拠ではなく補助傾向として表示する
+- `public/data/**`は読み取りのみで、生成・変更・削除していない
+- `public/data/reviews/**`は変更、stash、削除、退避、stageしていない
+
+32-04候補はレース連鎖分析とする。`date + venue + raceNumber`のrace keyで同日同会場を並べ、前Rが荒れた後の次R傾向、荒れ連鎖、本命戻り、中穴継続を、前後ともeligibleなofficial resultの場合だけ集計しLOW SAMPLEを表示する。
+

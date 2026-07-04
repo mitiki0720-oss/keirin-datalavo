@@ -1014,6 +1014,22 @@ EXページを出目ランキング、荒れ指数、レース連鎖、風速×�
 
 32-03候補は、保存済み3連単払戻金による荒れ指数v1、堅め / 中穴 / 荒れ / 大荒れ / 超荒れ分類、R別 / 会場別 / 級班別の荒れ傾向とする。最低オッズ比はデータ取得後に判断する。
 
+## 32-03 荒れ指数 v1
+
+- EX Result Trend Labへ、3連単実払戻金ベースの荒れ指数v1を追加した
+- KEIRIN.JP / JSJ048、一意race key、confirmed、妥当な1〜3着、保存済み3連単一致、正の実払戻金を満たすofficial resultだけを集計する
+- 堅め / 中穴 / 荒れ / 大荒れ / 超荒れの件数・割合、平均・中央値・最大、最高配当raceを動的算出する
+- R別・会場別は保存済み値だけで集計し、各行へLOW SAMPLEを表示する
+- A級 / S級はraceClass未保存のため`future-accumulation`
+- Gレースはvenue gradeが明示されたraceだけを`partial`集計する
+- LOW SAMPLEは30R未満をreference only、30〜99Rをcaution、100R以上も予想の補助扱いとする
+- 最低オッズ比、人気順、オッズ変動は未実装で`future-accumulation`
+- fake払戻金、fakeオッズ、架空荒れ指数を生成していない
+- `public/data/**`は読み取りのみで、生成・変更・削除していない
+- `public/data/reviews/**`は変更、stash、削除、退避、stageしていない
+
+32-04候補は、`date + venue + raceNumber`のrace keyを使うレース連鎖分析、前Rが荒れた後の次R傾向、荒れ連鎖 / 本命戻り / 中穴継続とLOW SAMPLE表示とする。
+
 ## 触っていないもの
 
 - `public/data/reviews/**` は触っていない

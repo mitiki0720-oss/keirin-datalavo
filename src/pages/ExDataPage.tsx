@@ -102,6 +102,7 @@ import type {
   KurariExTrendCarTop3Row,
   KurariExTrendRankingRow,
   KurariExTrifectaTrendV1,
+  KurariExTurbulenceBreakdownRow,
 } from "../lib/kurariExResultTrendLab";
 import { SiteHeader, useIsMobile } from "./PageImplementations";
 
@@ -310,6 +311,63 @@ function TrendRankingCard({
         </ol>
       ) : (
         <div className="ex-muted">No eligible official result data</div>
+      )}
+    </article>
+  );
+}
+
+function formatPayoutYen(value: number | null) {
+  return value == null ? "未取得" : `${value.toLocaleString("ja-JP")}円`;
+}
+
+function TurbulenceBreakdownTable({
+  title,
+  rows,
+  emptyText,
+}: {
+  title: string;
+  rows: KurariExTurbulenceBreakdownRow[];
+  emptyText: string;
+}) {
+  return (
+    <article className="ex-turbulence-breakdown">
+      <div className="ex-location-head">
+        <h3>{title}</h3>
+        <span className="ex-location-status is-partial">LOW SAMPLE AWARE</span>
+      </div>
+      {rows.length ? (
+        <div className="ex-table-wrap">
+          <table className="ex-data-table ex-turbulence-table">
+            <thead>
+              <tr>
+                <th>区分</th>
+                <th>sample</th>
+                <th>平均3連単</th>
+                <th>中央値</th>
+                <th>最大</th>
+                <th>sample status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.key}>
+                  <td><strong>{row.label}</strong></td>
+                  <td>{row.sampleSize.toLocaleString("ja-JP")}R</td>
+                  <td>{formatPayoutYen(row.averagePayoutYen)}</td>
+                  <td>{formatPayoutYen(row.medianPayoutYen)}</td>
+                  <td>{formatPayoutYen(row.maxPayoutYen)}</td>
+                  <td>
+                    <span className={`ex-trend-status-pill is-${row.sampleStatus}`}>
+                      {row.sampleLabel}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="ex-muted">{emptyText}</div>
       )}
     </article>
   );
@@ -2280,6 +2338,8 @@ export default function ExDataPage() {
         .ex-trend-status-pill.is-ready { color: #23664c; background: #daf5e8; }
         .ex-trend-status-pill.is-partial { color: #925711; background: #fff0d3; }
         .ex-trend-status-pill.is-future-accumulation { color: #687184; background: #eceef2; }
+        .ex-trend-status-pill.is-low-sample, .ex-trend-status-pill.is-caution { color: #925711; background: #fff0d3; }
+        .ex-trend-status-pill.is-usable { color: #23664c; background: #daf5e8; }
         .ex-trend-ranking-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 2}, minmax(0,1fr)); gap: 13px; }
         .ex-trend-ranking-card { min-width: 0; padding: 18px; border: 1px solid #e1e4f0; border-radius: 21px; background: linear-gradient(145deg,rgba(255,255,255,.96),rgba(247,246,255,.9)); }
         .ex-trend-ranking-card:first-child { grid-column: ${isMobile ? "auto" : "1 / -1"}; }
@@ -2293,6 +2353,24 @@ export default function ExDataPage() {
         .ex-trend-ranking-list li small { grid-column: 2 / -1; color: #8993a4; font-size: 9px; }
         .ex-trend-rank { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: #6451a1; background: #eee9fb; font-weight: 950; }
         .ex-trend-reasons { margin: 0; padding-left: 20px; color: #657187; font-size: 11px; line-height: 1.8; }
+        .ex-turbulence-category-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 5},minmax(0,1fr)); gap: 10px; }
+        .ex-turbulence-category { display: grid; gap: 6px; min-width: 0; padding: 16px; border: 1px solid #e3e5ed; border-radius: 18px; background: rgba(255,255,255,.88); }
+        .ex-turbulence-category strong { color: #34435b; font: 800 17px/1.2 ${serif}; }
+        .ex-turbulence-category b { color: #563f91; font: 850 27px/1 ${serif}; }
+        .ex-turbulence-category span { color: #5d6b81; font-size: 12px; font-weight: 900; }
+        .ex-turbulence-category small { color: #8a94a5; font-size: 9px; line-height: 1.45; }
+        .ex-turbulence-category.is-firm { border-color: #cfe5dd; background: #f3fbf8; }
+        .ex-turbulence-category.is-mid-upset { border-color: #d8e3f3; background: #f4f8fe; }
+        .ex-turbulence-category.is-upset { border-color: #eadbbd; background: #fffaf0; }
+        .ex-turbulence-category.is-major-upset { border-color: #edc9b5; background: #fff5ef; }
+        .ex-turbulence-category.is-extreme-upset { border-color: #e6c4d2; background: #fff2f7; }
+        .ex-turbulence-highlight { display: grid; gap: 8px; padding: 20px; border: 1px solid #e0c7d4; border-radius: 21px; background: linear-gradient(145deg,#fff8fb,#f8f4ff); }
+        .ex-turbulence-highlight h3 { margin: 0; color: #713f5d; font: 800 20px/1.3 ${serif}; }
+        .ex-turbulence-highlight strong { color: #572f72; font: 850 30px/1 ${serif}; }
+        .ex-turbulence-highlight p { margin: 0; color: #657187; font-size: 12px; line-height: 1.7; }
+        .ex-turbulence-breakdown { min-width: 0; padding: 18px; border: 1px solid #e2e5ed; border-radius: 21px; background: rgba(255,255,255,.76); }
+        .ex-turbulence-breakdown h3 { margin: 0; color: #263650; font: 800 18px/1.35 ${serif}; }
+        .ex-turbulence-table { min-width: 760px; }
         .ex-data-table { width: 100%; border-collapse: collapse; min-width: 580px; color: #526078; font-size: 12px; }
         .ex-data-table th, .ex-data-table td { padding: 10px 9px; border-bottom: 1px solid #edf0f4; text-align: left; white-space: nowrap; }
         .ex-data-table th { color: #7765ae; font-size: 10px; letter-spacing: .08em; }
@@ -2504,11 +2582,11 @@ export default function ExDataPage() {
           <SectionTitle
             eyebrow="KURARI EX RESULT TREND LAB"
             title="出目と流れを読む、次世代分析ラボ"
-            lead="official result onlyで育てる分析ラボです。32-02では厳格な適格条件を通過した結果だけを3連単出目ランキングv1へ反映します。"
+            lead="official result onlyで育てる分析ラボです。3連単出目ランキングと、実払戻金だけで算出する荒れ指数v1を表示します。"
           />
           <div className="ex-health-grid">
             <MetricCard label="DATA AVAILABILITY AUDIT" value="IMPLEMENTED" note="schema / coverage / provenance監査" />
-            <MetricCard label="RANKING ENGINE" value="IMPLEMENTED v1" note="official 3連単結果のみ" />
+            <MetricCard label="RANKING / PAYOUT ENGINE" value="IMPLEMENTED v1" note="official 3連単結果・実払戻金のみ" />
             <MetricCard label="ODDS GAP ANALYSIS" value="FUTURE" note="最低オッズ未取得・fake prohibited" warning />
             <MetricCard label="WIND × FINISH TREND" value="PARTIAL" note="風速・決まり手に欠損とprovenance課題" warning />
           </div>
@@ -2607,9 +2685,161 @@ export default function ExDataPage() {
             ) : null}
           </div>
 
+          <div className="ex-subsection" data-testid="result-trend-lab-turbulence-v1">
+            <SectionTitle
+              eyebrow="KURARI EX TURBULENCE INDEX v1"
+              title="荒れ指数 v1"
+              lead="official resultに保存された3連単実払戻金だけで、堅め / 中穴 / 荒れ / 大荒れ / 超荒れを分類します。"
+            />
+            {trifectaTrendStatus === "loading" ? <EmptyState text="official payoutを確認しています。" /> : null}
+            {trifectaTrendStatus === "error" ? (
+              <EmptyState text="No eligible official payout data / official sourceを取得できませんでした。" />
+            ) : null}
+            {trifectaTrend ? (
+              <>
+                <div className="ex-health-grid">
+                  <MetricCard label="SOURCE" value="official result only" note={trifectaTrend.sourceName} />
+                  <MetricCard label="BASIS" value="3連単実払戻金" note="actual trifecta payout" />
+                  <MetricCard label="ODDS GAP" value="FUTURE" note="future-accumulation / 最低オッズ未取得" warning />
+                  <MetricCard
+                    label="SAMPLE STATUS"
+                    value={trifectaTrend.turbulence.sampleLabel}
+                    note={trifectaTrend.turbulence.sampleStatus === "low-sample"
+                      ? "参考のみ"
+                      : trifectaTrend.turbulence.sampleStatus === "caution"
+                        ? "傾向注意"
+                        : "予想の主根拠ではなく補助"}
+                    warning={trifectaTrend.turbulence.sampleStatus !== "usable"}
+                  />
+                </div>
+
+                {trifectaTrend.turbulence.status === "ready" ? (
+                  <>
+                    <div className="ex-kpi-grid">
+                      <MetricCard
+                        label="ELIGIBLE RACES"
+                        value={trifectaTrend.turbulence.eligibleRaceCount.toLocaleString("ja-JP")}
+                        note={`全${trifectaTrend.turbulence.totalRaceCount.toLocaleString("ja-JP")}R`}
+                      />
+                      <MetricCard
+                        label="EXCLUDED RACES"
+                        value={trifectaTrend.turbulence.excludedRaceCount.toLocaleString("ja-JP")}
+                        note="strict eligibilityで除外"
+                        warning={trifectaTrend.turbulence.excludedRaceCount > 0}
+                      />
+                      <MetricCard
+                        label="AVERAGE TRIFECTA"
+                        value={formatPayoutYen(trifectaTrend.turbulence.averagePayoutYen)}
+                        note="eligible official payout平均"
+                      />
+                      <MetricCard
+                        label="MEDIAN"
+                        value={formatPayoutYen(trifectaTrend.turbulence.medianPayoutYen)}
+                        note="eligible official payout中央値"
+                      />
+                      <MetricCard
+                        label="MAX PAYOUT"
+                        value={formatPayoutYen(trifectaTrend.turbulence.maxPayoutYen)}
+                        note="eligible official payout最大"
+                      />
+                    </div>
+
+                    <div className="ex-turbulence-category-grid">
+                      {trifectaTrend.turbulence.categories.map((category) => (
+                        <article
+                          className={`ex-turbulence-category is-${category.key}`}
+                          key={category.key}
+                        >
+                          <strong>{category.label}</strong>
+                          <b>{category.count.toLocaleString("ja-JP")}R</b>
+                          <span>{category.rate.toFixed(1)}%</span>
+                          <small>{category.rangeLabel}</small>
+                        </article>
+                      ))}
+                    </div>
+
+                    <div className="ex-location-grid">
+                      {trifectaTrend.turbulence.highestPayoutRace ? (
+                        <article className="ex-turbulence-highlight">
+                          <div className="ex-eyebrow">HIGHEST OFFICIAL PAYOUT</div>
+                          <h3>
+                            {trifectaTrend.turbulence.highestPayoutRace.date}{" "}
+                            {trifectaTrend.turbulence.highestPayoutRace.venueName}{" "}
+                            {trifectaTrend.turbulence.highestPayoutRace.raceNumber}R
+                          </h3>
+                          <strong>{formatPayoutYen(trifectaTrend.turbulence.highestPayoutRace.payoutYen)}</strong>
+                          <p>
+                            3連単 {trifectaTrend.turbulence.highestPayoutRace.combination}
+                            {trifectaTrend.turbulence.highestPayoutRace.grade
+                              ? ` / ${trifectaTrend.turbulence.highestPayoutRace.grade}`
+                              : ""}
+                          </p>
+                        </article>
+                      ) : null}
+                      <article className="ex-location-card">
+                        <div className="ex-location-head">
+                          <h3>荒れ指数 excluded理由</h3>
+                          <span className="ex-location-status is-warning">EXCLUDED</span>
+                        </div>
+                        {trifectaTrend.turbulence.exclusionReasons.length ? (
+                          <ul className="ex-trend-reasons">
+                            {trifectaTrend.turbulence.exclusionReasons.map((reason) => (
+                              <li key={reason.key}>{reason.label}: {reason.count.toLocaleString("ja-JP")}R</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <div className="ex-muted">除外なし</div>
+                        )}
+                      </article>
+                    </div>
+
+                    <TurbulenceBreakdownTable
+                      title="R別 荒れ傾向"
+                      rows={trifectaTrend.turbulence.byRaceNumber}
+                      emptyText="R別に安全集計できるofficial payoutはありません。"
+                    />
+                    <TurbulenceBreakdownTable
+                      title="会場別 荒れ傾向"
+                      rows={trifectaTrend.turbulence.byVenue}
+                      emptyText="会場別に安全集計できるofficial payoutはありません。"
+                    />
+
+                    <article className="ex-turbulence-breakdown">
+                      <div className="ex-location-head">
+                        <h3>A級 / S級 / Gレース readiness</h3>
+                        <span className="ex-location-status is-partial">PARTIAL</span>
+                      </div>
+                      <div className="ex-trend-status-row">
+                        {trifectaTrend.turbulence.classGradeReadiness.map((item) => (
+                          <span
+                            className={`ex-trend-status-pill is-${item.status}`}
+                            key={item.key}
+                            title={item.note}
+                          >
+                            {item.label}: {item.status}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="ex-muted" style={{ marginTop: 10 }}>
+                        A級 / S級はraceClass未保存のため推測分類しません。Gレースはvenue gradeが明示されたraceだけを対象にします。
+                      </div>
+                    </article>
+                    <TurbulenceBreakdownTable
+                      title="Gレース別 荒れ傾向"
+                      rows={trifectaTrend.turbulence.byGrade}
+                      emptyText="gradeが明示されたeligible Gレースはありません。"
+                    />
+                  </>
+                ) : (
+                  <EmptyState text="No eligible official payout data" />
+                )}
+              </>
+            ) : null}
+          </div>
+
           <div className="ex-empty">
             <strong>ROADMAP / FUTURE-ACCUMULATION</strong><br />
-            荒れ指数 / 最低オッズ比 / レース連鎖分析 / 風速×決まり手 / 会場クセ / 今日の流れメーター
+            最低オッズ比 / レース連鎖分析 / 風速×決まり手 / 会場クセ / 今日の流れメーター
           </div>
           <div className="ex-muted">
             official result only / fake prohibited / LOW SAMPLE aware。

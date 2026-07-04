@@ -18,6 +18,68 @@ export type KurariExTrendFilterReadiness = {
   note: string;
 };
 
+export type KurariExTurbulenceCategoryKey =
+  | "firm"
+  | "mid-upset"
+  | "upset"
+  | "major-upset"
+  | "extreme-upset";
+
+export type KurariExTurbulenceCategory = {
+  key: KurariExTurbulenceCategoryKey;
+  label: string;
+  count: number;
+  rate: number;
+  rangeLabel: string;
+};
+
+export type KurariExTurbulenceBreakdownRow = {
+  key: string;
+  label: string;
+  sampleSize: number;
+  sampleStatus: KurariExTrendSampleStatus;
+  sampleLabel: string;
+  averagePayoutYen: number;
+  medianPayoutYen: number;
+  maxPayoutYen: number;
+  categories: KurariExTurbulenceCategory[];
+};
+
+export type KurariExTurbulenceV1 = {
+  status: "ready" | "no-eligible-data";
+  sourcePolicy: "official result only";
+  basis: "actual trifecta payout";
+  oddsGapStatus: "future-accumulation";
+  totalRaceCount: number;
+  eligibleRaceCount: number;
+  excludedRaceCount: number;
+  exclusionReasons: Array<{ key: string; label: string; count: number }>;
+  sampleStatus: KurariExTrendSampleStatus;
+  sampleLabel: string;
+  averagePayoutYen: number | null;
+  medianPayoutYen: number | null;
+  maxPayoutYen: number | null;
+  categories: KurariExTurbulenceCategory[];
+  highestPayoutRace: {
+    date: string;
+    venueCode: string;
+    venueName: string;
+    raceNumber: number;
+    grade: string;
+    combination: string;
+    payoutYen: number;
+  } | null;
+  byRaceNumber: KurariExTurbulenceBreakdownRow[];
+  byVenue: KurariExTurbulenceBreakdownRow[];
+  byGrade: KurariExTurbulenceBreakdownRow[];
+  classGradeReadiness: Array<{
+    key: "a-class" | "s-class" | "g-race";
+    label: string;
+    status: "partial" | "future-accumulation";
+    note: string;
+  }>;
+};
+
 export type KurariExTrifectaTrendV1 = {
   status: "ready" | "no-eligible-data";
   sourcePolicy: "official result only";
@@ -36,6 +98,7 @@ export type KurariExTrifectaTrendV1 = {
   thirdCarRanking: KurariExTrendRankingRow[];
   carTop3RateRanking: KurariExTrendCarTop3Row[];
   filterReadiness: KurariExTrendFilterReadiness[];
+  turbulence: KurariExTurbulenceV1;
 };
 
 type OfficialFinishRow = {
@@ -83,7 +146,22 @@ const EXCLUSION_LABELS: Record<string, string> = {
   "finish-order-missing": "1〜3着車番が不足",
   "invalid-car-number": "車番が1〜9の整数ではない、または上位3車が重複",
   "trifecta-missing-or-mismatch": "3連単結果が未取得、または1〜3着車番と不一致",
+  "payout-missing-or-invalid": "3連単払戻金が欠損、不正、または0円以下",
 };
+
+const TURBULENCE_CATEGORY_DEFINITIONS: Array<{
+  key: KurariExTurbulenceCategoryKey;
+  label: string;
+  min: number;
+  max: number | null;
+  rangeLabel: string;
+}> = [
+  { key: "firm", label: "堅め", min: 1, max: 2_999, rangeLabel: "1〜2,999円" },
+  { key: "mid-upset", label: "中穴", min: 3_000, max: 9_999, rangeLabel: "3,000〜9,999円" },
+  { key: "upset", label: "荒れ", min: 10_000, max: 29_999, rangeLabel: "10,000〜29,999円" },
+  { key: "major-upset", label: "大荒れ", min: 30_000, max: 99_999, rangeLabel: "30,000〜99,999円" },
+  { key: "extreme-upset", label: "超荒れ", min: 100_000, max: null, rangeLabel: "100,000円以上" },
+];
 
 function clean(value: unknown) {
   return String(value ?? "").trim();
@@ -96,9 +174,70 @@ function validCarNo(value: unknown) {
   return Number.isInteger(number) && number >= 1 && number <= 9 ? number : null;
 }
 
+function positiveYen(value: unknown) {
+  if (value == null) return null;
+  const normalized = clean(value).replace(/[,\s円￥¥]/gu, "");
+  if (!/^\d+$/u.test(normalized)) return null;
+  const payout = Number(normalized);
+  return Number.isSafeInteger(payout) && payout > 0 ? payout : null;
+}
+
 function rate(count: number, total: number) {
   if (total <= 0) return 0;
   return Math.round((count / total) * 1000) / 10;
+}
+
+function median(values: number[]) {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2
+    ? sorted[middle]
+    : Math.round((sorted[middle - 1] + sorted[middle]) / 2);
+}
+
+function payoutCategoryKey(payoutYen: number) {
+  return TURBULENCE_CATEGORY_DEFINITIONS.find(
+    (definition) => payoutYen >= definition.min
+      && (definition.max == null || payoutYen <= definition.max),
+  )?.key ?? "extreme-upset";
+}
+
+function payoutCategories(payouts: number[]): KurariExTurbulenceCategory[] {
+  const counts = new Map<KurariExTurbulenceCategoryKey, number>();
+  payouts.forEach((payout) => {
+    const key = payoutCategoryKey(payout);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  });
+  return TURBULENCE_CATEGORY_DEFINITIONS.map((definition) => {
+    const count = counts.get(definition.key) ?? 0;
+    return {
+      key: definition.key,
+      label: definition.label,
+      count,
+      rate: rate(count, payouts.length),
+      rangeLabel: definition.rangeLabel,
+    };
+  });
+}
+
+function payoutSummary(
+  key: string,
+  label: string,
+  payouts: number[],
+): KurariExTurbulenceBreakdownRow {
+  const sample = sampleStatus(payouts.length);
+  return {
+    key,
+    label,
+    sampleSize: payouts.length,
+    sampleStatus: sample.status,
+    sampleLabel: sample.label,
+    averagePayoutYen: Math.round(payouts.reduce((sum, payout) => sum + payout, 0) / payouts.length),
+    medianPayoutYen: median(payouts),
+    maxPayoutYen: Math.max(...payouts),
+    categories: payoutCategories(payouts),
+  };
 }
 
 function sampleStatus(sampleSize: number): {
@@ -159,13 +298,22 @@ export function buildKurariExTrifectaTrendV1(
   const positionCounts = [new Map<string, number>(), new Map<string, number>(), new Map<string, number>()];
   const top3Counts = new Map<string, number>();
   const recordedStartCounts = new Map<string, number>();
+  const eligiblePayoutRaces: Array<{
+    date: string;
+    venueCode: string;
+    venueName: string;
+    raceNumber: number;
+    grade: string;
+    combination: string;
+    payoutYen: number;
+  }> = [];
   let eligibleRaceCount = 0;
 
   const exclude = (reason: string) => {
     exclusionCounts.set(reason, (exclusionCounts.get(reason) ?? 0) + 1);
   };
 
-  candidates.forEach(({ race }, index) => {
+  candidates.forEach(({ venue, race }, index) => {
     const raceKey = raceKeys[index];
     if (!sourceIsOfficial) {
       exclude("source-unavailable");
@@ -205,18 +353,26 @@ export function buildKurariExTrifectaTrendV1(
       return;
     }
     const combination = top3.join("-");
-    const payoutYen = race.payout3tan?.payoutYen;
-    if (
-      clean(race.payout3tan?.combination) !== combination
-      || payoutYen == null
-      || clean(payoutYen) === ""
-      || !Number.isFinite(Number(payoutYen))
-    ) {
+    if (clean(race.payout3tan?.combination) !== combination) {
       exclude("trifecta-missing-or-mismatch");
+      return;
+    }
+    const payoutYen = positiveYen(race.payout3tan?.payoutYen);
+    if (payoutYen == null) {
+      exclude("payout-missing-or-invalid");
       return;
     }
 
     eligibleRaceCount += 1;
+    eligiblePayoutRaces.push({
+      date: clean(venue.date || sourceDate),
+      venueCode: clean(venue.venueCode),
+      venueName: clean(venue.venueName) || clean(venue.venueCode),
+      raceNumber: Number(race.raceNumber),
+      grade: clean(venue.grade),
+      combination,
+      payoutYen,
+    });
     trifectaCounts.set(combination, (trifectaCounts.get(combination) ?? 0) + 1);
     top3.forEach((carNo, position) => {
       const key = String(carNo);
@@ -249,6 +405,31 @@ export function buildKurariExTrifectaTrendV1(
       || right.count - left.count
       || Number(left.key) - Number(right.key),
     );
+  const payouts = eligiblePayoutRaces.map((race) => race.payoutYen);
+  const breakdown = (
+    key: (race: typeof eligiblePayoutRaces[number]) => string,
+    label: (race: typeof eligiblePayoutRaces[number]) => string,
+  ) => {
+    const groups = new Map<string, { label: string; payouts: number[] }>();
+    eligiblePayoutRaces.forEach((race) => {
+      const groupKey = key(race);
+      if (!groupKey) return;
+      const group = groups.get(groupKey) ?? { label: label(race), payouts: [] };
+      group.payouts.push(race.payoutYen);
+      groups.set(groupKey, group);
+    });
+    return [...groups.entries()]
+      .map(([groupKey, group]) => payoutSummary(groupKey, group.label, group.payouts))
+      .sort((left, right) =>
+        Number(left.key) - Number(right.key)
+        || left.label.localeCompare(right.label, "ja", { numeric: true }),
+      );
+  };
+  const highestPayoutRace = eligiblePayoutRaces.reduce<typeof eligiblePayoutRaces[number] | null>(
+    (highest, race) => !highest || race.payoutYen > highest.payoutYen ? race : highest,
+    null,
+  );
+  const turbulenceSample = sampleStatus(eligibleRaceCount);
 
   return {
     status: eligibleRaceCount > 0 ? "ready" : "no-eligible-data",
@@ -281,6 +462,55 @@ export function buildKurariExTrifectaTrendV1(
       { key: "venue", label: "会場", status: "ready", note: "venueCode / venueNameあり" },
       { key: "race-number", label: "R", status: "ready", note: "raceNumberあり" },
     ],
+    turbulence: {
+      status: eligibleRaceCount > 0 ? "ready" : "no-eligible-data",
+      sourcePolicy: "official result only",
+      basis: "actual trifecta payout",
+      oddsGapStatus: "future-accumulation",
+      totalRaceCount: candidates.length,
+      eligibleRaceCount,
+      excludedRaceCount: candidates.length - eligibleRaceCount,
+      exclusionReasons: [...exclusionCounts.entries()].map(([key, count]) => ({
+        key,
+        label: EXCLUSION_LABELS[key] ?? key,
+        count,
+      })),
+      sampleStatus: turbulenceSample.status,
+      sampleLabel: turbulenceSample.label,
+      averagePayoutYen: payouts.length
+        ? Math.round(payouts.reduce((sum, payout) => sum + payout, 0) / payouts.length)
+        : null,
+      medianPayoutYen: payouts.length ? median(payouts) : null,
+      maxPayoutYen: payouts.length ? Math.max(...payouts) : null,
+      categories: payoutCategories(payouts),
+      highestPayoutRace,
+      byRaceNumber: breakdown((race) => String(race.raceNumber), (race) => `${race.raceNumber}R`),
+      byVenue: breakdown((race) => race.venueCode, (race) => race.venueName),
+      byGrade: breakdown(
+        (race) => /^G\d*$/iu.test(race.grade) ? race.grade : "",
+        (race) => `${race.grade} / Gレース`,
+      ),
+      classGradeReadiness: [
+        {
+          key: "a-class",
+          label: "A級",
+          status: "future-accumulation",
+          note: "current official resultにraceClassがなく、安全に判定できない",
+        },
+        {
+          key: "s-class",
+          label: "S級",
+          status: "future-accumulation",
+          note: "current official resultにraceClassがなく、安全に判定できない",
+        },
+        {
+          key: "g-race",
+          label: "Gレース",
+          status: "partial",
+          note: "venue gradeがG1〜G3等と明示されたraceだけ集計",
+        },
+      ],
+    },
   };
 }
 
