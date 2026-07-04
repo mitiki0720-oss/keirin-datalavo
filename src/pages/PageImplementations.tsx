@@ -8695,6 +8695,17 @@ function PredictionHeaderClock() {
   );
 }
 
+type PredictionBatchRangePreset = "1-7" | "1-6" | "7-final";
+
+const PREDICTION_BATCH_RANGE_OPTIONS: Array<{
+  id: PredictionBatchRangePreset;
+  label: string;
+}> = [
+  { id: "1-7", label: "1R〜7R" },
+  { id: "1-6", label: "1R〜6R" },
+  { id: "7-final", label: "7R〜最終R" },
+];
+
 
 export function PredictionPage() {
   const [isPredictionCompactLayout, setIsPredictionCompactLayout] = useState(() => (typeof window !== "undefined" ? window.innerWidth < 1080 : false));
@@ -8704,12 +8715,12 @@ export function PredictionPage() {
   const [selectedRaceNo, setSelectedRaceNo] = useState<number>(1);
   const [predictionMemo, setPredictionMemo] = useState(DEFAULT_PREDICTION_MEMO);
   const [predictionSlotDraft, setPredictionSlotDraft] = useState("");
-  const [predictionResultDraft, setPredictionResultDraft] = useState<PredictionResultDraft>(() => createDefaultPredictionResultDraft());
   const [predictionSlotStatus, setPredictionSlotStatus] = useState("");
   const [predictionExportStatus, setPredictionExportStatus] = useState("");
   const [publishedPredictionDates, setPublishedPredictionDates] = useState<string[]>([]);
-  const [predictionResultStatus, setPredictionResultStatus] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
+  const [predictionBatchRange, setPredictionBatchRange] = useState<PredictionBatchRangePreset>("1-7");
+  const [predictionBatchCopyStatus, setPredictionBatchCopyStatus] = useState("");
   const [savedPredictionSlots, setSavedPredictionSlots] = useState<PredictionSlotMap>(() => loadStoredPredictionSlots());
   const [savedPredictionResults, setSavedPredictionResults] = useState<PredictionResultMap>(() => loadStoredPredictionResults());
   const [hitNotifications, setHitNotifications] = useState<HitNotificationRecord[]>(() => loadHitNotifications());
@@ -9489,14 +9500,6 @@ if (!nextSlots[currentKey] && nextSlots[legacyKey]) {
     };
   }, [predictionSlotStatus]);
 
-  useEffect(() => {
-    if (!predictionResultStatus) return;
-    const timeoutId = window.setTimeout(() => setPredictionResultStatus(""), 2200);
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [predictionResultStatus]);
-
   const summaryKey = selectedVenue ? normalizePredictionVenueName(selectedVenue.venue) : "";
   const selectedVenueSummary = summaryKey ? venueSummaryMap[summaryKey] ?? DEFAULT_PREDICTION_VENUE_SUMMARY : DEFAULT_PREDICTION_VENUE_SUMMARY;
   const selectedWeather = selectedVenue ? weatherByVenue[selectedVenue.venue] ?? null : null;
@@ -9601,7 +9604,6 @@ if (!nextSlots[currentKey] && nextSlots[legacyKey]) {
     });
   }, [hydratedPredictionMaterialRace.reason, selectedPredictionMaterialRace, selectedPredictionMaterialVenue]);
   const materialRace = selectedPredictionMaterialRace;
-  const materialVenue = selectedPredictionMaterialVenue;
   if (ENABLE_PREDICTION_DEBUG_LOGS) {
   console.log("[selectedSavedPredictionResult checkpoint]", selectedSavedPredictionResult);
 }
@@ -9613,18 +9615,7 @@ const resolvedPredictionSourceText = useMemo(
     () => extractPredictionBetEntriesWithFallback(resolvedPredictionSourceText),
     [resolvedPredictionSourceText]
   );
-  const autoInvestmentFromTickets = useMemo(() => {
-    if (selectedPredictionTickets.length === 0) return "";
-    return String(selectedPredictionTickets.length * 100);
-  }, [selectedPredictionTickets]);
-  const predictionAutoHitDetail = useMemo(
-    () => resolvePredictionAutoHitDetail(resolvedPredictionSourceText, predictionResultDraft.resultOrder),
-    [predictionResultDraft.resultOrder, resolvedPredictionSourceText]
-  );
-  const selectedGeneratedPredictionResult = useMemo(
-    () => resolvePredictionRaceGeneratedResult(predictionFeed?.date ?? TODAY, materialVenue, materialRace, resolvedPredictionSourceText),
-    [predictionFeed?.date, resolvedPredictionSourceText, materialRace, materialVenue]
-  );
+
 
 
   useEffect(() => {
@@ -9676,14 +9667,13 @@ if (current.weatherActual) return;
 
     const resultSaved = saveStoredPredictionResults(next);
     if (!resultSaved) {
-      setPredictionResultStatus("保存できませんでした。ブラウザ保存容量の可能性があります");
+      console.warn("[PredictionPage] failed to persist weatherActual");
       return;
     }
 
     setSavedPredictionResults(next);
   }, [
     savedPredictionResults,
-    setPredictionResultStatus,
     selectedPredictionSlotRaceKey,
     selectedSavedPredictionResult,
     selectedWeather,
@@ -9708,183 +9698,6 @@ if (
   });
 }
   }, [resolvedPredictionSourceText, selectedPredictionTickets, selectedRace?.raceNo, selectedVenue?.venue]);
-
-  const applyAutoInvestmentInput = (autoInvestment: string) => {
-    if (!autoInvestment) return;
-    setPredictionResultDraft((current) => {
-      if (current.investmentInputMode === "manual") return current;
-      return { ...current, investmentInput: autoInvestment, investmentInputMode: "auto" };
-    });
-  };
-
-  // Auto-fill investment amount: 100 yen × ticket count, only when field is empty
-  useEffect(() => {
-    applyAutoInvestmentInput(autoInvestmentFromTickets);
-  }, [autoInvestmentFromTickets]);
-
-  useEffect(() => {
-    if (ENABLE_PREDICTION_DEBUG_LOGS) {
-    console.info("[PredictionInvestmentOverwriteDebug]", {
-      venue: selectedVenue?.venue,
-      raceNo: selectedRace?.raceNo,
-      hasSavedResult: Boolean(selectedSavedPredictionResult),
-      hasGeneratedResult: Boolean(selectedGeneratedPredictionResult),
-      currentInvestmentInput: predictionResultDraft.investmentInput,
-  });
-}
-
-    if (!selectedSavedPredictionResult) {
-      if (selectedGeneratedPredictionResult && (selectedGeneratedPredictionResult.resultOrder || selectedGeneratedPredictionResult.payout !== undefined)) {
-        setPredictionResultDraft((current) => ({
-          manualHitStatus: "auto",
-          resultOrder: selectedGeneratedPredictionResult.resultOrder,
-          investmentInput: current.investmentInput,
-          investmentInputMode: current.investmentInputMode,
-          payoutInput: selectedGeneratedPredictionResult.payout?.toString() ?? "",
-          memo: buildPredictionGeneratedResultMemo(selectedGeneratedPredictionResult, resolvedPredictionSourceText),
-        }));
-        return;
-      }
-      setPredictionResultDraft((current) => ({
-        ...createDefaultPredictionResultDraft(),
-        investmentInput: current.investmentInput,
-        investmentInputMode: current.investmentInputMode,
-      }));
-      return;
-    }
-
-    const shouldMergeGeneratedResult = (selectedSavedPredictionResult.manualHitStatus ?? "auto") === "auto"
-      && (!selectedSavedPredictionResult.resultOrder || selectedSavedPredictionResult.payout === undefined)
-      && !!selectedGeneratedPredictionResult;
-
-    const generatedMemo = buildPredictionGeneratedResultMemo(selectedGeneratedPredictionResult, resolvedPredictionSourceText);
-
-    setPredictionResultDraft((current) => ({
-      manualHitStatus: selectedSavedPredictionResult.manualHitStatus ?? "auto",
-      resultOrder: shouldMergeGeneratedResult && !selectedSavedPredictionResult.resultOrder
-        ? selectedGeneratedPredictionResult?.resultOrder ?? ""
-        : selectedSavedPredictionResult.resultOrder,
-      investmentInput: selectedSavedPredictionResult.investment !== undefined
-        ? selectedSavedPredictionResult.investment.toString()
-        : current.investmentInput,
-      investmentInputMode: selectedSavedPredictionResult.investmentSource === "manual" ? "manual" : current.investmentInputMode,
-      payoutInput: shouldMergeGeneratedResult && selectedSavedPredictionResult.payout === undefined
-        ? selectedGeneratedPredictionResult?.payout?.toString() ?? ""
-        : selectedSavedPredictionResult.payout?.toString() ?? "",
-      memo: shouldMergeGeneratedResult
-        ? mergePredictionResultMemo(selectedSavedPredictionResult.memo, generatedMemo)
-        : selectedSavedPredictionResult.memo,
-    }));
-  }, [predictionResultDraft.investmentInput, resolvedPredictionSourceText, selectedGeneratedPredictionResult, selectedPredictionSlotRaceKey, selectedRace?.raceNo, selectedSavedPredictionResult, selectedVenue?.venue]);
-
-  const predictionAutoHitStatus = predictionAutoHitDetail.status;
-  const predictionFinalHitStatus = useMemo<PredictionResultHitStatus>(
-    () => (predictionResultDraft.manualHitStatus === "auto" ? predictionAutoHitStatus : predictionResultDraft.manualHitStatus),
-    [predictionAutoHitStatus, predictionResultDraft.manualHitStatus]
-  );
-  const predictionResolvedHitDetail = useMemo(() => {
-    if (predictionFinalHitStatus !== "hit") return undefined;
-    if (predictionAutoHitDetail.status === "hit") return predictionAutoHitDetail;
-    if (selectedSavedPredictionResult?.hitStatus === "hit" && selectedSavedPredictionResult.hitBetType && selectedSavedPredictionResult.hitCombination) {
-      return {
-        status: "hit" as const,
-        hitBetType: selectedSavedPredictionResult.hitBetType,
-        hitCombination: selectedSavedPredictionResult.hitCombination,
-      };
-    }
-    return undefined;
-  }, [predictionAutoHitDetail, predictionFinalHitStatus, selectedSavedPredictionResult]);
-
-  const predictionResultInvestment = useMemo(
-    () => parsePredictionResultAmount(predictionResultDraft.investmentInput),
-    [predictionResultDraft.investmentInput]
-  );
-  const normalizedPredictionResultOrder = useMemo(
-    () => normalizePredictionTrifectaText(predictionResultDraft.resultOrder),
-    [predictionResultDraft.resultOrder]
-  );
-  const normalizedPredictionResultTop2 = useMemo(
-    () => normalizedPredictionResultOrder.split("-").slice(0, 2).join("-"),
-    [normalizedPredictionResultOrder]
-  );
-  const predictionResultOrderParts = useMemo(
-    () => normalizedPredictionResultOrder ? normalizedPredictionResultOrder.split("-").filter(Boolean).slice(0, 3) : [],
-    [normalizedPredictionResultOrder]
-  );
-  const predictionResolvedDraftMetrics = useMemo(
-    () => resolvePredictionResultMetrics({
-      record: {
-        resultOrder: normalizedPredictionResultOrder,
-        autoHitStatus: predictionAutoHitStatus,
-        hitStatus: predictionFinalHitStatus,
-        hitBetType: predictionResolvedHitDetail?.hitBetType,
-        hitCombination: predictionResolvedHitDetail?.hitCombination,
-        investment: predictionResultInvestment,
-      },
-      race: materialRace,
-      predictionText: resolvedPredictionSourceText,
-      manualPayout: parsePredictionResultAmount(predictionResultDraft.payoutInput),
-    }),
-    [normalizedPredictionResultOrder, predictionAutoHitStatus, predictionFinalHitStatus, predictionResolvedHitDetail, predictionResultInvestment, materialRace, resolvedPredictionSourceText, predictionResultDraft.payoutInput]
-  );
-  const predictionResultPayout = predictionResolvedDraftMetrics.payout;
-  const predictionResultProfitLoss = predictionResolvedDraftMetrics.profitLoss;
-  const predictionResultRoi = predictionResolvedDraftMetrics.roi;
-  const predictionResultTone = useMemo(() => {
-    if (predictionFinalHitStatus === "hit") {
-      return {
-        border: "#d7d9fb",
-        background: "linear-gradient(135deg, rgba(238,242,255,0.98) 0%, rgba(247,250,255,0.98) 100%)",
-        chipBackground: "#e2e8ff",
-        chipText: "#4f46e5",
-      };
-    }
-    if (predictionFinalHitStatus === "miss") {
-      return {
-        border: "#f0d8df",
-        background: "linear-gradient(135deg, rgba(255,247,249,0.98) 0%, rgba(255,252,252,0.98) 100%)",
-        chipBackground: "#fbe8ee",
-        chipText: "#9f3858",
-      };
-    }
-    return {
-      border: "#e5dcf4",
-      background: "linear-gradient(135deg, rgba(251,247,255,0.98) 0%, rgba(248,251,255,0.98) 100%)",
-      chipBackground: "#f2ecfb",
-      chipText: "#7a67b8",
-    };
-  }, [predictionFinalHitStatus]);
-  const predictionProfitTone = useMemo(() => {
-    if (predictionResultProfitLoss === undefined) {
-      return { background: "rgba(255,255,255,0.88)", border: "#ece4f6", text: "#94a3b8" };
-    }
-    if (predictionResultProfitLoss > 0) {
-      return { background: "linear-gradient(135deg, rgba(240,247,255,0.98) 0%, rgba(246,251,255,0.98) 100%)", border: "#d4defa", text: "#2959b8" };
-    }
-    if (predictionResultProfitLoss < 0) {
-      return { background: "linear-gradient(135deg, rgba(255,246,248,0.98) 0%, rgba(255,250,251,0.98) 100%)", border: "#eed6de", text: "#8f314c" };
-    }
-    return { background: "rgba(255,255,255,0.92)", border: "#ece4f6", text: "#081224" };
-  }, [predictionResultProfitLoss]);
-  const predictionResultMetricCards = useMemo(
-    () => [
-      { label: "投資金額", value: formatPredictionResultYen(predictionResultInvestment), note: "投入した合計", tone: { background: "rgba(255,255,255,0.94)", border: "#ece4f6", text: "#081224" } },
-      { label: "払戻金額", value: formatPredictionResultYen(predictionResultPayout), note: "回収した合計", tone: { background: "linear-gradient(135deg, rgba(245,240,255,0.98) 0%, rgba(250,248,255,0.98) 100%)", border: "#ddd2f6", text: "#6947b3" } },
-      { label: "収支", value: formatPredictionResultProfitLoss(predictionResultProfitLoss), note: "払戻 - 投資", tone: predictionProfitTone },
-      { label: "回収率", value: formatPredictionResultRoi(predictionResultRoi), note: "投資比の回収効率", tone: { background: "linear-gradient(135deg, rgba(248,245,255,0.98) 0%, rgba(255,255,255,0.98) 100%)", border: "#e4daf4", text: "#5f5690" } },
-    ],
-    [predictionProfitTone, predictionResultInvestment, predictionResultPayout, predictionResultProfitLoss, predictionResultRoi]
-  );
-  const predictionTicketChipItems = useMemo(
-    () => selectedPredictionTickets.map((ticket) => ({
-      ...ticket,
-      label: `${ticket.index} ${ticket.betType} ${ticket.combination}`,
-      hit: ticket.betType === "2車単"
-        ? Boolean(normalizedPredictionResultTop2) && ticket.combination === normalizedPredictionResultTop2
-        : Boolean(normalizedPredictionResultOrder) && ticket.combination === normalizedPredictionResultOrder,
-    })),
-    [normalizedPredictionResultOrder, normalizedPredictionResultTop2, selectedPredictionTickets]
-  );
 
   useEffect(() => {
     const lookupKeys = getPredictionSlotKeysForLookup(predictionFeed?.date ?? TODAY, selectedVenue, selectedRace);
@@ -9933,76 +9746,6 @@ if (
 }
   }, [predictionFeed?.date, resolvedPredictionSourceText, selectedPredictionSlotLookup, selectedPredictionSlotRaceKey, selectedRace, selectedVenue]);
 
-  const getPredictionResultCarTone = (carNo: string) => {
-    const toneMap: Record<string, { background: string; border: string; text: string }> = {
-      "1": { background: "#ffffff", border: "#d6dde7", text: "#111827" },
-      "2": { background: "#111827", border: "#111827", text: "#ffffff" },
-      "3": { background: "#ef4444", border: "#dc2626", text: "#ffffff" },
-      "4": { background: "#2563eb", border: "#1d4ed8", text: "#ffffff" },
-      "5": { background: "#facc15", border: "#eab308", text: "#4a3410" },
-      "6": { background: "#16a34a", border: "#15803d", text: "#ffffff" },
-      "7": { background: "#f97316", border: "#ea580c", text: "#ffffff" },
-      "8": { background: "#f9a8d4", border: "#f472b6", text: "#6b2149" },
-      "9": { background: "#8b5cf6", border: "#7c3aed", text: "#ffffff" },
-    };
-    return toneMap[carNo] ?? { background: "#e5e7eb", border: "#cbd5e1", text: "#334155" };
-  };
-  const predictionSlotMap = savedPredictionSlots;
-  const predictionResultMap = useMemo(
-    () => buildPredictionResultMapWithBackfilledInvestment(savedPredictionResults, predictionSlotMap),
-    [savedPredictionResults, predictionSlotMap]
-  );
-  const predictionTodaySlotCount = useMemo(
-    () => Object.values(predictionSlotMap).filter((slot) => slot.date === TODAY && slot.predictionText?.trim()).length,
-    [predictionSlotMap]
-  );
-  const predictionTodaySummary = useMemo(() => {
-    const dailySummaryMap = aggregatePredictionResultsByDate(predictionResultMap);
-    return dailySummaryMap[TODAY];
-  }, [predictionResultMap]);
-  const todayPredictionResultCount = predictionTodaySummary?.savedRaceCount ?? 0;
-  const todaySettledPredictionResultCount = predictionTodaySummary?.settledRaceCount ?? 0;
-  const todayHitPredictionResultCount = predictionTodaySummary?.hitCount ?? 0;
-  const todayPredictionHitRate = predictionTodaySummary?.hitRate;
-  const todayPredictionInvestment = predictionTodaySummary?.investment ?? 0;
-  const todayPredictionPayout = predictionTodaySummary?.payout ?? 0;
-
-  // slot のみ（result record なし）の投資金額も含めた当日集計
-  const todaySavedInvestmentTotal = useMemo(() => {
-    let total = todayPredictionInvestment;
-    for (const [key, slot] of Object.entries(predictionSlotMap)) {
-      if (slot.date !== TODAY) continue;
-      if (!slot.predictionText?.trim()) continue;
-      if (key in predictionResultMap) continue; // result record 側で既に集計済み
-      const ticketCount = extractPredictionBetEntriesWithFallback(slot.predictionText).length;
-      if (ticketCount > 0) total += ticketCount * 100;
-    }
-    return total;
-  }, [predictionResultMap, predictionSlotMap, todayPredictionInvestment]);
-  const todaySavedProfitLoss = todayPredictionPayout - todaySavedInvestmentTotal;
-  const todaySavedRoi: number | undefined = todaySavedInvestmentTotal > 0
-    ? (todayPredictionPayout / todaySavedInvestmentTotal) * 100
-    : undefined;
-  const normalizedSelectedSavedPredictionResult = useMemo(
-    () => getNormalizedPredictionResultDisplay(selectedSavedPredictionResult, materialRace, resolvedPredictionSourceText),
-    [resolvedPredictionSourceText, materialRace, selectedSavedPredictionResult]
-  );
-  const predictionHitBadgeDetail = useMemo(() => {
-    if (predictionFinalHitStatus !== "hit") return null;
-    if (selectedSavedPredictionResult?.hitStatus === "hit" && selectedSavedPredictionResult.hitBetType) {
-      return {
-        hitBetType: selectedSavedPredictionResult.hitBetType,
-        hitCombination: selectedSavedPredictionResult.hitCombination,
-      };
-    }
-    if (predictionAutoHitDetail.status === "hit" && predictionAutoHitDetail.hitBetType) {
-      return {
-        hitBetType: predictionAutoHitDetail.hitBetType,
-        hitCombination: predictionAutoHitDetail.hitCombination,
-      };
-    }
-    return null;
-  }, [predictionAutoHitDetail, predictionFinalHitStatus, selectedSavedPredictionResult]);
   const selectedPredictionMaterialRiders = useMemo(
     () => getPredictionMaterialRidersForKeirinRace(selectedPredictionMaterialRace, selectedPredictionMaterialVenue),
     [selectedPredictionMaterialRace, selectedPredictionMaterialVenue]
@@ -10916,6 +10659,176 @@ if (
       kurariExGuidanceText: selectedKurariExGuidanceText,
     });
   }, [predictionFeed, selectedKurariExGuidanceText, selectedPredictionDataAnalysisText, selectedPredictionMatchupText, selectedPredictionMaterialRace, selectedPredictionMaterialRegistrationCandidates, selectedPredictionMaterialRiders, selectedPredictionMaterialVenue, selectedPredictionMemoText, selectedPredictionMonthlyGuidanceText, selectedPredictionOddsText, selectedPredictionPlayerCardInsightText, selectedPredictionRecentPerformanceText, selectedPredictionRecentRaceText, selectedPredictionRegistrationCandidates, selectedPredictionRiderBasicText, selectedPredictionTrackAffinityText, selectedVenueGradeLabel, selectedVenueSummary, selectedWeather, selectedWeatherFallbackText]);
+  const predictionBatchSessionLabel = selectedPredictionMaterialVenue
+    ? getPredictionSessionBadge(selectedPredictionMaterialVenue)
+    : "未選択";
+  const predictionBatchRecommendedRanges: PredictionBatchRangePreset[] =
+    /モーニング|ミッドナイト/u.test(predictionBatchSessionLabel)
+      ? ["1-7"]
+      : ["1-6", "7-final"];
+
+  useEffect(() => {
+    if (!selectedPredictionMaterialVenue) return;
+    setPredictionBatchRange(
+      /モーニング|ミッドナイト/u.test(getPredictionSessionBadge(selectedPredictionMaterialVenue))
+        ? "1-7"
+        : "1-6",
+    );
+    setPredictionBatchCopyStatus("");
+  }, [selectedPredictionMaterialVenue?.id, selectedPredictionMaterialVenue?.session]);
+
+  const predictionBatchMaterial = useMemo(() => {
+    if (!predictionFeed || !selectedPredictionMaterialVenue) {
+      return {
+        text: "対象会場を選択してください。",
+        startR: 0,
+        endR: 0,
+        maxRaceNumber: 0,
+        raceCount: 0,
+      };
+    }
+
+    const venueRaces = [...selectedPredictionMaterialVenue.races]
+      .filter((race) => Number.isFinite(race.raceNo))
+      .sort((left, right) => left.raceNo - right.raceNo);
+    const maxRaceNumber = venueRaces.reduce(
+      (maximum, race) => Math.max(maximum, race.raceNo),
+      0,
+    );
+    const requestedStartR = predictionBatchRange === "7-final" ? 7 : 1;
+    const requestedEndR = predictionBatchRange === "1-6"
+      ? Math.min(6, maxRaceNumber)
+      : predictionBatchRange === "1-7"
+        ? Math.min(7, maxRaceNumber)
+        : maxRaceNumber;
+    const targetRaces = venueRaces.filter(
+      (race) => race.raceNo >= requestedStartR && race.raceNo <= requestedEndR,
+    );
+    const startR = targetRaces[0]?.raceNo ?? requestedStartR;
+    const endR = targetRaces.at(-1)?.raceNo ?? requestedEndR;
+
+    const commonRequest = [
+      "【まとめ予想依頼】",
+      `${selectedPredictionMaterialVenue.venue}競輪場${selectedVenueGradeLabel}、${predictionFeed.date}、対象R: ${startR}R〜${endR}Rを、月次振り返り反映済みの可変点数ルールでまとめて予想してください。`,
+      "",
+      "※1Rごとにコピーしやすい形で出してください。",
+      "※オッズは記載されているオッズをそのまま使うのではなく、展開・並び・KURARI EX・月次振り返りを重視してください。",
+      "※登録番号など不明な項目は、素材内のsource contractを優先し、fake補完しないでください。",
+      "※買い目はレースごとに ticketMode / recommendedPoints / investmentYen / reasonTags を見て、10〜18点可変で設計してください。",
+      "※1点100円固定です。",
+      "",
+      "【共通ルール】",
+      "- 月次振り返り: 反映済み / 可変点数ルール v2026-07",
+      "- 1点100円固定",
+      "- 標準14点",
+      "- 10〜18点可変",
+      "- 2車単は原則2点固定",
+      "- 追加点は3連単の3着保護・中穴枠に使う",
+      "- 点数を増やす理由を買目設計メモに必ず記録する",
+      "- fakeデータ、fake補完、根拠なし高配当寄せは禁止",
+      "",
+      "【出力してほしい形式】",
+      "各Rごとに以下を必ず入れる。",
+      "",
+      "1. 日付",
+      "2. 会場",
+      "3. R",
+      "4. 車番",
+      "5. 選手名",
+      "6. 登録番号",
+      "7. 府県",
+      "8. 年齢",
+      "9. 期",
+      "10. 級班",
+      "11. source名",
+      "12. source取得日時",
+      "13. source種別（official / user-entered-from-official / unknown）",
+      "14. 展開予想",
+      "15. 買い目",
+      "16. 買目設計メモ",
+      "17. ticketMode / recommendedPoints / investmentYen / reasonTags",
+    ];
+
+    const raceMaterials = targetRaces.map((race) => {
+      const monthlyGuidanceText = buildMonthlyPredictionGuidance({
+        digest: monthlyReviewDigest,
+        raceTitle: race.title || race.sourceNote || "",
+        lineup: buildPredictionLineupDisplay(race),
+        isCancelled: isPredictionRaceExcludedByOperation(selectedPredictionMaterialVenue, race),
+        hasVenueMaster: selectedVenueSummary.masterDigest?.source === "bank-master",
+        hasReviewSummary: selectedVenueSummary.reviewSummaryDigest?.source === "review-summary",
+        hasRegisteredRiderMemo: false,
+      });
+      const kurariExGuidanceText = selectedKurariExAnyReady
+        ? buildKurariExPredictionMaterial(
+            selectedKurariExBundle,
+            selectedKurariExExact,
+            {
+              timeslot: selectedPredictionMaterialVenue.session,
+              raceTime: race.time,
+              raceTitle: race.title,
+              isGirls: race.isGirls,
+              lineup: race.lineup,
+              windSpeedKmh: parsePredictionNumber(selectedWeather?.windSpeedText ?? ""),
+            },
+          )
+        : selectedKurariExBothMissing
+          ? buildKurariExPredictionMaterial(null, null, null)
+          : "";
+      const material = buildPredictionExportText({
+        date: predictionFeed.date,
+        feed: predictionFeed,
+        venue: selectedPredictionMaterialVenue,
+        race,
+        registrationCandidates: predictionRegistrationIdentityCandidates,
+        gradeLabel: selectedVenueGradeLabel,
+        venueSummary: selectedVenueSummary,
+        weather: selectedWeather,
+        weatherFallbackText: selectedWeatherFallbackText,
+        memo: "",
+        riderBasicText: "",
+        playerCardInsightText: "",
+        recentPerformanceText: "",
+        recentRaceText: "",
+        matchupText: "",
+        trackAffinityText: "",
+        dataAnalysisText: "",
+        oddsText: "",
+        monthlyGuidanceText,
+        kurariExGuidanceText,
+      });
+      return [
+        "====================",
+        `【${race.raceNo}R】`,
+        material,
+        "====================",
+      ].join("\n");
+    });
+
+    return {
+      text: targetRaces.length > 0
+        ? [...commonRequest, "", ...raceMaterials].join("\n")
+        : [...commonRequest, "", "対象範囲にレースがありません。"].join("\n"),
+      startR,
+      endR,
+      maxRaceNumber,
+      raceCount: targetRaces.length,
+    };
+  }, [
+    monthlyReviewDigest,
+    predictionBatchRange,
+    predictionFeed,
+    predictionRegistrationIdentityCandidates,
+    selectedKurariExAnyReady,
+    selectedKurariExBothMissing,
+    selectedKurariExBundle,
+    selectedKurariExExact,
+    selectedPredictionMaterialVenue,
+    selectedVenueGradeLabel,
+    selectedVenueSummary,
+    selectedWeather,
+    selectedWeatherFallbackText,
+  ]);
   const gptExportLineCount = useMemo(() => gptExportText.split(/\r?\n/).length, [gptExportText]);
   const gptExportCharCount = useMemo(() => gptExportText.length, [gptExportText]);
   const selectedPredictionTargetLabel = selectedVenue && selectedRace ? `${selectedVenue.venue} ${selectedRace.raceNo}R` : "レース選択待ち";
@@ -10953,11 +10866,6 @@ if (
         ? "選手別EXACT：取得失敗"
         : "選手別EXACT：確認中";
   const predictionSlotSaveStateLabel = selectedSavedPredictionSlot ? "保存済み" : "未保存";
-  const predictionResultLinkStateLabel = selectedGeneratedPredictionResult?.resultStatus === "confirmed"
-    ? "結果反映済み"
-    : selectedSavedPredictionResult
-      ? "手動結果保存済み"
-      : "未確定";
 
   const handlePredictionCopy = async () => {
     try {
@@ -10965,6 +10873,19 @@ if (
       setCopyStatus("コピーしました");
     } catch {
       setCopyStatus("コピーに失敗しました");
+    }
+  };
+
+  const handlePredictionBatchCopy = async () => {
+    if (predictionBatchMaterial.raceCount === 0) {
+      setPredictionBatchCopyStatus("対象範囲にレースがありません");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(predictionBatchMaterial.text);
+      setPredictionBatchCopyStatus("まとめ素材をコピーしました");
+    } catch {
+      setPredictionBatchCopyStatus("まとめ素材のコピーに失敗しました");
     }
   };
 
@@ -11001,9 +10922,6 @@ if (
       const activeSavedPredictionSlots = prunePredictionSlotsMap(savedPredictionSlots).records;
       const activeSavedPredictionResults = prunePredictionResultsMap(savedPredictionResults).records;
       const savedPredictionTickets = extractPredictionBetEntriesWithFallback(predictionSlotDraft);
-      const autoInvestmentForSavedPrediction = savedPredictionTickets.length > 0
-        ? String(savedPredictionTickets.length * 100)
-        : "";
       const record: PredictionSlotRecord = {
         raceKey: selectedPredictionSlotRaceKey,
         raceId: selectedVenue.raceIds?.[selectedRace.raceNo - 1] ?? "",
@@ -11077,8 +10995,6 @@ if (
           setSavedPredictionResults(nextMap);
         }
       }
-
-      applyAutoInvestmentInput(autoInvestmentForSavedPrediction);
       setPredictionSlotStatus("保存済み");
     } catch (error) {
       console.error("[PredictionPage] slot save failed", error);
@@ -11098,70 +11014,6 @@ if (
     setSavedPredictionSlots(next);
     setPredictionSlotDraft("");
     setPredictionSlotStatus("削除しました");
-  };
-
-  const handlePredictionResultSave = () => {
-    if (!predictionFeed || !selectedVenue || !selectedRace || !selectedPredictionSlotRaceKey) return;
-    const normalizedPayout = predictionResolvedDraftMetrics.payout;
-    const normalizedProfitLoss = predictionResolvedDraftMetrics.profitLoss;
-    const normalizedRoi = predictionResolvedDraftMetrics.roi;
-    const normalizedHitDetail = predictionResolvedHitDetail;
-    if (predictionResultInvestment === undefined) {
-    if (ENABLE_PREDICTION_DEBUG_LOGS) {
-    console.warn("[PredictionPage] investment missing", {
-      venue: selectedVenue.venue,
-      raceNumber: selectedRace.raceNo,
-      raceKey: selectedPredictionSlotRaceKey,
-    });
-  }
-}
-const isPending = predictionFinalHitStatus === "pending";
-const record = normalizePredictionResultRecord({
-      raceKey: selectedPredictionSlotRaceKey,
-      raceId: selectedVenue.raceIds?.[selectedRace.raceNo - 1] ?? "",
-      venue: selectedVenue.venue,
-      date: predictionFeed.date,
-      raceNumber: selectedRace.raceNo,
-      resultOrder: normalizePredictionTrifectaText(predictionResultDraft.resultOrder),
-      autoHitStatus: predictionAutoHitStatus,
-      manualHitStatus: predictionResultDraft.manualHitStatus === "auto" ? undefined : predictionResultDraft.manualHitStatus,
-      hitStatus: predictionFinalHitStatus,
-      hitBetType: normalizedHitDetail?.hitBetType,
-      hitCombination: normalizedHitDetail?.hitCombination,
-      investment: predictionResultInvestment,
-      investmentSource: predictionResultDraft.investmentInputMode === "manual" ? "manual" : "auto",
-      payout: isPending ? undefined : normalizedPayout,
-      profitLoss: isPending ? undefined : normalizedProfitLoss,
-      roi: isPending ? undefined : normalizedRoi,
-      memo: predictionResultDraft.memo,
-      savedAt: new Date().toISOString(),
-    });
-    const activeSavedPredictionResults = prunePredictionResultsMap(savedPredictionResults).records;
-    const nextMap = {
-      ...activeSavedPredictionResults,
-      [selectedPredictionSlotRaceKey]: record,
-    };
-    const resultSaved = saveStoredPredictionResults(nextMap);
-    if (!resultSaved) {
-      setPredictionResultStatus("保存できませんでした。ブラウザ保存容量の可能性があります");
-      return;
-    }
-    setSavedPredictionResults(nextMap);
-    setPredictionResultStatus("保存済み");
-  };
-
-  const handlePredictionResultClear = () => {
-    if (!selectedPredictionSlotRaceKey) return;
-    const nextMap = { ...prunePredictionResultsMap(savedPredictionResults).records };
-    delete nextMap[selectedPredictionSlotRaceKey];
-    const resultSaved = saveStoredPredictionResults(nextMap);
-    if (!resultSaved) {
-      setPredictionResultStatus("保存できませんでした。ブラウザ保存容量の可能性があります");
-      return;
-    }
-    setSavedPredictionResults(nextMap);
-    setPredictionResultDraft(createDefaultPredictionResultDraft());
-    setPredictionResultStatus("削除しました");
   };
 
   const predictionExportFileName = predictionFeed && selectedVenue && selectedRace
@@ -11271,21 +11123,6 @@ const record = normalizePredictionResultRecord({
             ))}
           </section>
 
-          <section style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "16px" }}>
-            {[
-              { label: "TODAY RESULTS", value: `${predictionTodaySlotCount}R`, sub: `予想保存 ${predictionTodaySlotCount}R / 結果保存 ${todayPredictionResultCount}R` },
-              { label: "HIT RATE", value: formatPredictionResultRoi(todayPredictionHitRate), sub: todaySettledPredictionResultCount > 0 ? `結果保存済み ${todaySettledPredictionResultCount}R 中 ${todayHitPredictionResultCount}R 的中` : "結果保存済みレースなし" },
-              { label: "ROI", value: formatPredictionResultRoi(todaySavedRoi), sub: `保存済み投資 ${formatPredictionResultYen(todaySavedInvestmentTotal)} / 払戻 ${formatPredictionResultYen(todayPredictionPayout)}` },
-              { label: "PROFIT", value: formatPredictionResultProfitLoss(todaySavedProfitLoss), sub: "当日保存済み結果データを集計" },
-            ].map((item) => (
-              <article key={item.label} style={{ borderRadius: "28px", border: "1px solid #ebe3f3", background: "linear-gradient(180deg, #ffffff 0%, #fcfafe 100%)", boxShadow: "0 16px 34px rgba(15, 23, 42, 0.05)", padding: "20px 22px" }}>
-                <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7", marginBottom: "10px" }}>{item.label}</div>
-                <div style={{ fontSize: "30px", fontWeight: 900, color: "#081224", lineHeight: 1.05, marginBottom: "8px" }}>{item.value}</div>
-                <div style={{ fontSize: "12px", color: "#64748b", lineHeight: 1.75 }}>{item.sub}</div>
-              </article>
-            ))}
-          </section>
-
           <section
             style={{
               borderRadius: "30px",
@@ -11351,246 +11188,6 @@ const record = normalizePredictionResultRecord({
               今日の予想JSONをダウンロード
             </button>
           </section>
-
-          {resolvedTodayHitNotifications.length > 0 && (
-            <section
-              style={{
-                borderRadius: "30px",
-                border: "1px solid #e6ddf4",
-                background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(250,247,253,0.98) 100%)",
-                boxShadow: "0 16px 34px rgba(15, 23, 42, 0.05)",
-                padding: "22px 24px",
-                display: "grid",
-                gap: "14px",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
-                <div>
-                  <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.2em", color: "#8c63c7", marginBottom: "8px" }}>
-                    HIT NOTIFICATIONS
-                  </div>
-                  <h3 style={{ margin: 0, fontSize: "22px", fontWeight: 900, color: "#081224", letterSpacing: "-0.02em" }}>
-                    的中通知ログ
-                  </h3>
-                  <p style={{ margin: "8px 0 0", fontSize: "12px", lineHeight: 1.8, color: "#64748b" }}>
-                    的中したレースを自動で記録しています。将来のスマホ通知・Slack通知・PWA通知の土台になります。
-                  </p>
-                </div>
-
-                <div
-                  style={{
-                    borderRadius: "9999px",
-                    padding: "8px 12px",
-                    background: "#f2ecfb",
-                    border: "1px solid #e0d6f4",
-                    color: "#6d3fc2",
-                    fontSize: "12px",
-                    fontWeight: 900,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {resolvedTodayHitNotifications.length}件
-                </div>
-              </div>
-
-<>
-  <style>{`
-    @keyframes hitNotificationTickerScroll {
-      0% {
-        transform: translateX(0);
-      }
-      100% {
-        transform: translateX(-50%);
-      }
-    }
-
-    .hit-notification-ticker-track {
-      animation: hitNotificationTickerScroll 90s linear infinite;
-    }
-
-    .hit-notification-ticker:hover .hit-notification-ticker-track {
-      animation-play-state: paused;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .hit-notification-ticker-track {
-        animation: none;
-      }
-    }
-  `}</style>
-
-  <div
-    className="hit-notification-ticker"
-    style={{
-      overflow: "hidden",
-      borderRadius: "26px",
-      border: "1px solid #ebe3f3",
-      background: "linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(250,247,253,0.96) 100%)",
-      padding: "12px",
-      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.86)",
-    }}
-  >
-    <div
-      className="hit-notification-ticker-track"
-      style={{
-        display: "flex",
-        gap: "12px",
-        width: "max-content",
-        willChange: "transform",
-      }}
-    >
-      {[...resolvedTodayHitNotifications.slice(0, 12), ...resolvedTodayHitNotifications.slice(0, 12)].map((item, index) => {
-        const isProfitPlus = (item.profitLoss ?? 0) > 0;
-        const isProfitMinus = (item.profitLoss ?? 0) < 0;
-        const hitTone = getPredictionHitBadgeTone(item.hitBetType);
-
-        return (
-          <article
-            key={`${item.id}-${index}`}
-            style={{
-              width: "330px",
-              flex: "0 0 auto",
-              borderRadius: "22px",
-              border: "1px solid #e6def3",
-              background: "linear-gradient(180deg, #ffffff 0%, #fbf8ff 100%)",
-              padding: "13px 14px",
-              display: "grid",
-              gap: "9px",
-              boxShadow: "0 12px 26px rgba(15, 23, 42, 0.045)",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
-                <span
-                  style={{
-                    width: "32px",
-                    height: "32px",
-                    borderRadius: "9999px",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "linear-gradient(135deg, #f2ecfb 0%, #e9ddff 100%)",
-                    border: "1px solid #ded0f6",
-                    fontSize: "16px",
-                    flexShrink: 0,
-                    boxShadow: "0 8px 18px rgba(122,103,184,0.10)",
-                  }}
-                >
-                  🎯
-                </span>
-
-                <div style={{ minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: "13px",
-                      fontWeight: 900,
-                      color: "#081224",
-                      lineHeight: 1.35,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {item.venue} {item.raceNumber}R 的中
-                  </div>
-                  <div
-                    style={{
-                      marginTop: "2px",
-                      fontSize: "10px",
-                      color: "#64748b",
-                      lineHeight: 1.5,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {item.date} / {formatPredictionSlotSavedAt(item.createdAt)}
-                  </div>
-                </div>
-              </div>
-
-              <span
-                style={{
-                  borderRadius: "9999px",
-                  padding: "5px 9px",
-                  fontSize: "10px",
-                  fontWeight: 900,
-                  background: hitTone.background,
-                  color: hitTone.text,
-                  border: `1px solid ${hitTone.border}`,
-                  whiteSpace: "nowrap",
-                  flexShrink: 0,
-                }}
-              >
-                {item.hitBetType ?? "的中"}
-              </span>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
-              <span
-                style={{
-                  borderRadius: "9999px",
-                  padding: "5px 9px",
-                  fontSize: "11px",
-                  fontWeight: 900,
-                  background: "#f6f0ff",
-                  color: "#633db2",
-                  border: "1px solid #e2d4fb",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  maxWidth: "150px",
-                }}
-              >
-                {item.hitCombination ?? "組み合わせ未取得"}
-              </span>
-
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  fontSize: "11px",
-                  fontWeight: 900,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                <span style={{ color: "#475569" }}>
-                  払戻 {formatPredictionResultYen(item.payout)}
-                </span>
-                <span
-                  style={{
-                    color: isProfitPlus ? "#2563eb" : isProfitMinus ? "#b45309" : "#64748b",
-                  }}
-                >
-                  収支 {formatPredictionResultProfitLoss(item.profitLoss)}
-                </span>
-              </div>
-            </div>
-
-            {item.warningNote ? (
-              <div
-                style={{
-                  fontSize: "10px",
-                  color: "#8a5a00",
-                  lineHeight: 1.45,
-                  background: "rgba(255,247,214,0.75)",
-                  border: "1px solid #f4d99b",
-                  borderRadius: "10px",
-                  padding: "6px 8px",
-                }}
-              >
-                {item.warningNote}
-              </div>
-            ) : null}
-          </article>
-        );
-      })}
-    </div>
-  </div>
-</>
-            </section>
-          )}
 
           <section style={{ borderRadius: "38px", border: "1px solid #ebe3f3", background: "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(250,243,255,0.98) 52%, rgba(244,250,255,0.98) 100%)", boxShadow: "0 22px 46px rgba(15, 23, 42, 0.06)", padding: "30px 30px 30px" }}>
             <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: "20px", alignItems: "start", marginBottom: "24px" }}>
@@ -11747,7 +11344,7 @@ const record = normalizePredictionResultRecord({
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "14px" }}>
                   <div>
                     <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7", marginBottom: "6px" }}>GPT MATERIAL</div>
-                    <div style={{ fontSize: isPredictionCompactLayout ? "26px" : "32px", fontWeight: 900, color: "#081224", lineHeight: 1.15 }}>GPT貼り付け用素材</div>
+                    <div style={{ fontSize: isPredictionCompactLayout ? "26px" : "32px", fontWeight: 900, color: "#081224", lineHeight: 1.15 }}>単独R GPT貼り付け用素材</div>
                     <div style={{ marginTop: "8px", fontSize: "13px", color: "#5f6f84", lineHeight: 1.9, maxWidth: "780px" }}>選択中レースの会場特徴・天気・並び・出走表・分析素材を、そのままGPTへ渡せる形で整えています。</div>
                   </div>
                   {copyStatus ? <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "5px 9px", fontSize: "10px", fontWeight: 900, background: "#f2ecfb", color: "#7a67b8", border: "1px solid #e0d6f4" }}>{copyStatus}</span> : null}
@@ -11990,7 +11587,7 @@ const record = normalizePredictionResultRecord({
                   <div>
                     <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7", marginBottom: "10px" }}>GPT PREDICTION</div>
                     <div style={{ fontSize: "28px", fontWeight: 900, color: "#081224", marginBottom: "8px", lineHeight: 1.15 }}>GPT予想貼り付け欄</div>
-                    <div style={{ fontSize: "13px", color: "#526072", lineHeight: 1.9 }}>GPTから返ってきた予想文を貼り付けて保存します。保存後は結果・的中・回収率との連動に使います。</div>
+                    <div style={{ fontSize: "13px", color: "#526072", lineHeight: 1.9 }}>GPTから返ってきた予想文を貼り付けて保存します。保存した予想はReview側の振り返りやKURARI EX連携に利用します。</div>
                   </div>
                   {predictionSlotStatus ? <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 10px", fontSize: "10px", fontWeight: 900, background: "#f2ecfb", color: "#7a67b8", border: "1px solid #e0d6f4", whiteSpace: "nowrap" }}>{predictionSlotStatus}</span> : null}
                 </div>
@@ -11998,7 +11595,7 @@ const record = normalizePredictionResultRecord({
                   <div
   style={{
     display: "grid",
-    gridTemplateColumns:"repeat(3, minmax(0, 1fr))",
+    gridTemplateColumns:"repeat(2, minmax(0, 1fr))",
     gap:"10px",
   }}
 >
@@ -12028,10 +11625,6 @@ const record = normalizePredictionResultRecord({
                     <div style={{ borderRadius: "18px", border: "1px solid #ece4f6", background: "rgba(255,255,255,0.90)", padding: "11px 12px" }}>
                       <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b8a9d", marginBottom: "5px" }}>保存状態</div>
                       <div style={{ fontSize: "13px", fontWeight: 800, color: "#081224", lineHeight: 1.8 }}>{predictionSlotSaveStateLabel}</div>
-                    </div>
-                    <div style={{ borderRadius: "18px", border: "1px solid #ece4f6", background: "rgba(255,255,255,0.90)", padding: "11px 12px" }}>
-                      <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b8a9d", marginBottom: "5px" }}>結果連動</div>
-                      <div style={{ fontSize: "13px", fontWeight: 800, color: "#081224", lineHeight: 1.8 }}>{predictionResultLinkStateLabel}</div>
                     </div>
                   </div>
                   <div style={{ fontSize: "11px", color: "#7b8a9d", lineHeight: 1.8 }}>最終保存: {formatPredictionSlotSavedAt(selectedSavedPredictionSlot?.savedAt)}</div>
@@ -12094,216 +11687,304 @@ const record = normalizePredictionResultRecord({
               </div>
             </div>
 
-              <article style={{ borderRadius: "34px", border: `1px solid ${predictionResultTone.border}`, background: predictionResultTone.background, boxShadow: "0 24px 52px rgba(15, 23, 42, 0.06)", padding: isPredictionCompactLayout ? "22px" : "26px 28px" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", marginBottom: "20px" }}>
+              <article style={{ borderRadius: "34px", border: "1px solid #dcd5f2", background: "linear-gradient(145deg, rgba(255,255,255,0.99) 0%, rgba(245,240,255,0.98) 48%, rgba(239,248,255,0.98) 100%)", boxShadow: "0 26px 58px rgba(74, 63, 142, 0.09)", padding: isPredictionCompactLayout ? "22px" : "28px 30px", display: "grid", gap: "18px" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
                   <div>
-                    <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7", marginBottom: "10px" }}>RESULT & BALANCE</div>
-                    <div style={{ fontSize: "28px", fontWeight: 900, color: "#081224", marginBottom: "8px", lineHeight: 1.15 }}>実戦結果・収支確認パネル</div>
-                    <div style={{ fontSize: "13px", color: "#526072", lineHeight: 1.9 }}>保存済み予想と実着順を照合して、結果と収支を確認します。</div>
+                    <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.2em", color: "#745ab4", marginBottom: "8px" }}>PREDICTION BATCH MATERIAL</div>
+                    <div style={{ fontSize: isPredictionCompactLayout ? "26px" : "32px", fontWeight: 900, color: "#081224", lineHeight: 1.15 }}>まとめGPT貼り付け用素材</div>
+                    <div style={{ marginTop: "9px", maxWidth: "820px", fontSize: "13px", lineHeight: 1.9, color: "#5f6f84" }}>選択会場の複数レースを、source contract・KURARI EX・月次可変点数ルール込みで一括コピーします。</div>
                   </div>
-                  {predictionResultStatus ? <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 10px", fontSize: "10px", fontWeight: 900, background: "#f2ecfb", color: "#7a67b8", border: "1px solid #e0d6f4", whiteSpace: "nowrap" }}>{predictionResultStatus}</span> : null}
+                  {predictionBatchCopyStatus ? (
+                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "7px 11px", background: predictionBatchCopyStatus.includes("失敗") || predictionBatchCopyStatus.includes("ありません") ? "#fff7ed" : "#ecfdf5", color: predictionBatchCopyStatus.includes("失敗") || predictionBatchCopyStatus.includes("ありません") ? "#9a3412" : "#047857", border: predictionBatchCopyStatus.includes("失敗") || predictionBatchCopyStatus.includes("ありません") ? "1px solid #fed7aa" : "1px solid #a7f3d0", fontSize: "10px", fontWeight: 900 }}>{predictionBatchCopyStatus}</span>
+                  ) : null}
                 </div>
-                <div style={{ display: "grid", gap: "18px" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: isPredictionCompactLayout ? "1fr" : "minmax(0, 1.2fr) minmax(260px, 0.8fr)", gap: "14px" }}>
-                    <div style={{ borderRadius: "28px", border: `1px solid ${predictionResultTone.border}`, background: "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.88) 100%)", padding: isPredictionCompactLayout ? "20px" : "24px 24px 22px", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.76), 0 14px 28px rgba(15, 23, 42, 0.04)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", marginBottom: "14px" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "5px 10px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.1em", background: predictionResultTone.chipBackground, color: predictionResultTone.chipText, border: `1px solid ${predictionResultTone.border}` }}>{selectedPredictionTargetLabel}</span>
-                        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "5px 10px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.1em", background: predictionResultTone.chipBackground, color: predictionResultTone.chipText, border: `1px solid ${predictionResultTone.border}` }}>{getPredictionResultHitStatusLabel(predictionFinalHitStatus)}</span>
-                        {predictionHitBadgeDetail?.hitBetType ? (() => {
-                          const tone = getPredictionHitBadgeTone(predictionHitBadgeDetail.hitBetType);
-                          return (
-                            <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "5px 10px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.08em", background: tone.background, color: tone.text, border: `1px solid ${tone.border}` }}>
-                              {`${predictionHitBadgeDetail.hitBetType}的中`}
-                            </span>
-                          );
-                        })() : null}
-                      </div>
-                      <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#7b8a9d", marginBottom: "10px" }}>RESULT ORDER</div>
-                      <div style={{ fontSize: isPredictionCompactLayout ? "38px" : "48px", fontWeight: 900, color: "#081224", lineHeight: 1, letterSpacing: "0.06em", marginBottom: "16px" }}>{normalizedPredictionResultOrder || "--"}</div>
-                      <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "stretch" }}>
-                        {(predictionResultOrderParts.length > 0 ? predictionResultOrderParts : ["-", "-", "-"]).map((carNo, index) => {
-                          const tone = getPredictionResultCarTone(carNo);
-                          return (
-                            <div key={`result-order-${index}-${carNo}`} style={{ minWidth: isPredictionCompactLayout ? "84px" : "96px", borderRadius: "20px", border: `1px solid ${tone.border}`, background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,255,0.92) 100%)", padding: "12px 12px 10px", display: "grid", justifyItems: "center", gap: "7px", boxShadow: "0 10px 22px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255,255,255,0.78)" }}>
-                              <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b8a9d" }}>{`${index + 1}着`}</div>
-                              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: isPredictionCompactLayout ? "40px" : "44px", height: isPredictionCompactLayout ? "40px" : "44px", borderRadius: "9999px", background: tone.background, color: tone.text, border: `1px solid ${tone.border}`, fontSize: isPredictionCompactLayout ? "20px" : "22px", fontWeight: 900, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.42), 0 6px 14px rgba(15, 23, 42, 0.10)" }}>{carNo}</span>
-                              <div style={{ fontSize: "9px", fontWeight: 800, letterSpacing: "0.12em", color: "#97a3b6" }}>CAR NO.</div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    <div style={{ borderRadius: "24px", border: "1px solid #e6def3", background: "linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(250,247,253,0.9) 100%)", padding: "14px 16px", display: "grid", gap: "12px", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.76)" }}>
-                      <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7" }}>STATUS PANEL</div>
-                      {[
-                        { label: "最終保存", value: formatPredictionSlotSavedAt(selectedSavedPredictionResult?.savedAt) },
-                        { label: "自動判定", value: getPredictionResultHitStatusLabel(predictionAutoHitStatus) },
-                        { label: "最終判定", value: getPredictionResultHitStatusLabel(predictionFinalHitStatus) },
-                        { label: "的中券種", value: predictionHitBadgeDetail?.hitBetType ? `${predictionHitBadgeDetail.hitBetType}${predictionHitBadgeDetail.hitCombination ? ` / ${predictionHitBadgeDetail.hitCombination}` : ""}` : "—" },
-                      ].map((item, index, list) => (
-                        <div key={item.label} style={{ paddingBottom: index === list.length - 1 ? "0" : "12px", borderBottom: index === list.length - 1 ? "none" : "1px solid rgba(224, 214, 244, 0.72)" }}>
-                          <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b8a9d", marginBottom: "6px" }}>{item.label}</div>
-                          <div style={{ fontSize: "15px", fontWeight: 900, color: "#081224", lineHeight: 1.45 }}>{item.value}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
 
-                  <div style={{ borderRadius: "24px", border: "1px solid #e7def3", background: "linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(249,246,253,0.88) 100%)", padding: "14px 16px" }}>
-                    <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b8a9d", marginBottom: "8px" }}>判定上書き</div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "4px", borderRadius: "9999px", border: "1px solid #ddd3f0", background: "linear-gradient(180deg, rgba(246,242,252,0.98) 0%, rgba(255,255,255,0.94) 100%)", padding: "5px", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.72)" }}>
-                      {([
-                        { value: "auto", label: "自動" },
-                        { value: "hit", label: "的中" },
-                        { value: "miss", label: "不的中" },
-                        { value: "pending", label: "保留" },
-                      ] as const).map((option) => {
-                        const isActive = predictionResultDraft.manualHitStatus === option.value;
-                        return (
-                          <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => setPredictionResultDraft((current) => ({ ...current, manualHitStatus: option.value }))}
-                            style={{ border: "none", borderRadius: "9999px", padding: "10px 8px", background: isActive ? "linear-gradient(135deg, #664ea8 0%, #4c43de 100%)" : "transparent", color: isActive ? "#ffffff" : "#526072", fontSize: "12px", fontWeight: 900, letterSpacing: "0.03em", cursor: "pointer", boxShadow: isActive ? "0 8px 18px rgba(94, 85, 173, 0.16), inset 0 1px 0 rgba(255,255,255,0.16)" : "none", lineHeight: 1.2 }}
-                          >
-                            {option.label}
-                          </button>
-                        );
-                      })}
+                <div style={{ display: "grid", gridTemplateColumns: isPredictionCompactLayout ? "1fr" : "repeat(4, minmax(0, 1fr))", gap: "10px" }}>
+                  {[
+                    { label: "対象会場", value: selectedPredictionMaterialVenue?.venue ?? "未選択" },
+                    { label: "日付", value: predictionFeed?.date ?? "未取得" },
+                    { label: "時間帯", value: predictionBatchSessionLabel },
+                    { label: "対象範囲", value: predictionBatchMaterial.raceCount > 0 ? `${predictionBatchMaterial.startR}R〜${predictionBatchMaterial.endR}R / ${predictionBatchMaterial.raceCount}R` : "対象なし" },
+                  ].map((item) => (
+                    <div key={item.label} style={{ borderRadius: "18px", border: "1px solid rgba(218, 209, 239, 0.92)", background: "rgba(255,255,255,0.82)", padding: "12px 14px" }}>
+                      <div style={{ fontSize: "9px", fontWeight: 900, letterSpacing: "0.15em", color: "#81739f", marginBottom: "6px" }}>{item.label}</div>
+                      <div style={{ fontSize: "13px", fontWeight: 900, color: "#172033", lineHeight: 1.6 }}>{item.value}</div>
                     </div>
-                  </div>
+                  ))}
+                </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: isPredictionCompactLayout ? "1fr" : "minmax(0, 1fr) minmax(280px, 0.9fr)", gap: "14px" }}>
-                    <div style={{ borderRadius: "24px", border: "1px solid #e7def3", background: "rgba(255,255,255,0.9)", padding: "16px" }}>
-                      <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b8a9d", marginBottom: "8px" }}>保存済み予想の買い目</div>
-                      {predictionTicketChipItems.length > 0 ? (
-                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                          {predictionTicketChipItems.map((item) => {
-                            const tone = getPredictionTicketChipTone(item.betType, item.hit);
-                            return (
-                              <div key={`${item.index}-${item.betType}-${item.combination}`} style={{ display: "inline-flex", alignItems: "center", gap: "6px", borderRadius: "9999px", padding: "8px 12px", background: tone.background, border: `1px solid ${tone.border}`, color: tone.text, fontSize: "12px", fontWeight: 800, lineHeight: 1.4, boxShadow: item.hit ? "0 8px 16px rgba(79,70,229,0.08)" : "none" }}>
-                                <span>{item.label}</span>
-                                {item.hit ? <span style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.08em" }}>HIT</span> : null}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div style={{ fontSize: "12px", lineHeight: 1.85, color: "#64748b" }}>このレースの保存済み予想から 買い目一覧 をまだ抽出できません。</div>
-                      )}
-                    </div>
-                    <div style={{ borderRadius: "24px", border: "1px solid #e7def3", background: "rgba(255,255,255,0.9)", padding: "16px" }}>
-                      <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b8a9d", marginBottom: "8px" }}>実着順編集</div>
-                      <input
-                        type="text"
-                        value={predictionResultDraft.resultOrder}
-                        onChange={(event) => setPredictionResultDraft((current) => ({ ...current, resultOrder: event.target.value }))}
-                        placeholder={"例: 2-5-9"}
-                        style={{ width: "100%", border: "1px solid #e4daf4", borderRadius: "18px", background: "rgba(255,255,255,0.98)", padding: "15px 16px", fontSize: "16px", fontWeight: 900, color: "#081224", outline: "none", letterSpacing: "0.05em", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.72)" }}
-                      />
-                      <div style={{ marginTop: "8px", fontSize: "11px", color: "#64748b", lineHeight: 1.7 }}>競輪の実着順をここで確認・更新します。</div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: "grid", gridTemplateColumns: isPredictionCompactLayout ? "1fr" : "repeat(4, minmax(0, 1fr))", gap: "12px" }}>
-                    {predictionResultMetricCards.map((item) => (
-                      <div key={item.label} style={{ borderRadius: "24px", border: `1px solid ${item.tone.border}`, background: item.tone.background, padding: "18px 17px 16px", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.74), 0 10px 24px rgba(15, 23, 42, 0.03)" }}>
-                        <div style={{ fontSize: "9px", fontWeight: 900, letterSpacing: "0.18em", color: "#8a95a8", marginBottom: "12px" }}>{item.label}</div>
-                        <div style={{ fontSize: item.label === "収支" ? "31px" : item.label === "払戻金額" ? "29px" : "27px", fontWeight: 900, color: item.tone.text, lineHeight: 1.05, letterSpacing: "0.01em", marginBottom: "8px" }}>{item.value}</div>
-                        <div style={{ fontSize: "10px", color: "#8c97a8", lineHeight: 1.6 }}>{item.note}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div style={{ borderRadius: "24px", border: "1px solid #e4daf4", background: "linear-gradient(180deg, rgba(255,255,255,0.93) 0%, rgba(249,246,253,0.9) 100%)", padding: isPredictionCompactLayout ? "16px" : "18px", display: "grid", gap: "12px" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", paddingBottom: "10px", borderBottom: "1px solid rgba(224, 214, 244, 0.72)" }}>
-                      <div>
-                        <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7", marginBottom: "4px" }}>EDIT / SAVE</div>
-                        <div style={{ fontSize: "13px", color: "#5f6f84", lineHeight: 1.7 }}>結果の数値入力とメモ編集</div>
-                      </div>
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: isPredictionCompactLayout ? "1fr" : "minmax(0, 1fr) auto", gap: "14px", alignItems: "start" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: isPredictionCompactLayout ? "1fr" : "repeat(2, minmax(0, 1fr))", gap: "10px" }}>
-                      <label style={{ borderRadius: "22px", border: "1px solid #e7def3", background: "rgba(255,255,255,0.92)", padding: "15px", display: "grid", gap: "8px" }}>
-                        <span style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b8a9d" }}>投資金額</span>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <input
-                            type="number"
-                            inputMode="numeric"
-                            min="0"
-                            step="1"
-                            value={predictionResultDraft.investmentInput}
-                            onChange={(event) => setPredictionResultDraft((current) => ({ ...current, investmentInput: event.target.value, investmentInputMode: "manual" }))}
-                            placeholder="1000"
-                            style={{ width: "100%", border: "1px solid #e4daf4", borderRadius: "16px", background: "rgba(255,255,255,0.98)", padding: "12px 14px", fontSize: "14px", fontWeight: 800, color: "#081224", outline: "none" }}
-                          />
-                          <span style={{ fontSize: "12px", fontWeight: 800, color: "#64748b" }}>円</span>
-                        </div>
-                      </label>
-                      <label style={{ borderRadius: "22px", border: "1px solid #e7def3", background: "rgba(255,255,255,0.92)", padding: "15px", display: "grid", gap: "8px" }}>
-                        <span style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b8a9d" }}>払戻金額</span>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <input
-                            type="number"
-                            inputMode="numeric"
-                            min="0"
-                            step="1"
-                            value={predictionResultDraft.payoutInput}
-                            onChange={(event) => setPredictionResultDraft((current) => ({ ...current, payoutInput: event.target.value }))}
-                            placeholder="3250"
-                            style={{ width: "100%", border: "1px solid #e4daf4", borderRadius: "16px", background: "rgba(255,255,255,0.98)", padding: "12px 14px", fontSize: "14px", fontWeight: 800, color: "#081224", outline: "none" }}
-                          />
-                          <span style={{ fontSize: "12px", fontWeight: 800, color: "#64748b" }}>円</span>
-                        </div>
-                      </label>
-                      <div style={{ gridColumn: isPredictionCompactLayout ? "auto" : "1 / -1", borderRadius: "22px", border: "1px solid #e7def3", background: "rgba(255,255,255,0.92)", padding: "15px" }}>
-                        <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b8a9d", marginBottom: "8px" }}>結果メモ</div>
-                        <textarea
-                          value={predictionResultDraft.memo}
-                          onChange={(event) => setPredictionResultDraft((current) => ({ ...current, memo: event.target.value }))}
-                          placeholder={"的中理由、外れ方、あとで見返すポイント"}
-                          style={{ width: "100%", minHeight: "136px", borderRadius: "18px", border: "1px solid #e4daf4", background: "rgba(255,255,255,0.97)", padding: "15px 16px", resize: "vertical", fontSize: "13px", lineHeight: 1.9, color: "#334155", outline: "none" }}
-                        />
-                      </div>
-                    </div>
-
-                    <div style={{ display: "grid", gap: "9px", minWidth: isPredictionCompactLayout ? "auto" : "188px", paddingTop: "2px" }}>
-                      <button type="button" onClick={handlePredictionResultSave} style={{ border: "none", borderRadius: "9999px", padding: "13px 18px", background: "linear-gradient(135deg, #7a67b8 0%, #526cc8 100%)", color: "white", fontWeight: 900, fontSize: "12px", letterSpacing: "0.04em", cursor: "pointer" }}>結果を保存</button>
-                      <button type="button" onClick={handlePredictionResultClear} style={{ border: "1px solid #e0d6f4", borderRadius: "9999px", padding: "12px 18px", background: "linear-gradient(180deg, #fffefe 0%, #fff6fb 48%, #f6fbff 100%)", color: "#7a67b8", fontWeight: 900, fontSize: "12px", letterSpacing: "0.04em", cursor: "pointer" }}>削除</button>
-                    </div>
-                  </div>
-                  </div>
-
-                  <div style={{ borderRadius: "22px", border: "1px solid #e7def3", background: "linear-gradient(180deg, rgba(248,246,251,0.96) 0%, rgba(244,247,251,0.92) 100%)", padding: "15px 16px", display: "grid", gap: "10px", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.62)" }}>
-                    <div>
-                      <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7", marginBottom: "4px" }}>RECORDED SUMMARY</div>
-                      <div style={{ fontSize: "13px", color: "#5f6f84", lineHeight: 1.7 }}>保存済みの結果記録サマリー</div>
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: isPredictionCompactLayout ? "1fr" : "repeat(4, minmax(0, 1fr))", gap: "10px" }}>
-                      {[
-                        { label: "最終判定", value: selectedSavedPredictionResult ? getPredictionResultHitStatusLabel(selectedSavedPredictionResult.hitStatus) : "未保存" },
-                        { label: "自動判定", value: selectedSavedPredictionResult ? getPredictionResultHitStatusLabel(selectedSavedPredictionResult.autoHitStatus) : "未保存" },
-                        { label: "投資", value: formatPredictionResultYen(normalizedSelectedSavedPredictionResult.investment) },
-                        { label: "払戻", value: formatPredictionResultYen(normalizedSelectedSavedPredictionResult.payout) },
-                        { label: "実着順", value: selectedSavedPredictionResult?.resultOrder || "--" },
-                        { label: "上書き", value: selectedSavedPredictionResult?.manualHitStatus ? getPredictionResultHitStatusLabel(selectedSavedPredictionResult.manualHitStatus) : "自動" },
-                        { label: "収支", value: formatPredictionResultProfitLoss(normalizedSelectedSavedPredictionResult.profitLoss) },
-                        { label: "回収率", value: formatPredictionResultRoi(normalizedSelectedSavedPredictionResult.roi) },
-                      ].map((item) => (
-                        <div key={item.label} style={{ borderRadius: "16px", border: "1px solid rgba(228, 218, 244, 0.9)", background: "rgba(255,255,255,0.66)", padding: "11px 12px" }}>
-                          <div style={{ fontSize: "9px", fontWeight: 900, letterSpacing: "0.16em", color: "#8a95a8", marginBottom: "6px" }}>{item.label}</div>
-                          <div style={{ fontSize: "14px", fontWeight: 900, color: "#081224", lineHeight: 1.45 }}>{item.value}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{ borderRadius: "16px", border: "1px solid rgba(228, 218, 244, 0.9)", background: "rgba(255,255,255,0.66)", padding: "11px 13px" }}>
-                      <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#7b8a9d", marginBottom: "6px" }}>結果メモ</div>
-                      <div style={{ whiteSpace: "pre-wrap", fontSize: "12px", lineHeight: 1.85, color: "#526072", maxHeight: "120px", overflow: "auto" }}>{selectedSavedPredictionResult?.memo || "このレースの結果メモはまだありません。"}</div>
-                    </div>
+                <div>
+                  <div style={{ marginBottom: "9px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#745ab4" }}>RANGE PRESET</div>
+                  <div style={{ display: "flex", gap: "9px", flexWrap: "wrap" }}>
+                    {PREDICTION_BATCH_RANGE_OPTIONS.map((option) => {
+                      const isActive = predictionBatchRange === option.id;
+                      const isRecommended = predictionBatchRecommendedRanges.includes(option.id);
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => {
+                            setPredictionBatchRange(option.id);
+                            setPredictionBatchCopyStatus("");
+                          }}
+                          style={{ borderRadius: "9999px", border: isActive ? "1px solid #6d52b5" : "1px solid #dcd3ed", background: isActive ? "linear-gradient(135deg, #7053b8 0%, #4f67c8 100%)" : "rgba(255,255,255,0.9)", color: isActive ? "#fff" : "#5d5273", padding: "10px 15px", fontSize: "12px", fontWeight: 900, cursor: "pointer", boxShadow: isActive ? "0 10px 22px rgba(91, 76, 167, 0.18)" : "none" }}
+                        >
+                          {option.label}{isRecommended ? " / 推奨" : ""}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
+
+                <div style={{ borderRadius: "26px", border: "1px solid #ddd5ee", background: "rgba(250,249,255,0.95)", padding: "14px" }}>
+                  <textarea readOnly value={predictionBatchMaterial.text} style={{ width: "100%", minHeight: "520px", maxHeight: "760px", borderRadius: "20px", border: "1px solid #e3dcf1", background: "rgba(255,255,255,0.96)", padding: "19px 21px", resize: "vertical", fontSize: "12.5px", lineHeight: 1.95, color: "#334155", outline: "none", fontFamily: '"SFMono-Regular", "Consolas", "BIZ UDPGothic", monospace' }} />
+                </div>
+
+                <button type="button" onClick={handlePredictionBatchCopy} disabled={predictionBatchMaterial.raceCount === 0} style={{ width: "fit-content", minWidth: "190px", border: "none", borderRadius: "9999px", padding: "14px 22px", background: "linear-gradient(135deg, #5f46a8 0%, #405fc5 100%)", color: "#fff", fontSize: "13px", fontWeight: 900, letterSpacing: "0.05em", cursor: predictionBatchMaterial.raceCount > 0 ? "pointer" : "not-allowed", opacity: predictionBatchMaterial.raceCount > 0 ? 1 : 0.5, boxShadow: "0 14px 28px rgba(73, 64, 153, 0.2)" }}>まとめてコピー</button>
               </article>
+
           </section>
+
+          {resolvedTodayHitNotifications.length > 0 && (
+            <section
+              style={{
+                borderRadius: "30px",
+                border: "1px solid #e6ddf4",
+                background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(250,247,253,0.98) 100%)",
+                boxShadow: "0 16px 34px rgba(15, 23, 42, 0.05)",
+                padding: "22px 24px",
+                display: "grid",
+                gap: "14px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.2em", color: "#8c63c7", marginBottom: "8px" }}>
+                    HIT NOTIFICATIONS
+                  </div>
+                  <h3 style={{ margin: 0, fontSize: "22px", fontWeight: 900, color: "#081224", letterSpacing: "-0.02em" }}>
+                    的中通知ログ
+                  </h3>
+                  <p style={{ margin: "8px 0 0", fontSize: "12px", lineHeight: 1.8, color: "#64748b" }}>
+                    的中したレースを自動で記録しています。将来のスマホ通知・Slack通知・PWA通知の土台になります。
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    borderRadius: "9999px",
+                    padding: "8px 12px",
+                    background: "#f2ecfb",
+                    border: "1px solid #e0d6f4",
+                    color: "#6d3fc2",
+                    fontSize: "12px",
+                    fontWeight: 900,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {resolvedTodayHitNotifications.length}件
+                </div>
+              </div>
+
+<>
+  <style>{`
+    @keyframes hitNotificationTickerScroll {
+      0% {
+        transform: translateX(0);
+      }
+      100% {
+        transform: translateX(-50%);
+      }
+    }
+
+    .hit-notification-ticker-track {
+      animation: hitNotificationTickerScroll 90s linear infinite;
+    }
+
+    .hit-notification-ticker:hover .hit-notification-ticker-track {
+      animation-play-state: paused;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .hit-notification-ticker-track {
+        animation: none;
+      }
+    }
+  `}</style>
+
+  <div
+    className="hit-notification-ticker"
+    style={{
+      overflow: "hidden",
+      borderRadius: "26px",
+      border: "1px solid #ebe3f3",
+      background: "linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(250,247,253,0.96) 100%)",
+      padding: "12px",
+      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.86)",
+    }}
+  >
+    <div
+      className="hit-notification-ticker-track"
+      style={{
+        display: "flex",
+        gap: "12px",
+        width: "max-content",
+        willChange: "transform",
+      }}
+    >
+      {[...resolvedTodayHitNotifications.slice(0, 12), ...resolvedTodayHitNotifications.slice(0, 12)].map((item, index) => {
+        const isProfitPlus = (item.profitLoss ?? 0) > 0;
+        const isProfitMinus = (item.profitLoss ?? 0) < 0;
+        const hitTone = getPredictionHitBadgeTone(item.hitBetType);
+
+        return (
+          <article
+            key={`${item.id}-${index}`}
+            style={{
+              width: "330px",
+              flex: "0 0 auto",
+              borderRadius: "22px",
+              border: "1px solid #e6def3",
+              background: "linear-gradient(180deg, #ffffff 0%, #fbf8ff 100%)",
+              padding: "13px 14px",
+              display: "grid",
+              gap: "9px",
+              boxShadow: "0 12px 26px rgba(15, 23, 42, 0.045)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
+                <span
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "9999px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "linear-gradient(135deg, #f2ecfb 0%, #e9ddff 100%)",
+                    border: "1px solid #ded0f6",
+                    fontSize: "16px",
+                    flexShrink: 0,
+                    boxShadow: "0 8px 18px rgba(122,103,184,0.10)",
+                  }}
+                >
+                  🎯
+                </span>
+
+                <div style={{ minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: 900,
+                      color: "#081224",
+                      lineHeight: 1.35,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {item.venue} {item.raceNumber}R 的中
+                  </div>
+                  <div
+                    style={{
+                      marginTop: "2px",
+                      fontSize: "10px",
+                      color: "#64748b",
+                      lineHeight: 1.5,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {item.date} / {formatPredictionSlotSavedAt(item.createdAt)}
+                  </div>
+                </div>
+              </div>
+
+              <span
+                style={{
+                  borderRadius: "9999px",
+                  padding: "5px 9px",
+                  fontSize: "10px",
+                  fontWeight: 900,
+                  background: hitTone.background,
+                  color: hitTone.text,
+                  border: `1px solid ${hitTone.border}`,
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }}
+              >
+                {item.hitBetType ?? "的中"}
+              </span>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
+              <span
+                style={{
+                  borderRadius: "9999px",
+                  padding: "5px 9px",
+                  fontSize: "11px",
+                  fontWeight: 900,
+                  background: "#f6f0ff",
+                  color: "#633db2",
+                  border: "1px solid #e2d4fb",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  maxWidth: "150px",
+                }}
+              >
+                {item.hitCombination ?? "組み合わせ未取得"}
+              </span>
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  fontSize: "11px",
+                  fontWeight: 900,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <span style={{ color: "#475569" }}>
+                  払戻 {formatPredictionResultYen(item.payout)}
+                </span>
+                <span
+                  style={{
+                    color: isProfitPlus ? "#2563eb" : isProfitMinus ? "#b45309" : "#64748b",
+                  }}
+                >
+                  収支 {formatPredictionResultProfitLoss(item.profitLoss)}
+                </span>
+              </div>
+            </div>
+
+            {item.warningNote ? (
+              <div
+                style={{
+                  fontSize: "10px",
+                  color: "#8a5a00",
+                  lineHeight: 1.45,
+                  background: "rgba(255,247,214,0.75)",
+                  border: "1px solid #f4d99b",
+                  borderRadius: "10px",
+                  padding: "6px 8px",
+                }}
+              >
+                {item.warningNote}
+              </div>
+            ) : null}
+          </article>
+        );
+      })}
+    </div>
+  </div>
+</>
+            </section>
+          )}
+
         </>
       )}
       </div>
