@@ -664,6 +664,21 @@ export type KurariExIdentityMismatchReason =
   | "key-mismatch"
   | "unknown";
 
+export type KurariForeignRiderAliasRegistryEntry = {
+  readonly registryId: string;
+  readonly category: "foreign-rider-alias";
+  readonly todayGeneratedName: string;
+  readonly officialEntryName: string;
+  readonly registrationNo: string;
+  readonly sourceType: "official-candidate";
+  readonly trustStatus: "source-backed-manual";
+  readonly matchMethod: "exact-alias-pair";
+  readonly allowedMatchScope: "foreign-rider-name-variant";
+  readonly provenance: readonly string[];
+  readonly createdBy: "31-10";
+  readonly note: string;
+};
+
 export type KurariExIdentityMismatchDetail = {
   date: string;
   venueName: string;
@@ -685,6 +700,8 @@ export type KurariExIdentityMismatchDetail = {
   rawKey: string;
   safeKeyStatus: "key-fields-matched-name-mismatch";
   processingResult: "not-connected-registration-unavailable";
+  aliasRegistryStatus: "registered" | "not-registered";
+  aliasRegistryEntry: KurariForeignRiderAliasRegistryEntry | null;
 };
 
 export type KurariExIdentitySourceConnectionSummary = {
@@ -708,6 +725,9 @@ export type KurariExIdentitySourceConnectionSummary = {
   unavailableCount: number;
   blockedNameMismatchCount: number;
   mismatchCandidateCount: number;
+  aliasRegistryRegisteredCount: number;
+  foreignRiderAliasRegisteredCount: number;
+  officialCandidateNotAdoptedCount: number;
   nameMismatchDetails: KurariExIdentityMismatchDetail[];
   sourceErrors: string[];
   starters: KurariExIdentitySourceStarter[];

@@ -719,6 +719,78 @@ sourceごとの日付を別々に表示し、古いstarter sourceやhistoryをcu
 - old/new漢字差はmanual reviewとprovenanceを必須にする
 - 名前差分だけで登録番号を自動接続しない原則を維持する
 
+## 31-10 外国人選手identity alias registry
+
+### 目的と扱い
+
+31-09で表記不一致停止した外国人選手4人について、official candidateを人間確認した記録を`src/lib/kurariForeignRiderAliases.ts`のidentity alias registryへ登録した。registryは今後のstrict採用条件を検討するための診断情報であり、31-10ではcurrent出走表・starter本体のregistrationNoへ接続しない。
+
+- category: `foreign-rider-alias`
+- sourceType: `official-candidate`
+- trustStatus: `source-backed-manual`
+- matchMethod: `exact-alias-pair`
+- allowedMatchScope: `foreign-rider-name-variant`
+- createdBy: `31-10`
+- provenanceには`KEIRIN.JP official entries`、31-09での`date + venueCode + raceNumber + carNo`一致、playerName完全一致ではないため未採用であることを保持
+- sourceTypeを`official`、trustStatusを`confirmed`として扱わない
+
+### 登録した4件
+
+| registryId | today.generated名 | official entry名 | official candidate registrationNo |
+| --- | --- | --- | --- |
+| `foreign-aomori-20260704-andrews-130134` | アンドルーズ 外国 | アンドルーズ | `130134` |
+| `foreign-aomori-20260704-van-der-wouw-130135` | ファンデルワウ 外国 | ファンデルワ | `130135` |
+| `foreign-aomori-20260704-truman-130127` | トゥルーマン 外国 | トゥルーマン | `130127` |
+| `foreign-aomori-20260704-richardson-130133` | リチャードソン 外国 | リチャードソ | `130133` |
+
+### registry照合
+
+31-09のmismatch audit内だけで、次の3項目がregistry値と文字列完全一致した場合に限り`alias registry: 登録済み`とする。
+
+1. todayGeneratedName
+2. officialEntryName
+3. official candidate registrationNo
+
+名前の部分一致、NFKC・空白除去だけの一致、registrationNoだけの一致、today名だけの一致、official名だけの一致、fuzzy matchingではregistry登録済みにしない。照合結果は診断表示にだけ付与し、registrationNo採用判断には使用しない。
+
+### EX表示とcoverage
+
+IDENTITY MISMATCH AUDITへ次を追加した。
+
+- alias registry registered件数
+- foreign rider alias registered件数
+- registryId、category、sourceType、matchMethod、trustStatus、provenance
+- official candidate registrationNoは引き続き`未採用`
+- 処理結果は`未採用 / registrationNo本体へ未接続`
+- fake completionなし
+- fuzzy matchingなし
+- 出走表本体へのregistrationNo反映なし
+- 31-11以降でstrict採用条件を検討
+
+registrationNo coverage / source coverageの件数はcurrent mismatch dataとregistryの完全一致照合から動的に算出する。2026-07-04 snapshotは次のとおり。
+
+- official entries接続済み: 459人
+- today generated only: 0人
+- mismatch stopped: 4人
+- alias registry registered: 4人
+- foreign rider alias registered: 4人
+- official candidate not adopted: 4人
+- unavailable: 4人
+
+registry自体の4件は人間確認済みの固定データだが、coverageへ4を直接ハードコードしていない。starter.registrationNo、registrationNoSource、registrationNoTrustStatus、sourceTypeは変更せず、official entries接続済み459人とunavailable 4人を維持する。
+
+### fake補完防止と31-11候補
+
+- official candidateは診断用途のまま
+- fakeデータ追加・fake補完をしていない
+- fuzzy matchingをしていない
+- 名前だけ、unique-name、manual overrideで登録番号を補完していない
+- source-backed manual aliasをofficial扱いしていない
+- `public/data/**`は生成・変更・削除していない
+- `public/data/reviews/**`は変更、stash、削除、退避、stageしていない
+
+31-11以降は、`date + venueCode + R + carNo + exact-alias-pair + registrationNo`一致の場合だけ本採用するか、採用時のsourceType名、official entriesとは別の`source-backed-alias`として表示するかを検討する。
+
 ## 触っていないもの
 
 - `public/data/reviews/**` は触っていない
@@ -731,7 +803,7 @@ sourceごとの日付を別々に表示し、古いstarter sourceやhistoryをcu
 - `public/data/venues/**` は触っていない
 - `private-input/**` は触っていない
 - `package.json` / `package-lock.json` は触っていない
-- Prediction Page、ReviewPage、RacesPageは触っていない。EXページは31-08のidentity/source接続表示と31-09の表記不一致診断だけを変更した
+- Prediction Page、ReviewPage、RacesPageは触っていない。EXページは31-08のidentity/source接続表示、31-09の表記不一致診断、31-10のalias registry診断表示だけを変更した
 - 的中通知ログとSlack通知stateは触っていない
 - fakeデータ追加、fake補完、source推測補完、登録番号推測補完はしていない
 - `git add .`、git commit、git pushは実行していない

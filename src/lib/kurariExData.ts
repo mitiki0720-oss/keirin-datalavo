@@ -43,6 +43,7 @@ import type {
   KurariExVenueExact,
   KurariExVenueListItem,
 } from "../types/kurariEx";
+import { findKurariForeignRiderAlias } from "./kurariForeignRiderAliases";
 
 const EX_ROOT = "/data/analytics/kurari-ex";
 const EXACT_ROOT = `${EX_ROOT}/exact`;
@@ -1347,6 +1348,11 @@ export function summarizeKurariExIdentitySourceConnection(
           continue;
         }
         if (!playerNameMatches) {
+          const aliasRegistryEntry = findKurariForeignRiderAlias(
+            todayStarter.name,
+            officialStarter.name,
+            officialStarter.registrationNo,
+          );
           blockedNameMismatchCount += 1;
           nameMismatchDetails.push({
             date: todayStarter.date,
@@ -1375,6 +1381,8 @@ export function summarizeKurariExIdentitySourceConnection(
             rawKey: officialKey,
             safeKeyStatus: "key-fields-matched-name-mismatch",
             processingResult: "not-connected-registration-unavailable",
+            aliasRegistryStatus: aliasRegistryEntry ? "registered" : "not-registered",
+            aliasRegistryEntry,
           });
         }
       }
@@ -1447,6 +1455,12 @@ export function summarizeKurariExIdentitySourceConnection(
   const countSource = (sourceType: KurariExIdentitySourceStarter["sourceType"]) =>
     starters.filter((starter) => starter.sourceType === sourceType).length;
   const registrationNoCompleteCount = starters.filter((starter) => starter.registrationNo).length;
+  const aliasRegistryRegisteredCount = nameMismatchDetails.filter(
+    (detail) => detail.aliasRegistryStatus === "registered",
+  ).length;
+  const foreignRiderAliasRegisteredCount = nameMismatchDetails.filter(
+    (detail) => detail.aliasRegistryEntry?.category === "foreign-rider-alias",
+  ).length;
   const raceKeys = new Set(
     starters.map((starter) =>
       [starter.date, starter.venueCode || normalizeKurariExIdentityVenueName(starter.venueName), starter.raceNumber].join("|"),
@@ -1481,6 +1495,9 @@ export function summarizeKurariExIdentitySourceConnection(
     unavailableCount: starters.length - registrationNoCompleteCount,
     blockedNameMismatchCount,
     mismatchCandidateCount: nameMismatchDetails.length,
+    aliasRegistryRegisteredCount,
+    foreignRiderAliasRegisteredCount,
+    officialCandidateNotAdoptedCount: nameMismatchDetails.length,
     nameMismatchDetails,
     sourceErrors,
     starters,

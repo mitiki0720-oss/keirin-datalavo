@@ -2629,6 +2629,8 @@ export default function ExDataPage() {
             <MetricCard label="SOURCE-BACKED" value={valueText(identitySourceSummary?.starterSourceCount, "人")} note="validated starter source" />
             <MetricCard label="TODAY ONLY" value={valueText(identitySourceSummary?.todayGeneratedOnlyCount, "人")} note="registrationNo 未取得" warning={(identitySourceSummary?.todayGeneratedOnlyCount ?? 0) > 0} />
             <MetricCard label="MISMATCH STOPPED" value={valueText(identitySourceSummary?.blockedNameMismatchCount, "人")} note="official candidate 未採用" warning={(identitySourceSummary?.blockedNameMismatchCount ?? 0) > 0} />
+            <MetricCard label="ALIAS REGISTERED" value={valueText(identitySourceSummary?.aliasRegistryRegisteredCount, "人")} note="診断用・本体未採用" />
+            <MetricCard label="CANDIDATE NOT ADOPTED" value={valueText(identitySourceSummary?.officialCandidateNotAdoptedCount, "人")} note="registrationNo 未接続" />
             <MetricCard label="HISTORICAL" value={valueText(identitySourceSummary?.historicalIdentityCount, "人")} note="31-08 current接続では不使用" />
             <MetricCard label="MANUAL OVERRIDE" value={valueText(identitySourceSummary?.manualOverrideCount, "人")} note="official扱い禁止" />
             <MetricCard label="UNKNOWN" value={valueText(identitySourceSummary?.unknownCount, "人")} note="unknownのまま" warning={(identitySourceSummary?.unknownCount ?? 0) > 0} />
@@ -2667,8 +2669,19 @@ export default function ExDataPage() {
                 note="診断用・未採用"
                 warning={(identitySourceSummary?.mismatchCandidateCount ?? 0) > 0}
               />
+              <MetricCard
+                label="ALIAS REGISTRY REGISTERED"
+                value={valueText(identitySourceSummary?.aliasRegistryRegisteredCount, "人")}
+                note="exact-alias-pair"
+              />
+              <MetricCard
+                label="FOREIGN RIDER ALIAS"
+                value={valueText(identitySourceSummary?.foreignRiderAliasRegisteredCount, "人")}
+                note="source-backed-manual"
+              />
               <MetricCard label="FAKE COMPLETION" value="なし" note="candidate値を本体へ接続しない" />
               <MetricCard label="FUZZY MATCHING" value="なし" note="部分一致による採用なし" />
+              <MetricCard label="REGISTRATION REFLECTION" value="なし" note="31-11以降でstrict採用条件を検討" />
             </div>
 
             {identitySourceSummary?.nameMismatchDetails.length ? (
@@ -2680,6 +2693,7 @@ export default function ExDataPage() {
                       <th>today.generated名</th>
                       <th>official candidate名</th>
                       <th>official candidate登録番号</th>
+                      <th>alias registry</th>
                       <th>停止理由</th>
                       <th>差分診断</th>
                       <th>sourceFetchedAt</th>
@@ -2712,13 +2726,30 @@ export default function ExDataPage() {
                           {detail.officialCandidateRegistrationNo ?? "未取得"}
                           <div className="ex-muted">official candidate / 未採用</div>
                         </td>
+                        <td>
+                          <strong>
+                            {detail.aliasRegistryStatus === "registered" ? "登録済み" : "未登録"}
+                          </strong>
+                          {detail.aliasRegistryEntry ? (
+                            <>
+                              <div className="ex-muted">registryId: {detail.aliasRegistryEntry.registryId}</div>
+                              <div className="ex-muted">category: {detail.aliasRegistryEntry.category}</div>
+                              <div className="ex-muted">sourceType: {detail.aliasRegistryEntry.sourceType}</div>
+                              <div className="ex-muted">matchMethod: {detail.aliasRegistryEntry.matchMethod}</div>
+                              <div className="ex-muted">trustStatus: {detail.aliasRegistryEntry.trustStatus}</div>
+                              <div className="ex-muted">
+                                provenance: {detail.aliasRegistryEntry.provenance.join(" / ")}
+                              </div>
+                            </>
+                          ) : null}
+                        </td>
                         <td>{detail.reason}</td>
                         <td>{detail.differenceNote}</td>
                         <td>
                           {detail.sourceFetchedAt ?? "未取得"}
                           <div className="ex-muted">{detail.sourceType}</div>
                         </td>
-                        <td>未接続 / registrationNo未取得のまま</td>
+                        <td>未採用 / registrationNo本体へ未接続</td>
                       </tr>
                     ))}
                   </tbody>
