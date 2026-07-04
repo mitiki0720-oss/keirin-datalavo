@@ -135,6 +135,70 @@ export type KurariExRaceChainV1 = {
   }>;
 };
 
+export type KurariExWindBucketKey = "0-1m" | "1-3m" | "3-5m" | "5m-plus";
+export type KurariExDecisionMethodKey = "escape" | "sprint" | "difference" | "mark";
+
+export type KurariExWindDecisionV1 = {
+  status: "ready" | "no-eligible-data";
+  sourcePolicy: "official result only";
+  totalRaceCount: number;
+  eligibleRaceCount: number;
+  excludedRaceCount: number;
+  exclusionReasons: Array<{ key: string; label: string; count: number }>;
+  sampleStatus: KurariExTrendSampleStatus;
+  sampleLabel: string;
+  mostCommonWindBucket: { key: KurariExWindBucketKey; label: string; count: number } | null;
+  mostCommonDecisionMethod: { key: KurariExDecisionMethodKey; label: string; count: number } | null;
+  windBuckets: Array<{
+    key: KurariExWindBucketKey;
+    label: string;
+    count: number;
+    rate: number;
+  }>;
+  decisionMethods: Array<{
+    key: KurariExDecisionMethodKey;
+    label: string;
+    count: number;
+    rate: number;
+  }>;
+  matrix: Array<{
+    windBucket: KurariExWindBucketKey;
+    windBucketLabel: string;
+    decisionMethod: KurariExDecisionMethodKey;
+    decisionMethodLabel: string;
+    count: number;
+    rateWithinBucket: number;
+  }>;
+  byVenue: Array<{
+    venueCode: string;
+    venueName: string;
+    sampleSize: number;
+    sampleStatus: KurariExTrendSampleStatus;
+    sampleLabel: string;
+    leadingWindBucketLabel: string;
+    leadingDecisionMethodLabel: string;
+    matrix: Array<{
+      windBucketLabel: string;
+      decisionMethodLabel: string;
+      count: number;
+      rateWithinVenue: number;
+    }>;
+  }>;
+  examples: Array<{
+    raceKey: string;
+    date: string;
+    venueName: string;
+    raceNumber: number;
+    windSpeedMps: number;
+    windBucketLabel: string;
+    decisionMethodLabel: string;
+  }>;
+  classReadiness: {
+    status: "future-accumulation";
+    note: string;
+  };
+};
+
 export type KurariExTrifectaTrendV1 = {
   status: "ready" | "no-eligible-data";
   sourcePolicy: "official result only";
@@ -155,11 +219,13 @@ export type KurariExTrifectaTrendV1 = {
   filterReadiness: KurariExTrendFilterReadiness[];
   turbulence: KurariExTurbulenceV1;
   chain: KurariExRaceChainV1;
+  weather: KurariExWindDecisionV1;
 };
 
 type OfficialFinishRow = {
   rank?: unknown;
   carNo?: unknown;
+  kimarite?: unknown;
 };
 
 type OfficialResultRace = {
@@ -167,6 +233,10 @@ type OfficialResultRace = {
   resultStatus?: unknown;
   operationStatus?: unknown;
   finishOrder?: OfficialFinishRow[];
+  kimarite?: unknown;
+  weatherActual?: {
+    windSpeedMps?: unknown;
+  } | null;
   payout3tan?: {
     combination?: unknown;
     payoutYen?: unknown;
@@ -238,6 +308,38 @@ const CHAIN_EXCLUSION_LABELS: Record<string, string> = {
   "cancelled-or-no-race": "前後いずれかがcancelled / no race",
   "payout-or-category-unavailable": "前後いずれかの3連単払戻金・荒れカテゴリが未取得",
   "race-result-unavailable": "前後いずれかの着順・3連単結果が不正または未取得",
+};
+
+const WIND_BUCKETS: Array<{
+  key: KurariExWindBucketKey;
+  label: string;
+  includes: (windSpeedMps: number) => boolean;
+}> = [
+  { key: "0-1m", label: "0〜1m", includes: (value) => value >= 0 && value < 1 },
+  { key: "1-3m", label: "1〜3m", includes: (value) => value >= 1 && value < 3 },
+  { key: "3-5m", label: "3〜5m", includes: (value) => value >= 3 && value < 5 },
+  { key: "5m-plus", label: "5m以上", includes: (value) => value >= 5 },
+];
+
+const DECISION_METHODS: Array<{ key: KurariExDecisionMethodKey; label: string }> = [
+  { key: "escape", label: "逃げ" },
+  { key: "sprint", label: "捲り" },
+  { key: "difference", label: "差し" },
+  { key: "mark", label: "マーク" },
+];
+
+const WEATHER_EXCLUSION_LABELS: Record<string, string> = {
+  "source-unavailable": "official source / provenanceを確認できない",
+  "race-key-missing": "date / venue / raceNumberから一意race keyを作れない",
+  "duplicate-race-key": "同一race keyが重複",
+  "cancelled-or-no-race": "cancelled / no race",
+  "not-confirmed": "resultStatusがconfirmedではない",
+  "wind-missing": "風速が欠損",
+  "wind-not-numeric": "風速を数値化できない",
+  "wind-out-of-range": "風速が負数または異常値",
+  "decision-missing": "決まり手が欠損",
+  "decision-unknown": "決まり手を許可カテゴリへ正規化できない",
+  "decision-conflict": "raceと1着行の決まり手が不一致",
 };
 
 function clean(value: unknown) {
@@ -364,6 +466,232 @@ function countRanking(
 function publicPath(relativePath: string) {
   const base = import.meta.env.BASE_URL.replace(/\/$/u, "");
   return `${base}${relativePath}`;
+}
+
+function buildKurariExWindDecisionV1(
+  feed: OfficialResultFeed,
+  sourceIsOfficial: boolean,
+  sourceDate: string,
+): KurariExWindDecisionV1 {
+  const candidates = (feed.venues ?? []).flatMap((venue) =>
+    (venue.races ?? []).map((race) => ({ venue, race })),
+  );
+  const raceKeys = candidates.map(({ venue, race }) => {
+    const date = clean(venue.date || sourceDate);
+    const venueKey = clean(venue.venueCode) || clean(venue.venueName);
+    const raceNumber = Number(race.raceNumber);
+    return date && venueKey && Number.isInteger(raceNumber) && raceNumber > 0
+      ? `${date}|${venueKey}|${raceNumber}`
+      : "";
+  });
+  const keyCounts = new Map<string, number>();
+  raceKeys.filter(Boolean).forEach((key) => keyCounts.set(key, (keyCounts.get(key) ?? 0) + 1));
+  const exclusionCounts = new Map<string, number>();
+  const eligible: Array<{
+    raceKey: string;
+    date: string;
+    venueCode: string;
+    venueName: string;
+    raceNumber: number;
+    windSpeedMps: number;
+    windBucket: KurariExWindBucketKey;
+    decisionMethod: KurariExDecisionMethodKey;
+  }> = [];
+  const decisionAliases = new Map<string, KurariExDecisionMethodKey>([
+    ["逃", "escape"],
+    ["逃げ", "escape"],
+    ["捲", "sprint"],
+    ["捲り", "sprint"],
+    ["差", "difference"],
+    ["差し", "difference"],
+    ["マ", "mark"],
+    ["マーク", "mark"],
+  ]);
+  const exclude = (reason: string) => {
+    exclusionCounts.set(reason, (exclusionCounts.get(reason) ?? 0) + 1);
+  };
+
+  candidates.forEach(({ venue, race }, index) => {
+    const raceKey = raceKeys[index];
+    if (!sourceIsOfficial) {
+      exclude("source-unavailable");
+      return;
+    }
+    if (!raceKey) {
+      exclude("race-key-missing");
+      return;
+    }
+    if ((keyCounts.get(raceKey) ?? 0) !== 1) {
+      exclude("duplicate-race-key");
+      return;
+    }
+    if (["cancelled", "no-race"].includes(clean(race.operationStatus).toLowerCase())) {
+      exclude("cancelled-or-no-race");
+      return;
+    }
+    if (clean(race.resultStatus) !== "confirmed") {
+      exclude("not-confirmed");
+      return;
+    }
+    const rawWind = race.weatherActual?.windSpeedMps;
+    if (rawWind == null || clean(rawWind) === "") {
+      exclude("wind-missing");
+      return;
+    }
+    const windSpeedMps = typeof rawWind === "number" ? rawWind : Number(clean(rawWind));
+    if (!Number.isFinite(windSpeedMps)) {
+      exclude("wind-not-numeric");
+      return;
+    }
+    if (windSpeedMps < 0 || windSpeedMps > 100) {
+      exclude("wind-out-of-range");
+      return;
+    }
+    const winnerKimarite = clean(
+      (race.finishOrder ?? []).find((row) => Number(clean(row.rank)) === 1)?.kimarite,
+    );
+    const raceKimarite = clean(race.kimarite);
+    if (!raceKimarite && !winnerKimarite) {
+      exclude("decision-missing");
+      return;
+    }
+    const raceDecision = raceKimarite ? decisionAliases.get(raceKimarite) : undefined;
+    const winnerDecision = winnerKimarite ? decisionAliases.get(winnerKimarite) : undefined;
+    if ((raceKimarite && !raceDecision) || (winnerKimarite && !winnerDecision)) {
+      exclude("decision-unknown");
+      return;
+    }
+    if (raceDecision && winnerDecision && raceDecision !== winnerDecision) {
+      exclude("decision-conflict");
+      return;
+    }
+    const decisionMethod = raceDecision ?? winnerDecision;
+    const windBucket = WIND_BUCKETS.find((bucket) => bucket.includes(windSpeedMps))?.key;
+    if (!decisionMethod || !windBucket) {
+      exclude("decision-unknown");
+      return;
+    }
+    eligible.push({
+      raceKey,
+      date: clean(venue.date || sourceDate),
+      venueCode: clean(venue.venueCode),
+      venueName: clean(venue.venueName) || clean(venue.venueCode),
+      raceNumber: Number(race.raceNumber),
+      windSpeedMps,
+      windBucket,
+      decisionMethod,
+    });
+  });
+
+  const bucketCount = (key: KurariExWindBucketKey, rows = eligible) =>
+    rows.filter((row) => row.windBucket === key).length;
+  const decisionCount = (key: KurariExDecisionMethodKey, rows = eligible) =>
+    rows.filter((row) => row.decisionMethod === key).length;
+  const mostCommon = <T extends { count: number }>(rows: T[]) =>
+    [...rows].sort((left, right) => right.count - left.count)[0] ?? null;
+  const windBuckets = WIND_BUCKETS.map((bucket) => ({
+    key: bucket.key,
+    label: bucket.label,
+    count: bucketCount(bucket.key),
+    rate: rate(bucketCount(bucket.key), eligible.length),
+  }));
+  const decisionMethods = DECISION_METHODS.map((method) => ({
+    key: method.key,
+    label: method.label,
+    count: decisionCount(method.key),
+    rate: rate(decisionCount(method.key), eligible.length),
+  }));
+  const venueGroups = new Map<string, typeof eligible>();
+  eligible.forEach((row) => {
+    const key = row.venueCode || row.venueName;
+    const group = venueGroups.get(key) ?? [];
+    group.push(row);
+    venueGroups.set(key, group);
+  });
+  const sample = sampleStatus(eligible.length);
+
+  return {
+    status: eligible.length ? "ready" : "no-eligible-data",
+    sourcePolicy: "official result only",
+    totalRaceCount: candidates.length,
+    eligibleRaceCount: eligible.length,
+    excludedRaceCount: candidates.length - eligible.length,
+    exclusionReasons: [...exclusionCounts.entries()].map(([key, count]) => ({
+      key,
+      label: WEATHER_EXCLUSION_LABELS[key] ?? key,
+      count,
+    })),
+    sampleStatus: sample.status,
+    sampleLabel: sample.label,
+    mostCommonWindBucket: mostCommon(windBuckets),
+    mostCommonDecisionMethod: mostCommon(decisionMethods),
+    windBuckets,
+    decisionMethods,
+    matrix: WIND_BUCKETS.flatMap((bucket) => {
+      const denominator = bucketCount(bucket.key);
+      return DECISION_METHODS.map((method) => {
+        const count = eligible.filter(
+          (row) => row.windBucket === bucket.key && row.decisionMethod === method.key,
+        ).length;
+        return {
+          windBucket: bucket.key,
+          windBucketLabel: bucket.label,
+          decisionMethod: method.key,
+          decisionMethodLabel: method.label,
+          count,
+          rateWithinBucket: rate(count, denominator),
+        };
+      });
+    }),
+    byVenue: [...venueGroups.entries()]
+      .map(([venueCode, rows]) => {
+        const venueSample = sampleStatus(rows.length);
+        const leadingBucket = mostCommon(WIND_BUCKETS.map((bucket) => ({
+          label: bucket.label,
+          count: bucketCount(bucket.key, rows),
+        })));
+        const leadingDecision = mostCommon(DECISION_METHODS.map((method) => ({
+          label: method.label,
+          count: decisionCount(method.key, rows),
+        })));
+        return {
+          venueCode,
+          venueName: rows[0]?.venueName ?? venueCode,
+          sampleSize: rows.length,
+          sampleStatus: venueSample.status,
+          sampleLabel: venueSample.label,
+          leadingWindBucketLabel: leadingBucket?.label ?? "--",
+          leadingDecisionMethodLabel: leadingDecision?.label ?? "--",
+          matrix: WIND_BUCKETS.flatMap((bucket) =>
+            DECISION_METHODS.map((method) => {
+              const count = rows.filter(
+                (row) => row.windBucket === bucket.key && row.decisionMethod === method.key,
+              ).length;
+              return {
+                windBucketLabel: bucket.label,
+                decisionMethodLabel: method.label,
+                count,
+                rateWithinVenue: rate(count, rows.length),
+              };
+            }),
+          ).filter((row) => row.count > 0),
+        };
+      })
+      .sort((left, right) => right.sampleSize - left.sampleSize || left.venueCode.localeCompare(right.venueCode)),
+    examples: eligible.slice(0, 5).map((row) => ({
+      raceKey: row.raceKey,
+      date: row.date,
+      venueName: row.venueName,
+      raceNumber: row.raceNumber,
+      windSpeedMps: row.windSpeedMps,
+      windBucketLabel: WIND_BUCKETS.find((bucket) => bucket.key === row.windBucket)?.label ?? row.windBucket,
+      decisionMethodLabel: DECISION_METHODS.find((method) => method.key === row.decisionMethod)?.label ?? row.decisionMethod,
+    })),
+    classReadiness: {
+      status: "future-accumulation",
+      note: "current official resultではraceClassを安定取得できないため未集計",
+    },
+  };
 }
 
 export function buildKurariExTrifectaTrendV1(
@@ -771,6 +1099,7 @@ export function buildKurariExTrifectaTrendV1(
       ],
     },
     chain: chainResult,
+    weather: buildKurariExWindDecisionV1(feed, sourceIsOfficial, sourceDate),
   };
 }
 

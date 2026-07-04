@@ -1061,3 +1061,11 @@ EXページを出目ランキング、荒れ指数、レース連鎖、風速×�
 - 的中通知ログとSlack通知stateは触っていない
 - fakeデータ追加、fake補完、source推測補完、登録番号推測補完はしていない
 - `git add .`、git commit、git pushは実行していない
+
+## 32-05 official weather result consumer
+
+- `keirin-jp-results.generated.json`のKEIRIN.JP / JSJ048 provenanceを確認してから風速×決まり手分析へ接続する
+- confirmed、一意race key、保存済み数値風速、保存済み許可カテゴリ決まり手をすべて満たすraceだけをeligibleとする
+- eligible / excluded、除外理由、bucket / 決まり手 / 会場別傾向はfeed更新ごとに動的再集計する
+- raceClassは安定source未整備のため`future-accumulation`
+- official result feedを読み取るだけで、`public/data/**`の生成・変更・削除は行わない

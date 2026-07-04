@@ -422,3 +422,19 @@ raceNumber欠損・非連続、重複race key、未confirmed、中止、着順�
 - `public/data/**`は読み取りのみ
 - `public/data/reviews/**`は変更、stash、削除、退避、stageしていない
 
+## 32-05 風速×決まり手分析 v1
+
+WEATHERタブをfuture placeholderからofficial result onlyの実集計へ更新した。KEIRIN.JP / JSJ048のsource情報と取得日時が妥当で、date、venueCodeまたはvenueName、raceNumberから一意race keyを作れ、confirmedかつ中止でないraceだけを候補にする。
+
+- 風速は保存済み`weatherActual.windSpeedMps`のみ使用し、欠損、非数値、負数、異常値を除外する
+- 決まり手は保存済みraceまたは1着行の`kimarite`のみ使用する
+- 逃 / 逃げ、捲 / 捲り、差 / 差し、マ / マークの明確な表記だけを4カテゴリへ正規化する
+- raceと1着行の決まり手が不一致の場合は推測せず除外する
+- 風速bucketは0〜1m、1〜3m、3〜5m、5m以上
+- bucket別件数、bucket×決まり手の件数・bucket内割合、決まり手全体件数、会場別傾向、除外理由、代表例最大5件を動的算出する
+- 級班別はraceClassを安定取得できないため`future-accumulation`
+- 30R未満はLOW SAMPLE、30〜99Rはcaution、100R以上も予想の補助に限定する
+- fake風速、fake決まり手、着順や3連単からの決まり手推測は行わない
+
+EX wrapperは`width: min(1880px, calc(100% - 40px))`相当へ広げ、各panel / grid childへ`min-width: 0`と長文折返しを適用した。横長tableはdocumentではなくcard内だけでscroll可能とする。
+

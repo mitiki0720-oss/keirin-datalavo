@@ -2212,8 +2212,12 @@ export default function ExDataPage() {
           radial-gradient(circle at 91% 12%, rgba(181,224,255,.44), transparent 25%),
           radial-gradient(circle at 52% 80%, rgba(195,245,225,.42), transparent 32%),
           linear-gradient(180deg, #f7f5ff 0%, #f5faff 45%, #f7fffb 100%); }
-        .ex-main { box-sizing: border-box; width: calc(100% - ${isMobile ? "32px" : "48px"}); max-width: 1600px; min-width: 0; margin-inline: auto; padding: ${isMobile ? "24px 0 64px" : "42px 0 92px"}; display: grid; gap: 24px; }
+        .ex-main { box-sizing: border-box; width: min(1880px, calc(100% - ${isMobile ? "32px" : "40px"})); max-width: 1880px; min-width: 0; margin-inline: auto; padding: ${isMobile ? "24px 0 64px" : "42px 0 92px"}; display: grid; gap: 24px; }
         .ex-main > * { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
+        .ex-panel, .ex-section, .ex-subsection, .ex-detail, .ex-workspace, .ex-table-wrap { min-width: 0; max-width: 100%; box-sizing: border-box; }
+        .ex-main h1, .ex-main h2, .ex-main h3, .ex-main h4, .ex-main p, .ex-main li, .ex-main td, .ex-main th, .ex-main span, .ex-main strong { overflow-wrap: anywhere; }
+        .ex-health-grid, .ex-kpi-grid, .ex-location-grid, .ex-category-grid, .ex-insights, .ex-note-grid, .ex-trend-ranking-grid, .ex-turbulence-category-grid, .ex-chain-type-grid, .ex-chain-examples, .ex-weather-bucket-grid, .ex-weather-venue-grid { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+        .ex-health-grid > *, .ex-kpi-grid > *, .ex-location-grid > *, .ex-category-grid > *, .ex-insights > *, .ex-note-grid > *, .ex-trend-ranking-grid > *, .ex-turbulence-category-grid > *, .ex-chain-type-grid > *, .ex-chain-examples > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
         .ex-main [hidden] { display: none !important; }
         .ex-section-tabs { display: grid; grid-template-columns: repeat(auto-fit,minmax(${isMobile ? "128px" : "150px"},1fr)); gap: 9px; padding: 12px; border: 1px solid rgba(190,194,224,.62); border-radius: 24px; background: rgba(255,255,255,.82); box-shadow: 0 16px 40px rgba(82,74,135,.08); }
         .ex-section-tab { min-width: 0; cursor: pointer; display: grid; gap: 4px; padding: 12px 13px; border: 1px solid #e2e2ed; border-radius: 16px; background: rgba(248,249,253,.9); color: #657187; text-align: left; }
@@ -2344,7 +2348,7 @@ export default function ExDataPage() {
         .ex-tactic-common-ban { display: grid; gap: 8px; padding: 17px 19px; border: 1px solid #f0d7c1; border-radius: 18px; background: #fff9f3; color: #735f52; font-size: 12px; line-height: 1.7; }
         .ex-tactic-common-ban strong { color: #9a5729; }
         .ex-tactic-common-ban ul { margin: 0; padding-left: 20px; }
-        .ex-section { padding: ${isMobile ? "22px 18px" : "30px"}; display: grid; gap: 22px; }
+        .ex-section { padding: ${isMobile ? "22px 18px" : "30px"}; display: grid; grid-template-columns: minmax(0,1fr); gap: 22px; }
         .ex-section-title h2 { margin: 6px 0 0; font: 800 ${isMobile ? "27px" : "36px"}/1.15 ${serif}; color: #172239; }
         .ex-section-title p { margin: 8px 0 0; color: #718096; line-height: 1.7; }
         .ex-health-grid { display: grid; grid-template-columns: repeat(${isMobile ? 2 : 4}, minmax(0,1fr)); gap: 13px; }
@@ -2429,6 +2433,16 @@ export default function ExDataPage() {
         .ex-chain-matrix td:first-child, .ex-chain-matrix th:first-child { text-align: left; }
         .ex-chain-examples { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 2},minmax(0,1fr)); gap: 11px; }
         .ex-chain-example { min-width: 0; display: grid; gap: 7px; padding: 17px; border: 1px solid #e1ddeb; border-radius: 19px; background: linear-gradient(145deg,#fff,#f8f5ff); }
+        .ex-weather-bucket-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(220px,100%),1fr)); gap: 11px; }
+        .ex-weather-bucket-card { min-width: 0; display: grid; gap: 6px; padding: 17px; border: 1px solid #dfe5ef; border-radius: 19px; background: linear-gradient(145deg,#fff,#f3f9ff); }
+        .ex-weather-bucket-card strong { color: #315f91; font: 800 19px/1.3 ${serif}; }
+        .ex-weather-bucket-card b { color: #172239; font: 850 28px/1 ${serif}; }
+        .ex-weather-venue-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(280px,100%),1fr)); gap: 11px; }
+        .ex-weather-venue-card { min-width: 0; display: grid; gap: 8px; padding: 17px; border: 1px solid #e1e5ed; border-radius: 19px; background: rgba(255,255,255,.86); }
+        .ex-weather-venue-card h3 { margin: 0; color: #263650; font: 800 18px/1.35 ${serif}; }
+        .ex-weather-venue-card p { margin: 0; color: #657187; font-size: 11px; line-height: 1.7; }
+        .ex-weather-example-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+        .ex-weather-example-list li { min-width: 0; padding: 11px 13px; border-radius: 13px; background: #f7f9fc; color: #58687e; font-size: 11px; line-height: 1.65; }
         .ex-chain-example h3 { margin: 0; color: #30405a; font: 800 17px/1.35 ${serif}; }
         .ex-chain-example p { margin: 0; color: #68758a; font-size: 11px; line-height: 1.65; }
         .ex-data-table { width: 100%; border-collapse: collapse; min-width: 580px; color: #526078; font-size: 12px; }
@@ -2621,6 +2635,11 @@ export default function ExDataPage() {
           .ex-rider-overview-card, .ex-condition-card, .ex-matchup-overview-card, .ex-relationship-card, .ex-tactic-event-card { padding: 16px; }
           .ex-matchup-overview-card-grid, .ex-condition-card-grid { grid-template-columns: 1fr 1fr; }
         }
+        @media (min-width: 521px) and (max-width: 1100px) {
+          .ex-workspace { grid-template-columns: 1fr; }
+          .ex-health-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+          .ex-kpi-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+        }
 `}</style>
 
       <main className="ex-main">
@@ -2732,7 +2751,12 @@ export default function ExDataPage() {
             <MetricCard label="DATA AVAILABILITY AUDIT" value="IMPLEMENTED" note="schema / coverage / provenance監査" />
             <MetricCard label="RANKING / PAYOUT ENGINE" value="IMPLEMENTED v1" note="official 3連単結果・実払戻金のみ" />
             <MetricCard label="ODDS GAP ANALYSIS" value="FUTURE" note="最低オッズ未取得・fake prohibited" warning />
-            <MetricCard label="WIND × FINISH TREND" value="PARTIAL" note="風速・決まり手に欠損とprovenance課題" warning />
+            <MetricCard
+              label="WIND × FINISH TREND"
+              value={trifectaTrend?.weather.status === "ready" ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "CHECKING"}
+              note={trifectaTrend ? `${trifectaTrend.weather.eligibleRaceCount.toLocaleString("ja-JP")} eligible races` : "official result only"}
+              warning={trifectaTrendStatus === "error"}
+            />
           </div>
 
           <div className="ex-subsection" data-testid="result-trend-lab-ranking-v1" hidden={activeSectionTab !== "ranking"}>
@@ -3142,26 +3166,183 @@ export default function ExDataPage() {
             ) : null}
           </div>
 
-          <div className="ex-subsection" data-testid="result-trend-lab-weather-roadmap" hidden={activeSectionTab !== "weather"}>
+          <div className="ex-subsection" data-testid="result-trend-lab-weather-v1" hidden={activeSectionTab !== "weather"}>
             <SectionTitle
-              eyebrow="WEATHER / WIND × FINISH TREND"
-              title="風速×決まり手"
-              lead="32-05以降の実装候補です。現時点では欠損とprovenance課題があるためpartial / future-accumulationとして表示します。"
+              eyebrow="WEATHER / WIND × DECISION METHOD v1"
+              title="風速×決まり手分析 v1"
+              lead="KEIRIN.JP official result内で、確定レースの風速と決まり手を同じrace key・provenanceで確認できたレースだけを動的集計します。"
             />
-            <div className="ex-health-grid">
-              <MetricCard label="WIND BUCKET" value="PARTIAL" note="0〜1m / 1〜3m / 3〜5m / 5m以上" warning />
-              <MetricCard label="WINNING METHOD" value="PARTIAL" note="逃げ / 捲り / 差し / マーク" warning />
-              <MetricCard label="BY VENUE" value="FUTURE" note="LOW SAMPLE aware" warning />
-              <MetricCard label="BY CLASS" value="FUTURE" note="raceClass source不足" warning />
+            <div className="ex-overview-status">
+              <span className="ex-trend-status-pill is-ready">official result only</span>
+              <span className="ex-trend-status-pill is-ready">fake wind prohibited</span>
+              <span className="ex-trend-status-pill is-ready">fake decision prohibited</span>
+              <span className="ex-trend-status-pill is-caution">LOW SAMPLE</span>
             </div>
-            <div className="ex-empty">
-              fake風速・fake決まり手は生成しません。保存済みofficial sourceと欠損率を監査してから実装します。
-            </div>
+            {trifectaTrendStatus === "loading" ? <EmptyState text="official wind / decision methodを確認しています。" /> : null}
+            {trifectaTrendStatus === "error" ? (
+              <EmptyState text="No eligible official weather result data / official sourceを取得できませんでした。" />
+            ) : null}
+            {trifectaTrend ? (
+              <>
+                <div className="ex-kpi-grid">
+                  <MetricCard
+                    label="ELIGIBLE RACES"
+                    value={trifectaTrend.weather.eligibleRaceCount.toLocaleString("ja-JP")}
+                    note={`全${trifectaTrend.weather.totalRaceCount.toLocaleString("ja-JP")}R`}
+                  />
+                  <MetricCard
+                    label="EXCLUDED RACES"
+                    value={trifectaTrend.weather.excludedRaceCount.toLocaleString("ja-JP")}
+                    note="strict eligibilityで除外"
+                    warning={trifectaTrend.weather.excludedRaceCount > 0}
+                  />
+                  <MetricCard
+                    label="SAMPLE STATUS"
+                    value={trifectaTrend.weather.sampleLabel}
+                    note={trifectaTrend.weather.sampleStatus === "low-sample" ? "参考のみ" : "傾向注意 / 主根拠にしない"}
+                    warning={trifectaTrend.weather.sampleStatus !== "usable"}
+                  />
+                  <MetricCard
+                    label="MOST COMMON WIND"
+                    value={trifectaTrend.weather.mostCommonWindBucket?.label ?? "--"}
+                    note={trifectaTrend.weather.mostCommonWindBucket
+                      ? `${trifectaTrend.weather.mostCommonWindBucket.count.toLocaleString("ja-JP")}R`
+                      : "unavailable"}
+                  />
+                  <MetricCard
+                    label="MOST COMMON DECISION"
+                    value={trifectaTrend.weather.mostCommonDecisionMethod?.label ?? "--"}
+                    note={trifectaTrend.weather.mostCommonDecisionMethod
+                      ? `${trifectaTrend.weather.mostCommonDecisionMethod.count.toLocaleString("ja-JP")}R`
+                      : "unavailable"}
+                  />
+                </div>
+
+                {trifectaTrend.weather.status === "ready" ? (
+                  <>
+                    <div>
+                      <SectionTitle eyebrow="WIND BUCKETS" title="風速bucket別" />
+                      <div className="ex-weather-bucket-grid">
+                        {trifectaTrend.weather.windBuckets.map((bucket) => (
+                          <article className="ex-weather-bucket-card" key={bucket.key}>
+                            <strong>{bucket.label}</strong>
+                            <b>{bucket.count.toLocaleString("ja-JP")}R</b>
+                            <span>{bucket.rate.toFixed(1)}%</span>
+                          </article>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <SectionTitle eyebrow="WIND × DECISION MATRIX" title="風速bucket × 決まり手" />
+                      <div className="ex-table-wrap">
+                        <table className="ex-data-table">
+                          <thead>
+                            <tr>
+                              <th>風速bucket</th>
+                              {trifectaTrend.weather.decisionMethods.map((method) => <th key={method.key}>{method.label}</th>)}
+                              <th>bucket計</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {trifectaTrend.weather.windBuckets.map((bucket) => (
+                              <tr key={bucket.key}>
+                                <td><strong>{bucket.label}</strong></td>
+                                {trifectaTrend.weather.decisionMethods.map((method) => {
+                                  const cell = trifectaTrend.weather.matrix.find(
+                                    (row) => row.windBucket === bucket.key && row.decisionMethod === method.key,
+                                  );
+                                  return (
+                                    <td key={method.key}>
+                                      {cell?.count.toLocaleString("ja-JP") ?? "0"}R
+                                      <div className="ex-muted">{(cell?.rateWithinBucket ?? 0).toFixed(1)}%</div>
+                                    </td>
+                                  );
+                                })}
+                                <td>{bucket.count.toLocaleString("ja-JP")}R</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div>
+                      <SectionTitle eyebrow="DECISION METHOD TOTAL" title="決まり手別の全体傾向" />
+                      <div className="ex-weather-bucket-grid">
+                        {trifectaTrend.weather.decisionMethods.map((method) => (
+                          <article className="ex-weather-bucket-card" key={method.key}>
+                            <strong>{method.label}</strong>
+                            <b>{method.count.toLocaleString("ja-JP")}R</b>
+                            <span>{method.rate.toFixed(1)}%</span>
+                          </article>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <SectionTitle eyebrow="BY VENUE" title="会場別傾向" lead="各会場もLOW SAMPLEを前提に、保存済みeligible raceだけを表示します。" />
+                      <div className="ex-weather-venue-grid">
+                        {trifectaTrend.weather.byVenue.map((venue) => (
+                          <article className="ex-weather-venue-card" key={venue.venueCode}>
+                            <div className="ex-location-head">
+                              <h3>{venue.venueName}</h3>
+                              <span className={`ex-location-status is-${venue.sampleStatus === "usable" ? "ready" : "warning"}`}>
+                                {venue.sampleSize.toLocaleString("ja-JP")}R
+                              </span>
+                            </div>
+                            <p>最多風速: {venue.leadingWindBucketLabel}</p>
+                            <p>最多決まり手: {venue.leadingDecisionMethodLabel}</p>
+                            <div className="ex-muted">{venue.sampleLabel}</div>
+                          </article>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <EmptyState text="No eligible official wind / decision method data" />
+                )}
+
+                <div className="ex-location-grid">
+                  <article className="ex-location-card">
+                    <div className="ex-location-head">
+                      <h3>除外理由</h3>
+                      <span className="ex-location-status is-warning">EXCLUDED</span>
+                    </div>
+                    {trifectaTrend.weather.exclusionReasons.length ? (
+                      <ul className="ex-trend-reasons">
+                        {trifectaTrend.weather.exclusionReasons.map((reason) => (
+                          <li key={reason.key}>{reason.label}: {reason.count.toLocaleString("ja-JP")}R</li>
+                        ))}
+                      </ul>
+                    ) : <div className="ex-muted">除外なし</div>}
+                  </article>
+                  <article className="ex-location-card">
+                    <div className="ex-location-head">
+                      <h3>代表例</h3>
+                      <span className="ex-location-status is-partial">MAX 5</span>
+                    </div>
+                    <ul className="ex-weather-example-list">
+                      {trifectaTrend.weather.examples.map((example) => (
+                        <li key={example.raceKey}>
+                          {example.date} {example.venueName} {example.raceNumber}R /
+                          {" "}{example.windSpeedMps}m/s（{example.windBucketLabel}）/ {example.decisionMethodLabel}
+                        </li>
+                      ))}
+                    </ul>
+                  </article>
+                </div>
+                <div className="ex-empty">
+                  <strong>級班別: {trifectaTrend.weather.classReadiness.status}</strong><br />
+                  {trifectaTrend.weather.classReadiness.note}。partial / future-accumulationとして扱います。
+                </div>
+              </>
+            ) : null}
           </div>
 
           <div className="ex-empty" hidden={activeSectionTab !== "trend"}>
             <strong>ROADMAP / FUTURE-ACCUMULATION</strong><br />
-            最低オッズ比 / 風速×決まり手 / 会場クセ / 今日の流れメーター
+            最低オッズ比 / 会場クセ / 今日の流れメーター
           </div>
           <div className="ex-muted" hidden={activeSectionTab !== "trend"}>
             official result only / fake prohibited / LOW SAMPLE aware。
