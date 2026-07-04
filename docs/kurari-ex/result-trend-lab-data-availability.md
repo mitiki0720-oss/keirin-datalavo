@@ -487,3 +487,43 @@ transitionはraceNumberが飛ぶ場合や前後どちらかがexcludedの場合�
 
 2026-07-05の画面検証ではtarget date 2026-07-04を`最新取得日ベース`として表示し、対象63R、eligible 62R、excluded 1R（1〜3着車番不足）だった。これはUI固定値ではなく、feed更新に追随する監査snapshotである。
 
+## 32-08 分析カバレッジMAP / 予想構造LAB v1
+
+独立した`予想構造LAB / analysis coverage map v1`タブを追加した。目的は新規数値分析ではなく、既存分析との重複、source availability、2か月historical backfill後の再検証対象を可視化することである。
+
+### 重複監査
+
+- 出目・車番ランキングは`出目ランキング`
+- 配当カテゴリ・平均・中央値・最大は`荒れ指数`
+- 本命戻り・波乱加速・荒れ連鎖・中穴 / 堅め継続は`レース連鎖`と`今日の流れ`
+- 風速・1着決まり手は`WEATHER`
+- 内外枠・1番車・逃げ / 捲り・平均配当・万車券は`会場クセ`
+- 最新結果日・会場別直近R・当日transitionは`今日の流れ`
+- 会場・選手・対戦・条件・役割・SHB・recommendationは`EX ANALYSIS`
+
+上記数値は32-08で再集計・コピー表示せず、coverage matrixとexisting tab mapに`既存タブで確認`と表示する。
+
+### 希望11項目のstatus
+
+1. 決まり手総合計: `partial`。1着は既存タブ、2着はbackfill後に再検証
+2. 決まり手×カテゴリ: `データ未掲載`
+3. 風向ベクトル×決まり手: `future-accumulation`
+4. 別風速帯×決まり手・平均配当: `partial`。既存bucketとは別でbackfill後のfuture refinement
+5. 並び形×ヒット構造: `future-accumulation`
+6. 配当帯×カテゴリ: `データ未掲載`
+7. SB有無×2着最適化: `future-accumulation`
+8. 3連単出目ランキング（グレード別）: `データ未掲載`
+9. 1番人気の着順・飛び: `future-accumulation`
+10. ライン構成の有利・不利: `データ未掲載`
+11. B選手残り: `future-accumulation`
+
+summary件数はこの11項目のstatus配列、既存タブ参照、backfillTarget、requiredSourcesから動的countする。分析数値や古いcoverage値はハードコードしない。
+
+### category board / backfill
+
+モーニング、デイ、ナイター、ミッドナイトのA級 / S級7車とGレースS級9車を行にし、決まり手、風向、風速帯、配当帯、SB/B、人気順、ライン構成、出目グレード別のavailabilityを表示する。raceClass / grade / carCount / timeBandを推測分類しない。
+
+backfill checklistはconfirmed official result、3連単払戻、1〜3着車番、決まり手、風速、風向、raceClass、grade、carCount、timeBand、B/SB、並び構造、人気順、締切前オッズ、オッズ変動、source取得日時、provenanceを対象とする。
+
+1番人気と1番車を混同せず、風向、ライン、コマ数、B/SBを推測しない。source-backed contractが揃うまでは`partial / future-accumulation / unavailable / データ未掲載`を維持し、fakeや推測補完を行わない。
+

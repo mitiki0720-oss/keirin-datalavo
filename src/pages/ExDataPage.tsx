@@ -96,9 +96,16 @@ import type {
   KurariExStartersAvailabilitySummary,
 } from "../types/kurariEx";
 import {
+  KURARI_EX_BACKFILL_CHECKLIST,
+  KURARI_EX_EXISTING_TAB_MAP,
+  KURARI_EX_PREDICTION_STRUCTURE_ITEMS,
+  KURARI_EX_PREDICTION_STRUCTURE_SUMMARY,
+  KURARI_EX_STRUCTURE_CATEGORIES,
+  KURARI_EX_STRUCTURE_CATEGORY_COLUMNS,
   loadKurariExTrifectaTrendV1,
 } from "../lib/kurariExResultTrendLab";
 import type {
+  KurariExCoverageStatus,
   KurariExTrendCarTop3Row,
   KurariExTrendRankingRow,
   KurariExTrifectaTrendV1,
@@ -120,6 +127,7 @@ type ExSectionTab =
   | "weather"
   | "venue-bias"
   | "today-flow"
+  | "structure-lab"
   | "analysis";
 
 const EX_SECTION_TABS: Array<{
@@ -137,6 +145,7 @@ const EX_SECTION_TABS: Array<{
   { key: "weather", label: "WEATHER", sublabel: "風速×決まり手" },
   { key: "venue-bias", label: "会場クセ", sublabel: "venue bias v1" },
   { key: "today-flow", label: "今日の流れ", sublabel: "today flow meter v1" },
+  { key: "structure-lab", label: "予想構造LAB", sublabel: "analysis coverage map v1" },
   { key: "analysis", label: "EX ANALYSIS", sublabel: "会場・選手・対戦" },
 ];
 
@@ -426,6 +435,18 @@ function SectionTitle({ eyebrow, title, lead }: { eyebrow: string; title: string
 
 function EmptyState({ text }: { text: string }) {
   return <div className="ex-empty">{text}</div>;
+}
+
+const COVERAGE_STATUS_LABELS: Record<KurariExCoverageStatus, string> = {
+  implemented: "implemented",
+  partial: "partial",
+  "future-accumulation": "future-accumulation",
+  unavailable: "unavailable",
+  "not-published": "データ未掲載",
+};
+
+function CoverageStatusPill({ status }: { status: KurariExCoverageStatus }) {
+  return <span className={`ex-coverage-status is-${status}`}>{COVERAGE_STATUS_LABELS[status]}</span>;
 }
 
 const KURARI_EX_ANALYSIS_INVENTORY_BY_CATEGORY = Array.from(
@@ -2219,9 +2240,10 @@ export default function ExDataPage() {
         .ex-main { box-sizing: border-box; width: min(1880px, calc(100% - ${isMobile ? "32px" : "40px"})); max-width: 1880px; min-width: 0; margin-inline: auto; padding: ${isMobile ? "24px 0 64px" : "42px 0 92px"}; display: grid; gap: 24px; }
         .ex-main > * { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
         .ex-panel, .ex-section, .ex-subsection, .ex-detail, .ex-workspace, .ex-table-wrap { min-width: 0; max-width: 100%; box-sizing: border-box; }
+        .ex-subsection, .ex-table-wrap { width: 100%; }
         .ex-main h1, .ex-main h2, .ex-main h3, .ex-main h4, .ex-main p, .ex-main li, .ex-main td, .ex-main th, .ex-main span, .ex-main strong { overflow-wrap: anywhere; }
-        .ex-health-grid, .ex-kpi-grid, .ex-location-grid, .ex-category-grid, .ex-insights, .ex-note-grid, .ex-trend-ranking-grid, .ex-turbulence-category-grid, .ex-chain-type-grid, .ex-chain-examples, .ex-weather-bucket-grid, .ex-weather-venue-grid, .ex-venue-bias-grid, .ex-venue-definition-grid, .ex-today-flow-grid, .ex-today-flow-meter { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
-        .ex-health-grid > *, .ex-kpi-grid > *, .ex-location-grid > *, .ex-category-grid > *, .ex-insights > *, .ex-note-grid > *, .ex-trend-ranking-grid > *, .ex-turbulence-category-grid > *, .ex-chain-type-grid > *, .ex-chain-examples > *, .ex-venue-bias-grid > *, .ex-venue-definition-grid > *, .ex-today-flow-grid > *, .ex-today-flow-meter > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
+        .ex-health-grid, .ex-kpi-grid, .ex-location-grid, .ex-category-grid, .ex-insights, .ex-note-grid, .ex-trend-ranking-grid, .ex-turbulence-category-grid, .ex-chain-type-grid, .ex-chain-examples, .ex-weather-bucket-grid, .ex-weather-venue-grid, .ex-venue-bias-grid, .ex-venue-definition-grid, .ex-today-flow-grid, .ex-today-flow-meter, .ex-coverage-tab-map, .ex-backfill-grid, .ex-definition-grid { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+        .ex-health-grid > *, .ex-kpi-grid > *, .ex-location-grid > *, .ex-category-grid > *, .ex-insights > *, .ex-note-grid > *, .ex-trend-ranking-grid > *, .ex-turbulence-category-grid > *, .ex-chain-type-grid > *, .ex-chain-examples > *, .ex-venue-bias-grid > *, .ex-venue-definition-grid > *, .ex-today-flow-grid > *, .ex-today-flow-meter > *, .ex-coverage-tab-map > *, .ex-backfill-grid > *, .ex-definition-grid > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
         .ex-main [hidden] { display: none !important; }
         .ex-section-tabs { display: grid; grid-template-columns: repeat(auto-fit,minmax(${isMobile ? "128px" : "150px"},1fr)); gap: 9px; padding: 12px; border: 1px solid rgba(190,194,224,.62); border-radius: 24px; background: rgba(255,255,255,.82); box-shadow: 0 16px 40px rgba(82,74,135,.08); }
         .ex-section-tab { min-width: 0; cursor: pointer; display: grid; gap: 4px; padding: 12px 13px; border: 1px solid #e2e2ed; border-radius: 16px; background: rgba(248,249,253,.9); color: #657187; text-align: left; }
@@ -2473,6 +2495,27 @@ export default function ExDataPage() {
         .ex-today-flow-hints { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(150px,100%),1fr)); gap: 9px; }
         .ex-today-flow-hints article { min-width: 0; padding: 14px; border: 1px solid #e0e4ed; border-radius: 16px; background: rgba(255,255,255,.86); }
         .ex-today-flow-hints strong { display: block; margin-top: 5px; color: #5b4794; font: 850 24px/1 ${serif}; }
+        .ex-coverage-status { display: inline-flex; width: fit-content; max-width: 100%; padding: 5px 8px; border-radius: 999px; background: #edf0f4; color: #626d7e; font-size: 8px; font-weight: 950; line-height: 1.35; overflow-wrap: anywhere; }
+        .ex-coverage-status.is-implemented { color: #23664c; background: #daf5e8; }
+        .ex-coverage-status.is-partial { color: #315f91; background: #e1efff; }
+        .ex-coverage-status.is-future-accumulation { color: #6a7280; background: #eceef2; }
+        .ex-coverage-status.is-unavailable { color: #9a3d4f; background: #ffe8ed; }
+        .ex-coverage-status.is-not-published { color: #925711; background: #fff0d3; }
+        .ex-coverage-matrix { min-width: 1120px; }
+        .ex-coverage-matrix td { white-space: normal; min-width: 150px; line-height: 1.65; vertical-align: top; }
+        .ex-coverage-matrix td:first-child { min-width: 210px; color: #263650; font-weight: 850; }
+        .ex-category-board { min-width: 1080px; }
+        .ex-category-board td, .ex-category-board th { white-space: normal; text-align: center; }
+        .ex-category-board td:first-child { min-width: 180px; text-align: left; color: #263650; font-weight: 850; }
+        .ex-coverage-tab-map { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(260px,100%),1fr)); gap: 10px; }
+        .ex-coverage-tab-map article { min-width: 0; padding: 15px; border: 1px solid #e0e5ed; border-radius: 17px; background: rgba(255,255,255,.86); }
+        .ex-coverage-tab-map h3 { margin: 0 0 7px; color: #4f4383; font: 800 17px/1.35 ${serif}; }
+        .ex-coverage-tab-map p { margin: 0; color: #69768b; font-size: 10px; line-height: 1.7; }
+        .ex-backfill-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(210px,100%),1fr)); gap: 9px; }
+        .ex-backfill-grid article { min-width: 0; display: grid; gap: 7px; padding: 13px; border: 1px solid #e1e5ed; border-radius: 15px; background: rgba(255,255,255,.84); }
+        .ex-backfill-grid strong { color: #37465c; font-size: 11px; overflow-wrap: anywhere; }
+        .ex-definition-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(250px,100%),1fr)); gap: 9px; }
+        .ex-definition-grid article { min-width: 0; padding: 14px; border-left: 4px solid #8470bf; border-radius: 0 15px 15px 0; background: #f7f5ff; color: #5c687c; font-size: 10px; line-height: 1.75; }
         .ex-chain-example h3 { margin: 0; color: #30405a; font: 800 17px/1.35 ${serif}; }
         .ex-chain-example p { margin: 0; color: #68758a; font-size: 11px; line-height: 1.65; }
         .ex-data-table { width: 100%; border-collapse: collapse; min-width: 580px; color: #526078; font-size: 12px; }
@@ -2480,7 +2523,7 @@ export default function ExDataPage() {
         .ex-data-table th { color: #7765ae; font-size: 10px; letter-spacing: .08em; }
         .ex-table-wrap { max-width: 100%; overflow-x: auto; border: 1px solid #e4e7ee; border-radius: 18px; background: rgba(255,255,255,.7); }
         .ex-low-sample { display: inline-flex; margin-top: 8px; padding: 4px 7px; border-radius: 999px; background: #fff2dc; color: #985b15; font-size: 9px; font-weight: 900; }
-        .ex-subsection { display: grid; gap: 13px; padding-top: 4px; }
+        .ex-subsection { display: grid; grid-template-columns: minmax(0,1fr); gap: 13px; padding-top: 4px; }
         .ex-category-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 2}, minmax(0,1fr)); gap: 12px; }
         .ex-category-card { padding: 18px; border: 1px solid #e1e8ee; border-radius: 20px; background: linear-gradient(145deg,#fff,#f5fbf8); }
         .ex-category-card h4 { margin: 0 0 12px; color: #276b59; font-size: 12px; letter-spacing: .1em; }
@@ -2696,7 +2739,7 @@ export default function ExDataPage() {
               role="tab"
               aria-label={tab.label}
               aria-selected={activeSectionTab === tab.key}
-              aria-controls={["trend", "ranking", "turbulence", "chain", "weather", "venue-bias", "today-flow"].includes(tab.key)
+              aria-controls={["trend", "ranking", "turbulence", "chain", "weather", "venue-bias", "today-flow", "structure-lab"].includes(tab.key)
                 ? "ex-section-trend-lab"
                 : `ex-section-${tab.key}`}
               onClick={() => setActiveSectionTab(tab.key)}
@@ -2784,7 +2827,7 @@ export default function ExDataPage() {
           className="ex-panel ex-section"
           data-testid="result-trend-lab-roadmap"
           id="ex-section-trend-lab"
-          hidden={!["trend", "ranking", "turbulence", "chain", "weather", "venue-bias", "today-flow"].includes(activeSectionTab)}
+          hidden={!["trend", "ranking", "turbulence", "chain", "weather", "venue-bias", "today-flow", "structure-lab"].includes(activeSectionTab)}
         >
           <SectionTitle
             eyebrow="KURARI EX RESULT TREND LAB"
@@ -3765,6 +3808,158 @@ export default function ExDataPage() {
                 </div>
               </>
             ) : null}
+          </div>
+
+          <div className="ex-subsection" data-testid="result-trend-lab-structure-coverage-v1" hidden={activeSectionTab !== "structure-lab"}>
+            <SectionTitle
+              eyebrow="ANALYSIS COVERAGE MAP / PREDICTION STRUCTURE LAB v1"
+              title="分析カバレッジMAP / 予想構造LAB v1"
+              lead="新規数値分析を重複実装せず、既存タブの所在、現在のsource availability、2か月backfill後の検証対象を整理します。"
+            />
+            <div className="ex-overview-status">
+              <span className="ex-trend-status-pill is-ready">no duplicate metrics</span>
+              <span className="ex-trend-status-pill is-ready">official/source-backed only</span>
+              <span className="ex-trend-status-pill is-ready">fake prohibited</span>
+              <span className="ex-trend-status-pill is-caution">no inferred favorite</span>
+              <span className="ex-trend-status-pill is-caution">no inferred line</span>
+              <span className="ex-trend-status-pill is-caution">no inferred B/SB</span>
+              <span className="ex-trend-status-pill is-partial">availability-first</span>
+              <span className="ex-trend-status-pill is-partial">backfill-ready</span>
+            </div>
+
+            <div className="ex-kpi-grid">
+              <MetricCard
+                label="COVERED BY EXISTING TABS"
+                value={KURARI_EX_PREDICTION_STRUCTURE_SUMMARY.coveredByExistingTabs.toLocaleString("ja-JP")}
+                note="数値は既存タブで確認"
+              />
+              <MetricCard
+                label="FUTURE-ACCUMULATION"
+                value={KURARI_EX_PREDICTION_STRUCTURE_SUMMARY.futureAccumulation.toLocaleString("ja-JP")}
+                note="source蓄積待ち"
+                warning
+              />
+              <MetricCard
+                label="UNAVAILABLE"
+                value={KURARI_EX_PREDICTION_STRUCTURE_SUMMARY.unavailable.toLocaleString("ja-JP")}
+                note="unknownをimplementedにしない"
+                warning={KURARI_EX_PREDICTION_STRUCTURE_SUMMARY.unavailable > 0}
+              />
+              <MetricCard
+                label="BACKFILL TARGETS"
+                value={KURARI_EX_PREDICTION_STRUCTURE_SUMMARY.backfillTargets.toLocaleString("ja-JP")}
+                note="2か月backfill後に再検証"
+              />
+              <MetricCard
+                label="SOURCE-NEEDED"
+                value={KURARI_EX_PREDICTION_STRUCTURE_SUMMARY.sourceNeeded.toLocaleString("ja-JP")}
+                note="requiredSourcesから動的count"
+                warning
+              />
+            </div>
+
+            <div>
+              <SectionTitle
+                eyebrow="COVERAGE MATRIX"
+                title="希望分析11項目"
+                lead="実装済み数値はコピーせず「既存タブで確認」とし、未取得sourceは空欄にせずstatusを明記します。"
+              />
+              <div className="ex-table-wrap">
+                <table className="ex-data-table ex-coverage-matrix">
+                  <thead>
+                    <tr>
+                      <th>分析項目</th>
+                      <th>現在status</th>
+                      <th>既存タブとの関係</th>
+                      <th>必要source</th>
+                      <th>backfill後の予定</th>
+                      <th>fake禁止メモ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {KURARI_EX_PREDICTION_STRUCTURE_ITEMS.map((item) => (
+                      <tr key={item.id}>
+                        <td>{item.label}</td>
+                        <td><CoverageStatusPill status={item.status} /></td>
+                        <td>{item.existingTabs.length ? `既存タブで確認: ${item.existingTabs.join(" / ")}` : "重複なし / 新規source待ち"}</td>
+                        <td>{item.requiredSources.join(" / ") || "データ未掲載"}</td>
+                        <td>{item.backfillPlan}</td>
+                        <td>{item.fakeProhibition}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div>
+              <SectionTitle
+                eyebrow="CATEGORY BOARD"
+                title="カテゴリ別 availability"
+                lead="raceClass / grade / carCount / timeBandを推測せず、各セルをsource readinessとして表示します。"
+              />
+              <div className="ex-table-wrap">
+                <table className="ex-data-table ex-category-board">
+                  <thead>
+                    <tr>
+                      <th>カテゴリ</th>
+                      {KURARI_EX_STRUCTURE_CATEGORY_COLUMNS.map((column) => <th key={column.key}>{column.label}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {KURARI_EX_STRUCTURE_CATEGORIES.map((category) => (
+                      <tr key={category}>
+                        <td>{category}</td>
+                        {KURARI_EX_STRUCTURE_CATEGORY_COLUMNS.map((column) => (
+                          <td key={column.key}><CoverageStatusPill status={column.status} /></td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div>
+              <SectionTitle eyebrow="EXISTING TAB MAP" title="既存分析の所在" />
+              <div className="ex-coverage-tab-map">
+                {KURARI_EX_EXISTING_TAB_MAP.map((item) => (
+                  <article key={item.tab}>
+                    <h3>{item.tab}</h3>
+                    <p>{item.coverage}</p>
+                    <div style={{ marginTop: 9 }}><CoverageStatusPill status="implemented" /></div>
+                  </article>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <SectionTitle
+                eyebrow="BACKFILL CHECKLIST"
+                title="2か月historical backfill source"
+                lead="source取得日時とprovenanceを含め、再集計前にsource-backed contractを確認します。"
+              />
+              <div className="ex-backfill-grid">
+                {KURARI_EX_BACKFILL_CHECKLIST.map((item) => (
+                  <article key={item.source}>
+                    <strong>{item.source}</strong>
+                    <CoverageStatusPill status={item.status} />
+                  </article>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <SectionTitle eyebrow="DEFINITION NOTES" title="推測禁止と分類ルール" />
+              <div className="ex-definition-grid">
+                <article><strong>バック基準の風向</strong><br />バック線方向に対する向かい / 追い / 横2種 / 無風 / 不明をsource-backedで定義し、風向を推測しない。</article>
+                <article><strong>1番人気と1番車</strong><br />別概念として扱い、1番車飛び率から1番人気の着順や人気を推測しない。</article>
+                <article><strong>B/SB</strong><br />officialまたは検証済みsourceだけを使い、逃げ決まり手や着順からB/SBを補完しない。</article>
+                <article><strong>ライン構成</strong><br />構造化された並びsourceのみ。地区、選手名、脚質からラインやコマ数を作らない。</article>
+                <article><strong>カテゴリ分類</strong><br />raceClass / grade / carCount / timeBandが揃う範囲のみ。開催名から推測しない。</article>
+                <article><strong>LOW SAMPLE</strong><br />backfill後も参考情報であり、予想の主根拠やimplemented判定には使わない。</article>
+              </div>
+            </div>
           </div>
 
           <div className="ex-empty" hidden={activeSectionTab !== "trend"}>

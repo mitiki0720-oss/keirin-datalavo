@@ -309,6 +309,204 @@ export type KurariExTodayFlowV1 = {
   };
 };
 
+export type KurariExCoverageStatus =
+  | "implemented"
+  | "partial"
+  | "future-accumulation"
+  | "unavailable"
+  | "not-published";
+
+export type KurariExPredictionStructureItem = {
+  id: string;
+  label: string;
+  status: KurariExCoverageStatus;
+  existingTabs: string[];
+  requiredSources: string[];
+  backfillPlan: string;
+  fakeProhibition: string;
+  backfillTarget: boolean;
+};
+
+export const KURARI_EX_PREDICTION_STRUCTURE_ITEMS: KurariExPredictionStructureItem[] = [
+  {
+    id: "decision-method-total",
+    label: "決まり手の総合計（1着 / 2着）",
+    status: "partial",
+    existingTabs: ["WEATHER", "会場クセ"],
+    requiredSources: ["1着決まり手", "2着決まり手", "source取得日時", "provenance"],
+    backfillPlan: "1着は既存タブで確認。2着決まり手sourceを2か月backfill後に再検証",
+    fakeProhibition: "着順や3連単から2着決まり手を推測しない",
+    backfillTarget: true,
+  },
+  {
+    id: "decision-by-category",
+    label: "決まり手 × カテゴリ（1着 / 2着）",
+    status: "not-published",
+    existingTabs: [],
+    requiredSources: ["raceClass", "grade", "carCount", "timeBand", "1着 / 2着決まり手"],
+    backfillPlan: "カテゴリsource contract確立後に8カテゴリを再検証",
+    fakeProhibition: "開催時刻やgradeから級班・車立てを推測分類しない",
+    backfillTarget: true,
+  },
+  {
+    id: "wind-vector-decision",
+    label: "風向ベクトル × 決まり手",
+    status: "future-accumulation",
+    existingTabs: ["WEATHER（風速のみ）"],
+    requiredSources: ["風向", "バック基準方向", "決まり手", "provenance"],
+    backfillPlan: "バック基準ルールとofficial風向sourceを整備後に再検証",
+    fakeProhibition: "風向を会場形状や天候から推測しない",
+    backfillTarget: true,
+  },
+  {
+    id: "wind-band-decision-payout",
+    label: "風速帯 × 決まり手 ＆ 平均配当",
+    status: "partial",
+    existingTabs: ["WEATHER", "荒れ指数", "会場クセ"],
+    requiredSources: ["風速", "決まり手", "3連単払戻", "長期provenance"],
+    backfillPlan: "別bucket再集計と配当結合はbackfill後のfuture refinement",
+    fakeProhibition: "既存数値を別bucketへ按分・補間しない",
+    backfillTarget: true,
+  },
+  {
+    id: "line-shape-hit",
+    label: "並び形 × ヒット構造",
+    status: "future-accumulation",
+    existingTabs: [],
+    requiredSources: ["構造化された並び", "ラインID", "コマ数", "provenance"],
+    backfillPlan: "source-backed並び構造を蓄積後に再検証",
+    fakeProhibition: "地区・選手名・脚質からライン形やコマ数を推測しない",
+    backfillTarget: true,
+  },
+  {
+    id: "payout-band-category",
+    label: "配当帯 × カテゴリ",
+    status: "not-published",
+    existingTabs: ["荒れ指数", "今日の流れ"],
+    requiredSources: ["3連単払戻", "raceClass", "grade", "carCount", "timeBand"],
+    backfillPlan: "配当帯定義とカテゴリsource確立後のfuture refinement",
+    fakeProhibition: "既存の荒れカテゴリをカテゴリ別分析としてコピーしない",
+    backfillTarget: true,
+  },
+  {
+    id: "sb-second-optimization",
+    label: "SB有無 × 2着の最適化",
+    status: "future-accumulation",
+    existingTabs: [],
+    requiredSources: ["B/SB", "2着決まり手", "2着車番", "provenance"],
+    backfillPlan: "official B/SBと2着sourceの安定取得後に再検証",
+    fakeProhibition: "逃げ決まり手からSBや2着最適化を推測しない",
+    backfillTarget: true,
+  },
+  {
+    id: "trifecta-ranking-grade",
+    label: "3連単 出目ランキング（グレード別）",
+    status: "not-published",
+    existingTabs: ["出目ランキング"],
+    requiredSources: ["raceClass", "grade", "carCount", "3連単結果"],
+    backfillPlan: "A級 / S級 / Gレースのsource-backed分類後に再検証",
+    fakeProhibition: "F1/F2等からA級 / S級を推測しない",
+    backfillTarget: true,
+  },
+  {
+    id: "favorite-rank-pattern",
+    label: "1番人気の着順 or 飛びパターン",
+    status: "future-accumulation",
+    existingTabs: [],
+    requiredSources: ["人気順", "締切前オッズ", "オッズ変動", "確定着順"],
+    backfillPlan: "締切前official odds contract確立後に再検証",
+    fakeProhibition: "1番車と1番人気を混同せず、体感人気を作らない",
+    backfillTarget: true,
+  },
+  {
+    id: "line-size-advantage",
+    label: "ライン構成（コマ数）有利・不利",
+    status: "not-published",
+    existingTabs: [],
+    requiredSources: ["構造化された並び", "ラインID", "コマ数", "結果"],
+    backfillPlan: "source-backedライン構成蓄積後に再検証",
+    fakeProhibition: "地区・選手名からライン構成や有利不利を推測しない",
+    backfillTarget: true,
+  },
+  {
+    id: "b-rider-survival",
+    label: "Bを取った選手が残ったか",
+    status: "future-accumulation",
+    existingTabs: [],
+    requiredSources: ["B選手", "最終着順", "race key", "provenance"],
+    backfillPlan: "official B選手sourceの安定取得後に再検証",
+    fakeProhibition: "逃げ決まり手や着順からB選手を推測しない",
+    backfillTarget: true,
+  },
+];
+
+export const KURARI_EX_STRUCTURE_CATEGORIES = [
+  "モーニング（A級 7車）",
+  "デイ（A級 7車）",
+  "デイ（S級 7車）",
+  "ナイター（A級 7車）",
+  "ナイター（S級 7車）",
+  "ミッドナイト（A級 7車）",
+  "ミッドナイト（S級 7車）",
+  "Gレース（S級 9車）",
+] as const;
+
+export const KURARI_EX_STRUCTURE_CATEGORY_COLUMNS: Array<{
+  key: string;
+  label: string;
+  status: KurariExCoverageStatus;
+}> = [
+  { key: "decision", label: "決まり手", status: "not-published" },
+  { key: "wind-direction", label: "風向", status: "future-accumulation" },
+  { key: "wind-band", label: "風速帯", status: "partial" },
+  { key: "payout-band", label: "配当帯", status: "not-published" },
+  { key: "sb-b", label: "SB/B", status: "future-accumulation" },
+  { key: "popularity", label: "人気順", status: "future-accumulation" },
+  { key: "line", label: "ライン構成", status: "future-accumulation" },
+  { key: "trifecta-grade", label: "出目グレード別", status: "not-published" },
+];
+
+export const KURARI_EX_EXISTING_TAB_MAP = [
+  { tab: "出目ランキング", coverage: "3連単 / 1〜3着車番 / 車番別3着内率" },
+  { tab: "荒れ指数", coverage: "配当カテゴリ / 平均・中央値・最大 / R・会場・G別" },
+  { tab: "レース連鎖", coverage: "本命戻り / 波乱加速 / 荒れ連鎖 / 中穴・堅め継続" },
+  { tab: "WEATHER", coverage: "風速bucket / 決まり手 / matrix / 会場別" },
+  { tab: "会場クセ", coverage: "内外枠 / 1番車 / 逃げ・捲り / 配当" },
+  { tab: "今日の流れ", coverage: "最新結果日 / 会場別直近R / transition" },
+  { tab: "EX ANALYSIS", coverage: "会場 / 選手 / 対戦 / 条件 / 役割 / SHB / recommendation" },
+];
+
+export const KURARI_EX_BACKFILL_CHECKLIST: Array<{
+  source: string;
+  status: KurariExCoverageStatus;
+}> = [
+  { source: "confirmed official result", status: "implemented" },
+  { source: "3連単払戻", status: "implemented" },
+  { source: "1〜3着車番", status: "implemented" },
+  { source: "決まり手", status: "partial" },
+  { source: "風速", status: "partial" },
+  { source: "風向", status: "future-accumulation" },
+  { source: "raceClass", status: "future-accumulation" },
+  { source: "grade", status: "partial" },
+  { source: "carCount", status: "partial" },
+  { source: "timeBand", status: "future-accumulation" },
+  { source: "B/SB", status: "future-accumulation" },
+  { source: "並び構造", status: "future-accumulation" },
+  { source: "人気順", status: "future-accumulation" },
+  { source: "締切前オッズ", status: "future-accumulation" },
+  { source: "オッズ変動", status: "future-accumulation" },
+  { source: "source取得日時", status: "implemented" },
+  { source: "provenance", status: "partial" },
+];
+
+export const KURARI_EX_PREDICTION_STRUCTURE_SUMMARY = {
+  coveredByExistingTabs: KURARI_EX_PREDICTION_STRUCTURE_ITEMS.filter((item) => item.existingTabs.length > 0).length,
+  futureAccumulation: KURARI_EX_PREDICTION_STRUCTURE_ITEMS.filter((item) => item.status === "future-accumulation").length,
+  unavailable: KURARI_EX_PREDICTION_STRUCTURE_ITEMS.filter((item) => item.status === "unavailable").length,
+  backfillTargets: KURARI_EX_PREDICTION_STRUCTURE_ITEMS.filter((item) => item.backfillTarget).length,
+  sourceNeeded: KURARI_EX_PREDICTION_STRUCTURE_ITEMS.filter((item) => item.requiredSources.length > 0).length,
+};
+
 export type KurariExTrifectaTrendV1 = {
   status: "ready" | "no-eligible-data";
   sourcePolicy: "official result only";

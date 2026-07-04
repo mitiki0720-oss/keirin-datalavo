@@ -1090,3 +1090,14 @@ EXページを出目ランキング、荒れ指数、レース連鎖、風速×�
 - LOW SAMPLEは参考表示とし、未来Rや未取得Rを推測しない
 - 締切前オッズ、人気順、オッズ変動は`future-accumulation`、2か月分historical backfillは後続作業
 - fake、推測補完、`public/data/**`への書込みは行わない
+
+## 32-08 analysis coverage map
+
+- `予想構造LAB / analysis coverage map v1`は新規数値分析を作らず、11希望項目のstatusと必要sourceを定義する
+- 既存の出目、配当、transition、風速、決まり手、枠、会場、最新日分析は再集計せず`既存タブで確認`と表示する
+- summary件数はstatus定義配列から動的countする
+- category boardはraceClass / grade / carCount / timeBandが揃うまで`データ未掲載 / future-accumulation / partial`を維持する
+- 1番人気、ライン構成、B/SB、風向、カテゴリ分類はsource-backedになるまで集計しない
+- 2か月historical backfillで17 source項目を確認し、source取得日時とprovenanceを必須監査対象にする
+- 1番車から1番人気、逃げからB/SB、地区・選手名からライン、会場形状から風向を推測しない
+- fake、推測補完、`public/data/**`への書込みは行わない
