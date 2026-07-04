@@ -1,7 +1,6 @@
 import { type ChangeEvent, useEffect, useMemo, useState } from "react";
 import {
   SiteHeader,
-  findPayoutByBetType,
   fetchPredictionVenueWeather,
   getPredictionOddsUnavailableLabel,
   getPredictionVenueStageLabel,
@@ -10,12 +9,6 @@ import {
   resolveRacePayoutByBetType,
   type PredictionWeatherData,
 } from "./PageImplementations";
-import {
-  buildKurariExResultOutputBlock,
-  type KurariExResultRaceStatus,
-  type ReviewResultFinishLike,
-} from "../lib/reviewResultOutputContract";
-
 type PredictionSlotRecord = {
   raceKey: string;
   raceId: string;
@@ -71,6 +64,11 @@ type PredictionRaceResultEntry = {
   registrationNumber?: string | number;
   registrationNoSource?: string;
   registrationNoTrustStatus?: string;
+  prefecture?: string;
+  age?: string | number;
+  term?: string | number;
+  grade?: string;
+  className?: string;
 };
 
 type PredictionRaceResultWeatherActual = {
@@ -98,6 +96,11 @@ type PredictionRaceFinishOrderItem = {
   registrationNumber?: string | number;
   registrationNoSource?: string;
   registrationNoTrustStatus?: string;
+  prefecture?: string;
+  age?: string | number;
+  term?: string | number;
+  grade?: string;
+  className?: string;
 };
 
 type PredictionRaceResult = {
@@ -116,6 +119,8 @@ type PredictionRaceResult = {
   hLeaderCarNo?: string;
   bLeaderCarNo?: string;
   officialResultSource?: string;
+  sourceName?: string;
+  sourceType?: string;
   sourceFetchedAt?: string;
   sourceHash?: string;
 };
@@ -174,8 +179,15 @@ type PredictionRaceItem = {
     registrationId?: string | number;
     registrationNoSource?: string;
     registrationNoTrustStatus?: string;
+    prefecture?: string;
+    age?: string | number;
+    term?: string | number;
+    grade?: string;
+    className?: string;
   }>;
   officialResultSource?: string;
+  sourceName?: string;
+  sourceType?: string;
   sourceFetchedAt?: string;
   sourceHash?: string;
 };
@@ -934,6 +946,8 @@ function compactReviewRaceResultSnapshot(race: PredictionRaceItem): PredictionRa
     result: race.result,
     riders: race.riders,
     officialResultSource: race.officialResultSource,
+    sourceName: race.sourceName,
+    sourceType: race.sourceType,
     sourceFetchedAt: race.sourceFetchedAt,
     sourceHash: race.sourceHash,
   };
@@ -1061,6 +1075,8 @@ function mergeReviewRaceWithSnapshot(
     result: mergePredictionRaceResult(feedRace.result, snapshotRace.result),
     riders: feedRace.riders?.length ? feedRace.riders : snapshotRace.riders,
     officialResultSource: feedRace.officialResultSource || snapshotRace.officialResultSource,
+    sourceName: feedRace.sourceName || snapshotRace.sourceName,
+    sourceType: feedRace.sourceType || snapshotRace.sourceType,
     sourceFetchedAt: feedRace.sourceFetchedAt || snapshotRace.sourceFetchedAt,
     sourceHash: feedRace.sourceHash || snapshotRace.sourceHash,
     sourceNote: feedRace.sourceNote || snapshotRace.sourceNote,
@@ -1135,8 +1151,14 @@ function getResultOrder(record?: PredictionResultRecord, feedRace?: PredictionRa
 function getReviewFinishOrderRows(feedRace?: PredictionRaceItem) {
   const items = feedRace?.result?.finishOrder ?? [];
   const rows = items
-    .map((item): PredictionRaceResultEntry | null => {
-      if (!item || typeof item === "string") return null;
+    .map((item, index): PredictionRaceResultEntry | null => {
+      if (!item) return null;
+      if (typeof item === "string") {
+        return {
+          place: String(index + 1),
+          carNo: item,
+        };
+      }
       return {
         place: item.rank || item.status || "",
         carNo: item.carNo,
@@ -1147,6 +1169,16 @@ function getReviewFinishOrderRows(feedRace?: PredictionRaceItem) {
         sMark: String(item.mark ?? "").includes("S"),
         hMark: String(item.mark ?? "").includes("H"),
         bMark: String(item.mark ?? "").includes("B"),
+        registrationNo: item.registrationNo,
+        registration: item.registration,
+        registrationNumber: item.registrationNumber,
+        registrationNoSource: item.registrationNoSource,
+        registrationNoTrustStatus: item.registrationNoTrustStatus,
+        prefecture: item.prefecture,
+        age: item.age,
+        term: item.term,
+        grade: item.grade,
+        className: item.className,
       };
     })
     .filter((item): item is PredictionRaceResultEntry => item !== null);
@@ -1555,52 +1587,34 @@ function pickReviewTrifectaOdds(
 
 function buildReviewPayoutLines(feedRace?: PredictionRaceItem) {
   const result = feedRace?.result;
-  const lines: string[] = [];
-  const fallbackPayouts = feedRace?.payouts;
-  const payoutWide = dedupeReviewPayoutItems(result?.payoutWide);
-
+  const fallbackPayouts = feedRace?.payouts ?? [];
   const payout2tan = resolveRacePayoutByBetType(feedRace, "2車単");
-  if (payout2tan) {
-    lines.push(`2車単: ${formatReviewPayoutItem(payout2tan)}`);
-  }
-
-  if (result?.payout2fuku?.length) {
-    lines.push(`2車複: ${result.payout2fuku.map(formatReviewPayoutItem).filter(Boolean).join(" / ")}`);
-  }
-
+  const payout2fuku = dedupeReviewPayoutItems(
+    result?.payout2fuku?.length
+      ? result.payout2fuku
+      : fallbackPayouts.filter((item) => normalizeBetTypeLabel(item.betType) === "2車複"),
+  );
   const payout3tan = resolveRacePayoutByBetType(feedRace, "3連単");
-  if (payout3tan) {
-    lines.push(`3連単: ${formatReviewPayoutItem(payout3tan)}`);
-  }
-
   const payout3fuku = resolveRacePayoutByBetType(feedRace, "3連複");
-  if (payout3fuku) {
-    lines.push(`3連複: ${formatReviewPayoutItem(payout3fuku)}`);
-  }
+  const payoutWide = dedupeReviewPayoutItems(
+    result?.payoutWide?.length
+      ? result.payoutWide
+      : fallbackPayouts.filter((item) => normalizeBetTypeLabel(item.betType) === "ワイド"),
+  );
+  const formatItems = (items: Array<{
+    combination?: string | null;
+    payout?: string | null;
+    popularity?: string | null;
+  }>) =>
+    items.map(formatReviewPayoutItem).filter(Boolean).join(" / ") || "未取得";
 
-  if (payoutWide.length) {
-    lines.push(`ワイド: ${payoutWide.map(formatReviewPayoutItem).filter(Boolean).join(" / ")}`);
-  }
-
-  if (lines.length === 0 && fallbackPayouts?.length) {
-    fallbackPayouts.forEach((item) => {
-      const label = normalizeBetTypeLabel(item.betType) || item.betType || "払戻";
-      lines.push(`${label}: ${formatReviewPayoutItem(item)}`);
-    });
-  } else if (fallbackPayouts?.length) {
-    fallbackPayouts.forEach((item) => {
-      const normalizedBetType = normalizeBetTypeLabel(item.betType);
-      if (!normalizedBetType) return;
-      if (normalizedBetType === "2車単" || normalizedBetType === "3連単" || normalizedBetType === "3連複") return;
-      const fallbackItem = findPayoutByBetType(fallbackPayouts, normalizedBetType);
-      if (!fallbackItem) return;
-      const label = normalizedBetType || item.betType || "払戻";
-      const line = `${label}: ${formatReviewPayoutItem(fallbackItem)}`;
-      if (!lines.includes(line)) lines.push(line);
-    });
-  }
-
-  return lines.length > 0 ? lines : ["払戻情報なし"];
+  return [
+    `2車単: ${payout2tan ? formatReviewPayoutItem(payout2tan) : "未取得"}`,
+    `2車複: ${formatItems(payout2fuku)}`,
+    `3連単: ${payout3tan ? formatReviewPayoutItem(payout3tan) : "未取得"}`,
+    `3連複: ${payout3fuku ? formatReviewPayoutItem(payout3fuku) : "未取得"}`,
+    `ワイド: ${formatItems(payoutWide)}`,
+  ];
 }
 
 const REVIEW_ALL_REFUND_TEXT = "\u5168\u8fd4\u9084";
@@ -1759,6 +1773,7 @@ function buildReviewFullResultLines(feedRace?: PredictionRaceItem) {
   if (entries.length === 0) return ["全着順: 接続待ち"];
 
   const lines = entries.map((entry) => {
+    const rider = feedRace?.riders?.find((item) => String(item.carNo ?? "") === String(entry.carNo ?? ""));
     const marks = [
      entry.sMark || feedRace?.result?.sLeaderCarNo === entry.carNo ? "S" : "",
      entry.hMark || feedRace?.result?.hLeaderCarNo === entry.carNo ? "H" : "",
@@ -1767,13 +1782,28 @@ function buildReviewFullResultLines(feedRace?: PredictionRaceItem) {
 
     const markText = marks.length > 0 ? ` ${marks.join("")}` : "";
     const place = entry.place ? (/^\d+$/.test(entry.place) ? `${entry.place}着` : entry.place) : "着順不明";
-    const carNo = entry.carNo ?? "--";
-    const name = cleanReviewRiderName(entry.name);
-    const agari = entry.agari ? ` / 上がり ${entry.agari}` : "";
-    const margin = entry.margin ? ` / ${entry.margin}` : "";
-    const kimarite = entry.kimarite ? ` / 決まり手 ${entry.kimarite}` : "";
+    const registrationNo =
+      entry.registrationNo
+      ?? entry.registration
+      ?? entry.registrationNumber
+      ?? rider?.registrationNo
+      ?? rider?.registration
+      ?? rider?.registrationNumber
+      ?? rider?.registrationId;
+    const fields = [
+      `車番 ${entry.carNo ?? "未取得"}${markText}`,
+      `選手名 ${cleanReviewRiderName(entry.name || rider?.fullName || rider?.name)}`,
+      `登録番号 ${hasRealReviewValue(registrationNo) ? String(registrationNo) : "未取得"}`,
+      `府県 ${entry.prefecture || rider?.prefecture || "未取得"}`,
+      `年齢 ${entry.age ?? rider?.age ?? "未取得"}`,
+      `期 ${entry.term ?? rider?.term ?? "未取得"}`,
+      `級班 ${entry.className || entry.grade || rider?.className || rider?.grade || "未取得"}`,
+      `上がり ${entry.agari || "未取得"}`,
+      `着差 ${entry.margin || "未取得"}`,
+      `決まり手 ${entry.kimarite || "未取得"}`,
+    ];
 
-    return `${place}: ${carNo}${markText} ${name}${agari}${margin}${kimarite}`;
+    return `${place}: ${fields.join(" / ")}`;
   });
 
   const scopeNote = getReviewFullResultScopeNote(feedRace);
@@ -1810,13 +1840,16 @@ function hasReviewWeatherActual(
 
 function formatReviewWeatherActualLines(weatherActual: PredictionRaceResultWeatherActual) {
   return [
+    "区分: WEATHER ACTUAL",
     `天候: ${weatherActual.weather ?? "--"}`,
     `風向: ${weatherActual.windDirection ?? "--"}`,
     `風速: ${weatherActual.windSpeed ?? "--"}`,
     `気温: ${weatherActual.temperature ?? "--"}`,
-    weatherActual.precipitation ? `降水: ${weatherActual.precipitation}` : "",
-    weatherActual.referenceText ? `基準: ${weatherActual.referenceText}` : "",
-  ].filter(Boolean);
+    `降水: ${weatherActual.precipitation ?? "--"}`,
+    `基準時刻: ${weatherActual.referenceText ?? "--"}`,
+    `採用情報: ${weatherActual.source ?? "未取得"}`,
+    `取得日時: ${weatherActual.fetchedAt ?? "未取得"}`,
+  ];
 }
 
 function buildReviewWeatherLines(
@@ -2120,82 +2153,26 @@ function findReviewFeedRace(
   return venue?.races?.find((item) => item.raceNo === race.raceNumber);
 }
 
-type ReviewResultOutputLinks = {
-  linkedPredictionFile?: string;
-  linkedSummaryFile?: string;
-  linkedReviewFile?: string;
-};
-
-function resolveKurariExResultRaceStatus(
-  feedRace?: PredictionRaceItem,
-): KurariExResultRaceStatus {
-  if (feedRace?.raceOperationStatus === "postponed") return "postponed";
-  if (feedRace?.raceOperationStatus === "cancelled" || isReviewAllRefundRace(feedRace)) {
-    return "cancelled";
-  }
-  if (
-    feedRace?.raceOperationStatus === "finished"
-    || feedRace?.result?.status === "confirmed"
-    || feedRace?.resultStatus === "confirmed"
-  ) {
-    return "finished";
-  }
-  return "unknown";
-}
-
-function getKurariExResultFinishOrder(
-  feedRace?: PredictionRaceItem,
-): ReviewResultFinishLike[] {
-  const finishOrder = feedRace?.result?.finishOrder ?? [];
-  if (finishOrder.length > 0) {
-    return finishOrder.map((item, index) => (
-      typeof item === "string"
-        ? { rank: String(index + 1), carNo: item }
-        : {
-            rank: item.rank || item.status,
-            carNo: item.carNo,
-            playerName: item.name,
-            registrationNo: item.registrationNo,
-            registration: item.registration,
-            registrationNumber: item.registrationNumber,
-            registrationNoSource: item.registrationNoSource,
-            registrationNoTrustStatus: item.registrationNoTrustStatus,
-          }
-    ));
-  }
-
-  return (feedRace?.resultTop3 ?? []).map((item) => ({
-    rank: item.place,
-    carNo: item.carNo,
-    playerName: item.name,
-    registrationNo: item.registrationNo,
-    registration: item.registration,
-    registrationNumber: item.registrationNumber,
-    registrationNoSource: item.registrationNoSource,
-    registrationNoTrustStatus: item.registrationNoTrustStatus,
-  }));
-}
-
 function buildResultCopy(
   group: VenueReviewGroup,
   reviewWeatherActualMap: ReviewWeatherActualMap = {},
   latestFeed?: PredictionTodayFeed | null,
-  outputLinks: ReviewResultOutputLinks = {},
 ) {
-  const lines = [`${group.venue}｜${formatDateLabel(group.date)}｜結果照合用`];
-  lines.push("");
-
-  const groupFallbackWeatherActual =
-    group.races
-      .map((race) => {
-        const key = buildReviewRaceResultSnapshotKey(race.date, race.venue, race.raceNumber);
-        return (
-          race.resultRecord?.weatherActual ??
-          race.feedRace?.result?.weatherActual ??
-          reviewWeatherActualMap[key]
-        );
-      })
-      .find((weatherActual) => hasReviewWeatherActual(weatherActual));
+  const raceNumbers = group.races.map((race) => race.raceNumber);
+  const targetRaceLabel = raceNumbers.length > 0
+    ? raceNumbers.map((raceNumber) => `${raceNumber}R`).join(", ")
+    : "対象なし";
+  const lines = [
+    "====================",
+    "【Review結果まとめ】",
+    `対象日: ${group.date || "未取得"}`,
+    `対象会場: ${group.venue || "未取得"}`,
+    `対象R: ${targetRaceLabel}`,
+    "用途: summary作成用",
+    "fake補完禁止: 素材にない結果・登録番号・source情報は未取得のまま扱う",
+    "====================",
+    "",
+  ];
 
   group.races.forEach((race) => {
     const resolvedMetrics = resolvePredictionResultMetrics({
@@ -2219,41 +2196,65 @@ function buildResultCopy(
       reviewWeatherActualMap[raceWeatherKey];    
     const latestFeedRace = findReviewFeedRace(latestFeed, race);
     const finalOddsReference = resolveReviewFinalOddsReference(latestFeedRace, race.feedRace);
-
-    lines.push(`■ ${group.venue} ${race.raceNumber}R`);
-    lines.push(`レース名: ${race.feedRace?.title ?? group.title ?? "レース名未取得"}`);
-    lines.push(`発走時刻: ${race.feedRace?.time ?? "--"}`);
     const resultStatusLabel = getReviewResultStatusLabel(race.feedRace);
     const resultOrderLabel = getReviewResultOrderLabel(race.feedRace, resultOrder);
     const hitStatusLabel = getReviewHitStatusLabelForCopy(race.feedRace, hitStatus);
     const hitBetTypeLabel = isReviewAllRefundRace(race.feedRace) ? REVIEW_ALL_REFUND_TEXT : race.resultRecord?.hitBetType ?? "--";
     const hitCombinationLabel = isReviewAllRefundRace(race.feedRace) ? REVIEW_ALL_REFUND_TEXT : race.resultRecord?.hitCombination ?? "--";
+    const hitMeaning = hitStatusLabel === "hit"
+      ? "的中"
+      : hitStatusLabel === "miss"
+        ? "不的中"
+        : hitStatusLabel;
+    const finishRows = getReviewFinishOrderRows(race.feedRace);
+    const topResultLabel = (index: number) => {
+      const entry = finishRows[index];
+      if (!entry) return "未取得";
+      const rider = race.feedRace?.riders?.find((item) => String(item.carNo ?? "") === String(entry.carNo ?? ""));
+      return `${entry.carNo ?? "未取得"} ${cleanReviewRiderName(entry.name || rider?.fullName || rider?.name)}`;
+    };
+    const officialResultSource =
+      race.feedRace?.result?.officialResultSource
+      ?? race.feedRace?.officialResultSource;
+    const sourceName =
+      race.feedRace?.result?.sourceName
+      ?? race.feedRace?.sourceName;
+    const sourceType =
+      race.feedRace?.result?.sourceType
+      ?? race.feedRace?.sourceType;
+    const sourceFetchedAt =
+      race.feedRace?.result?.sourceFetchedAt
+      ?? race.feedRace?.sourceFetchedAt;
 
-    lines.push("\u7d50\u679c\u78ba\u5b9a: " + resultStatusLabel);
-    lines.push("\u7740\u9806: " + resultOrderLabel);
-    lines.push("3\u9023\u5358\u7167\u5408\u30ad\u30fc: " + (isReviewAllRefundRace(race.feedRace) ? REVIEW_ALL_REFUND_TEXT : resultOrderLabel));
-    lines.push("\u6700\u7d42\u5224\u5b9a: " + hitStatusLabel);
-    lines.push("\u7684\u4e2d\u5238\u7a2e: " + hitBetTypeLabel);
-    lines.push("\u7684\u4e2d\u7d44\u307f\u5408\u308f\u305b: " + hitCombinationLabel);
+    lines.push("====================");
+    lines.push(`【${race.raceNumber}R】`);
+    lines.push("【結果判定】");
+    lines.push(`日付: ${race.date || "未取得"}`);
+    lines.push(`会場: ${race.venue || "未取得"}`);
+    lines.push(`R: ${race.raceNumber}R`);
+    lines.push(`race_id: ${race.resultRecord?.raceId || "未取得"}`);
+    lines.push(`レース名: ${race.feedRace?.title ?? group.title ?? "未取得"}`);
+    lines.push(`発走: ${race.feedRace?.time ?? "未取得"}`);
+    lines.push("結果確定ステータス: " + resultStatusLabel);
+    lines.push(`最終判定: ${hitStatusLabel}${hitMeaning !== hitStatusLabel ? `（${hitMeaning}）` : ""}`);
+    lines.push("的中券種: " + hitBetTypeLabel);
+    lines.push("的中組み合わせ: " + hitCombinationLabel);
+    lines.push("3連単照合キー: " + (isReviewAllRefundRace(race.feedRace) ? REVIEW_ALL_REFUND_TEXT : resultOrderLabel));
     lines.push(`投資: ${investment}`);
     lines.push(`払戻: ${payout}`);
     lines.push(`収支: ${profit}`);
     lines.push(`回収率: ${roi}`);
     lines.push("");
 
-    lines.push("【決まり手】");
+    lines.push("【実際の結果】");
+    lines.push(`着順: ${resultOrderLabel}`);
+    lines.push(`1着: ${topResultLabel(0)}`);
+    lines.push(`2着: ${topResultLabel(1)}`);
+    lines.push(`3着: ${topResultLabel(2)}`);
     lines.push(`決まり手: ${kimarite}`);
     lines.push(`1着の決まり手: ${kimarite}`);
-    lines.push(`2着決まり手: ${secondKimarite || "--"}`);
-    lines.push(`SHB: ${sbText || "--"}`);
-    lines.push("");
-
-    lines.push("【WEATHER ACTUAL】");
-    buildReviewWeatherLines(
-      race.feedRace,
-      race.resultRecord,
-      raceWeatherActual ?? groupFallbackWeatherActual
-    ).forEach((line) => lines.push(line));
+    lines.push(`2着の決まり手: ${secondKimarite || "未取得"}`);
+    lines.push(`S/H/B/SB: ${sbText || "未取得"}`);
     lines.push("");
 
     lines.push("【全着順】");
@@ -2264,43 +2265,19 @@ function buildResultCopy(
     buildReviewPayoutLines(race.feedRace).forEach((line) => lines.push(line));
     lines.push("");
 
-    lines.push(buildKurariExResultOutputBlock({
-      date: race.date,
-      venueName: race.venue,
-      raceNumber: race.raceNumber,
-      raceStatus: resolveKurariExResultRaceStatus(race.feedRace),
-      finishOrder: getKurariExResultFinishOrder(race.feedRace),
-      entries: race.feedRace?.riders ?? [],
-      payout: {
-        twoExact: race.feedRace?.result?.payout2tan
-          ?? findPayoutByBetType(race.feedRace?.payouts, "2車単"),
-        twoQuinella: race.feedRace?.result?.payout2fuku
-          ?? [findPayoutByBetType(race.feedRace?.payouts, "2車複")].filter(
-            (item): item is PredictionRaceResultPayoutItem => Boolean(item),
-          ),
-        threeExact: race.feedRace?.result?.payout3tan
-          ?? findPayoutByBetType(race.feedRace?.payouts, "3連単"),
-        threeQuinella: race.feedRace?.result?.payout3fuku
-          ?? findPayoutByBetType(race.feedRace?.payouts, "3連複"),
-        wide: race.feedRace?.result?.payoutWide
-          ?? (race.feedRace?.payouts ?? []).filter(
-            (item) => normalizeBetTypeLabel(item.betType) === "ワイド",
-          ),
-      },
-      source: {
-        officialResultSource:
-          race.feedRace?.result?.officialResultSource
-          ?? race.feedRace?.officialResultSource,
-        sourceFetchedAt:
-          race.feedRace?.result?.sourceFetchedAt
-          ?? race.feedRace?.sourceFetchedAt
-          ?? latestFeed?.generatedAt,
-        sourceHash:
-          race.feedRace?.result?.sourceHash
-          ?? race.feedRace?.sourceHash,
-      },
-      links: outputLinks,
-    }));
+    lines.push("【天気・風 / WEATHER ACTUAL】");
+    buildReviewWeatherLines(
+      race.feedRace,
+      race.resultRecord,
+      raceWeatherActual
+    ).forEach((line) => lines.push(line));
+    lines.push("");
+
+    lines.push("【source】");
+    lines.push(`source名: ${sourceName || "未取得"}`);
+    lines.push(`source取得日時: ${sourceFetchedAt || "未取得"}`);
+    lines.push(`source種別: ${sourceType || "unknown"}`);
+    lines.push(`official source: ${officialResultSource || "未取得"}`);
     lines.push("");
 
     lines.push("【最終オッズ参考】");
@@ -2313,7 +2290,7 @@ function buildResultCopy(
       lines.push("");
     }
 
-    lines.push("----");
+    lines.push("====================");
     lines.push("");
   });
 
@@ -2785,11 +2762,6 @@ export default function ReviewPage() {
             selectedVenueGroup,
             reviewWeatherActualMap,
             todayFeed,
-            {
-              linkedPredictionFile: selectedReviewFileGroup?.predictionFile,
-              linkedSummaryFile: selectedReviewFileGroup?.summaryFile,
-              linkedReviewFile: selectedReviewFileGroup?.resultFile,
-            },
           );
         }
         return selectedReviewFileGroup?.resultText ?? "";
@@ -2803,11 +2775,6 @@ export default function ReviewPage() {
             selectedFileFallbackVenueGroup,
             reviewWeatherActualMap,
             todayFeed,
-            {
-              linkedPredictionFile: selectedReviewFileGroup?.predictionFile,
-              linkedSummaryFile: selectedReviewFileGroup?.summaryFile,
-              linkedReviewFile: selectedReviewFileGroup?.resultFile,
-            },
           )
         : fileResultText;
     },
@@ -3745,6 +3712,9 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                             未反映: {selectedReviewReadiness.resultMissingRaceNumbers.map((raceNumber) => `${raceNumber}R`).join(", ")}
                           </div>
                         ) : null}
+                        <div style={{ marginTop: "6px", fontSize: "11px", lineHeight: 1.6, color: "#6d7687" }}>
+                          summary用・重要結果情報を保持。内部JSONを除外し、払戻・全着順・上がり・天気を残します。
+                        </div>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
   <button
