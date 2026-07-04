@@ -119,6 +119,7 @@ type ExSectionTab =
   | "chain"
   | "weather"
   | "venue-bias"
+  | "today-flow"
   | "analysis";
 
 const EX_SECTION_TABS: Array<{
@@ -135,6 +136,7 @@ const EX_SECTION_TABS: Array<{
   { key: "chain", label: "レース連鎖", sublabel: "transition v1" },
   { key: "weather", label: "WEATHER", sublabel: "風速×決まり手" },
   { key: "venue-bias", label: "会場クセ", sublabel: "venue bias v1" },
+  { key: "today-flow", label: "今日の流れ", sublabel: "today flow meter v1" },
   { key: "analysis", label: "EX ANALYSIS", sublabel: "会場・選手・対戦" },
 ];
 
@@ -2218,8 +2220,8 @@ export default function ExDataPage() {
         .ex-main > * { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
         .ex-panel, .ex-section, .ex-subsection, .ex-detail, .ex-workspace, .ex-table-wrap { min-width: 0; max-width: 100%; box-sizing: border-box; }
         .ex-main h1, .ex-main h2, .ex-main h3, .ex-main h4, .ex-main p, .ex-main li, .ex-main td, .ex-main th, .ex-main span, .ex-main strong { overflow-wrap: anywhere; }
-        .ex-health-grid, .ex-kpi-grid, .ex-location-grid, .ex-category-grid, .ex-insights, .ex-note-grid, .ex-trend-ranking-grid, .ex-turbulence-category-grid, .ex-chain-type-grid, .ex-chain-examples, .ex-weather-bucket-grid, .ex-weather-venue-grid, .ex-venue-bias-grid, .ex-venue-definition-grid { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
-        .ex-health-grid > *, .ex-kpi-grid > *, .ex-location-grid > *, .ex-category-grid > *, .ex-insights > *, .ex-note-grid > *, .ex-trend-ranking-grid > *, .ex-turbulence-category-grid > *, .ex-chain-type-grid > *, .ex-chain-examples > *, .ex-venue-bias-grid > *, .ex-venue-definition-grid > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
+        .ex-health-grid, .ex-kpi-grid, .ex-location-grid, .ex-category-grid, .ex-insights, .ex-note-grid, .ex-trend-ranking-grid, .ex-turbulence-category-grid, .ex-chain-type-grid, .ex-chain-examples, .ex-weather-bucket-grid, .ex-weather-venue-grid, .ex-venue-bias-grid, .ex-venue-definition-grid, .ex-today-flow-grid, .ex-today-flow-meter { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+        .ex-health-grid > *, .ex-kpi-grid > *, .ex-location-grid > *, .ex-category-grid > *, .ex-insights > *, .ex-note-grid > *, .ex-trend-ranking-grid > *, .ex-turbulence-category-grid > *, .ex-chain-type-grid > *, .ex-chain-examples > *, .ex-venue-bias-grid > *, .ex-venue-definition-grid > *, .ex-today-flow-grid > *, .ex-today-flow-meter > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
         .ex-main [hidden] { display: none !important; }
         .ex-section-tabs { display: grid; grid-template-columns: repeat(auto-fit,minmax(${isMobile ? "128px" : "150px"},1fr)); gap: 9px; padding: 12px; border: 1px solid rgba(190,194,224,.62); border-radius: 24px; background: rgba(255,255,255,.82); box-shadow: 0 16px 40px rgba(82,74,135,.08); }
         .ex-section-tab { min-width: 0; cursor: pointer; display: grid; gap: 4px; padding: 12px 13px; border: 1px solid #e2e2ed; border-radius: 16px; background: rgba(248,249,253,.9); color: #657187; text-align: left; }
@@ -2458,6 +2460,19 @@ export default function ExDataPage() {
         .ex-venue-definition-grid article { min-width: 0; padding: 14px; border: 1px solid #e1e5ed; border-radius: 16px; background: rgba(255,255,255,.84); }
         .ex-venue-definition-grid h4 { margin: 0 0 6px; color: #4e4382; font-size: 12px; }
         .ex-venue-definition-grid p { margin: 0; color: #69768b; font-size: 10px; line-height: 1.7; }
+        .ex-today-flow-meter { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(210px,100%),1fr)); gap: 10px; }
+        .ex-today-flow-meter article { min-width: 0; display: grid; gap: 7px; padding: 16px; border: 1px solid #dce5ef; border-radius: 18px; background: linear-gradient(145deg,#fff,#f1f9ff); }
+        .ex-today-flow-meter span { color: #708096; font-size: 9px; font-weight: 900; letter-spacing: .05em; }
+        .ex-today-flow-meter strong { color: #21405e; font: 850 27px/1 ${serif}; }
+        .ex-today-flow-meter small { color: #8490a2; font-size: 9px; line-height: 1.55; }
+        .ex-today-flow-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(350px,100%),1fr)); gap: 12px; }
+        .ex-today-flow-card { min-width: 0; display: grid; gap: 11px; padding: 18px; border: 1px solid #dfe5ed; border-radius: 20px; background: linear-gradient(145deg,#fff,#f5fbff); }
+        .ex-today-flow-card h3 { margin: 0; color: #263650; font: 800 20px/1.35 ${serif}; }
+        .ex-today-flow-recent { display: flex; flex-wrap: wrap; gap: 6px; }
+        .ex-today-flow-recent span { min-width: 0; padding: 7px 8px; border-radius: 11px; background: #f2f5fa; color: #596a80; font-size: 9px; line-height: 1.45; }
+        .ex-today-flow-hints { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(150px,100%),1fr)); gap: 9px; }
+        .ex-today-flow-hints article { min-width: 0; padding: 14px; border: 1px solid #e0e4ed; border-radius: 16px; background: rgba(255,255,255,.86); }
+        .ex-today-flow-hints strong { display: block; margin-top: 5px; color: #5b4794; font: 850 24px/1 ${serif}; }
         .ex-chain-example h3 { margin: 0; color: #30405a; font: 800 17px/1.35 ${serif}; }
         .ex-chain-example p { margin: 0; color: #68758a; font-size: 11px; line-height: 1.65; }
         .ex-data-table { width: 100%; border-collapse: collapse; min-width: 580px; color: #526078; font-size: 12px; }
@@ -2681,7 +2696,7 @@ export default function ExDataPage() {
               role="tab"
               aria-label={tab.label}
               aria-selected={activeSectionTab === tab.key}
-              aria-controls={["trend", "ranking", "turbulence", "chain", "weather", "venue-bias"].includes(tab.key)
+              aria-controls={["trend", "ranking", "turbulence", "chain", "weather", "venue-bias", "today-flow"].includes(tab.key)
                 ? "ex-section-trend-lab"
                 : `ex-section-${tab.key}`}
               onClick={() => setActiveSectionTab(tab.key)}
@@ -2746,6 +2761,14 @@ export default function ExDataPage() {
               note={trifectaTrend ? `${trifectaTrend.venueBias.venueCount.toLocaleString("ja-JP")} venues` : "official result only"}
               warning={trifectaTrendStatus === "error"}
             />
+            <MetricCard
+              label="TODAY FLOW"
+              value={trifectaTrend?.todayFlow.status === "ready" ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "CHECKING"}
+              note={trifectaTrend?.todayFlow.targetDate
+                ? `${trifectaTrend.todayFlow.targetDate} / ${trifectaTrend.todayFlow.dateBasisLabel}`
+                : "latest official result date"}
+              warning={trifectaTrendStatus === "error" || !trifectaTrend?.todayFlow.isToday}
+            />
             <MetricCard label="SLACK NOTIFICATION STATE" value="UNAVAILABLE" note="EX公開datasetに専用stateなし" warning />
           </div>
           <div className="ex-overview-status">
@@ -2761,7 +2784,7 @@ export default function ExDataPage() {
           className="ex-panel ex-section"
           data-testid="result-trend-lab-roadmap"
           id="ex-section-trend-lab"
-          hidden={!["trend", "ranking", "turbulence", "chain", "weather", "venue-bias"].includes(activeSectionTab)}
+          hidden={!["trend", "ranking", "turbulence", "chain", "weather", "venue-bias", "today-flow"].includes(activeSectionTab)}
         >
           <SectionTitle
             eyebrow="KURARI EX RESULT TREND LAB"
@@ -2783,6 +2806,14 @@ export default function ExDataPage() {
               value={trifectaTrend?.venueBias.status === "ready" ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "CHECKING"}
               note={trifectaTrend ? `${trifectaTrend.venueBias.eligibleRaceCount.toLocaleString("ja-JP")} eligible races` : "official result only"}
               warning={trifectaTrendStatus === "error"}
+            />
+            <MetricCard
+              label="TODAY FLOW METER"
+              value={trifectaTrend?.todayFlow.status === "ready" ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "CHECKING"}
+              note={trifectaTrend?.todayFlow.targetDate
+                ? `${trifectaTrend.todayFlow.targetDate} / ${trifectaTrend.todayFlow.dominantFlowLabel}`
+                : "latest official result date"}
+              warning={trifectaTrendStatus === "error" || !trifectaTrend?.todayFlow.isToday}
             />
           </div>
 
@@ -3560,9 +3591,185 @@ export default function ExDataPage() {
             ) : null}
           </div>
 
+          <div className="ex-subsection" data-testid="result-trend-lab-today-flow-v1" hidden={activeSectionTab !== "today-flow"}>
+            <SectionTitle
+              eyebrow="LATEST OFFICIAL RESULT / TODAY FLOW METER v1"
+              title="今日の流れメーター v1"
+              lead="official confirmed resultの最新日だけを対象に、配当カテゴリ・枠絡み・連続R transitionから結果の流れを可視化します。未来Rは推測しません。"
+            />
+            <div className="ex-overview-status">
+              <span className="ex-trend-status-pill is-ready">official result only</span>
+              <span className="ex-trend-status-pill is-ready">confirmed only</span>
+              <span className="ex-trend-status-pill is-ready">fake prohibited</span>
+              <span className={`ex-trend-status-pill is-${trifectaTrend?.todayFlow.isToday ? "ready" : "partial"}`}>
+                latest official date
+              </span>
+              <span className="ex-trend-status-pill is-caution">LOW SAMPLE</span>
+            </div>
+            {trifectaTrendStatus === "loading" ? <EmptyState text="latest official result dateを確認しています。" /> : null}
+            {trifectaTrendStatus === "error" ? (
+              <EmptyState text="No eligible latest official result data / official sourceを取得できませんでした。" />
+            ) : null}
+            {trifectaTrend ? (
+              <>
+                <div className="ex-kpi-grid">
+                  <MetricCard
+                    label="TARGET DATE"
+                    value={trifectaTrend.todayFlow.targetDate || "--"}
+                    note={trifectaTrend.todayFlow.dateBasisLabel}
+                    warning={!trifectaTrend.todayFlow.isToday}
+                  />
+                  <MetricCard
+                    label="ELIGIBLE RACES"
+                    value={trifectaTrend.todayFlow.eligibleRaceCount.toLocaleString("ja-JP")}
+                    note={`対象${trifectaTrend.todayFlow.totalRaceCount.toLocaleString("ja-JP")}R`}
+                  />
+                  <MetricCard
+                    label="EXCLUDED RACES"
+                    value={trifectaTrend.todayFlow.excludedRaceCount.toLocaleString("ja-JP")}
+                    note="strict eligibilityで除外"
+                    warning={trifectaTrend.todayFlow.excludedRaceCount > 0}
+                  />
+                  <MetricCard
+                    label="VENUE COUNT"
+                    value={trifectaTrend.todayFlow.venueCount.toLocaleString("ja-JP")}
+                    note="latest official date"
+                  />
+                  <MetricCard
+                    label="DOMINANT FLOW"
+                    value={trifectaTrend.todayFlow.dominantFlowLabel}
+                    note="公式結果からの補助傾向"
+                    warning={trifectaTrend.todayFlow.sampleStatus !== "usable"}
+                  />
+                  <MetricCard
+                    label="SAMPLE STATUS"
+                    value={trifectaTrend.todayFlow.sampleLabel}
+                    note="LOW SAMPLEは断定しない"
+                    warning={trifectaTrend.todayFlow.sampleStatus !== "usable"}
+                  />
+                </div>
+
+                {trifectaTrend.todayFlow.cautionLabels.length ? (
+                  <div className="ex-overview-status">
+                    {trifectaTrend.todayFlow.cautionLabels.map((label) => (
+                      <span className="ex-trend-status-pill is-caution" key={label}>{label}</span>
+                    ))}
+                  </div>
+                ) : null}
+
+                {trifectaTrend.todayFlow.status === "ready" ? (
+                  <>
+                    <div>
+                      <SectionTitle eyebrow="OVERALL FLOW METER" title="最新日 全体フロー" />
+                      <div className="ex-today-flow-meter">
+                        <article><span>堅め率</span><strong>{trifectaTrend.todayFlow.overall.firmRate.toFixed(1)}%</strong><small>3連単1〜2,999円</small></article>
+                        <article><span>中穴率</span><strong>{trifectaTrend.todayFlow.overall.midUpsetRate.toFixed(1)}%</strong><small>3,000〜9,999円</small></article>
+                        <article><span>荒れ以上率</span><strong>{trifectaTrend.todayFlow.overall.upsetOrAboveRate.toFixed(1)}%</strong><small>10,000円以上</small></article>
+                        <article><span>外枠絡み率</span><strong>{trifectaTrend.todayFlow.overall.outsideInvolvementRate.toFixed(1)}%</strong><small>1〜3着に5番車以上</small></article>
+                        <article><span>1番車飛び率</span><strong>{trifectaTrend.todayFlow.overall.oneCarOutRate.toFixed(1)}%</strong><small>3連単に1番車なし</small></article>
+                        <article><span>平均3連単配当</span><strong>{formatPayoutYen(trifectaTrend.todayFlow.overall.averageTrifectaPayoutYen)}</strong><small>eligible平均</small></article>
+                        <article><span>中央値3連単配当</span><strong>{formatPayoutYen(trifectaTrend.todayFlow.overall.medianTrifectaPayoutYen)}</strong><small>eligible中央値</small></article>
+                        <article><span>万車券率</span><strong>{trifectaTrend.todayFlow.overall.highPayoutRate.toFixed(1)}%</strong><small>3連単10,000円以上</small></article>
+                      </div>
+                    </div>
+
+                    <div>
+                      <SectionTitle
+                        eyebrow="VENUE FLOW"
+                        title="会場別 最新日の流れ"
+                        lead="各会場の最新confirmed Rと、eligibleな直近最大5RをraceNumber順で表示します。"
+                      />
+                      <div className="ex-today-flow-grid">
+                        {trifectaTrend.todayFlow.byVenue.map((venue) => (
+                          <article className="ex-today-flow-card" key={venue.venueCode || venue.venueName}>
+                            <div className="ex-venue-bias-card-head">
+                              <div>
+                                <div className="ex-eyebrow">{venue.venueCode || "VENUE"}</div>
+                                <h3>{venue.venueName}</h3>
+                              </div>
+                              <span className="ex-location-status is-warning">{venue.sampleSize.toLocaleString("ja-JP")}R</span>
+                            </div>
+                            <div className="ex-venue-bias-tags">
+                              <span>{venue.currentFlowLabel}</span>
+                              <span>{venue.sampleLabel}</span>
+                              <span>latest {venue.latestConfirmedRaceNumber == null ? "--" : `${venue.latestConfirmedRaceNumber}R`}</span>
+                            </div>
+                            <div className="ex-venue-bias-metrics">
+                              <div>堅め率<strong>{venue.firmRate.toFixed(1)}%</strong></div>
+                              <div>中穴率<strong>{venue.midUpsetRate.toFixed(1)}%</strong></div>
+                              <div>荒れ以上率<strong>{venue.upsetOrAboveRate.toFixed(1)}%</strong></div>
+                              <div>外枠絡み率<strong>{venue.outsideInvolvementRate.toFixed(1)}%</strong></div>
+                              <div>1番車飛び率<strong>{venue.oneCarOutRate.toFixed(1)}%</strong></div>
+                              <div>平均3連単<strong>{formatPayoutYen(venue.averageTrifectaPayoutYen)}</strong></div>
+                              <div>万車券率<strong>{venue.highPayoutRate.toFixed(1)}%</strong></div>
+                              <div>eligible<strong>{venue.sampleSize.toLocaleString("ja-JP")}R</strong></div>
+                            </div>
+                            <div className="ex-today-flow-recent">
+                              {venue.recentRaces.map((race) => (
+                                <span key={race.raceNumber}>
+                                  {race.raceNumber}R {race.categoryLabel}<br />
+                                  {race.combination} / {formatPayoutYen(race.payoutYen)}
+                                </span>
+                              ))}
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <SectionTitle eyebrow="TRANSITION HINTS" title="連続R transition" lead="同日同会場でraceNumberが連続し、前後ともeligibleなpairだけを集計します。" />
+                      <div className="ex-today-flow-hints">
+                        {trifectaTrend.todayFlow.transitionHints.map((hint) => (
+                          <article key={hint.key}>
+                            <span className="ex-eyebrow">{hint.label}</span>
+                            <strong>{hint.count.toLocaleString("ja-JP")}組</strong>
+                          </article>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                ) : <EmptyState text="No eligible latest official flow data" />}
+
+                <div className="ex-location-grid">
+                  <article className="ex-location-card">
+                    <div className="ex-location-head">
+                      <h3>除外理由</h3>
+                      <span className="ex-location-status is-warning">EXCLUDED</span>
+                    </div>
+                    {trifectaTrend.todayFlow.exclusionReasons.length ? (
+                      <ul className="ex-trend-reasons">
+                        {trifectaTrend.todayFlow.exclusionReasons.map((reason) => (
+                          <li key={reason.key}>{reason.label}: {reason.count.toLocaleString("ja-JP")}R</li>
+                        ))}
+                      </ul>
+                    ) : <div className="ex-muted">除外なし</div>}
+                  </article>
+                  <article className="ex-location-card">
+                    <div className="ex-location-head">
+                      <h3>定義メモ</h3>
+                      <span className="ex-location-status is-partial">v1</span>
+                    </div>
+                    <ul className="ex-trend-reasons">
+                      <li>official confirmed result内の最新dateを動的抽出</li>
+                      <li>実日付と不一致なら「最新取得日ベース」でありtodayと断定しない</li>
+                      <li>LOW SAMPLEは参考のみ。未取得の未来Rを推測しない</li>
+                      <li>堅め45%以上かつ平均1万円以下・万車券20%以下、荒れ30%以上または平均2万円以上・万車券30%以上</li>
+                      <li>中穴35%以上または中穴連続、外枠70%以上、1番車飛び55%以上を補助signalにする</li>
+                    </ul>
+                  </article>
+                </div>
+                <div className="ex-empty">
+                  <strong>{trifectaTrend.todayFlow.refinement.status}</strong><br />
+                  {trifectaTrend.todayFlow.refinement.note}。
+                </div>
+              </>
+            ) : null}
+          </div>
+
           <div className="ex-empty" hidden={activeSectionTab !== "trend"}>
             <strong>ROADMAP / FUTURE-ACCUMULATION</strong><br />
-            最低オッズ比 / 今日の流れメーター
+            最低オッズ比
           </div>
           <div className="ex-muted" hidden={activeSectionTab !== "trend"}>
             official result only / fake prohibited / LOW SAMPLE aware。

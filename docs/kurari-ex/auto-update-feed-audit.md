@@ -1079,3 +1079,14 @@ EXページを出目ランキング、荒れ指数、レース連鎖、風速×�
 - LOW SAMPLEを全体・会場別に表示し、特徴ラベルはdocs記載の固定閾値と実データ率だけから生成する
 - 級班別、7車 / 9車別の厳密比較は`future-accumulation`
 - fake、推測補完、`public/data/**`への書込みは行わない
+
+## 32-07 latest official flow consumer
+
+- `今日の流れ / today flow meter v1`はofficial confirmed result内の最新dateを動的抽出し、その日だけを集計する
+- Asia/Tokyoの実日付と一致する場合だけ`today`とし、不一致なら`最新取得日ベース`と表示する
+- 一意race key、date、venue、raceNumber、妥当な1〜3着、保存済み3連単一致、正の実払戻金、荒れカテゴリを満たすraceだけをeligibleとする
+- transitionは同一date・同一venueのraceNumber連続pairで、前後ともeligibleの場合だけ集計する
+- eligible / excluded / reason、全体・会場別flow、直近最大5Rはfeed更新ごとに動的再計算する
+- LOW SAMPLEは参考表示とし、未来Rや未取得Rを推測しない
+- 締切前オッズ、人気順、オッズ変動は`future-accumulation`、2か月分historical backfillは後続作業
+- fake、推測補完、`public/data/**`への書込みは行わない

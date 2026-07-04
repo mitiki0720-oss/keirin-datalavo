@@ -463,3 +463,27 @@ fake車番、fake払戻金、fake決まり手、推測補完は行わず、eligi
 
 2026-07-05の画面検証snapshotでは全63R、eligible 62R、excluded 1Rで、除外理由は1〜3着車番不足1R。これはUI固定値ではなく、feed更新に追随する監査記録である。
 
+## 32-07 今日の流れメーター v1
+
+独立した`今日の流れ / today flow meter v1`タブを追加した。KEIRIN.JP / JSJ048のofficial confirmed resultから最新の有効dateを動的抽出し、その日だけを対象にする。実際のAsia/Tokyo日付と一致する場合だけ`today`、一致しない場合は`最新取得日ベース`と表示し、fakeで今日扱いしない。
+
+一意race key、date、venueCodeまたはvenueName、raceNumber、妥当な1〜3着、保存済み3連単一致、正の実払戻金、荒れカテゴリを確認できるraceをeligibleとする。未confirmed、race key欠損・重複、着順不正、3連単不一致、払戻金欠損・不正はreason別にexcludedとする。
+
+### flow signal / label
+
+- 堅め寄り: 堅め45%以上、平均3連単10,000円以下、万車券20%以下をすべて満たす
+- 荒れ寄り: 荒れ以上30%以上、平均3連単20,000円以上、万車券30%以上のいずれか
+- 中穴反復: 中穴35%以上、または同日同会場の連続Rで中穴→中穴が存在
+- 外枠絡み多め: 1〜3着に5番車以上を含む割合が70%以上
+- 1番車飛び気味: 3連単1〜3着に1番車を含まない割合が55%以上
+- 本命戻り: 荒れ以上→堅めの連続R
+- 波乱加速: 堅め / 中穴→荒れ以上の連続R
+- 堅め継続、荒れ連鎖も同一date・同一venue・raceNumber連続・前後eligibleの場合だけ集計
+- 上記のdominant条件を満たさない場合は`mixed / 判定保留`
+
+transitionはraceNumberが飛ぶ場合や前後どちらかがexcludedの場合は接続しない。全体と会場別に堅め率、中穴率、荒れ以上率、外枠絡み率、1番車飛び率、平均・中央値3連単配当、万車券率を動的表示する。会場別には最新confirmed Rとeligibleな直近最大5Rを表示する。
+
+30R未満は`LOW SAMPLE / 参考のみ`、30〜99Rは`caution / 傾向注意`、100R以上も予想の補助に限定する。結果分析であり予想ではない。未来R、未取得R、締切前オッズ、人気順、オッズ変動は推測せず、後三者は`future-accumulation`を維持する。2か月分historical backfillは後続作業とする。
+
+2026-07-05の画面検証ではtarget date 2026-07-04を`最新取得日ベース`として表示し、対象63R、eligible 62R、excluded 1R（1〜3着車番不足）だった。これはUI固定値ではなく、feed更新に追随する監査snapshotである。
+

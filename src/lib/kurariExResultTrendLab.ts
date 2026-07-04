@@ -249,6 +249,66 @@ export type KurariExVenueBiasV1 = {
   };
 };
 
+export type KurariExTodayFlowMetrics = {
+  sampleSize: number;
+  firmRate: number;
+  midUpsetRate: number;
+  upsetOrAboveRate: number;
+  outsideInvolvementRate: number;
+  oneCarOutRate: number;
+  averageTrifectaPayoutYen: number | null;
+  medianTrifectaPayoutYen: number | null;
+  highPayoutRate: number;
+};
+
+export type KurariExTodayFlowTransitionKey =
+  | "favorite-return"
+  | "upset-acceleration"
+  | "mid-upset-repeat"
+  | "firm-continues"
+  | "upset-chain";
+
+export type KurariExTodayFlowV1 = {
+  status: "ready" | "no-eligible-data";
+  sourcePolicy: "official result only";
+  targetDate: string;
+  isToday: boolean;
+  dateBasisLabel: "today" | "最新取得日ベース" | "unavailable";
+  totalRaceCount: number;
+  eligibleRaceCount: number;
+  excludedRaceCount: number;
+  exclusionReasons: Array<{ key: string; label: string; count: number }>;
+  venueCount: number;
+  sampleStatus: KurariExTrendSampleStatus;
+  sampleLabel: string;
+  dominantFlowLabel: string;
+  cautionLabels: string[];
+  overall: KurariExTodayFlowMetrics;
+  transitionHints: Array<{
+    key: KurariExTodayFlowTransitionKey;
+    label: string;
+    count: number;
+  }>;
+  byVenue: Array<KurariExTodayFlowMetrics & {
+    venueCode: string;
+    venueName: string;
+    sampleStatus: KurariExTrendSampleStatus;
+    sampleLabel: string;
+    currentFlowLabel: string;
+    latestConfirmedRaceNumber: number | null;
+    recentRaces: Array<{
+      raceNumber: number;
+      categoryLabel: string;
+      payoutYen: number;
+      combination: string;
+    }>;
+  }>;
+  refinement: {
+    status: "future-accumulation";
+    note: string;
+  };
+};
+
 export type KurariExTrifectaTrendV1 = {
   status: "ready" | "no-eligible-data";
   sourcePolicy: "official result only";
@@ -271,6 +331,7 @@ export type KurariExTrifectaTrendV1 = {
   chain: KurariExRaceChainV1;
   weather: KurariExWindDecisionV1;
   venueBias: KurariExVenueBiasV1;
+  todayFlow: KurariExTodayFlowV1;
 };
 
 type OfficialFinishRow = {
@@ -410,6 +471,26 @@ const VENUE_BIAS_EXCLUSION_LABELS: Record<string, string> = {
   "invalid-car-number": "1〜3着車番が不正または重複",
   "trifecta-missing-or-mismatch": "3連単結果が未取得、または1〜3着車番と不一致",
   "payout-missing-or-invalid": "3連単払戻金が欠損、不正、または0円以下",
+};
+
+const TODAY_FLOW_LABEL_THRESHOLDS = {
+  firmRate: 45,
+  firmAveragePayoutYen: 10_000,
+  firmHighPayoutRate: 20,
+  upsetOrAboveRate: 30,
+  upsetAveragePayoutYen: 20_000,
+  upsetHighPayoutRate: 30,
+  midUpsetRate: 35,
+  outsideInvolvementRate: 70,
+  oneCarOutRate: 55,
+} as const;
+
+const TODAY_FLOW_TRANSITION_LABELS: Record<KurariExTodayFlowTransitionKey, string> = {
+  "favorite-return": "本命戻り",
+  "upset-acceleration": "波乱加速",
+  "mid-upset-repeat": "中穴反復",
+  "firm-continues": "堅め継続",
+  "upset-chain": "荒れ連鎖",
 };
 
 const WEATHER_EXCLUSION_LABELS: Record<string, string> = {
@@ -1003,6 +1084,270 @@ function buildKurariExVenueBiasV1(
   };
 }
 
+function buildKurariExTodayFlowV1(
+  feed: OfficialResultFeed,
+  sourceIsOfficial: boolean,
+  sourceDate: string,
+): KurariExTodayFlowV1 {
+  const candidates = (feed.venues ?? []).flatMap((venue) =>
+    (venue.races ?? []).map((race) => ({
+      venue,
+      race,
+      date: clean(venue.date || sourceDate),
+    })),
+  );
+  const confirmedDates = sourceIsOfficial
+    ? candidates
+      .filter(({ race, date }) =>
+        clean(race.resultStatus) === "confirmed"
+        && !["cancelled", "no-race"].includes(clean(race.operationStatus).toLowerCase())
+        && /^\d{4}-\d{2}-\d{2}$/u.test(date),
+      )
+      .map(({ date }) => date)
+    : [];
+  const targetDate = [...new Set(confirmedDates)].sort().at(-1) ?? "";
+  const targetCandidates = candidates.filter(({ date }) => date === targetDate);
+  const raceKeys = targetCandidates.map(({ venue, race, date }) => {
+    const venueKey = clean(venue.venueCode) || clean(venue.venueName);
+    const raceNumber = Number(race.raceNumber);
+    return date && venueKey && Number.isInteger(raceNumber) && raceNumber > 0
+      ? `${date}|${venueKey}|${raceNumber}`
+      : "";
+  });
+  const keyCounts = new Map<string, number>();
+  raceKeys.filter(Boolean).forEach((key) => keyCounts.set(key, (keyCounts.get(key) ?? 0) + 1));
+  const exclusionCounts = new Map<string, number>();
+  const latestConfirmedByVenue = new Map<string, number>();
+  const eligible: Array<{
+    raceKey: string;
+    date: string;
+    venueCode: string;
+    venueName: string;
+    raceNumber: number;
+    top3: number[];
+    combination: string;
+    payoutYen: number;
+    category: KurariExTurbulenceCategoryKey;
+  }> = [];
+  const exclude = (reason: string) => {
+    exclusionCounts.set(reason, (exclusionCounts.get(reason) ?? 0) + 1);
+  };
+
+  targetCandidates.forEach(({ venue, race, date }, index) => {
+    const raceKey = raceKeys[index];
+    const venueKey = clean(venue.venueCode) || clean(venue.venueName);
+    const raceNumber = Number(race.raceNumber);
+    if (!sourceIsOfficial) {
+      exclude("source-unavailable");
+      return;
+    }
+    if (!date || !venueKey || !Number.isInteger(raceNumber) || raceNumber <= 0 || !raceKey) {
+      exclude("race-key-missing");
+      return;
+    }
+    if ((keyCounts.get(raceKey) ?? 0) !== 1) {
+      exclude("duplicate-race-key");
+      return;
+    }
+    if (["cancelled", "no-race"].includes(clean(race.operationStatus).toLowerCase())) {
+      exclude("cancelled-or-no-race");
+      return;
+    }
+    if (clean(race.resultStatus) !== "confirmed") {
+      exclude("not-confirmed");
+      return;
+    }
+    latestConfirmedByVenue.set(
+      venueKey,
+      Math.max(latestConfirmedByVenue.get(venueKey) ?? 0, raceNumber),
+    );
+    const ranked = (race.finishOrder ?? [])
+      .map((row) => ({ rank: Number(clean(row.rank)), carNo: validCarNo(row.carNo) }))
+      .filter((row) => Number.isInteger(row.rank) && row.rank >= 1 && row.rank <= 3)
+      .sort((left, right) => left.rank - right.rank);
+    if (ranked.length !== 3 || ranked.some((row, position) => row.rank !== position + 1)) {
+      exclude("finish-order-missing");
+      return;
+    }
+    if (ranked.some((row) => row.carNo == null)) {
+      exclude("invalid-car-number");
+      return;
+    }
+    const top3 = ranked.map((row) => row.carNo as number);
+    if (new Set(top3).size !== 3) {
+      exclude("invalid-car-number");
+      return;
+    }
+    const combination = top3.join("-");
+    if (clean(race.payout3tan?.combination) !== combination) {
+      exclude("trifecta-missing-or-mismatch");
+      return;
+    }
+    const payoutYen = positiveYen(race.payout3tan?.payoutYen);
+    if (payoutYen == null) {
+      exclude("payout-missing-or-invalid");
+      return;
+    }
+    const category = payoutCategoryKey(payoutYen);
+    eligible.push({
+      raceKey,
+      date,
+      venueCode: clean(venue.venueCode),
+      venueName: clean(venue.venueName) || venueKey,
+      raceNumber,
+      top3,
+      combination,
+      payoutYen,
+      category,
+    });
+  });
+
+  const summarize = (rows: typeof eligible): KurariExTodayFlowMetrics => {
+    const payouts = rows.map((row) => row.payoutYen);
+    return {
+      sampleSize: rows.length,
+      firmRate: rate(rows.filter((row) => row.category === "firm").length, rows.length),
+      midUpsetRate: rate(rows.filter((row) => row.category === "mid-upset").length, rows.length),
+      upsetOrAboveRate: rate(
+        rows.filter((row) => ["upset", "major-upset", "extreme-upset"].includes(row.category)).length,
+        rows.length,
+      ),
+      outsideInvolvementRate: rate(rows.filter((row) => row.top3.some((carNo) => carNo >= 5)).length, rows.length),
+      oneCarOutRate: rate(rows.filter((row) => !row.top3.includes(1)).length, rows.length),
+      averageTrifectaPayoutYen: payouts.length
+        ? Math.round(payouts.reduce((sum, payout) => sum + payout, 0) / payouts.length)
+        : null,
+      medianTrifectaPayoutYen: payouts.length ? median(payouts) : null,
+      highPayoutRate: rate(rows.filter((row) => row.payoutYen >= 10_000).length, rows.length),
+    };
+  };
+  const isUpset = (category: KurariExTurbulenceCategoryKey) =>
+    ["upset", "major-upset", "extreme-upset"].includes(category);
+  const transitionCounts = new Map<KurariExTodayFlowTransitionKey, number>();
+  const venueGroups = new Map<string, typeof eligible>();
+  eligible.forEach((row) => {
+    const key = row.venueCode || row.venueName;
+    const group = venueGroups.get(key) ?? [];
+    group.push(row);
+    venueGroups.set(key, group);
+  });
+  venueGroups.forEach((rows) => {
+    const sorted = [...rows].sort((left, right) => left.raceNumber - right.raceNumber);
+    for (let index = 0; index < sorted.length - 1; index += 1) {
+      const previous = sorted[index];
+      const next = sorted[index + 1];
+      if (next.raceNumber !== previous.raceNumber + 1) continue;
+      let key: KurariExTodayFlowTransitionKey | null = null;
+      if (isUpset(previous.category) && next.category === "firm") key = "favorite-return";
+      else if (["firm", "mid-upset"].includes(previous.category) && isUpset(next.category)) key = "upset-acceleration";
+      else if (previous.category === "mid-upset" && next.category === "mid-upset") key = "mid-upset-repeat";
+      else if (previous.category === "firm" && next.category === "firm") key = "firm-continues";
+      else if (isUpset(previous.category) && isUpset(next.category)) key = "upset-chain";
+      if (key) transitionCounts.set(key, (transitionCounts.get(key) ?? 0) + 1);
+    }
+  });
+  const flowLabel = (
+    metrics: KurariExTodayFlowMetrics,
+    transitions: Map<KurariExTodayFlowTransitionKey, number>,
+  ) => {
+    const firm =
+      metrics.firmRate >= TODAY_FLOW_LABEL_THRESHOLDS.firmRate
+      && (metrics.averageTrifectaPayoutYen ?? Infinity) <= TODAY_FLOW_LABEL_THRESHOLDS.firmAveragePayoutYen
+      && metrics.highPayoutRate <= TODAY_FLOW_LABEL_THRESHOLDS.firmHighPayoutRate;
+    const upset =
+      metrics.upsetOrAboveRate >= TODAY_FLOW_LABEL_THRESHOLDS.upsetOrAboveRate
+      || (metrics.averageTrifectaPayoutYen ?? 0) >= TODAY_FLOW_LABEL_THRESHOLDS.upsetAveragePayoutYen
+      || metrics.highPayoutRate >= TODAY_FLOW_LABEL_THRESHOLDS.upsetHighPayoutRate;
+    const midRepeat =
+      metrics.midUpsetRate >= TODAY_FLOW_LABEL_THRESHOLDS.midUpsetRate
+      || (transitions.get("mid-upset-repeat") ?? 0) > 0;
+    if (upset) return "荒れ寄り";
+    if (firm) return "堅め寄り";
+    if (midRepeat) return "中穴反復";
+    if (metrics.outsideInvolvementRate >= TODAY_FLOW_LABEL_THRESHOLDS.outsideInvolvementRate) return "外枠絡み多め";
+    if (metrics.oneCarOutRate >= TODAY_FLOW_LABEL_THRESHOLDS.oneCarOutRate) return "1番車飛び気味";
+    return "mixed / 判定保留";
+  };
+  const overall = summarize(eligible);
+  const sample = sampleStatus(eligible.length);
+  const todayInJapan = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  const isToday = Boolean(targetDate && targetDate === todayInJapan);
+  const cautionLabels = [
+    sample.status === "low-sample" ? "LOW SAMPLE / 参考" : "",
+    !isToday && targetDate ? "最新取得日ベース" : "",
+    overall.outsideInvolvementRate >= TODAY_FLOW_LABEL_THRESHOLDS.outsideInvolvementRate ? "外枠絡み多め" : "",
+    overall.oneCarOutRate >= TODAY_FLOW_LABEL_THRESHOLDS.oneCarOutRate ? "1番車飛び気味" : "",
+    (transitionCounts.get("favorite-return") ?? 0) > 0 ? "本命戻りあり" : "",
+    (transitionCounts.get("upset-acceleration") ?? 0) > 0 ? "波乱加速あり" : "",
+  ].filter(Boolean);
+  const byVenue = [...venueGroups.entries()]
+    .map(([venueKey, rows]) => {
+      const sorted = [...rows].sort((left, right) => left.raceNumber - right.raceNumber);
+      const metrics = summarize(sorted);
+      const venueSample = sampleStatus(sorted.length);
+      const venueTransitions = new Map<KurariExTodayFlowTransitionKey, number>();
+      for (let index = 0; index < sorted.length - 1; index += 1) {
+        const previous = sorted[index];
+        const next = sorted[index + 1];
+        if (next.raceNumber !== previous.raceNumber + 1) continue;
+        if (isUpset(previous.category) && next.category === "firm") venueTransitions.set("favorite-return", 1);
+        if (["firm", "mid-upset"].includes(previous.category) && isUpset(next.category)) venueTransitions.set("upset-acceleration", 1);
+        if (previous.category === "mid-upset" && next.category === "mid-upset") venueTransitions.set("mid-upset-repeat", 1);
+      }
+      const baseLabel = flowLabel(metrics, venueTransitions);
+      return {
+        venueCode: sorted[0]?.venueCode ?? venueKey,
+        venueName: sorted[0]?.venueName ?? venueKey,
+        ...metrics,
+        sampleStatus: venueSample.status,
+        sampleLabel: venueSample.label,
+        currentFlowLabel: venueSample.status === "low-sample" ? `${baseLabel} / 参考` : baseLabel,
+        latestConfirmedRaceNumber: latestConfirmedByVenue.get(venueKey) ?? null,
+        recentRaces: sorted.slice(-5).map((row) => ({
+          raceNumber: row.raceNumber,
+          categoryLabel: payoutCategoryLabel(row.category),
+          payoutYen: row.payoutYen,
+          combination: row.combination,
+        })),
+      };
+    })
+    .sort((left, right) => right.sampleSize - left.sampleSize || left.venueCode.localeCompare(right.venueCode));
+
+  return {
+    status: eligible.length ? "ready" : "no-eligible-data",
+    sourcePolicy: "official result only",
+    targetDate,
+    isToday,
+    dateBasisLabel: !targetDate ? "unavailable" : isToday ? "today" : "最新取得日ベース",
+    totalRaceCount: targetCandidates.length,
+    eligibleRaceCount: eligible.length,
+    excludedRaceCount: targetCandidates.length - eligible.length,
+    exclusionReasons: [...exclusionCounts.entries()].map(([key, count]) => ({
+      key,
+      label: VENUE_BIAS_EXCLUSION_LABELS[key] ?? key,
+      count,
+    })),
+    venueCount: byVenue.length,
+    sampleStatus: sample.status,
+    sampleLabel: sample.label,
+    dominantFlowLabel: flowLabel(overall, transitionCounts),
+    cautionLabels,
+    overall,
+    transitionHints: (Object.entries(TODAY_FLOW_TRANSITION_LABELS) as Array<[KurariExTodayFlowTransitionKey, string]>)
+      .map(([key, label]) => ({ key, label, count: transitionCounts.get(key) ?? 0 })),
+    byVenue,
+    refinement: {
+      status: "future-accumulation",
+      note: "締切前オッズ / 人気順 / オッズ変動と2か月分historical backfillは後続作業",
+    },
+  };
+}
+
 export function buildKurariExTrifectaTrendV1(
   feed: OfficialResultFeed,
 ): KurariExTrifectaTrendV1 {
@@ -1410,6 +1755,7 @@ export function buildKurariExTrifectaTrendV1(
     chain: chainResult,
     weather: buildKurariExWindDecisionV1(feed, sourceIsOfficial, sourceDate),
     venueBias: buildKurariExVenueBiasV1(feed, sourceIsOfficial, sourceDate),
+    todayFlow: buildKurariExTodayFlowV1(feed, sourceIsOfficial, sourceDate),
   };
 }
 
