@@ -988,6 +988,31 @@ export const UPCOMING_SCHEDULE_DATA_URL = toPublicPath("/data/races/upcoming-sch
 export const DAILY_PREDICTION_INDEX_URL = toPublicPath("/data/predictions/daily/index.generated.json");
 export const PREDICTION_VENUE_BANK_INDEX_URL = toPublicPath("/data/venues/banks/index.json");
 export const PREDICTION_VENUE_INSIGHT_INDEX_URL = toPublicPath("/data/venues/bank-insights/index.json");
+const PREDICTION_VENUE_INSIGHT_MARKDOWN_LOADERS = import.meta.glob(
+  "../../public/data/venues/bank-insights/*.md",
+  { query: "?raw", import: "default" },
+) as Record<string, () => Promise<string>>;
+const predictionVenueInsightMarkdownCache = new Map<string, Promise<string>>();
+
+const loadAvailablePredictionVenueInsightMarkdown = (
+  entry?: VenueInsightIndexItem | null,
+): Promise<string> => {
+  if (!entry || !isVenueInsightEntryReady(entry)) return Promise.resolve("");
+  const publicPath = String(entry.file ?? "").trim();
+  if (!publicPath) return Promise.resolve("");
+  const loaderKey = `../../public/${publicPath.replace(/^\/+/, "")}`;
+  const loader = PREDICTION_VENUE_INSIGHT_MARKDOWN_LOADERS[loaderKey];
+  if (!loader) return Promise.resolve("");
+
+  const cached = predictionVenueInsightMarkdownCache.get(publicPath);
+  if (cached) return cached;
+
+  const pending = loader()
+    .then((markdown) => typeof markdown === "string" ? markdown : "")
+    .catch(() => "");
+  predictionVenueInsightMarkdownCache.set(publicPath, pending);
+  return pending;
+};
 export const PREDICTION_REGISTRATION_IDENTITY_SOURCE_INDEX_URL =
   toPublicPath("/data/analytics/kurari-ex/source/starters/index.generated.json");
 export const PREDICTION_OPEN_METEO_GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search";
@@ -9458,12 +9483,8 @@ if (!nextSlots[currentKey] && nextSlots[legacyKey]) {
                 return response.text();
               })
             : Promise.resolve(""),
-          bankMasterTarget && isVenueInsightEntryReady(bankMasterTarget)
-            ? fetch(toPublicPath(bankMasterTarget.file), { cache: "force-cache" }).then(async (response) => (response.ok ? response.text() : ""))
-            : Promise.resolve(""),
-          reviewSummaryTarget && isVenueInsightEntryReady(reviewSummaryTarget)
-            ? fetch(toPublicPath(reviewSummaryTarget.file), { cache: "force-cache" }).then(async (response) => (response.ok ? response.text() : ""))
-            : Promise.resolve(""),
+          loadAvailablePredictionVenueInsightMarkdown(bankMasterTarget),
+          loadAvailablePredictionVenueInsightMarkdown(reviewSummaryTarget),
         ]);
         if (!isActive) return;
 

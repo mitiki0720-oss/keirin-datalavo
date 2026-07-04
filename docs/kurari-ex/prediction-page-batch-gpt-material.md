@@ -116,3 +116,11 @@ Prediction Pageを予想専用の「Prediction Cockpit」として整理し、�
 - private-inputは変更していない。
 - fakeデータ・fake補完は禁止する。
 - 31-02でも `public/data/reviews/**` と `public/data/analytics/**` は変更していない。
+
+## 31-03 会場insight Markdownの404対策
+
+Prediction Pageでは、会場insight indexに登録されていても実体を確認できない任意のMarkdown URLを直接fetchしない。ビルド時に実在を確認できた会場insight Markdownだけをローダー対象とし、未登録・planned・実体なしの場合は取得処理を行わない。
+
+同一MarkdownはURL単位で取得結果を共有し、会場内のR切り替えやまとめ素材生成で重複取得しない。会場insightが利用できない場合は、画面とGPT素材で「会場別マスター分析は未作成です。」または「未取得」と表示し、分析内容をfake補完しない。
+
+31-03では単独R素材とまとめGPT素材の構成、Review Page、Races Page / 本日のレースページ、EXページを変更していない。`public/data/reviews/**`、`public/data/venues/**`にも変更を加えていない。
