@@ -104,9 +104,6 @@ import {
   KURARI_EX_STRUCTURE_CATEGORY_COLUMNS,
   loadKurariExTrifectaTrendV1,
 } from "../lib/kurariExResultTrendLab";
-import {
-  loadKurariExHistoricalResultTrendLabHistory,
-} from "../lib/kurariExHistoricalResultLab";
 import type {
   KurariExCoverageStatus,
   KurariExTrendCarTop3Row,
@@ -333,6 +330,105 @@ function MetricCard({ label, value, note, warning }: {
       <div className="ex-metric-value">{value}</div>
       {note ? <div className="ex-muted">{note}</div> : null}
     </article>
+  );
+}
+
+function HistoricalTrendSourceSummary({
+  trend,
+  status,
+}: {
+  trend: KurariExTrifectaTrendV1 | null;
+  status: "loading" | "ready" | "error";
+}) {
+  const summary = trend?.sourceSummary;
+  const historical = summary?.historical;
+  if (!summary || !historical) {
+    return (
+      <div className="ex-empty" data-testid="result-trend-lab-source-summary">
+        <strong>historical 60日 + current</strong><br />
+        {status === "error" ? "historical loader / current feedを取得できませんでした。" : "historical loaderを確認しています。"}
+      </div>
+    );
+  }
+  return (
+    <div data-testid="result-trend-lab-source-summary">
+      <div className="ex-overview-status">
+        <span className="ex-trend-status-pill is-ready">{summary.label}</span>
+        <span className={`ex-trend-status-pill is-${historical.status === "implemented" ? "ready" : "partial"}`}>
+          historical status: {historical.status}
+        </span>
+        <span className="ex-trend-status-pill is-ready">
+          analysis母数 {summary.analysisRaceCount.toLocaleString("ja-JP")}R
+        </span>
+        <span className="ex-trend-status-pill is-partial">
+          latest flow {trend.todayFlow.targetDate || "unavailable"}
+        </span>
+      </div>
+      <div className="ex-health-grid">
+        <MetricCard
+          label="HISTORICAL RANGE"
+          value={`${historical.dateRange.from ?? "--"} 〜 ${historical.dateRange.to ?? "--"}`}
+          note={`${historical.shardCount.toLocaleString("ja-JP")}日 + current`}
+        />
+        <MetricCard
+          label="LOADED SHARDS"
+          value={`${historical.loadedShardCount.toLocaleString("ja-JP")} / ${historical.shardCount.toLocaleString("ja-JP")}`}
+          warning={historical.loadedShardCount !== historical.shardCount}
+        />
+        <MetricCard
+          label="ACCEPTED RACES"
+          value={historical.acceptedRaceCount.toLocaleString("ja-JP")}
+          note={`index raceCount ${historical.raceCount.toLocaleString("ja-JP")}`}
+        />
+        <MetricCard
+          label="REJECTED RACES"
+          value={historical.rejectedRaceCount.toLocaleString("ja-JP")}
+          warning={historical.rejectedRaceCount > 0}
+        />
+        <MetricCard
+          label="TREND ELIGIBLE"
+          value={historical.trendEligibleRaceCount.toLocaleString("ja-JP")}
+          note="historical 6分析母数"
+        />
+        <MetricCard
+          label="NON-TREND"
+          value={historical.nonTrendRaceCount.toLocaleString("ja-JP")}
+          note="保存済み・trend集計除外"
+          warning={historical.nonTrendRaceCount > 0}
+        />
+        <MetricCard
+          label="DEAD HEAT EXCLUDED"
+          value={historical.deadHeatTrendExcludedCount.toLocaleString("ja-JP")}
+          warning={historical.deadHeatTrendExcludedCount > 0}
+        />
+        <MetricCard
+          label="REFUND / NO TRIFECTA"
+          value={summary.refundNoTrifectaExcludedCount.toLocaleString("ja-JP")}
+          warning={summary.refundNoTrifectaExcludedCount > 0}
+        />
+        <MetricCard
+          label="NOT FINALIZED"
+          value={summary.notFinalizedExcludedCount.toLocaleString("ja-JP")}
+          warning={summary.notFinalizedExcludedCount > 0}
+        />
+        <MetricCard
+          label="SOURCE REJECTED"
+          value={summary.sourceRejectedCount.toLocaleString("ja-JP")}
+          warning={summary.sourceRejectedCount > 0}
+        />
+        <MetricCard
+          label="CURRENT FEED"
+          value={`${summary.currentIncludedRaceCount.toLocaleString("ja-JP")} / ${summary.currentRaceCount.toLocaleString("ja-JP")}R`}
+          note={`trend除外 ${summary.currentExcludedRaceCount.toLocaleString("ja-JP")}R`}
+        />
+        <MetricCard
+          label="RACEKEY DEDUP"
+          value={summary.crossSourceDuplicateCount.toLocaleString("ja-JP")}
+          note="historical優先でcurrent重複を除外"
+          warning={summary.crossSourceDuplicateCount > 0}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -1319,41 +1415,26 @@ export default function ExDataPage() {
 
   useEffect(() => {
     let active = true;
+    setHistoricalAvailabilityStatus("loading");
     loadKurariExTrifectaTrendV1()
       .then((trend) => {
         if (!active) return;
         setTrifectaTrend(trend);
         setTrifectaTrendStatus("ready");
+        setHistoricalAvailability(trend.sourceSummary?.historical ?? null);
+        setHistoricalAvailabilityStatus("ready");
       })
       .catch(() => {
         if (!active) return;
         setTrifectaTrend(null);
         setTrifectaTrendStatus("error");
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (activeSectionTab !== "structure-lab") return;
-    let active = true;
-    setHistoricalAvailabilityStatus("loading");
-    loadKurariExHistoricalResultTrendLabHistory()
-      .then((history) => {
-        if (!active) return;
-        setHistoricalAvailability(history.availability);
-        setHistoricalAvailabilityStatus("ready");
-      })
-      .catch(() => {
-        if (!active) return;
         setHistoricalAvailability(null);
         setHistoricalAvailabilityStatus("ready");
       });
     return () => {
       active = false;
     };
-  }, [activeSectionTab]);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -2862,8 +2943,11 @@ export default function ExDataPage() {
           <SectionTitle
             eyebrow="KURARI EX RESULT TREND LAB"
             title="出目と流れを読む、次世代分析ラボ"
-            lead="official result onlyで育てる分析ラボです。3連単出目、実払戻金による荒れ指数、同日同会場のレース連鎖、会場ごとの決着傾向を安全条件ごとに分けて表示します。"
+            lead="historical 60日とcurrent official feedをraceKeyで重複排除し、trendEligibleな確定結果だけで6分析を再集計します。今日の流れは統合母数の最新日だけを別スコープで表示します。"
           />
+          <div hidden={!["ranking", "turbulence", "chain", "weather", "venue-bias", "today-flow"].includes(activeSectionTab)}>
+            <HistoricalTrendSourceSummary trend={trifectaTrend} status={trifectaTrendStatus} />
+          </div>
           <div className="ex-health-grid" hidden={activeSectionTab !== "trend"}>
             <MetricCard label="DATA AVAILABILITY AUDIT" value="IMPLEMENTED" note="schema / coverage / provenance監査" />
             <MetricCard label="RANKING / PAYOUT ENGINE" value="IMPLEMENTED v1" note="official 3連単結果・実払戻金のみ" />
@@ -3861,12 +3945,12 @@ export default function ExDataPage() {
               className="ex-empty"
               data-testid="historical-result-schema-loader-status"
             >
-              <strong>HISTORICAL SCHEMA / LOADER: PREPARED</strong><br />
+              <strong>HISTORICAL SCHEMA / LOADER: CONNECTED</strong><br />
               <span>historical data: {historicalAvailabilityStatus === "loading" ? "checking" : historicalAvailability?.indexFound ? "index found" : "not generated yet"}</span>
               {" / "}
               <span>status: {historicalAvailability?.status ?? "unavailable"}</span>
               {" / "}
-              <span>future-accumulation</span>
+              <span>{historicalAvailability?.dateRange.from ?? "--"} 〜 {historicalAvailability?.dateRange.to ?? "--"}</span>
               <div className="ex-overview-status" style={{ marginTop: 12 }}>
                 <CoverageStatusPill status={historicalAvailability?.status ?? "unavailable"} />
                 <span className="ex-trend-status-pill is-ready">localStorage not used</span>

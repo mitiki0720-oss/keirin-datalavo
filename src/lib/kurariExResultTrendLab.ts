@@ -1,3 +1,9 @@
+import { loadKurariExHistoricalResultTrendLabHistory } from "./kurariExHistoricalResultLab";
+import type {
+  KurariExHistoricalAvailabilitySummary,
+  KurariExHistoricalRace,
+} from "../types/kurariExHistoricalResult";
+
 export type KurariExTrendSampleStatus = "low-sample" | "caution" | "usable";
 
 export type KurariExTrendRankingRow = {
@@ -513,6 +519,18 @@ export type KurariExTrifectaTrendV1 = {
   sourceName: string;
   sourceFetchedAt: string;
   sourceDate: string;
+  sourceSummary?: {
+    label: "historical 60日 + current";
+    historical: KurariExHistoricalAvailabilitySummary;
+    sourceRejectedCount: number;
+    refundNoTrifectaExcludedCount: number;
+    notFinalizedExcludedCount: number;
+    currentRaceCount: number;
+    currentIncludedRaceCount: number;
+    currentExcludedRaceCount: number;
+    crossSourceDuplicateCount: number;
+    analysisRaceCount: number;
+  };
   totalRaceCount: number;
   eligibleRaceCount: number;
   excludedRaceCount: number;
@@ -544,7 +562,11 @@ type OfficialResultRace = {
   operationStatus?: unknown;
   finishOrder?: OfficialFinishRow[];
   kimarite?: unknown;
+  secondKimarite?: unknown;
+  bLeaderCarNo?: unknown;
+  carCount?: unknown;
   weatherActual?: {
+    condition?: unknown;
     windSpeedMps?: unknown;
   } | null;
   payout3tan?: {
@@ -1541,7 +1563,7 @@ function buildKurariExTodayFlowV1(
     byVenue,
     refinement: {
       status: "future-accumulation",
-      note: "締切前オッズ / 人気順 / オッズ変動と2か月分historical backfillは後続作業",
+      note: "最新日の流れだけを表示。60日傾向は出目・荒れ・連鎖・WEATHER・会場クセで確認",
     },
   };
 }
@@ -1662,8 +1684,16 @@ export function buildKurariExTrifectaTrendV1(
       positionCounts[position].set(key, (positionCounts[position].get(key) ?? 0) + 1);
       top3Counts.set(key, (top3Counts.get(key) ?? 0) + 1);
     });
+    const explicitCarCount = Number(race.carCount);
+    const carCount = Number.isInteger(explicitCarCount) && explicitCarCount >= 1 && explicitCarCount <= 9
+      ? explicitCarCount
+      : (race.finishOrder ?? []).length;
     const recordedCars = new Set(
-      (race.finishOrder ?? []).map((row) => validCarNo(row.carNo)).filter((carNo): carNo is number => carNo != null),
+      carCount >= 1 && carCount <= 9
+        ? Array.from({ length: carCount }, (_, carNo) => carNo + 1)
+        : (race.finishOrder ?? [])
+          .map((row) => validCarNo(row.carNo))
+          .filter((carNo): carNo is number => carNo != null),
     );
     recordedCars.forEach((carNo) => {
       const key = String(carNo);
@@ -1958,7 +1988,168 @@ export function buildKurariExTrifectaTrendV1(
 }
 
 export async function loadKurariExTrifectaTrendV1() {
-  const response = await fetch(publicPath(RESULT_FEED_PATH), { cache: "no-store" });
+  const [response, history] = await Promise.all([
+    fetch(publicPath(RESULT_FEED_PATH), { cache: "no-store" }),
+    loadKurariExHistoricalResultTrendLabHistory(),
+  ]);
   if (!response.ok) throw new Error(`official result fetch failed: ${response.status}`);
-  return buildKurariExTrifectaTrendV1(await response.json() as OfficialResultFeed);
+  const currentFeed = await response.json() as OfficialResultFeed;
+  const currentSourceDate = clean(currentFeed.date);
+  const historicalKeys = new Set(history.races.map((race) => race.raceKey));
+  const currentCandidates = (currentFeed.venues ?? []).flatMap((venue) =>
+    (venue.races ?? []).map((race) => ({
+      venue,
+      race,
+      raceKey: officialRaceKey(venue, race, currentSourceDate),
+    })),
+  );
+  const currentKeyCounts = new Map<string, number>();
+  currentCandidates.forEach(({ raceKey }) => {
+    if (raceKey) currentKeyCounts.set(raceKey, (currentKeyCounts.get(raceKey) ?? 0) + 1);
+  });
+  const currentSourceIsOfficial =
+    clean(currentFeed.source?.provider) === "KEIRIN.JP"
+    && clean(currentFeed.source?.listType) === "JSJ048"
+    && /^\d{4}-\d{2}-\d{2}$/u.test(currentSourceDate)
+    && !Number.isNaN(Date.parse(clean(currentFeed.generatedAt)));
+  let crossSourceDuplicateCount = 0;
+  const currentVenues = (currentFeed.venues ?? []).map((venue) => ({
+    ...venue,
+    races: (venue.races ?? []).filter((race) => {
+      const raceKey = officialRaceKey(venue, race, currentSourceDate);
+      if (raceKey && historicalKeys.has(raceKey)) {
+        crossSourceDuplicateCount += 1;
+        return false;
+      }
+      return currentSourceIsOfficial
+        && Boolean(raceKey)
+        && currentKeyCounts.get(raceKey) === 1
+        && isCurrentTrendEligible(race);
+    }),
+  }));
+  const currentRaceCount = (currentFeed.venues ?? [])
+    .reduce((sum, venue) => sum + (venue.races ?? []).length, 0);
+  const currentIncludedRaceCount = currentVenues
+    .reduce((sum, venue) => sum + (venue.races ?? []).length, 0);
+  const currentExcludedRaceCount =
+    currentRaceCount - currentIncludedRaceCount - crossSourceDuplicateCount;
+
+  const historicalTrendRaces = history.races.filter(isHistoricalTrendEligible);
+  const historicalVenueGroups = new Map<string, OfficialResultVenue>();
+  historicalTrendRaces.forEach((race) => {
+    const grade = clean(race.category.grade);
+    const groupKey = `${race.date}|${race.venueCode}|${grade}`;
+    const venue = historicalVenueGroups.get(groupKey) ?? {
+      date: race.date,
+      venueCode: race.venueCode,
+      venueName: race.venue,
+      grade,
+      races: [],
+    };
+    venue.races?.push(historicalRaceToOfficialRace(race));
+    historicalVenueGroups.set(groupKey, venue);
+  });
+
+  const sourceDate = [currentSourceDate, history.availability.dateRange.to ?? ""]
+    .filter(Boolean)
+    .sort()
+    .at(-1) ?? "";
+  const mergedFeed: OfficialResultFeed = {
+    date: sourceDate,
+    generatedAt: currentFeed.generatedAt,
+    source: {
+      provider: "KEIRIN.JP",
+      listType: "JSJ048",
+    },
+    venues: [...historicalVenueGroups.values(), ...currentVenues],
+  };
+  const trend = buildKurariExTrifectaTrendV1(mergedFeed);
+  const classificationCount = history.index?.summary?.classificationCount ?? {};
+  trend.sourceName = "historical 60日 + current";
+  trend.sourceSummary = {
+    label: "historical 60日 + current",
+    historical: history.availability,
+    sourceRejectedCount: history.index?.summary?.sourceRejectedCount ?? 0,
+    refundNoTrifectaExcludedCount: classificationCount["refund-no-trifecta"] ?? 0,
+    notFinalizedExcludedCount: classificationCount["not-finalized"] ?? 0,
+    currentRaceCount,
+    currentIncludedRaceCount,
+    currentExcludedRaceCount,
+    crossSourceDuplicateCount,
+    analysisRaceCount: trend.eligibleRaceCount,
+  };
+  return trend;
+}
+
+function officialRaceKey(
+  venue: OfficialResultVenue,
+  race: OfficialResultRace,
+  fallbackDate: string,
+) {
+  const date = clean(venue.date || fallbackDate);
+  const venueCode = clean(venue.venueCode);
+  const raceNumber = Number(race.raceNumber);
+  return date && venueCode && Number.isInteger(raceNumber) && raceNumber > 0
+    ? `${date}|${venueCode}|${raceNumber}`
+    : "";
+}
+
+function isCurrentTrendEligible(race: OfficialResultRace) {
+  if (["cancelled", "no-race"].includes(clean(race.operationStatus).toLowerCase())) return false;
+  if (clean(race.resultStatus) !== "confirmed") return false;
+  const ranked = (race.finishOrder ?? [])
+    .map((row) => ({ rank: Number(clean(row.rank)), carNo: validCarNo(row.carNo) }))
+    .filter((row) => Number.isInteger(row.rank) && row.rank >= 1 && row.rank <= 3)
+    .sort((left, right) => left.rank - right.rank);
+  if (ranked.length !== 3 || ranked.some((row, position) => row.rank !== position + 1)) {
+    return false;
+  }
+  const top3 = ranked.map((row) => row.carNo);
+  return top3.every((carNo): carNo is number => carNo !== null)
+    && new Set(top3).size === 3
+    && clean(race.payout3tan?.combination) === top3.join("-")
+    && positiveYen(race.payout3tan?.payoutYen) !== null;
+}
+
+function isHistoricalTrendEligible(race: KurariExHistoricalRace) {
+  const top3 = [
+    race.result.firstCarNo,
+    race.result.secondCarNo,
+    race.result.thirdCarNo,
+  ];
+  return race.trendEligible === true
+    && race.status === "confirmed"
+    && race.deadHeat?.detected !== true
+    && race.provenance.result.status === "present"
+    && race.provenance.payout.status === "present"
+    && top3.every((carNo) => Number.isInteger(carNo) && Number(carNo) >= 1 && Number(carNo) <= 9)
+    && new Set(top3).size === 3
+    && race.result.trifecta === top3.join("-")
+    && Number.isInteger(race.result.trifectaPayoutYen)
+    && Number(race.result.trifectaPayoutYen) > 0;
+}
+
+function historicalRaceToOfficialRace(race: KurariExHistoricalRace): OfficialResultRace {
+  return {
+    raceNumber: race.raceNumber,
+    resultStatus: "confirmed",
+    operationStatus: "finished",
+    finishOrder: [
+      { rank: 1, carNo: race.result.firstCarNo, kimarite: race.kimarite.first },
+      { rank: 2, carNo: race.result.secondCarNo, kimarite: race.kimarite.second },
+      { rank: 3, carNo: race.result.thirdCarNo },
+    ],
+    kimarite: race.kimarite.first,
+    secondKimarite: race.kimarite.second,
+    bLeaderCarNo: race.bSb.bCarNo,
+    carCount: race.category.carCount,
+    weatherActual: {
+      condition: race.weather.weather,
+      windSpeedMps: race.weather.windSpeed,
+    },
+    payout3tan: {
+      combination: race.result.trifecta,
+      payoutYen: race.result.trifectaPayoutYen,
+    },
+  };
 }
