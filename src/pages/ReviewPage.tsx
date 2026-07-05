@@ -9,6 +9,7 @@ import {
   resolveRacePayoutByBetType,
   type PredictionWeatherData,
 } from "./PageImplementations";
+import { cleanupLegacyReviewSnapshotStorage } from "../lib/legacyReviewSnapshotStorage";
 type PredictionSlotRecord = {
   raceKey: string;
   raceId: string;
@@ -308,7 +309,6 @@ const PAGE_MAX_WIDTH = "2040px";
 const PREDICTION_SLOT_STORAGE_KEY = "kurari-data-labo-prediction-slots";
 const PREDICTION_RESULT_STORAGE_KEY = "kurari-data-labo-prediction-results";
 const REVIEW_REPORT_STORAGE_KEY = "kurari-data-labo-review-reports";
-const REVIEW_RACE_RESULT_SNAPSHOT_STORAGE_KEY = "kurari-data-labo-review-race-result-snapshots";
 
 const toPublicPath = (path: string) => {
   const base = import.meta.env.BASE_URL || "/";
@@ -905,11 +905,7 @@ function compactReviewRaceResultSnapshot(race: PredictionRaceItem): PredictionRa
 function loadReviewRaceResultSnapshots() {
   if (typeof window === "undefined") return {} as ReviewRaceResultSnapshotMap;
 
-  try {
-    window.localStorage.removeItem(REVIEW_RACE_RESULT_SNAPSHOT_STORAGE_KEY);
-  } catch {
-    // localStorage cleanup failure is non-fatal
-  }
+  cleanupLegacyReviewSnapshotStorage();
 
   return {} as ReviewRaceResultSnapshotMap;
 }
