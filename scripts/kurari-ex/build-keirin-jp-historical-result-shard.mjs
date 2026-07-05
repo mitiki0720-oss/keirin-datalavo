@@ -138,6 +138,7 @@ function normalizeProbe(report, probe) {
     venueCode: report.venueCode,
     raceNumber: probe.raceNumber,
     status: "confirmed",
+    storageEligible: true,
     trendEligible: true,
     sourceClassification: "confirmed-accepted",
     sourceStatusHint: probe.rawStatusHint,
@@ -223,6 +224,83 @@ function normalizeProbe(report, probe) {
         hasB ? "present" : "absent-in-source",
         detailUrl,
         "B comes from the official BH marker; no separate SB field",
+      ),
+    },
+  };
+}
+
+function normalizeDeadHeatProbe(report, probe) {
+  const normalized = normalizeProbe(report, probe);
+  const placements = [1, 2, 3].map((place) => ({
+    place,
+    carNos: probe.finishRows
+      .filter((row) => positiveInteger(row.tyaku) === place)
+      .map((row) => positiveInteger(row.syaban))
+      .filter((carNo) => carNo !== null),
+  }));
+  const trifectaResults = probe.trifectas.map((result) => ({
+    combination: nullableText(result.kumiBan),
+    payoutYen: positiveInteger(result.haraiGaku),
+    popularityRank: positiveInteger(result.ninki),
+  }));
+  return {
+    ...normalized,
+    status: "confirmed",
+    storageEligible: true,
+    trendEligible: false,
+    sourceClassification: "confirmed-dead-heat",
+    sourceStatusHint: probe.rawStatusHint,
+    nextAction: probe.nextAction,
+    result: {
+      firstCarNo: null,
+      secondCarNo: null,
+      thirdCarNo: null,
+      trifecta: null,
+      trifectaPayoutYen: null,
+    },
+    kimarite: {
+      first: null,
+      second: null,
+    },
+    odds: {
+      favoriteRank: null,
+      firstFavoriteCombination: null,
+      closingOddsAvailable: null,
+      oddsMovementAvailable: null,
+    },
+    deadHeat: {
+      detected: true,
+      placements,
+      trifectaResults,
+      sourceStatus: "present",
+      trendEligible: false,
+      excludedReason: "dead-heat-multiple-payout",
+      notes: [
+        "official placements and all trifecta payouts are preserved",
+        "scalar result fields are null to avoid selecting one of multiple official outcomes",
+      ],
+    },
+    provenance: {
+      ...normalized.provenance,
+      result: provenance(
+        "present",
+        probe.sourceUrl,
+        "lossless dead-heat placements stored in deadHeat.placements",
+      ),
+      payout: provenance(
+        "present",
+        probe.sourceUrl,
+        "all official trifecta payouts stored in deadHeat.trifectaResults",
+      ),
+      kimarite: provenance(
+        "not-collected",
+        probe.sourceUrl,
+        "scalar kimarite is withheld because tied placement is not scalar",
+      ),
+      odds: provenance(
+        "present",
+        probe.sourceUrl,
+        "popularity rank is stored per dead-heat trifecta result",
       ),
     },
   };
@@ -392,6 +470,16 @@ async function runNegativeControls(validator, index, shards) {
     duplicateIndex,
     new Map([[duplicateShard.date, duplicateShard]]),
   );
+  const deadHeatRace = [...shards.values()]
+    .flatMap((shard) => shard.races)
+    .find((race) => race.deadHeat?.detected === true);
+  const incompleteDeadHeat = deadHeatRace ? structuredClone(deadHeatRace) : null;
+  if (incompleteDeadHeat) {
+    incompleteDeadHeat.deadHeat.trifectaResults =
+      incompleteDeadHeat.deadHeat.trifectaResults.slice(0, 1);
+  }
+  const scalarDeadHeat = deadHeatRace ? structuredClone(deadHeatRace) : null;
+  if (scalarDeadHeat) scalarDeadHeat.result.firstCarNo = 1;
 
   return {
     raceDateMismatchRejected:
@@ -414,6 +502,14 @@ async function runNegativeControls(validator, index, shards) {
     duplicateRaceKeyRejected:
       duplicateHistory.availability.rejectedReasons
         .some((entry) => entry.reason === "duplicate-race-key"),
+    incompleteDeadHeatRejected:
+      !incompleteDeadHeat
+      || validator.validateKurariExHistoricalResultRace(incompleteDeadHeat).issues
+        .some((item) => item.reason === "dead-heat-trifecta-results-invalid"),
+    scalarDeadHeatRejected:
+      !scalarDeadHeat
+      || validator.validateKurariExHistoricalResultRace(scalarDeadHeat).issues
+        .some((item) => item.reason === "dead-heat-scalar-result-must-be-null"),
   };
 }
 
@@ -464,6 +560,9 @@ async function buildDryRun(options) {
         });
         for (const probe of report._internal.probes) {
           if (probe.accepted) races.push(normalizeProbe(report, probe));
+          else if (probe.classification === "confirmed-dead-heat") {
+            races.push(normalizeDeadHeatProbe(report, probe));
+          }
           else if (
             ["cancelled", "unavailable", "not-finalized", "parser-gap"].includes(
               probe.classification,
@@ -519,7 +618,8 @@ async function buildDryRun(options) {
       date,
       generatedAt,
       sourceStatus:
-        sourceRejectedCount > 0 || races.some((race) => race.status !== "confirmed")
+        sourceRejectedCount > 0
+          || races.some((race) => race.status !== "confirmed" || !race.trendEligible)
           ? "partial"
           : "official",
       races,
@@ -558,6 +658,15 @@ async function buildDryRun(options) {
   );
   const trendEligibleRaceCount = allRaces.filter((race) => race.trendEligible).length;
   const nonTrendRaceCount = allRaces.length - trendEligibleRaceCount;
+  const deadHeatRaceCount = allRaces.filter(
+    (race) => race.deadHeat?.detected === true,
+  ).length;
+  const deadHeatTrendExcludedCount = allRaces.filter(
+    (race) => race.deadHeat?.detected === true && race.trendEligible === false,
+  ).length;
+  const storageEligibleRaceCount = allRaces.filter(
+    (race) => race.storageEligible === true,
+  ).length;
   const index = {
     version: VERSION,
     generatedAt,
@@ -654,11 +763,16 @@ async function buildDryRun(options) {
     sourceRejectByReason: countReasons(sourceRejectedReasons),
     statusCount,
     classificationCount,
+    deadHeatRaceCount,
+    deadHeatTrendExcludedCount,
+    storageEligibleRaceCount,
     trendEligibleRaceCount,
     nonTrendRaceCount,
     partialReason:
       index.sourceStatus === "partial"
-        ? "one or more days contain source-backed non-confirmed records or unresolved source rejects"
+        ? deadHeatTrendExcludedCount > 0
+          ? `dead heat excluded from trend: ${deadHeatTrendExcludedCount}`
+          : "one or more days contain source-backed non-confirmed records or unresolved source rejects"
         : null,
     blockedReason: productionBackfillBlockedReasons,
     productionBackfillReady,
@@ -718,6 +832,9 @@ async function buildDryRun(options) {
     resultListResolutionDetails,
     statusCount,
     classificationCount,
+    deadHeatRaceCount,
+    deadHeatTrendExcludedCount,
+    storageEligibleRaceCount,
     trendEligibleRaceCount,
     nonTrendRaceCount,
     productionBackfillReady,

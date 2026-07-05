@@ -185,6 +185,94 @@ function validateRaceProvenance(
   );
 }
 
+function validateDeadHeat(
+  value: unknown,
+  path: string,
+  raceKey?: string,
+) {
+  const issues: KurariExHistoricalValidationIssue[] = [];
+  if (value === undefined) return issues;
+  if (!isRecord(value)) {
+    return [issue("race", "dead-heat-object-invalid", path, raceKey)];
+  }
+  if (
+    value.detected !== true
+    || value.sourceStatus !== "present"
+    || value.trendEligible !== false
+    || value.excludedReason !== "dead-heat-multiple-payout"
+  ) {
+    issues.push(issue("race", "dead-heat-status-invalid", path, raceKey));
+  }
+  if (!Array.isArray(value.notes) || !value.notes.every((note) => typeof note === "string")) {
+    issues.push(issue("race", "dead-heat-notes-invalid", `${path}.notes`, raceKey));
+  }
+
+  const placements = value.placements;
+  const places = new Set<number>();
+  const placedCars = new Set<number>();
+  let tieFound = false;
+  if (!Array.isArray(placements) || placements.length === 0) {
+    issues.push(issue("race", "dead-heat-placements-invalid", `${path}.placements`, raceKey));
+  } else {
+    placements.forEach((placement, index) => {
+      const placementPath = `${path}.placements[${index}]`;
+      if (!isRecord(placement) || !Number.isInteger(placement.place) || Number(placement.place) <= 0) {
+        issues.push(issue("race", "dead-heat-place-invalid", placementPath, raceKey));
+        return;
+      }
+      if (places.has(Number(placement.place))) {
+        issues.push(issue("race", "dead-heat-place-duplicate", placementPath, raceKey));
+      }
+      places.add(Number(placement.place));
+      if (
+        !Array.isArray(placement.carNos)
+        || !placement.carNos.every((carNo) => Number.isInteger(carNo) && Number(carNo) > 0)
+      ) {
+        issues.push(issue("race", "dead-heat-car-nos-invalid", `${placementPath}.carNos`, raceKey));
+        return;
+      }
+      if (new Set(placement.carNos).size !== placement.carNos.length) {
+        issues.push(issue("race", "dead-heat-car-nos-duplicate", `${placementPath}.carNos`, raceKey));
+      }
+      placement.carNos.forEach((carNo) => {
+        if (placedCars.has(carNo)) {
+          issues.push(issue("race", "dead-heat-car-across-places", placementPath, raceKey));
+        }
+        placedCars.add(carNo);
+      });
+      if (placement.carNos.length > 1) tieFound = true;
+    });
+  }
+  if (!tieFound) {
+    issues.push(issue("race", "dead-heat-tie-missing", `${path}.placements`, raceKey));
+  }
+
+  const trifectaResults = value.trifectaResults;
+  const combinations = new Set<string>();
+  if (!Array.isArray(trifectaResults) || trifectaResults.length < 2) {
+    issues.push(issue("race", "dead-heat-trifecta-results-invalid", `${path}.trifectaResults`, raceKey));
+  } else {
+    trifectaResults.forEach((result, index) => {
+      const resultPath = `${path}.trifectaResults[${index}]`;
+      if (
+        !isRecord(result)
+        || !isNonEmptyString(result.combination)
+        || !Number.isInteger(result.payoutYen)
+        || Number(result.payoutYen) <= 0
+        || !isNullablePositiveInteger(result.popularityRank)
+      ) {
+        issues.push(issue("race", "dead-heat-trifecta-result-invalid", resultPath, raceKey));
+        return;
+      }
+      if (combinations.has(result.combination)) {
+        issues.push(issue("race", "dead-heat-trifecta-combination-duplicate", resultPath, raceKey));
+      }
+      combinations.add(result.combination);
+    });
+  }
+  return issues;
+}
+
 function validateSource(
   value: unknown,
   path: string,
@@ -238,17 +326,38 @@ function validateConfirmedRace(
 
   const result = isRecord(race.result) ? race.result : {};
   const provenance = isRecord(race.provenance) ? race.provenance : {};
-  const carFields = ["firstCarNo", "secondCarNo", "thirdCarNo"] as const;
-  for (const field of carFields) {
-    if (!Number.isInteger(result[field]) || Number(result[field]) <= 0) {
-      issues.push(issue("race", `confirmed-${field}-missing`, `${path}.result.${field}`, raceKey));
+  const deadHeat = isRecord(race.deadHeat) && race.deadHeat.detected === true;
+  if (deadHeat) {
+    for (const field of [
+      "firstCarNo",
+      "secondCarNo",
+      "thirdCarNo",
+      "trifecta",
+      "trifectaPayoutYen",
+    ] as const) {
+      if (result[field] !== null) {
+        issues.push(issue("race", "dead-heat-scalar-result-must-be-null", `${path}.result.${field}`, raceKey));
+      }
     }
-  }
-  if (!isNonEmptyString(result.trifecta)) {
-    issues.push(issue("race", "confirmed-trifecta-missing", `${path}.result.trifecta`, raceKey));
-  }
-  if (!Number.isInteger(result.trifectaPayoutYen) || Number(result.trifectaPayoutYen) <= 0) {
-    issues.push(issue("race", "confirmed-trifecta-payout-invalid", `${path}.result.trifectaPayoutYen`, raceKey));
+    if (race.storageEligible !== true) {
+      issues.push(issue("race", "dead-heat-storage-eligible-required", `${path}.storageEligible`, raceKey));
+    }
+    if (race.trendEligible !== false) {
+      issues.push(issue("race", "dead-heat-trend-exclusion-required", `${path}.trendEligible`, raceKey));
+    }
+  } else {
+    const carFields = ["firstCarNo", "secondCarNo", "thirdCarNo"] as const;
+    for (const field of carFields) {
+      if (!Number.isInteger(result[field]) || Number(result[field]) <= 0) {
+        issues.push(issue("race", `confirmed-${field}-missing`, `${path}.result.${field}`, raceKey));
+      }
+    }
+    if (!isNonEmptyString(result.trifecta)) {
+      issues.push(issue("race", "confirmed-trifecta-missing", `${path}.result.trifecta`, raceKey));
+    }
+    if (!Number.isInteger(result.trifectaPayoutYen) || Number(result.trifectaPayoutYen) <= 0) {
+      issues.push(issue("race", "confirmed-trifecta-payout-invalid", `${path}.result.trifectaPayoutYen`, raceKey));
+    }
   }
   if (provenanceStatus(provenance, "result") !== "present") {
     issues.push(issue("race", "confirmed-result-provenance-not-present", `${path}.provenance.result`, raceKey));
@@ -326,6 +435,12 @@ export function validateKurariExHistoricalResultRace(
   if (!RACE_STATUSES.has(String(value.status))) {
     issues.push(issue("race", "race-status-invalid", `${path}.status`, raceKey));
   }
+  if (value.storageEligible !== undefined && typeof value.storageEligible !== "boolean") {
+    issues.push(issue("race", "storage-eligible-invalid", `${path}.storageEligible`, raceKey));
+  }
+  if (value.trendEligible !== undefined && typeof value.trendEligible !== "boolean") {
+    issues.push(issue("race", "trend-eligible-invalid", `${path}.trendEligible`, raceKey));
+  }
 
   const expectedRaceKey = buildKurariExHistoricalRaceKey({
     date,
@@ -339,6 +454,7 @@ export function validateKurariExHistoricalResultRace(
 
   issues.push(...validateSource(value.source, `${path}.source`, date, raceKey));
   issues.push(...validateRaceProvenance(value.provenance, `${path}.provenance`, raceKey));
+  issues.push(...validateDeadHeat(value.deadHeat, `${path}.deadHeat`, raceKey));
 
   const result = value.result;
   if (!isRecord(result)) {
@@ -456,6 +572,64 @@ function validateCoverage(value: unknown, path: string, scope: "index" | "shard"
   return issues;
 }
 
+function validateIndexSummary(value: unknown) {
+  const issues: KurariExHistoricalValidationIssue[] = [];
+  if (value === undefined) return issues;
+  if (!isRecord(value)) {
+    return [issue("index", "index-summary-invalid", "index.summary")];
+  }
+  const countFields = [
+    "sourceRejectedCount",
+    "deadHeatRaceCount",
+    "deadHeatTrendExcludedCount",
+    "storageEligibleRaceCount",
+    "trendEligibleRaceCount",
+    "nonTrendRaceCount",
+  ] as const;
+  countFields.forEach((field) => {
+    if (!Number.isInteger(value[field]) || Number(value[field]) < 0) {
+      issues.push(issue("index", "index-summary-count-invalid", `index.summary.${field}`));
+    }
+  });
+  for (const field of ["statusCount", "classificationCount"] as const) {
+    if (
+      !isRecord(value[field])
+      || !Object.values(value[field]).every(
+        (count) => Number.isInteger(count) && Number(count) >= 0,
+      )
+    ) {
+      issues.push(issue("index", "index-summary-count-map-invalid", `index.summary.${field}`));
+    }
+  }
+  if (
+    !Array.isArray(value.sourceRejectByReason)
+    || !value.sourceRejectByReason.every(
+      (entry) => isRecord(entry)
+        && isNonEmptyString(entry.reason)
+        && Number.isInteger(entry.count)
+        && Number(entry.count) >= 0,
+    )
+  ) {
+    issues.push(issue("index", "index-summary-reject-reasons-invalid", "index.summary.sourceRejectByReason"));
+  }
+  if (!isNullableString(value.partialReason)) {
+    issues.push(issue("index", "index-summary-partial-reason-invalid", "index.summary.partialReason"));
+  }
+  if (
+    !Array.isArray(value.blockedReason)
+    || !value.blockedReason.every((reason) => typeof reason === "string")
+  ) {
+    issues.push(issue("index", "index-summary-blocked-reason-invalid", "index.summary.blockedReason"));
+  }
+  if (
+    typeof value.productionBackfillReady !== "boolean"
+    || !isNonEmptyString(value.productionBackfillReadyReason)
+  ) {
+    issues.push(issue("index", "index-summary-production-gate-invalid", "index.summary"));
+  }
+  return issues;
+}
+
 export function validateKurariExHistoricalResultTrendLabIndex(
   value: unknown,
 ): ValidationResult<KurariExHistoricalIndex> {
@@ -561,6 +735,7 @@ export function validateKurariExHistoricalResultTrendLabIndex(
     issues.push(issue("index", "index-provenance-invalid", "index.provenance"));
   }
   issues.push(...validateCoverage(value.coverage, "index.coverage", "index"));
+  issues.push(...validateIndexSummary(value.summary));
   return {
     value: issues.length ? null : value as KurariExHistoricalIndex,
     issues,
@@ -743,7 +918,8 @@ function summarizeCoverage(races: KurariExHistoricalRace[]): KurariExHistoricalC
 }
 
 function canRaceBeUsedForTrendLab(race: KurariExHistoricalRace) {
-  return race.status === "confirmed"
+  return race.trendEligible !== false
+    && race.status === "confirmed"
     && race.provenance.result.status === "present"
     && race.provenance.payout.status === "present"
     && race.result.firstCarNo !== null
@@ -778,6 +954,13 @@ function unavailableSummary(
     dateRange: { from: null, to: null },
     sourceProviders: [],
     coverageByField: emptyCoverage(),
+    deadHeatRaceCount: 0,
+    deadHeatTrendExcludedCount: 0,
+    storageEligibleRaceCount: 0,
+    trendEligibleRaceCount: 0,
+    nonTrendRaceCount: 0,
+    productionBackfillReady: false,
+    productionBackfillReadyReason: "historical index is unavailable",
     canUseForTrendLab: false,
     notes,
   };
@@ -824,6 +1007,15 @@ Promise<KurariExHistoricalHistoryLoadResult> {
     + duplicateIssues.length;
   const coverageByField = summarizeCoverage(races);
   const trendRaceCount = races.filter(canRaceBeUsedForTrendLab).length;
+  const deadHeatRaceCount = races.filter((race) => race.deadHeat?.detected === true).length;
+  const deadHeatTrendExcludedCount = races.filter(
+    (race) => race.deadHeat?.detected === true && race.trendEligible === false,
+  ).length;
+  const storageEligibleRaceCount = races.filter(
+    (race) => race.storageEligible === true
+      || (race.storageEligible === undefined && race.status === "confirmed"),
+  ).length;
+  const nonTrendRaceCount = races.length - trendRaceCount;
   const loadedShardCount = shards.filter((shard) => shard.status === "loaded").length;
   const sourceProviders = [...new Set(races.map((race) => race.source.provider))].sort();
   const allCoverageImplemented = KURARI_EX_HISTORICAL_COVERAGE_FIELDS.every(
@@ -843,7 +1035,15 @@ Promise<KurariExHistoricalHistoryLoadResult> {
     "localStorage not used",
     ...(loadedShardCount < indexResult.index.shardCount ? ["one or more shards are missing or invalid"] : []),
     ...(rejectedRaceCount > 0 ? ["rejected races are excluded from all aggregates"] : []),
+    ...(deadHeatTrendExcludedCount > 0 ? ["dead heat races are stored but excluded from trend aggregates"] : []),
   ];
+  const indexProductionReady = indexResult.index.summary?.productionBackfillReady;
+  const productionBackfillReady =
+    indexProductionReady === true && allIssues.length === 0;
+  const productionBackfillReadyReason = productionBackfillReady
+    ? "all production gates passed"
+    : indexResult.index.summary?.productionBackfillReadyReason
+      ?? "index production gate is unavailable";
 
   return {
     index: indexResult.index,
@@ -864,6 +1064,13 @@ Promise<KurariExHistoricalHistoryLoadResult> {
       },
       sourceProviders,
       coverageByField,
+      deadHeatRaceCount,
+      deadHeatTrendExcludedCount,
+      storageEligibleRaceCount,
+      trendEligibleRaceCount: trendRaceCount,
+      nonTrendRaceCount,
+      productionBackfillReady,
+      productionBackfillReadyReason,
       canUseForTrendLab: trendRaceCount > 0,
       notes,
     },

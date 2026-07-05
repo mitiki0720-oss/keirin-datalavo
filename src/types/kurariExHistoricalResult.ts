@@ -70,6 +70,27 @@ export type KurariExHistoricalSource = {
   parserVersion: string;
 };
 
+export type KurariExHistoricalDeadHeatPlacement = {
+  place: number;
+  carNos: number[];
+};
+
+export type KurariExHistoricalDeadHeatTrifectaResult = {
+  combination: string;
+  payoutYen: number;
+  popularityRank: number | null;
+};
+
+export type KurariExHistoricalDeadHeat = {
+  detected: true;
+  placements: KurariExHistoricalDeadHeatPlacement[];
+  trifectaResults: KurariExHistoricalDeadHeatTrifectaResult[];
+  sourceStatus: "present";
+  trendEligible: false;
+  excludedReason: "dead-heat-multiple-payout";
+  notes: string[];
+};
+
 export type KurariExHistoricalRace = {
   raceKey: string;
   date: string;
@@ -77,6 +98,8 @@ export type KurariExHistoricalRace = {
   venueCode: string;
   raceNumber: number;
   status: "confirmed" | "cancelled" | "unavailable";
+  storageEligible?: boolean;
+  trendEligible?: boolean;
   result: {
     firstCarNo: number | null;
     secondCarNo: number | null;
@@ -117,6 +140,7 @@ export type KurariExHistoricalRace = {
     bCarNo: number | null;
     sbAvailable: boolean | null;
   };
+  deadHeat?: KurariExHistoricalDeadHeat;
   source: KurariExHistoricalSource;
   provenance: KurariExHistoricalRaceProvenance;
 };
@@ -162,6 +186,21 @@ export type KurariExHistoricalIndex = {
     generatedAt: string;
   };
   coverage: KurariExHistoricalCoverage;
+  summary?: {
+    sourceRejectedCount: number;
+    sourceRejectByReason: KurariExHistoricalRejectedReason[];
+    statusCount: Record<string, number>;
+    classificationCount: Record<string, number>;
+    deadHeatRaceCount: number;
+    deadHeatTrendExcludedCount: number;
+    storageEligibleRaceCount: number;
+    trendEligibleRaceCount: number;
+    nonTrendRaceCount: number;
+    partialReason: string | null;
+    blockedReason: string[];
+    productionBackfillReady: boolean;
+    productionBackfillReadyReason: string;
+  };
 };
 
 export type KurariExHistoricalDailyShard = {
@@ -192,6 +231,13 @@ export type KurariExHistoricalAvailabilitySummary = {
   };
   sourceProviders: string[];
   coverageByField: KurariExHistoricalCoverage;
+  deadHeatRaceCount: number;
+  deadHeatTrendExcludedCount: number;
+  storageEligibleRaceCount: number;
+  trendEligibleRaceCount: number;
+  nonTrendRaceCount: number;
+  productionBackfillReady: boolean;
+  productionBackfillReadyReason: string;
   canUseForTrendLab: boolean;
   notes: string[];
 };

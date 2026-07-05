@@ -233,13 +233,14 @@ function classifyProbe({
   }
   if (deadHeat) {
     return {
-      classification: "parser-gap",
-      normalizedStatus: "unavailable",
+      classification: "confirmed-dead-heat",
+      normalizedStatus: "confirmed",
+      storageEligible: true,
       trendEligible: false,
-      reason: "dead-heat result cannot fit scalar second/third/trifecta schema",
+      reason: null,
       rawStatusHint:
         `rankCounts=${JSON.stringify(Object.fromEntries(rankCounts))}; trifectaRows=${trifectas.length}`,
-      nextAction: "extend-schema-for-dead-heat-or-keep-source-backed-unavailable",
+      nextAction: "store-lossless-dead-heat-and-exclude-from-trend",
     };
   }
   if (
@@ -265,6 +266,7 @@ function classifyProbe({
     return {
       classification: "confirmed-accepted",
       normalizedStatus: "confirmed",
+      storageEligible: true,
       trendEligible: true,
       reason: null,
       rawStatusHint: "top-three and trifecta payout confirmed",
@@ -558,6 +560,7 @@ export async function discoverKeirinJpHistoricalResults(options) {
       rejectionReason: classification.reason,
       classification: classification.classification,
       normalizedStatus: classification.normalizedStatus,
+      storageEligible: classification.storageEligible ?? false,
       trendEligible: classification.trendEligible,
       nextAction: classification.nextAction,
       rawStatusHint: classification.rawStatusHint,
@@ -622,6 +625,7 @@ export async function discoverKeirinJpHistoricalResults(options) {
       resultCd: probe.resultCd,
       classification: probe.classification,
       normalizedStatus: probe.normalizedStatus,
+      storageEligible: probe.storageEligible,
       trendEligible: probe.trendEligible,
       nextAction: probe.nextAction,
       rawStatusHint: probe.rawStatusHint,

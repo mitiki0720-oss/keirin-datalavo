@@ -1128,3 +1128,14 @@ EXページを出目ランキング、荒れ指数、レース連鎖、風速×�
 - 3日再検証ではconfirmed 201、unavailable 2、未解決source reject 0。dead heat parser gap 2件によりproduction readyはfalse
 - `public/data/**`は未書込み、`public/data/reviews/**`は非対象、localStorage/sessionStorageは使用しない
 - 次工程ではdead heatの複数着順・複数3連単払戻を保持するschema方針と、本番write前のcomplete-day gateを確定する
+
+## 33-01-C4 dead heat storage
+
+- historical v1 schemaへoptionalなlossless `deadHeat.placements / deadHeat.trifectaResults`を追加し、既存単一result contractは維持する
+- dead heatの単一result fieldはnullとし、一方の着順・払戻だけを採用しない
+- dead heatは`status=confirmed / storageEligible=true / trendEligible=false`とし、result/payout provenanceはpresentにする
+- actual validatorは複数順位・複数払戻とscalar混入禁止を検証する
+- loader summaryはdead heat、storage eligible、trend eligible、non-trend、production gateの件数と理由を返す
+- 3日temp検証は203 records、dead heat 2、storage eligible 203、trend eligible 201、source/validator reject 0
+- production gateはtrue。indexは`partialReason=dead heat excluded from trend: 2`を保持する
+- `public/data/**`は未書込み、`public/data/reviews/**`は非対象、localStorage/sessionStorageは使用しない

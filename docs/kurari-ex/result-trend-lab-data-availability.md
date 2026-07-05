@@ -62,6 +62,49 @@ public/data/analytics/kurari-ex-result-trend-lab-history/
 
 今回の生成先はOS Tempだけであり、`public/data/**`と`public/data/reviews/**`は変更していない。33-01-C4または本番backfill前に、dead heatを複数着順・複数払戻として表現するschema方針を決定する必要がある。
 
+## 33-01-C4 dead heat lossless schema
+
+33-01-C4ではv1の単一result contractを残したまま、optionalな`deadHeat`構造と`storageEligible / trendEligible`を追加した。既存raceは`deadHeat`を省略できるため後方互換とする。
+
+```text
+deadHeat:
+  detected: true
+  placements:
+    - place: 1
+      carNos: [...]
+    - place: 2
+      carNos: [...]
+    - place: 3
+      carNos: [...]
+  trifectaResults:
+    - combination
+      payoutYen
+      popularityRank
+  sourceStatus: present
+  trendEligible: false
+  excludedReason: dead-heat-multiple-payout
+  notes: [...]
+```
+
+- dead heatの単一`firstCarNo / secondCarNo / thirdCarNo / trifecta / trifectaPayoutYen`は全てnullとし、複数正解の一方をprimary扱いしない
+- placementsは公式着順ごとの全車番、trifectaResultsは公式JSJ012の全3連単払戻を保持する
+- result/payout provenanceはconflictではなくpresentとする
+- dead heatもofficial confirmed recordとして`status=confirmed / storageEligible=true`にする
+- 既存6分析の同着集計規則は未確定のため`trendEligible=false`を維持する
+- validatorは同着順位、車番重複、複数払戻、払戻金、人気順、scalar result混入、storage/trend flagを検証する
+- loader summaryは`deadHeatRaceCount / deadHeatTrendExcludedCount / storageEligibleRaceCount / trendEligibleRaceCount / nonTrendRaceCount / productionBackfillReady`を返す
+
+Temp再生成結果:
+
+- 久留米9R: 1着9、2着同着1・3、3連単`9-1-3=1,580円(7)`と`9-3-1=9,400円(27)`を保存
+- 小松島3R: 1着2、2着1、3着同着5・9、3連単`2-1-5=2,860円(11)`と`2-1-9=3,510円(20)`を保存
+- total 203、dead heat 2、storage eligible 203、trend eligible 201、non-trend 2
+- source reject 0、validator/loader reject 0、parser gap 0
+- `productionBackfillReady=true`
+- indexはtrend対象外2件があるため`sourceStatus=partial`を維持し、`partialReason=dead heat excluded from trend: 2`を明示する
+
+生成先は引き続きOS Tempのみ。`public/data/**`、`public/data/reviews/**`、localStorage/sessionStorageは使用していない。33-01-Dでdead heatを既存分析へ含めるかは分析ごとに別途決定する。
+
 ## 32-01の目的
 
 Result Trend Labで将来扱う出目ランキング、荒れ指数、レース連鎖、風速×決まり手、会場クセ、今日の流れについて、既存データだけで安全に実装できる範囲を棚卸しする。32-01では集計engine、ランキング、架空の分析数値を生成しない。
