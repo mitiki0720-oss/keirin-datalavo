@@ -29,7 +29,10 @@ const PUBLIC_OUTPUT_ROOT = path.join(
   "kurari-ex-result-trend-lab-history",
 );
 const CONFIRMED_NAMESPACE = "kurari-ex-result-trend-lab-history";
-const C6_WRITE_DATE = "2026-06-28";
+const C7_WRITE_FROM = "2026-06-22";
+const C7_WRITE_TO = "2026-06-28";
+const C7_WRITE_DATES = expandDateRange(C7_WRITE_FROM, C7_WRITE_TO);
+const C6_EXISTING_DATE = "2026-06-28";
 
 function parseArgs(argv) {
   const options = {
@@ -174,15 +177,17 @@ function validateOptions(options) {
       throw new Error(`--write requires --confirm-namespace ${CONFIRMED_NAMESPACE}`);
     }
     if (
-      options.from !== C6_WRITE_DATE
-      || options.to !== C6_WRITE_DATE
-      || uniqueDates.length !== 1
-      || uniqueDates[0] !== C6_WRITE_DATE
+      options.from !== C7_WRITE_FROM
+      || options.to !== C7_WRITE_TO
+      || uniqueDates.length !== C7_WRITE_DATES.length
+      || uniqueDates.some((date, index) => date !== C7_WRITE_DATES[index])
     ) {
-      throw new Error(`C6 public write is restricted to --from ${C6_WRITE_DATE} --to ${C6_WRITE_DATE}`);
+      throw new Error(
+        `C7 public write is restricted to --from ${C7_WRITE_FROM} --to ${C7_WRITE_TO}`,
+      );
     }
     if (options.venueCode) {
-      throw new Error("C6 public write requires all venues; --venue-code is not allowed");
+      throw new Error("C7 public write requires all venues; --venue-code is not allowed");
     }
     validatePublicOutputPath(PUBLIC_OUTPUT_ROOT);
   }
@@ -1098,7 +1103,7 @@ async function buildDryRun(options) {
 
   const report = {
     mode: options.write
-      ? "public-single-day-write"
+      ? "public-seven-day-write"
       : options.outputMode === "public"
         ? "public-target-preflight-dry-run"
       : "temp-only-dry-run",
@@ -1154,6 +1159,8 @@ async function buildDryRun(options) {
       })
     : null;
   let publicWrittenFiles = [];
+  let publicFinalFiles = [];
+  let existingShardPreserved = false;
   let publicPostWriteAvailability = null;
   if (options.write) {
     if (!publicOutputGuard?.passed) {
@@ -1162,55 +1169,123 @@ async function buildDryRun(options) {
       );
     }
     if (
-      writtenShards.size !== 1
-      || !writtenShards.has(C6_WRITE_DATE)
-      || writtenIndex.shardCount !== 1
-      || writtenIndex.range.from !== C6_WRITE_DATE
-      || writtenIndex.range.to !== C6_WRITE_DATE
+      writtenShards.size !== C7_WRITE_DATES.length
+      || C7_WRITE_DATES.some((date) => !writtenShards.has(date))
+      || writtenIndex.shardCount !== C7_WRITE_DATES.length
+      || writtenIndex.range.from !== C7_WRITE_FROM
+      || writtenIndex.range.to !== C7_WRITE_TO
     ) {
-      throw new Error("C6 write candidate contains a date outside 2026-06-28");
+      throw new Error(
+        `C7 write candidate must contain only ${C7_WRITE_FROM} through ${C7_WRITE_TO}`,
+      );
     }
-    const publicShardPath = path.join(
-      options.publicTarget,
-      "daily",
-      "2026-06",
-      "2026-06-28.generated.json",
-    );
     const publicIndexPath = path.join(options.publicTarget, "index.generated.json");
-    publicWrittenFiles = [publicIndexPath, publicShardPath];
+    const publicShardPaths = new Map(C7_WRITE_DATES.map((date) => [
+      date,
+      path.join(
+        options.publicTarget,
+        "daily",
+        date.slice(0, 7),
+        `${date}.generated.json`,
+      ),
+    ]));
+    publicFinalFiles = [
+      publicIndexPath,
+      ...C7_WRITE_DATES.map((date) => publicShardPaths.get(date)),
+    ];
     if (
-      publicWrittenFiles.some(
+      publicFinalFiles.some(
         (filePath) => !isChildPath(options.publicTarget, filePath),
       )
     ) {
-      throw new Error("C6 planned write escaped the allowed public namespace");
+      throw new Error("C7 planned write escaped the allowed public namespace");
     }
 
-    await writeJson(publicShardPath, writtenShards.get(C6_WRITE_DATE));
+    const existingC6ShardPath = publicShardPaths.get(C6_EXISTING_DATE);
+    let existingC6Shard;
+    try {
+      existingC6Shard = JSON.parse(await readFile(existingC6ShardPath, "utf8"));
+    } catch (error) {
+      throw new Error(
+        `C7 requires the existing C6 shard at ${existingC6ShardPath}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+    const existingC6Validation =
+      validator.validateKurariExHistoricalResultTrendLabDailyShard(
+        existingC6Shard,
+        C6_EXISTING_DATE,
+      );
+    if (
+      existingC6Validation.issues.length > 0
+      || existingC6Shard.races?.length !== 59
+      || writtenShards.get(C6_EXISTING_DATE)?.races?.length !== 59
+    ) {
+      throw new Error(
+        "C7 existing 2026-06-28 shard must remain valid with raceCount 59",
+      );
+    }
+
+    const finalPublicShards = new Map(writtenShards);
+    finalPublicShards.set(C6_EXISTING_DATE, existingC6Shard);
+    const preWriteHistory = await loadThroughActualLoader(
+      validator,
+      writtenIndex,
+      finalPublicShards,
+    );
+    const expectedAcceptedRaceCount = [...finalPublicShards.values()]
+      .reduce((count, shard) => count + shard.races.length, 0);
+    if (
+      !preWriteHistory.availability.productionBackfillReady
+      || preWriteHistory.availability.rejectedRaceCount !== 0
+      || preWriteHistory.availability.acceptedRaceCount !== expectedAcceptedRaceCount
+    ) {
+      throw new Error("C7 merged public candidate failed pre-write loader validation");
+    }
+
+    publicWrittenFiles = [publicIndexPath];
+    for (const date of C7_WRITE_DATES) {
+      if (date === C6_EXISTING_DATE) continue;
+      const publicShardPath = publicShardPaths.get(date);
+      await writeJson(publicShardPath, writtenShards.get(date));
+      publicWrittenFiles.push(publicShardPath);
+    }
     await writeJson(publicIndexPath, writtenIndex);
+    existingShardPreserved = true;
 
     const publicIndex = JSON.parse(await readFile(publicIndexPath, "utf8"));
-    const publicShard = JSON.parse(await readFile(publicShardPath, "utf8"));
+    const publicShards = new Map();
+    for (const date of C7_WRITE_DATES) {
+      const publicShard = JSON.parse(
+        await readFile(publicShardPaths.get(date), "utf8"),
+      );
+      publicShards.set(date, publicShard);
+    }
     const publicHistory = await loadThroughActualLoader(
       validator,
       publicIndex,
-      new Map([[C6_WRITE_DATE, publicShard]]),
+      publicShards,
     );
     publicPostWriteAvailability = publicHistory.availability;
     if (
       !publicPostWriteAvailability.productionBackfillReady
       || publicPostWriteAvailability.rejectedRaceCount !== 0
-      || publicPostWriteAvailability.acceptedRaceCount !== 59
-      || publicPostWriteAvailability.trendEligibleRaceCount !== 59
-      || publicPostWriteAvailability.nonTrendRaceCount !== 0
+      || publicPostWriteAvailability.acceptedRaceCount !== expectedAcceptedRaceCount
+      || publicIndex.range.from !== C7_WRITE_FROM
+      || publicIndex.range.to !== C7_WRITE_TO
+      || publicIndex.shardCount !== C7_WRITE_DATES.length
+      || publicShards.get(C6_EXISTING_DATE)?.races?.length !== 59
     ) {
-      throw new Error("C6 public post-write loader validation failed");
+      throw new Error("C7 public post-write loader validation failed");
     }
   }
   return {
     ...report,
     publicDataWritePerformed: options.write,
     publicWrittenFiles,
+    publicFinalFiles,
+    existingShardPreserved,
     publicPostWriteAvailability,
     publicOutputGuard,
     outputGuardControls,
@@ -1238,10 +1313,10 @@ async function main() {
         ? 0
         : 1;
   } catch (error) {
-    console.error(JSON.stringify({
+      console.error(JSON.stringify({
       mode: options.outputMode === "public"
         ? options.write
-          ? "public-single-day-write"
+          ? "public-seven-day-write"
           : "public-target-preflight-dry-run"
         : "temp-only-dry-run",
       output: options.output,

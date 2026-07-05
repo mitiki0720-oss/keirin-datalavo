@@ -190,6 +190,20 @@ C6 writeは上記単日以外を拒否し、期間拡張や`--venue-code`指定�
 
 `public/data/reviews/**`、`public/data/races/**`、`public/data/venues/**`、旧`analytics/kurari-ex/history/**`は変更していない。2か月分本番は未実施であり、次工程はC7の7日分または2か月本番前チェックとする。
 
+## 33-01-C7 seven-day public write
+
+Public generation was restricted to the exact range `2026-06-22` through `2026-06-28`, all venues, and the confirmed `kurari-ex-result-trend-lab-history` namespace.
+
+- The existing C6 shard for `2026-06-28` was validated and preserved; its race count remains 59.
+- The public index now references 7 daily shards and 515 source-backed records.
+- Actual loader result: accepted 515, rejected 0, storage eligible 515, trend eligible 510, non-trend 5.
+- Source result: 513 confirmed and 2 unavailable/not-finalized records. Source rejects, date mismatches, and duplicate race keys are 0.
+- Three confirmed dead heats are stored losslessly and excluded from trend aggregation. The index records `partialReason=dead heat excluded from trend: 3`.
+- `productionBackfillReady=true`; schema/validator issue count is 0.
+- `public/data/reviews/**`, races, venues, the legacy `analytics/kurari-ex/history/**` namespace, and every other analytics namespace were not changed.
+- No localStorage or sessionStorage is used. A two-month production backfill has not been run.
+- Next step C8: preflight for a 14-day expansion or the full two-month range.
+
 ## 32-01の目的
 
 Result Trend Labで将来扱う出目ランキング、荒れ指数、レース連鎖、風速×決まり手、会場クセ、今日の流れについて、既存データだけで安全に実装できる範囲を棚卸しする。32-01では集計engine、ランキング、架空の分析数値を生成しない。

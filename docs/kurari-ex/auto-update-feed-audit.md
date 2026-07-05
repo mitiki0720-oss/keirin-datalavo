@@ -1160,3 +1160,15 @@ EXページを出目ランキング、荒れ指数、レース連鎖、風速×�
 - productionBackfillReady=true
 - reviews、races、venues、旧kurari-ex history、その他analytics namespaceは未変更
 - 2か月本番は未実施。次工程はC7の拡張前チェック
+
+## 33-01-C7 seven-day production write
+
+- The only enabled public write is the exact `2026-06-22` to `2026-06-28` range under `public/data/analytics/kurari-ex-result-trend-lab-history/`.
+- Required flags remain `--output-public --write --allow-public-output --confirm-namespace kurari-ex-result-trend-lab-history`.
+- An 8-day range or any different range is rejected before source discovery or filesystem writes.
+- Six new daily shards were written. The existing `2026-06-28` C6 shard was validated at 59 races and was not rewritten.
+- Final index: 7 shards, 515 records, 510 trend eligible, 5 non-trend, 3 lossless dead heats, 0 source rejects, 0 loader rejects, and `productionBackfillReady=true`.
+- Two source-backed not-finalized records remain unavailable and are not promoted to confirmed or trend eligible.
+- Reviews, races, venues, legacy history, private input, bundled source data, package files, and workflows remain outside the operation.
+- No localStorage or sessionStorage persistence is involved.
+- The two-month production run remains disabled. C8 must explicitly review the next 14-day or two-month range before widening the guard.
