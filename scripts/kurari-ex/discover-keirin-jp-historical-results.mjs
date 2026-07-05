@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { pathToFileURL } from "node:url";
 import process from "node:process";
 import * as cheerio from "cheerio";
 
@@ -7,6 +8,7 @@ const PARSER_VERSION = "kurari-ex-keirin-jp-historical-discovery/v1";
 const BASE_URL = "https://keirin.jp";
 const USER_AGENT = "kurari-ex-historical-endpoint-discovery/1.0";
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/u;
+const scheduleCache = new Map();
 
 function parseArgs(argv) {
   const options = {
@@ -123,6 +125,31 @@ function discoverScheduleCandidates(html, day) {
   });
 
   return candidates;
+}
+
+async function loadSchedule(date) {
+  if (scheduleCache.has(date)) return scheduleCache.get(date);
+  const [year, month, day] = date.split("-").map(Number);
+  const scheduleUrl =
+    `${BASE_URL}/pc/raceschedule?scyy=${year}&scym=${String(month).padStart(2, "0")}`;
+  const scheduleFetch = await fetchText(scheduleUrl);
+  if (!scheduleFetch.response.ok) {
+    throw new Error(`schedule HTTP ${scheduleFetch.response.status}`);
+  }
+  const loaded = {
+    day,
+    scheduleUrl,
+    cookie: cookiesFrom(scheduleFetch.response),
+    candidates: discoverScheduleCandidates(scheduleFetch.text, day),
+  };
+  scheduleCache.set(date, loaded);
+  return loaded;
+}
+
+export async function listKeirinJpHistoricalVenueCandidates(date) {
+  if (!isValidDate(date)) throw new Error(`invalid date: ${date}`);
+  const loaded = await loadSchedule(date);
+  return loaded.candidates.map(({ encp: _encp, ...candidate }) => candidate);
 }
 
 function cleanText(value) {
@@ -252,17 +279,11 @@ function summarizeFields(probes) {
   };
 }
 
-async function discover(options) {
-  const [year, month, day] = options.date.split("-").map(Number);
-  const scheduleUrl =
-    `${BASE_URL}/pc/raceschedule?scyy=${year}&scym=${String(month).padStart(2, "0")}`;
-  const scheduleFetch = await fetchText(scheduleUrl);
-  if (!scheduleFetch.response.ok) {
-    throw new Error(`schedule HTTP ${scheduleFetch.response.status}`);
-  }
-
-  const cookie = cookiesFrom(scheduleFetch.response);
-  let candidates = discoverScheduleCandidates(scheduleFetch.text, day);
+export async function discoverKeirinJpHistoricalResults(options) {
+  const [, month, day] = options.date.split("-").map(Number);
+  const loadedSchedule = await loadSchedule(options.date);
+  const { scheduleUrl, cookie } = loadedSchedule;
+  let candidates = loadedSchedule.candidates;
   if (options.venueCode) {
     candidates = candidates.filter((candidate) => candidate.venueCode === options.venueCode);
   }
@@ -371,11 +392,14 @@ async function discover(options) {
       topThree,
       trifecta,
     });
+    if (Number(options.delayMs) > 0) {
+      await new Promise((resolve) => setTimeout(resolve, Number(options.delayMs)));
+    }
   }
 
   const accepted = probes.filter((probe) => probe.accepted);
   const rejected = probes.filter((probe) => !probe.accepted);
-  return {
+  const report = {
     mode: "dry-run",
     writePerformed: false,
     provider: PROVIDER,
@@ -422,6 +446,14 @@ async function discover(options) {
         ? "partial only: official confirmed result core is adoptable; unavailable fields must remain null"
         : "not-adoptable",
   };
+  return options.includeInternal
+    ? {
+        ...report,
+        _internal: {
+          probes,
+        },
+      }
+    : report;
 }
 
 async function main() {
@@ -446,7 +478,7 @@ async function main() {
   }
 
   try {
-    const report = await discover(options);
+    const report = await discoverKeirinJpHistoricalResults(options);
     console.log(JSON.stringify(report, null, 2));
     process.exitCode = report.acceptedCount > 0 ? 0 : 1;
   } catch (error) {
@@ -461,4 +493,7 @@ async function main() {
   }
 }
 
-await main();
+const executedPath = process.argv[1] ? pathToFileURL(process.argv[1]).href : "";
+if (import.meta.url === executedPath) {
+  await main();
+}
