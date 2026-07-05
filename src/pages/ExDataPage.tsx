@@ -152,6 +152,17 @@ const EX_SECTION_TABS: Array<{
   { key: "analysis", label: "EX ANALYSIS", sublabel: "会場・選手・対戦" },
 ];
 
+const RESULT_TREND_LOAD_TABS: ExSectionTab[] = [
+  "trend",
+  "ranking",
+  "turbulence",
+  "chain",
+  "weather",
+  "venue-bias",
+  "today-flow",
+  "structure-lab",
+];
+
 function formatBytes(bytes?: number | null) {
   if (!Number.isFinite(bytes)) return "--";
   if ((bytes ?? 0) < 1000) return `${bytes} B`;
@@ -338,7 +349,7 @@ function HistoricalTrendSourceSummary({
   status,
 }: {
   trend: KurariExTrifectaTrendV1 | null;
-  status: "loading" | "ready" | "error";
+  status: "idle" | "loading" | "ready" | "error";
 }) {
   const summary = trend?.sourceSummary;
   const historical = summary?.historical;
@@ -361,7 +372,7 @@ function HistoricalTrendSourceSummary({
           analysis母数 {summary.analysisRaceCount.toLocaleString("ja-JP")}R
         </span>
         <span className="ex-trend-status-pill is-partial">
-          latest flow {trend.todayFlow.targetDate || "unavailable"}
+          latest flow {trend.sourceDate || "unavailable"}
         </span>
       </div>
       <div className="ex-health-grid">
@@ -1407,15 +1418,15 @@ export default function ExDataPage() {
   const [historyDailyStatus, setHistoryDailyStatus] = useState<"idle" | "loading" | "ready" | "empty" | "error">("idle");
   const [historyDailyError, setHistoryDailyError] = useState<string | null>(null);
   const [trifectaTrend, setTrifectaTrend] = useState<KurariExTrifectaTrendV1 | null>(null);
-  const [trifectaTrendStatus, setTrifectaTrendStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [trifectaTrendStatus, setTrifectaTrendStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [historicalAvailability, setHistoricalAvailability] =
     useState<KurariExHistoricalAvailabilitySummary | null>(null);
   const [historicalAvailabilityStatus, setHistoricalAvailabilityStatus] =
     useState<"idle" | "loading" | "ready">("idle");
 
   useEffect(() => {
+    if (!RESULT_TREND_LOAD_TABS.includes(activeSectionTab) || trifectaTrend) return;
     let active = true;
-    setHistoricalAvailabilityStatus("loading");
     loadKurariExTrifectaTrendV1()
       .then((trend) => {
         if (!active) return;
@@ -1434,7 +1445,7 @@ export default function ExDataPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [activeSectionTab, trifectaTrend]);
 
   useEffect(() => {
     let active = true;
@@ -2853,7 +2864,13 @@ export default function ExDataPage() {
               aria-controls={["trend", "ranking", "turbulence", "chain", "weather", "venue-bias", "today-flow", "structure-lab"].includes(tab.key)
                 ? "ex-section-trend-lab"
                 : `ex-section-${tab.key}`}
-              onClick={() => setActiveSectionTab(tab.key)}
+              onClick={() => {
+                if (RESULT_TREND_LOAD_TABS.includes(tab.key) && !trifectaTrend) {
+                  setTrifectaTrendStatus("loading");
+                  setHistoricalAvailabilityStatus("loading");
+                }
+                setActiveSectionTab(tab.key);
+              }}
             >
               <strong>{tab.label}</strong>
               <span>{tab.sublabel}</span>
@@ -2899,29 +2916,27 @@ export default function ExDataPage() {
             />
             <MetricCard
               label="TURBULENCE INDEX"
-              value={trifectaTrend?.turbulence.status === "ready" ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "CHECKING"}
-              note={trifectaTrend ? formatPayoutYen(trifectaTrend.turbulence.averagePayoutYen) : "actual trifecta payout"}
+              value={trifectaTrend ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "ON DEMAND"}
+              note="actual trifecta payout / タブ表示時に集計"
               warning={trifectaTrendStatus === "error"}
             />
             <MetricCard
               label="RACE CHAIN"
-              value={trifectaTrend?.chain.status === "ready" ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "CHECKING"}
-              note={trifectaTrend ? `${trifectaTrend.chain.eligiblePairCount.toLocaleString("ja-JP")} eligible pairs` : "official result only"}
+              value={trifectaTrend ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "ON DEMAND"}
+              note="official result only / タブ表示時に集計"
               warning={trifectaTrendStatus === "error"}
             />
             <MetricCard
               label="VENUE BIAS"
-              value={trifectaTrend?.venueBias.status === "ready" ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "CHECKING"}
-              note={trifectaTrend ? `${trifectaTrend.venueBias.venueCount.toLocaleString("ja-JP")} venues` : "official result only"}
+              value={trifectaTrend ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "ON DEMAND"}
+              note="official result only / タブ表示時に集計"
               warning={trifectaTrendStatus === "error"}
             />
             <MetricCard
               label="TODAY FLOW"
-              value={trifectaTrend?.todayFlow.status === "ready" ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "CHECKING"}
-              note={trifectaTrend?.todayFlow.targetDate
-                ? `${trifectaTrend.todayFlow.targetDate} / ${trifectaTrend.todayFlow.dateBasisLabel}`
-                : "latest official result date"}
-              warning={trifectaTrendStatus === "error" || !trifectaTrend?.todayFlow.isToday}
+              value={trifectaTrend ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "ON DEMAND"}
+              note={trifectaTrend?.sourceDate ? `${trifectaTrend.sourceDate} / latest official result date` : "latest official result date"}
+              warning={trifectaTrendStatus === "error"}
             />
             <MetricCard label="SLACK NOTIFICATION STATE" value="UNAVAILABLE" note="EX公開datasetに専用stateなし" warning />
           </div>
@@ -2954,27 +2969,26 @@ export default function ExDataPage() {
             <MetricCard label="ODDS GAP ANALYSIS" value="FUTURE" note="最低オッズ未取得・fake prohibited" warning />
             <MetricCard
               label="WIND × FINISH TREND"
-              value={trifectaTrend?.weather.status === "ready" ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "CHECKING"}
-              note={trifectaTrend ? `${trifectaTrend.weather.eligibleRaceCount.toLocaleString("ja-JP")} eligible races` : "official result only"}
+              value={trifectaTrend ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "CHECKING"}
+              note="official result only / タブ表示時に集計"
               warning={trifectaTrendStatus === "error"}
             />
             <MetricCard
               label="VENUE BIAS"
-              value={trifectaTrend?.venueBias.status === "ready" ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "CHECKING"}
-              note={trifectaTrend ? `${trifectaTrend.venueBias.eligibleRaceCount.toLocaleString("ja-JP")} eligible races` : "official result only"}
+              value={trifectaTrend ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "CHECKING"}
+              note="official result only / タブ表示時に集計"
               warning={trifectaTrendStatus === "error"}
             />
             <MetricCard
               label="TODAY FLOW METER"
-              value={trifectaTrend?.todayFlow.status === "ready" ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "CHECKING"}
-              note={trifectaTrend?.todayFlow.targetDate
-                ? `${trifectaTrend.todayFlow.targetDate} / ${trifectaTrend.todayFlow.dominantFlowLabel}`
-                : "latest official result date"}
-              warning={trifectaTrendStatus === "error" || !trifectaTrend?.todayFlow.isToday}
+              value={trifectaTrend ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "CHECKING"}
+              note={trifectaTrend?.sourceDate ? `${trifectaTrend.sourceDate} / latest official result date` : "latest official result date"}
+              warning={trifectaTrendStatus === "error"}
             />
           </div>
 
-          <div className="ex-subsection" data-testid="result-trend-lab-ranking-v1" hidden={activeSectionTab !== "ranking"}>
+          {activeSectionTab === "ranking" ? (
+          <div className="ex-subsection" data-testid="result-trend-lab-ranking-v1">
             <SectionTitle
               eyebrow="TRIFECTA OUTCOME RANKING v1"
               title="3連単出目ランキング v1"
@@ -3067,8 +3081,10 @@ export default function ExDataPage() {
               </>
             ) : null}
           </div>
+          ) : null}
 
-          <div className="ex-subsection" data-testid="result-trend-lab-turbulence-v1" hidden={activeSectionTab !== "turbulence"}>
+          {activeSectionTab === "turbulence" ? (
+          <div className="ex-subsection" data-testid="result-trend-lab-turbulence-v1">
             <SectionTitle
               eyebrow="KURARI EX TURBULENCE INDEX v1"
               title="荒れ指数 v1"
@@ -3219,8 +3235,10 @@ export default function ExDataPage() {
               </>
             ) : null}
           </div>
+          ) : null}
 
-          <div className="ex-subsection" data-testid="result-trend-lab-chain-v1" hidden={activeSectionTab !== "chain"}>
+          {activeSectionTab === "chain" ? (
+          <div className="ex-subsection" data-testid="result-trend-lab-chain-v1">
             <SectionTitle
               eyebrow="KURARI EX RACE CHAIN v1"
               title="レース連鎖分析 v1"
@@ -3380,8 +3398,10 @@ export default function ExDataPage() {
               </>
             ) : null}
           </div>
+          ) : null}
 
-          <div className="ex-subsection" data-testid="result-trend-lab-weather-v1" hidden={activeSectionTab !== "weather"}>
+          {activeSectionTab === "weather" ? (
+          <div className="ex-subsection" data-testid="result-trend-lab-weather-v1">
             <SectionTitle
               eyebrow="WEATHER / WIND × DECISION METHOD v1"
               title="風速×決まり手分析 v1"
@@ -3554,8 +3574,10 @@ export default function ExDataPage() {
               </>
             ) : null}
           </div>
+          ) : null}
 
-          <div className="ex-subsection" data-testid="result-trend-lab-venue-bias-v1" hidden={activeSectionTab !== "venue-bias"}>
+          {activeSectionTab === "venue-bias" ? (
+          <div className="ex-subsection" data-testid="result-trend-lab-venue-bias-v1">
             <SectionTitle
               eyebrow="VENUE BIAS / OFFICIAL RESULT v1"
               title="会場クセ分析 v1"
@@ -3747,8 +3769,10 @@ export default function ExDataPage() {
               </>
             ) : null}
           </div>
+          ) : null}
 
-          <div className="ex-subsection" data-testid="result-trend-lab-today-flow-v1" hidden={activeSectionTab !== "today-flow"}>
+          {activeSectionTab === "today-flow" ? (
+          <div className="ex-subsection" data-testid="result-trend-lab-today-flow-v1">
             <SectionTitle
               eyebrow="LATEST OFFICIAL RESULT / TODAY FLOW METER v1"
               title="今日の流れメーター v1"
@@ -3923,6 +3947,7 @@ export default function ExDataPage() {
               </>
             ) : null}
           </div>
+          ) : null}
 
           <div className="ex-subsection" data-testid="result-trend-lab-structure-coverage-v1" hidden={activeSectionTab !== "structure-lab"}>
             <SectionTitle

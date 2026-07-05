@@ -771,6 +771,18 @@ function rate(count: number, total: number) {
   return Math.round((count / total) * 1000) / 10;
 }
 
+function memoizeOnce<T>(factory: () => T) {
+  let initialized = false;
+  let value: T;
+  return () => {
+    if (!initialized) {
+      value = factory();
+      initialized = true;
+    }
+    return value;
+  };
+}
+
 function median(values: number[]) {
   if (!values.length) return 0;
   const sorted = [...values].sort((left, right) => left - right);
@@ -1743,6 +1755,7 @@ export function buildKurariExTrifectaTrendV1(
     null,
   );
   const turbulenceSample = sampleStatus(eligibleRaceCount);
+  const getChainResult = memoizeOnce((): KurariExRaceChainV1 => {
   const eligibleRaceByKey = new Map(eligiblePayoutRaces.map((race) => [race.raceKey, race]));
   const chainExclusionCounts = new Map<string, number>();
   const chainPairs: Array<{
@@ -1899,8 +1912,19 @@ export function buildKurariExTrifectaTrendV1(
         chainTypeLabel: CHAIN_TYPE_LABELS[pair.type],
       })),
   };
+  return chainResult;
+  });
 
-  return {
+  const getWeather = memoizeOnce(
+    () => buildKurariExWindDecisionV1(feed, sourceIsOfficial, sourceDate),
+  );
+  const getVenueBias = memoizeOnce(
+    () => buildKurariExVenueBiasV1(feed, sourceIsOfficial, sourceDate),
+  );
+  const getTodayFlow = memoizeOnce(
+    () => buildKurariExTodayFlowV1(feed, sourceIsOfficial, sourceDate),
+  );
+  const result: KurariExTrifectaTrendV1 = {
     status: eligibleRaceCount > 0 ? "ready" : "no-eligible-data",
     sourcePolicy: "official result only",
     sourceName: sourceIsOfficial ? `${provider} ${listType}` : "unknown",
@@ -1980,14 +2004,33 @@ export function buildKurariExTrifectaTrendV1(
         },
       ],
     },
-    chain: chainResult,
-    weather: buildKurariExWindDecisionV1(feed, sourceIsOfficial, sourceDate),
-    venueBias: buildKurariExVenueBiasV1(feed, sourceIsOfficial, sourceDate),
-    todayFlow: buildKurariExTodayFlowV1(feed, sourceIsOfficial, sourceDate),
+    chain: undefined as unknown as KurariExRaceChainV1,
+    weather: undefined as unknown as KurariExWindDecisionV1,
+    venueBias: undefined as unknown as KurariExVenueBiasV1,
+    todayFlow: undefined as unknown as KurariExTodayFlowV1,
   };
+  Object.defineProperties(result, {
+    chain: { enumerable: true, get: getChainResult },
+    weather: { enumerable: true, get: getWeather },
+    venueBias: { enumerable: true, get: getVenueBias },
+    todayFlow: { enumerable: true, get: getTodayFlow },
+  });
+  return result;
 }
 
-export async function loadKurariExTrifectaTrendV1() {
+let trendLoadPromise: Promise<KurariExTrifectaTrendV1> | null = null;
+
+export function loadKurariExTrifectaTrendV1() {
+  if (!trendLoadPromise) {
+    trendLoadPromise = loadKurariExTrifectaTrendV1Uncached().catch((error: unknown) => {
+      trendLoadPromise = null;
+      throw error;
+    });
+  }
+  return trendLoadPromise;
+}
+
+async function loadKurariExTrifectaTrendV1Uncached() {
   const [response, history] = await Promise.all([
     fetch(publicPath(RESULT_FEED_PATH), { cache: "no-store" }),
     loadKurariExHistoricalResultTrendLabHistory(),
