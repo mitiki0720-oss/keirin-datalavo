@@ -1139,3 +1139,14 @@ EXページを出目ランキング、荒れ指数、レース連鎖、風速×�
 - 3日temp検証は203 records、dead heat 2、storage eligible 203、trend eligible 201、source/validator reject 0
 - production gateはtrue。indexは`partialReason=dead heat excluded from trend: 2`を保持する
 - `public/data/**`は未書込み、`public/data/reviews/**`は非対象、localStorage/sessionStorageは使用しない
+
+## 33-01-C5 public output preflight
+
+- public outputの許可先を`public/data/analytics/kurari-ex-result-trend-lab-history/`だけに固定する
+- reviews、races、venues、旧kurari-ex history、private-input、src/dataへの出力は常時拒否する
+- `--output-public --dry-run`はOS Temp stagingへ候補を生成し、namespaceとproduction gateだけを検証する
+- 将来writeには`--write / --allow-public-output / --confirm-namespace kurari-ex-result-trend-lab-history`を全て要求する
+- C5ではwrite execution自体を無効化し、public directoryを作成しない
+- production ready、source/validator reject、禁止classification、date/sourceDate、duplicate、confirmed provenance、dead heat lossless、partial reason、storage/trend分離をguardする
+- positive control 2件、negative control 10件が全てpassした
+- `public/data/**`と`public/data/reviews/**`は未変更、localStorage/sessionStorageは使用しない

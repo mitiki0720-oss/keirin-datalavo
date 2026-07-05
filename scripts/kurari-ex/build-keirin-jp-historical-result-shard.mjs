@@ -20,19 +20,41 @@ const GENERATOR = "scripts/kurari-ex/build-keirin-jp-historical-result-shard.mjs
 const PUBLIC_NAMESPACE = "/data/analytics/kurari-ex-result-trend-lab-history";
 const DEFAULT_OUTPUT = path.join(tmpdir(), "kurari-ex-backfill-dry-run");
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/u;
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const PUBLIC_OUTPUT_ROOT = path.join(
+  REPO_ROOT,
+  "public",
+  "data",
+  "analytics",
+  "kurari-ex-result-trend-lab-history",
+);
+const CONFIRMED_NAMESPACE = "kurari-ex-result-trend-lab-history";
 
 function parseArgs(argv) {
   const options = {
     dates: [],
+    from: "",
+    to: "",
     venueCode: "",
     allVenues: false,
     dryRun: false,
+    write: false,
+    allowPublicOutput: false,
+    confirmNamespace: "",
+    outputTemp: false,
+    outputPublic: false,
     output: DEFAULT_OUTPUT,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--date") {
       options.dates.push(argv[index + 1] ?? "");
+      index += 1;
+    } else if (arg === "--from") {
+      options.from = argv[index + 1] ?? "";
+      index += 1;
+    } else if (arg === "--to") {
+      options.to = argv[index + 1] ?? "";
       index += 1;
     } else if (arg === "--venue-code") {
       options.venueCode = argv[index + 1] ?? "";
@@ -41,6 +63,17 @@ function parseArgs(argv) {
       options.allVenues = true;
     } else if (arg === "--dry-run") {
       options.dryRun = true;
+    } else if (arg === "--write") {
+      options.write = true;
+    } else if (arg === "--allow-public-output") {
+      options.allowPublicOutput = true;
+    } else if (arg === "--confirm-namespace") {
+      options.confirmNamespace = argv[index + 1] ?? "";
+      index += 1;
+    } else if (arg === "--output-temp") {
+      options.outputTemp = true;
+    } else if (arg === "--output-public") {
+      options.outputPublic = true;
     } else if (arg === "--output") {
       options.output = argv[index + 1] ?? "";
       index += 1;
@@ -56,11 +89,76 @@ function isValidDate(value) {
   return new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) === value;
 }
 
+function expandDateRange(from, to) {
+  if (!isValidDate(from) || !isValidDate(to) || from > to) {
+    throw new Error("--from and --to must be a valid ascending YYYY-MM-DD range");
+  }
+  const dates = [];
+  const cursor = new Date(`${from}T00:00:00Z`);
+  const end = new Date(`${to}T00:00:00Z`);
+  while (cursor <= end) {
+    dates.push(cursor.toISOString().slice(0, 10));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+    if (dates.length > 62) throw new Error("date range must not exceed 62 days");
+  }
+  return dates;
+}
+
+function isChildPath(root, target) {
+  const relative = path.relative(path.resolve(root), path.resolve(target));
+  return Boolean(relative)
+    && !relative.startsWith("..")
+    && !path.isAbsolute(relative);
+}
+
+function validateTempOutputPath(output) {
+  const tempRoot = path.resolve(tmpdir());
+  const resolved = path.resolve(output);
+  if (!isChildPath(tempRoot, resolved)) {
+    throw new Error(`temp output must be a child of the OS temp directory: ${tempRoot}`);
+  }
+  return resolved;
+}
+
+function validatePublicOutputPath(output) {
+  const resolved = path.resolve(output);
+  const forbiddenRoots = [
+    path.join(REPO_ROOT, "public", "data", "reviews"),
+    path.join(REPO_ROOT, "public", "data", "races"),
+    path.join(REPO_ROOT, "public", "data", "venues"),
+    path.join(REPO_ROOT, "private-input"),
+    path.join(REPO_ROOT, "src", "data"),
+  ];
+  if (forbiddenRoots.some((root) => resolved === root || isChildPath(root, resolved))) {
+    throw new Error(`public output target is forbidden: ${resolved}`);
+  }
+  if (resolved !== path.resolve(PUBLIC_OUTPUT_ROOT)) {
+    throw new Error(`public output target is outside the allowed namespace: ${resolved}`);
+  }
+  return resolved;
+}
+
 function validateOptions(options) {
-  const uniqueDates = [...new Set(options.dates)];
-  if (!options.dryRun) throw new Error("--dry-run is required");
-  if (uniqueDates.length === 0 || uniqueDates.length > 3 || !uniqueDates.every(isValidDate)) {
-    throw new Error("one to three valid --date YYYY-MM-DD values are required");
+  if (options.outputTemp && options.outputPublic) {
+    throw new Error("--output-temp and --output-public are mutually exclusive");
+  }
+  const outputMode = options.outputPublic ? "public" : "temp";
+  const rangeDates = options.from || options.to
+    ? expandDateRange(options.from, options.to)
+    : [];
+  if (rangeDates.length > 0 && options.dates.length > 0) {
+    throw new Error("--date cannot be combined with --from/--to");
+  }
+  const uniqueDates = [...new Set(rangeDates.length ? rangeDates : options.dates)];
+  if (
+    uniqueDates.length === 0
+    || uniqueDates.length > 62
+    || !uniqueDates.every(isValidDate)
+  ) {
+    throw new Error("one to 62 valid dates are required");
+  }
+  if (!options.dryRun && !options.write) {
+    throw new Error("--dry-run is required unless --write is specified");
   }
   if (options.venueCode && !/^\d{2}$/u.test(options.venueCode)) {
     throw new Error("--venue-code must be a two-digit KEIRIN.JP venue code");
@@ -68,20 +166,34 @@ function validateOptions(options) {
   if (options.venueCode && options.allVenues) {
     throw new Error("--venue-code and --all-venues are mutually exclusive");
   }
-  if (!options.venueCode && !options.allVenues) {
-    throw new Error("--venue-code or --all-venues is required");
+  if (options.write) {
+    if (!options.outputPublic) throw new Error("--write requires --output-public");
+    if (!options.allowPublicOutput) throw new Error("--write requires --allow-public-output");
+    if (options.confirmNamespace !== CONFIRMED_NAMESPACE) {
+      throw new Error(`--write requires --confirm-namespace ${CONFIRMED_NAMESPACE}`);
+    }
+    validatePublicOutputPath(PUBLIC_OUTPUT_ROOT);
+    throw new Error("public write execution is disabled in 33-01-C5");
   }
 
-  const output = path.resolve(options.output);
-  const tempRoot = path.resolve(tmpdir());
-  const relative = path.relative(tempRoot, output);
-  if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
-    throw new Error(`output must be a child of the OS temp directory: ${tempRoot}`);
+  if (options.outputPublic && !options.dryRun) {
+    throw new Error("--output-public is path-validation only unless --dry-run is specified");
   }
+  const output = validateTempOutputPath(
+    options.outputPublic
+      ? path.join(tmpdir(), "kurari-ex-backfill-public-candidate")
+      : options.output,
+  );
+  const publicTarget = options.outputPublic
+    ? validatePublicOutputPath(PUBLIC_OUTPUT_ROOT)
+    : null;
   return {
     ...options,
     dates: uniqueDates.sort(),
+    allVenues: options.venueCode ? false : true,
+    outputMode,
     output,
+    publicTarget,
   };
 }
 
@@ -399,6 +511,162 @@ function countReasons(reasons) {
     .sort((left, right) => right.count - left.count || left.reason.localeCompare(right.reason));
 }
 
+function evaluatePublicOutputGuard(report, {
+  target = PUBLIC_OUTPUT_ROOT,
+  write = false,
+  allowPublicOutput = false,
+  confirmNamespace = "",
+} = {}) {
+  const reasons = [];
+  try {
+    validatePublicOutputPath(target);
+  } catch (error) {
+    reasons.push(error instanceof Error ? error.message : String(error));
+  }
+  if (write) {
+    if (!allowPublicOutput) reasons.push("--write requires --allow-public-output");
+    if (confirmNamespace !== CONFIRMED_NAMESPACE) {
+      reasons.push(`--write requires --confirm-namespace ${CONFIRMED_NAMESPACE}`);
+    }
+  }
+  if (report.productionBackfillReady !== true) {
+    reasons.push("productionBackfillReady is false");
+  }
+  if (Number(report.sourceRejectedCount) > 0) {
+    reasons.push(`sourceRejectedCount is ${report.sourceRejectedCount}`);
+  }
+  if (Number(report.availability?.rejectedRaceCount) > 0) {
+    reasons.push(`rejectedRaceCount is ${report.availability.rejectedRaceCount}`);
+  }
+  if (Number(report.validator?.issueCount) > 0) {
+    reasons.push(`validator issueCount is ${report.validator.issueCount}`);
+  }
+  for (const classification of [
+    "parser-gap",
+    "validation-failed",
+    "network-or-rate-limit",
+    "source-conflict",
+  ]) {
+    const count = Number(report.classificationCount?.[classification] ?? 0);
+    if (count > 0) reasons.push(`${classification} remains: ${count}`);
+  }
+  const rejectedReasons = report.availability?.rejectedReasons ?? [];
+  for (const reason of [
+    "source-date-race-date-mismatch",
+    "race-date-shard-date-mismatch",
+    "duplicate-race-key",
+    "confirmed-result-provenance-not-present",
+    "confirmed-payout-provenance-not-present",
+    "dead-heat-scalar-result-must-be-null",
+  ]) {
+    if (rejectedReasons.some((entry) => entry.reason === reason && entry.count > 0)) {
+      reasons.push(`${reason} remains`);
+    }
+  }
+  const summary = report.indexSummary;
+  if (!summary) {
+    reasons.push("index summary is missing");
+  } else {
+    if (summary.productionBackfillReady !== true) {
+      reasons.push("index productionBackfillReady is false");
+    }
+    if (summary.deadHeatRaceCount > 0) {
+      if (summary.deadHeatTrendExcludedCount !== summary.deadHeatRaceCount) {
+        reasons.push("dead heat trend exclusion count mismatch");
+      }
+      if (!String(summary.partialReason ?? "").includes("dead heat excluded from trend")) {
+        reasons.push("dead heat partialReason is missing");
+      }
+    }
+    if (summary.storageEligibleRaceCount !== report.availability?.acceptedRaceCount) {
+      reasons.push("storageEligibleRaceCount does not match acceptedRaceCount");
+    }
+  }
+  if (report.availability?.productionBackfillReady !== true) {
+    reasons.push("actual loader productionBackfillReady is false");
+  }
+  return {
+    passed: reasons.length === 0,
+    target: path.resolve(target),
+    writeRequested: write,
+    reasons,
+  };
+}
+
+function isRejected(action) {
+  try {
+    action();
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+function runPublicOutputGuardControls(report) {
+  const clone = () => structuredClone(report);
+  const productionFalse = clone();
+  productionFalse.productionBackfillReady = false;
+  productionFalse.indexSummary.productionBackfillReady = false;
+  const duplicateRace = clone();
+  duplicateRace.availability.rejectedRaceCount = 1;
+  duplicateRace.availability.rejectedReasons = [{ reason: "duplicate-race-key", count: 1 }];
+  const malformedShard = clone();
+  malformedShard.validator.issueCount = 1;
+  malformedShard.validator.issues = [{ reason: "shard-object-invalid" }];
+  const deadHeatScalar = clone();
+  deadHeatScalar.availability.rejectedRaceCount = 1;
+  deadHeatScalar.availability.rejectedReasons = [{
+    reason: "dead-heat-scalar-result-must-be-null",
+    count: 1,
+  }];
+  const sourceRejected = clone();
+  sourceRejected.sourceRejectedCount = 1;
+
+  return {
+    positive: {
+      osTempOutput:
+        path.resolve(validateTempOutputPath(DEFAULT_OUTPUT)) === path.resolve(DEFAULT_OUTPUT),
+      publicTargetDryRun:
+        evaluatePublicOutputGuard(report, { target: PUBLIC_OUTPUT_ROOT }).passed,
+    },
+    negative: {
+      publicReviewsRejected: isRejected(() =>
+        validatePublicOutputPath(path.join(REPO_ROOT, "public/data/reviews/test"))
+      ),
+      publicRacesRejected: isRejected(() =>
+        validatePublicOutputPath(path.join(REPO_ROOT, "public/data/races/test"))
+      ),
+      wrongAnalyticsNamespaceRejected: isRejected(() =>
+        validatePublicOutputPath(path.join(REPO_ROOT, "public/data/analytics/kurari-ex/history"))
+      ),
+      missingConfirmNamespaceRejected:
+        !evaluatePublicOutputGuard(report, {
+          target: PUBLIC_OUTPUT_ROOT,
+          write: true,
+          allowPublicOutput: true,
+          confirmNamespace: "",
+        }).passed,
+      writeWithoutAllowRejected:
+        !evaluatePublicOutputGuard(report, {
+          target: PUBLIC_OUTPUT_ROOT,
+          write: true,
+          allowPublicOutput: false,
+          confirmNamespace: CONFIRMED_NAMESPACE,
+        }).passed,
+      productionNotReadyRejected:
+        !evaluatePublicOutputGuard(productionFalse).passed,
+      duplicateRaceKeyRejected:
+        !evaluatePublicOutputGuard(duplicateRace).passed,
+      malformedShardRejected:
+        !evaluatePublicOutputGuard(malformedShard).passed,
+      deadHeatScalarRejected:
+        !evaluatePublicOutputGuard(deadHeatScalar).passed,
+      sourceRejectedCountRejected:
+        !evaluatePublicOutputGuard(sourceRejected).passed,
+    },
+  };
+}
+
 async function loadActualValidator(repoRoot) {
   const validatorPath = path.join(repoRoot, "src/lib/kurariExHistoricalResultLab.ts");
   const built = await buildModule({
@@ -519,7 +787,6 @@ async function writeJson(filePath, value) {
 }
 
 async function buildDryRun(options) {
-  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
   const generatedAt = new Date().toISOString();
   const shards = new Map();
   const sourceRejectedReasons = [];
@@ -701,7 +968,7 @@ async function buildDryRun(options) {
     coverage: coverageFor(allRaces),
   };
 
-  const validator = await loadActualValidator(repoRoot);
+  const validator = await loadActualValidator(REPO_ROOT);
   const indexValidation =
     validator.validateKurariExHistoricalResultTrendLabIndex(index);
   const validationIssues = [...indexValidation.issues];
@@ -818,9 +1085,12 @@ async function buildDryRun(options) {
     writtenShards,
   );
 
-  return {
-    mode: "temp-only-dry-run",
+  const report = {
+    mode: options.outputMode === "public"
+      ? "public-target-preflight-dry-run"
+      : "temp-only-dry-run",
     output: options.output,
+    publicTarget: options.publicTarget,
     publicDataWritePerformed: false,
     localStorageUsed: false,
     files: writtenFiles,
@@ -839,6 +1109,7 @@ async function buildDryRun(options) {
     nonTrendRaceCount,
     productionBackfillReady,
     productionBackfillBlockedReasons,
+    indexSummary: writtenIndex.summary,
     validator: {
       implementation:
         "src/lib/kurariExHistoricalResultLab.ts bundled and executed in memory",
@@ -860,6 +1131,18 @@ async function buildDryRun(options) {
       "bSb.sbAvailable",
     ],
   };
+  const outputGuardControls = runPublicOutputGuardControls(report);
+  const publicOutputGuard = options.outputMode === "public"
+    ? evaluatePublicOutputGuard(report, {
+        target: options.publicTarget,
+        write: false,
+      })
+    : null;
+  return {
+    ...report,
+    publicOutputGuard,
+    outputGuardControls,
+  };
 }
 
 async function main() {
@@ -875,10 +1158,18 @@ async function main() {
   try {
     const report = await buildDryRun(options);
     console.log(JSON.stringify(report, null, 2));
-    process.exitCode = report.productionBackfillReady ? 0 : 1;
+    process.exitCode =
+      report.productionBackfillReady
+        && (report.publicOutputGuard?.passed ?? true)
+        && Object.values(report.outputGuardControls.positive).every(Boolean)
+        && Object.values(report.outputGuardControls.negative).every(Boolean)
+        ? 0
+        : 1;
   } catch (error) {
     console.error(JSON.stringify({
-      mode: "temp-only-dry-run",
+      mode: options.outputMode === "public"
+        ? "public-target-preflight-dry-run"
+        : "temp-only-dry-run",
       output: options.output,
       publicDataWritePerformed: false,
       localStorageUsed: false,

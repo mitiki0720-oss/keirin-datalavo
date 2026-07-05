@@ -105,6 +105,58 @@ Temp再生成結果:
 
 生成先は引き続きOS Tempのみ。`public/data/**`、`public/data/reviews/**`、localStorage/sessionStorageは使用していない。33-01-Dでdead heatを既存分析へ含めるかは分析ごとに別途決定する。
 
+## 33-01-C5 public output guard
+
+本番生成前のpreflightとして、builderへtemp/public出力mode、namespace制限、production artifact gateを追加した。C5ではpublic write自体は無効のままとし、`--output-public --dry-run`も候補JSONをOS Tempへ生成してpublic targetを検証するだけとする。
+
+許可namespace:
+
+```text
+public/data/analytics/kurari-ex-result-trend-lab-history/
+```
+
+常時拒否:
+
+- `public/data/reviews/**`
+- `public/data/races/**`
+- `public/data/venues/**`
+- `public/data/analytics/kurari-ex/history/**`など許可namespace外
+- `private-input/**`
+- `src/data/**`
+
+CLI:
+
+```text
+--output-temp --dry-run
+--output-public --dry-run
+```
+
+将来writeを有効化する場合に必要なflag:
+
+```text
+--output-public
+--write
+--allow-public-output
+--confirm-namespace kurari-ex-result-trend-lab-history
+```
+
+C5では全flagが揃っても`public write execution is disabled in 33-01-C5`で停止する。
+
+Public artifact gateは次を全て要求する。
+
+- productionBackfillReady=true
+- sourceRejectedCount=0、validator/loader reject=0
+- parser-gap、validation-failed、network-or-rate-limit、source-conflictが0
+- date/sourceDate不一致、raceKey重複が0
+- confirmed result/payout/provenanceがvalid
+- dead heatがlosslessでstorage eligible、trend excluded
+- dead heatがある場合はpartialReasonに`dead heat excluded from trend`を保持
+- storageEligibleRaceCountとloader acceptedRaceCountが一致
+
+positive controlではOS Temp outputとpublic target dry-runが成功した。public candidateは`%TEMP%/kurari-ex-backfill-public-candidate`へ生成され、public namespaceは作成されていない。reviews/races/wrong analytics namespace、required flag不足、production false、duplicate、malformed shard、dead heat scalar混入、source rejectのnegative controlは全て拒否した。
+
+今回も`public/data/**`と`public/data/reviews/**`は未変更であり、次工程では1日分のpublic候補を同じpreflightに通してからwrite可否を判断する。
+
 ## 32-01の目的
 
 Result Trend Labで将来扱う出目ランキング、荒れ指数、レース連鎖、風速×決まり手、会場クセ、今日の流れについて、既存データだけで安全に実装できる範囲を棚卸しする。32-01では集計engine、ランキング、架空の分析数値を生成しない。
