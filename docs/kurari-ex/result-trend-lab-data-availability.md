@@ -27,6 +27,41 @@ public/data/analytics/kurari-ex-result-trend-lab-history/
 
 33-01-Cではofficial historical endpointの存在と日付指定方式を確認し、source-backed shard生成を設計する。33-01-Dで初めてResult Trend Lab本体をhistorical loaderへ接続する。
 
+## 33-01-C3 source reject分類
+
+33-01-C2の3日全会場dry-runでは、source段階で7件をrejectした。C3で公式レスポンスを再確認した結果は次のとおり。
+
+- 2026-07-04の6会場（青森、京王閣、伊東、岸和田、小松島、別府）は、C2実行時に開催中イベント画面の`PJ0302`だけが露出し、対象日の`PJ0301`結果一覧を取得できなかった
+- これはcancelledやresult-not-finalizedではなく、対象日の公式`encParaK`から`JSJ001`を取得してrace tokenへ進む経路がdiscover parserに未実装だったparser gap
+- C3では`開催日程 -> 開催中event -> 対象日encParaK -> JSJ001 -> race別JSJ012/JSJ006/JSJ005`の経路を追加した
+- 小松島は再検証時点でイベント終了状態へ遷移し、direct result listから取得可能になった。残る5会場は対象日JSJ001 fallbackで取得できた
+- 2026-06-05久留米9Rは中止ではなく、1着9番、2着同着1番・3番、3連単払戻2通りのofficial dead heat result
+- scalarな`secondCarNo / thirdCarNo / trifecta`だけを持つv1 schemaへ損失なく格納できないため、久留米9Rは`status=unavailable`、result/payout provenance=`conflict`、`trendEligible=false`とする
+- C3の全件再検査により、2026-07-04小松島3Rにも3着同着と3連単払戻2通りを確認した。C2では先頭の3着・払戻だけを採用していたため、同じくsource-backed unavailableへ修正した
+
+正規化規則:
+
+- `confirmed`: 上位3着が一意、3連単組番・正の払戻、result/payout provenanceがpresent
+- `cancelled`: 公式sourceに明示的な中止・不成立flagがある場合だけ採用する。結果一覧未露出だけではcancelledにしない
+- `unavailable`: official sourceは確認できるが、v1 schemaで損失なく表現できない場合。trend集計には使わない
+- `not-finalized`: 公式result/payout finalization flagが不足する場合。再取得対象でありconfirmedにしない
+- `parser-gap`: 公式レスポンスに値があるがparser/schemaが未対応。production gateをblockする
+- network、429、timeout、sourceDate不一致、validation failureは正規化済み扱いにせずproduction gateをblockする
+
+2026-07-05時点の3日temp再生成では、203 recordsのうちconfirmed 201、unavailable 2、trend eligible 201、non-trend 2、未解決source reject 0となった。actual validator/loaderのschema rejectは0だが、dead heat parser gapが2件残るため`productionBackfillReady=false`を維持する。
+
+本番ready条件:
+
+- unresolved source reject、validation failure、parser gap、network/rate-limit、source conflictが0
+- date/sourceDate不一致、raceKey重複が0
+- confirmedのresult/payout/provenanceがすべてpresent
+- cancelled/unavailableはofficial source-backedで、trend対象と分離されている
+- partial dayはindex summaryにpartial reasonとblocked reasonを持つ
+- localStorage/sessionStorageを使用しない
+- `public/data/**`へ書き込む前にtemp round-trip validationを通す
+
+今回の生成先はOS Tempだけであり、`public/data/**`と`public/data/reviews/**`は変更していない。33-01-C4または本番backfill前に、dead heatを複数着順・複数払戻として表現するschema方針を決定する必要がある。
+
 ## 32-01の目的
 
 Result Trend Labで将来扱う出目ランキング、荒れ指数、レース連鎖、風速×決まり手、会場クセ、今日の流れについて、既存データだけで安全に実装できる範囲を棚卸しする。32-01では集計engine、ランキング、架空の分析数値を生成しない。

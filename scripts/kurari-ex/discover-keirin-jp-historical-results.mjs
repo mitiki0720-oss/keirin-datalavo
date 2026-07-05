@@ -196,6 +196,92 @@ function availability(count, total) {
   return "partial";
 }
 
+function classifyProbe({
+  detail,
+  detailResponse,
+  rows,
+  topThree,
+  trifectas,
+}) {
+  const rankCounts = new Map();
+  rows.forEach((row) => {
+    const rank = positiveInteger(row.tyaku);
+    if (rank) rankCounts.set(rank, (rankCounts.get(rank) ?? 0) + 1);
+  });
+  const deadHeat = [1, 2, 3].some((rank) => (rankCounts.get(rank) ?? 0) > 1)
+    || (trifectas.length > 1 && !topThree.every(Boolean));
+
+  if (detailResponse.status === 429 || detailResponse.status >= 500) {
+    return {
+      classification: "network-or-rate-limit",
+      normalizedStatus: "unavailable",
+      trendEligible: false,
+      reason: `JSJ012 HTTP ${detailResponse.status}`,
+      rawStatusHint: `HTTP ${detailResponse.status}`,
+      nextAction: "retry-with-backoff",
+    };
+  }
+  if (!detailResponse.ok || !detail || detail.resultCd !== 0) {
+    return {
+      classification: "unavailable",
+      normalizedStatus: "unavailable",
+      trendEligible: false,
+      reason: "official JSJ012 response unavailable",
+      rawStatusHint: `HTTP ${detailResponse.status}; resultCd=${detail?.resultCd ?? "missing"}`,
+      nextAction: "retry-then-preserve-unavailable",
+    };
+  }
+  if (deadHeat) {
+    return {
+      classification: "parser-gap",
+      normalizedStatus: "unavailable",
+      trendEligible: false,
+      reason: "dead-heat result cannot fit scalar second/third/trifecta schema",
+      rawStatusHint:
+        `rankCounts=${JSON.stringify(Object.fromEntries(rankCounts))}; trifectaRows=${trifectas.length}`,
+      nextAction: "extend-schema-for-dead-heat-or-keep-source-backed-unavailable",
+    };
+  }
+  if (
+    detail.tyakujyunDispFlg !== true
+    || detail.haraiGakuDispFlg !== true
+    || rows.length === 0
+  ) {
+    return {
+      classification: "not-finalized",
+      normalizedStatus: "unavailable",
+      trendEligible: false,
+      reason: "official result or payout is not finalized",
+      rawStatusHint:
+        `tyakujyunDispFlg=${detail.tyakujyunDispFlg}; haraiGakuDispFlg=${detail.haraiGakuDispFlg}`,
+      nextAction: "retry-after-event-finalization",
+    };
+  }
+  if (
+    topThree.every(Boolean)
+    && present(trifectas[0]?.kumiBan)
+    && positiveInteger(trifectas[0]?.haraiGaku)
+  ) {
+    return {
+      classification: "confirmed-accepted",
+      normalizedStatus: "confirmed",
+      trendEligible: true,
+      reason: null,
+      rawStatusHint: "top-three and trifecta payout confirmed",
+      nextAction: "accept",
+    };
+  }
+  return {
+    classification: "validation-failed",
+    normalizedStatus: "unavailable",
+    trendEligible: false,
+    reason: "confirmed result/payout validation failed",
+    rawStatusHint:
+      `finishRows=${rows.length}; topThree=${topThree.map(Boolean).join(",")}; trifectaRows=${trifectas.length}`,
+    nextAction: "inspect-official-response-and-parser",
+  };
+}
+
 function summarizeFields(probes) {
   const accepted = probes.filter((probe) => probe.accepted);
   const total = accepted.length;
@@ -307,22 +393,106 @@ export async function discoverKeirinJpHistoricalResults(options) {
     body: new URLSearchParams({ encp: candidate.encp, disp: display }),
   });
   if (!raceListFetch.response.ok) {
-    throw new Error(`race list HTTP ${raceListFetch.response.status}`);
-  }
-
-  const common = extractJsonAssignment(raceListFetch.text, "PC0201")?.C0201data;
-  const resultList = extractJsonAssignment(raceListFetch.text, "PJ0301");
-  if (!common || !resultList) {
-    throw new Error("historical result list was not exposed for the selected event");
+    const error = new Error(`race list HTTP ${raceListFetch.response.status}`);
+    Object.assign(error, {
+      classification:
+        raceListFetch.response.status === 429 || raceListFetch.response.status >= 500
+          ? "network-or-rate-limit"
+          : "unavailable",
+      nextAction: "retry-with-backoff",
+      endpoint: raceListUrl,
+      token: candidate.encp,
+      rawStatusHint: `HTTP ${raceListFetch.response.status}`,
+    });
+    throw error;
   }
 
   const monthDay = `${String(month).padStart(2, "0")}/${String(day).padStart(2, "0")}`;
-  const dayIndex = common.C0201kaisai?.findIndex(
+  let raceListText = raceListFetch.text;
+  let common = extractJsonAssignment(raceListText, "PC0201")?.C0201data;
+  let resultList = extractJsonAssignment(raceListText, "PJ0301");
+  let resultListResolution = "direct-event-result-list";
+  let targetDayToken = null;
+  if (common && !resultList) {
+    const targetDay = common.C0201kaisai?.find(
+      (entry) => entry.txtEventDate === monthDay,
+    );
+    if (targetDay?.encParaK) {
+      targetDayToken = targetDay.encParaK;
+      const targetDayListUrl =
+        `${BASE_URL}/pc/json?encp=${encodeURIComponent(targetDay.encParaK)}&type=JSJ001`;
+      const targetDayFetch = await fetchText(targetDayListUrl, {
+        headers: {
+          cookie,
+          referer: raceListUrl,
+        },
+      });
+      if (targetDayFetch.response.ok) {
+        const targetDayJson = JSON.parse(targetDayFetch.text);
+        const targetDayCommon = targetDayJson?.C0201data;
+        if (
+          targetDayJson?.resultCd === 0
+          && Array.isArray(targetDayCommon?.C0201race)
+        ) {
+          common = targetDayCommon;
+          resultList = {
+            raceDayDataList: [{
+              strRaceNitiji: null,
+              raceNoDataList: targetDayCommon.C0201race.map((race, index) => ({
+                strRaceNo: `${index + 1}R`,
+                strLnkPrm: race.encParaR,
+                strLnkKBn: "2",
+              })),
+              raceEventDataList: [],
+            }],
+          };
+          resultListResolution = "target-day-encParaK-jsj001";
+        }
+      }
+    }
+  }
+  if (!common || !resultList) {
+    const error = new Error("historical result list was not exposed for the selected event");
+    Object.assign(error, {
+      classification: "result-list-not-exposed",
+      nextAction: "retry-after-event-finalization",
+      endpoint: raceListUrl,
+      token: candidate.encp,
+      rawStatusHint: `displayKind=${candidate.displayKind}; targetDate=${options.date}`,
+    });
+    throw error;
+  }
+
+  let dayIndex = common.C0201kaisai?.findIndex(
     (entry) => entry.txtEventDate === monthDay,
   );
+  const selectedSourceDate = String(common.selKaisai ?? "")
+    .replace(/^(\d{4})(\d{2})(\d{2})$/u, "$1-$2-$3");
+  const officialSourceDate =
+    resultListResolution === "target-day-encParaK-jsj001"
+      ? selectedSourceDate
+      : options.date;
+  if (
+    resultList.raceDayDataList?.length === 1
+    && (
+      resultListResolution === "target-day-encParaK-jsj001"
+      || selectedSourceDate === options.date
+    )
+  ) {
+    dayIndex = 0;
+  }
   const dayData = resultList.raceDayDataList?.[dayIndex];
   if (!Number.isInteger(dayIndex) || dayIndex < 0 || !dayData) {
-    throw new Error("official race list source date did not match requested date");
+    const error = new Error("official race list source date did not match requested date");
+    Object.assign(error, {
+      classification: "source-conflict",
+      nextAction: "stop-and-inspect-date-token",
+      endpoint: raceListUrl,
+      token: candidate.encp,
+      rawStatusHint:
+        `requested=${options.date}; officialSourceDate=${officialSourceDate || "missing"}`,
+    });
+    throw error;
   }
 
   const raceClasses = raceClassesForDay(dayData);
@@ -347,7 +517,8 @@ export async function discoverKeirinJpHistoricalResults(options) {
     const topThree = [1, 2, 3].map((rank) =>
       rows.find((row) => positiveInteger(row.tyaku) === rank) ?? null
     );
-    const trifecta = trifectaRows(detail)[0] ?? null;
+    const trifectas = trifectaRows(detail);
+    const trifecta = trifectas[0] ?? null;
     const entryUrl = sourceUrl.replace("type=JSJ012", "type=JSJ006");
     const entryFetch = await fetchText(entryUrl, {
       headers: { cookie, referer: raceListUrl },
@@ -368,17 +539,30 @@ export async function discoverKeirinJpHistoricalResults(options) {
     } catch {
       // Availability remains unavailable for malformed responses.
     }
-    const accepted = detailFetch.response.ok
-      && detail?.resultCd === 0
-      && topThree.every(Boolean)
-      && present(trifecta?.kumiBan)
-      && positiveInteger(trifecta?.haraiGaku);
+    const classification = classifyProbe({
+      detail,
+      detailResponse: detailFetch.response,
+      rows,
+      topThree,
+      trifectas,
+    });
+    const accepted = classification.classification === "confirmed-accepted";
 
     probes.push({
+      date: options.date,
+      venue: candidate.venue,
+      venueCode: candidate.venueCode,
       raceNumber,
       raceKey: `${options.date}|${candidate.venueCode}|${raceNumber}`,
       accepted: Boolean(accepted),
-      rejectionReason: accepted ? null : "confirmed result/payout validation failed",
+      rejectionReason: classification.reason,
+      classification: classification.classification,
+      normalizedStatus: classification.normalizedStatus,
+      trendEligible: classification.trendEligible,
+      nextAction: classification.nextAction,
+      rawStatusHint: classification.rawStatusHint,
+      token: race.strLnkPrm,
+      endpoint: "/pc/json",
       sourceUrl,
       responseHash: sha256(detailFetch.text),
       httpStatus: detailFetch.response.status,
@@ -391,6 +575,7 @@ export async function discoverKeirinJpHistoricalResults(options) {
       finishRows: rows,
       topThree,
       trifecta,
+      trifectas,
     });
     if (Number(options.delayMs) > 0) {
       await new Promise((resolve) => setTimeout(resolve, Number(options.delayMs)));
@@ -405,7 +590,7 @@ export async function discoverKeirinJpHistoricalResults(options) {
     provider: PROVIDER,
     parserVersion: PARSER_VERSION,
     requestedDate: options.date,
-    sourceDate: options.date,
+    sourceDate: officialSourceDate,
     fetchedAt,
     venue: candidate.venue,
     venueCode: candidate.venueCode,
@@ -416,6 +601,14 @@ export async function discoverKeirinJpHistoricalResults(options) {
       detailType: "JSJ012 (result), JSJ006 (entries), JSJ005 (lineup probe)",
     },
     responseHashStrategy: "SHA-256 of each raw JSJ012 response body",
+    resultListResolution,
+    resultListSource: {
+      endpoint: resultListResolution === "target-day-encParaK-jsj001"
+        ? "/pc/json?type=JSJ001"
+        : "/pc/racelist",
+      eventToken: candidate.encp,
+      targetDayToken,
+    },
     acceptedCount: accepted.length,
     rejectedCount: rejected.length,
     probes: probes.map((probe) => ({
@@ -427,6 +620,13 @@ export async function discoverKeirinJpHistoricalResults(options) {
       responseHash: probe.responseHash,
       httpStatus: probe.httpStatus,
       resultCd: probe.resultCd,
+      classification: probe.classification,
+      normalizedStatus: probe.normalizedStatus,
+      trendEligible: probe.trendEligible,
+      nextAction: probe.nextAction,
+      rawStatusHint: probe.rawStatusHint,
+      token: probe.token,
+      endpoint: probe.endpoint,
     })),
     fieldAvailability: summarizeFields(probes),
     schemaMissingFields: [

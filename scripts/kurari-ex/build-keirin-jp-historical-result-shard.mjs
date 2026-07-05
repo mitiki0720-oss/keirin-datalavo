@@ -138,6 +138,10 @@ function normalizeProbe(report, probe) {
     venueCode: report.venueCode,
     raceNumber: probe.raceNumber,
     status: "confirmed",
+    trendEligible: true,
+    sourceClassification: "confirmed-accepted",
+    sourceStatusHint: probe.rawStatusHint,
+    nextAction: "accept",
     result: {
       firstCarNo: positiveInteger(first?.syaban),
       secondCarNo: positiveInteger(second?.syaban),
@@ -219,6 +223,59 @@ function normalizeProbe(report, probe) {
         hasB ? "present" : "absent-in-source",
         detailUrl,
         "B comes from the official BH marker; no separate SB field",
+      ),
+    },
+  };
+}
+
+function normalizeNonTrendProbe(report, probe) {
+  const normalized = normalizeProbe(report, probe);
+  const conflict = probe.classification === "parser-gap";
+  return {
+    ...normalized,
+    status: probe.normalizedStatus === "cancelled" ? "cancelled" : "unavailable",
+    trendEligible: false,
+    sourceClassification: probe.classification,
+    sourceStatusHint: probe.rawStatusHint,
+    nextAction: probe.nextAction,
+    result: {
+      firstCarNo: null,
+      secondCarNo: null,
+      thirdCarNo: null,
+      trifecta: null,
+      trifectaPayoutYen: null,
+    },
+    kimarite: {
+      first: null,
+      second: null,
+    },
+    odds: {
+      favoriteRank: null,
+      firstFavoriteCombination: null,
+      closingOddsAvailable: null,
+      oddsMovementAvailable: null,
+    },
+    provenance: {
+      ...normalized.provenance,
+      result: provenance(
+        conflict ? "conflict" : "source-unavailable",
+        probe.sourceUrl,
+        probe.reason ?? probe.rawStatusHint,
+      ),
+      payout: provenance(
+        conflict ? "conflict" : "source-unavailable",
+        probe.sourceUrl,
+        probe.reason ?? probe.rawStatusHint,
+      ),
+      kimarite: provenance(
+        conflict ? "conflict" : "not-collected",
+        probe.sourceUrl,
+        "not exposed to trend aggregation for a non-confirmed record",
+      ),
+      odds: provenance(
+        conflict ? "conflict" : "not-collected",
+        probe.sourceUrl,
+        "not exposed to trend aggregation for a non-confirmed record",
       ),
     },
   };
@@ -370,6 +427,9 @@ async function buildDryRun(options) {
   const generatedAt = new Date().toISOString();
   const shards = new Map();
   const sourceRejectedReasons = [];
+  const sourceRejectedDetails = [];
+  const resultListResolutionCounts = new Map();
+  const resultListResolutionDetails = [];
   const dayReports = [];
 
   for (const date of options.dates) {
@@ -388,11 +448,45 @@ async function buildDryRun(options) {
           includeInternal: true,
           delayMs: 75,
         });
+        resultListResolutionCounts.set(
+          report.resultListResolution,
+          (resultListResolutionCounts.get(report.resultListResolution) ?? 0) + 1,
+        );
+        resultListResolutionDetails.push({
+          date,
+          venue: report.venue,
+          venueCode: report.venueCode,
+          resolution: report.resultListResolution,
+          raceCount: report._internal.probes.length,
+          endpoint: report.resultListSource.endpoint,
+          eventToken: report.resultListSource.eventToken,
+          targetDayToken: report.resultListSource.targetDayToken,
+        });
         for (const probe of report._internal.probes) {
           if (probe.accepted) races.push(normalizeProbe(report, probe));
+          else if (
+            ["cancelled", "unavailable", "not-finalized", "parser-gap"].includes(
+              probe.classification,
+            )
+          ) {
+            races.push(normalizeNonTrendProbe(report, probe));
+          }
           else {
             sourceRejectedCount += 1;
             sourceRejectedReasons.push(probe.rejectionReason ?? "source probe rejected");
+            sourceRejectedDetails.push({
+              date,
+              venue: report.venue,
+              venueCode: report.venueCode,
+              raceNumber: probe.raceNumber,
+              token: probe.token,
+              endpoint: probe.endpoint,
+              sourceUrl: probe.sourceUrl,
+              classification: probe.classification,
+              reason: probe.rejectionReason,
+              rawStatusHint: probe.rawStatusHint,
+              nextAction: probe.nextAction,
+            });
           }
         }
       } catch (error) {
@@ -400,6 +494,19 @@ async function buildDryRun(options) {
         sourceRejectedReasons.push(
           error instanceof Error ? error.message : String(error),
         );
+        sourceRejectedDetails.push({
+          date,
+          venue: candidates.find((candidate) => candidate.venueCode === venueCode)?.venue ?? null,
+          venueCode,
+          raceNumber: null,
+          token: error?.token ?? null,
+          endpoint: error?.endpoint ?? null,
+          sourceUrl: null,
+          classification: error?.classification ?? "validation-failed",
+          reason: error instanceof Error ? error.message : String(error),
+          rawStatusHint: error?.rawStatusHint ?? null,
+          nextAction: error?.nextAction ?? "inspect",
+        });
       }
     }
 
@@ -411,7 +518,10 @@ async function buildDryRun(options) {
       version: VERSION,
       date,
       generatedAt,
-      sourceStatus: sourceRejectedCount > 0 ? "partial" : "official",
+      sourceStatus:
+        sourceRejectedCount > 0 || races.some((race) => race.status !== "confirmed")
+          ? "partial"
+          : "official",
       races,
     };
     shards.set(date, shard);
@@ -420,14 +530,41 @@ async function buildDryRun(options) {
       requestedVenueCount: venueCodes.length,
       raceCount: races.length,
       sourceRejectedCount,
+      statusCount: Object.fromEntries(
+        ["confirmed", "cancelled", "unavailable"].map((status) => [
+          status,
+          races.filter((race) => race.status === status).length,
+        ]),
+      ),
+      trendEligibleRaceCount: races.filter((race) => race.trendEligible).length,
+      nonTrendRaceCount: races.filter((race) => !race.trendEligible).length,
     });
   }
 
   const allRaces = [...shards.values()].flatMap((shard) => shard.races);
+  const statusCount = Object.fromEntries(
+    ["confirmed", "cancelled", "unavailable"].map((status) => [
+      status,
+      allRaces.filter((race) => race.status === status).length,
+    ]),
+  );
+  const classificationCount = Object.fromEntries(
+    [...new Set(allRaces.map((race) => race.sourceClassification))]
+      .sort()
+      .map((classification) => [
+        classification,
+        allRaces.filter((race) => race.sourceClassification === classification).length,
+      ]),
+  );
+  const trendEligibleRaceCount = allRaces.filter((race) => race.trendEligible).length;
+  const nonTrendRaceCount = allRaces.length - trendEligibleRaceCount;
   const index = {
     version: VERSION,
     generatedAt,
-    sourceStatus: sourceRejectedReasons.length > 0 ? "partial" : "official",
+    sourceStatus:
+      sourceRejectedReasons.length > 0 || nonTrendRaceCount > 0
+        ? "partial"
+        : "official",
     range: {
       from: options.dates[0],
       to: options.dates.at(-1),
@@ -476,6 +613,60 @@ async function buildDryRun(options) {
     });
   }
 
+  const negativeControls = await runNegativeControls(validator, index, shards);
+  const productionBackfillBlockedReasons = [];
+  if (sourceRejectedDetails.length > 0) {
+    productionBackfillBlockedReasons.push(
+      `unresolved source rejects: ${sourceRejectedDetails.length}`,
+    );
+  }
+  for (const classification of [
+    "validation-failed",
+    "parser-gap",
+    "network-or-rate-limit",
+    "source-conflict",
+  ]) {
+    const count = Number(classificationCount[classification] ?? 0)
+      + sourceRejectedDetails.filter(
+        (detail) => detail.classification === classification,
+      ).length;
+    if (count > 0) {
+      productionBackfillBlockedReasons.push(`${classification}: ${count}`);
+    }
+  }
+  if (validationIssues.length > 0) {
+    productionBackfillBlockedReasons.push(
+      `schema/validator issues: ${validationIssues.length}`,
+    );
+  }
+  const failedNegativeControls = Object.entries(negativeControls)
+    .filter(([, passed]) => !passed)
+    .map(([name]) => name);
+  if (failedNegativeControls.length > 0) {
+    productionBackfillBlockedReasons.push(
+      `validator negative controls failed: ${failedNegativeControls.join(", ")}`,
+    );
+  }
+  const productionBackfillReady =
+    allRaces.length > 0 && productionBackfillBlockedReasons.length === 0;
+  index.summary = {
+    sourceRejectedCount: sourceRejectedDetails.length,
+    sourceRejectByReason: countReasons(sourceRejectedReasons),
+    statusCount,
+    classificationCount,
+    trendEligibleRaceCount,
+    nonTrendRaceCount,
+    partialReason:
+      index.sourceStatus === "partial"
+        ? "one or more days contain source-backed non-confirmed records or unresolved source rejects"
+        : null,
+    blockedReason: productionBackfillBlockedReasons,
+    productionBackfillReady,
+    productionBackfillReadyReason: productionBackfillReady
+      ? "all production gates passed"
+      : productionBackfillBlockedReasons.join("; "),
+  };
+
   await rm(options.output, { recursive: true, force: true });
   for (const shard of shards.values()) {
     await writeJson(
@@ -512,11 +703,6 @@ async function buildDryRun(options) {
     writtenIndex,
     writtenShards,
   );
-  const negativeControls = await runNegativeControls(
-    validator,
-    writtenIndex,
-    writtenShards,
-  );
 
   return {
     mode: "temp-only-dry-run",
@@ -525,7 +711,17 @@ async function buildDryRun(options) {
     localStorageUsed: false,
     files: writtenFiles,
     days: dayReports,
-    sourceRejectedReasons: countReasons(sourceRejectedReasons),
+    sourceRejectedCount: sourceRejectedDetails.length,
+    sourceRejectByReason: countReasons(sourceRejectedReasons),
+    sourceRejectedDetails,
+    resultListResolutionCount: Object.fromEntries(resultListResolutionCounts),
+    resultListResolutionDetails,
+    statusCount,
+    classificationCount,
+    trendEligibleRaceCount,
+    nonTrendRaceCount,
+    productionBackfillReady,
+    productionBackfillBlockedReasons,
     validator: {
       implementation:
         "src/lib/kurariExHistoricalResultLab.ts bundled and executed in memory",
@@ -546,11 +742,6 @@ async function buildDryRun(options) {
       "lineup.lineCount",
       "bSb.sbAvailable",
     ],
-    productionBackfillReady:
-      validationIssues.length === 0
-      && history.availability.acceptedRaceCount > 0
-      && sourceRejectedReasons.length === 0
-      && Object.values(negativeControls).every(Boolean),
   };
 }
 

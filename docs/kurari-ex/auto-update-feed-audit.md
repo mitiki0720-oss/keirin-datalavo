@@ -1116,3 +1116,15 @@ EXページを出目ランキング、荒れ指数、レース連鎖、風速×�
 - 2か月historical backfillで17 source項目を確認し、source取得日時とprovenanceを必須監査対象にする
 - 1番車から1番人気、逃げからB/SB、地区・選手名からライン、会場形状から風向を推測しない
 - fake、推測補完、`public/data/**`への書込みは行わない
+
+## 33-01-C3 historical backfill production gate
+
+- historical dry-runはOS Tempにだけdaily shard/index候補を生成し、`src/lib/kurariExHistoricalResultLab.ts`のactual validator/loaderで再読込する
+- 開催中eventの過去日は、公式対象日`encParaK`から`JSJ001`を取得し、race別`JSJ012 / JSJ006 / JSJ005`へ接続する
+- 結果一覧未露出だけでcancelled判定しない。中止・不成立は公式の明示flagが確認できる場合だけ`cancelled`へ正規化する
+- dead heatなどv1 scalar schemaで損失なく表現できないofficial resultは`unavailable`、provenance conflict、trend対象外とする
+- source reject、validation failure、parser gap、network/rate-limit、source conflict、date/sourceDate不一致、raceKey重複が残る場合はproduction readyにしない
+- index summaryにはstatus count、trend eligible/non-trend count、partial reason、blocked reason、production ready reasonを持たせる
+- 3日再検証ではconfirmed 201、unavailable 2、未解決source reject 0。dead heat parser gap 2件によりproduction readyはfalse
+- `public/data/**`は未書込み、`public/data/reviews/**`は非対象、localStorage/sessionStorageは使用しない
+- 次工程ではdead heatの複数着順・複数3連単払戻を保持するschema方針と、本番write前のcomplete-day gateを確定する
