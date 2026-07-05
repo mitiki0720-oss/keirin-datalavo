@@ -29,9 +29,10 @@ const PUBLIC_OUTPUT_ROOT = path.join(
   "kurari-ex-result-trend-lab-history",
 );
 const CONFIRMED_NAMESPACE = "kurari-ex-result-trend-lab-history";
-const C7_WRITE_FROM = "2026-06-22";
-const C7_WRITE_TO = "2026-06-28";
-const C7_WRITE_DATES = expandDateRange(C7_WRITE_FROM, C7_WRITE_TO);
+const C8_WRITE_FROM = "2026-06-15";
+const C8_WRITE_TO = "2026-06-28";
+const C8_WRITE_DATES = expandDateRange(C8_WRITE_FROM, C8_WRITE_TO);
+const C7_EXISTING_DATES = expandDateRange("2026-06-22", "2026-06-28");
 const C6_EXISTING_DATE = "2026-06-28";
 
 function parseArgs(argv) {
@@ -177,17 +178,17 @@ function validateOptions(options) {
       throw new Error(`--write requires --confirm-namespace ${CONFIRMED_NAMESPACE}`);
     }
     if (
-      options.from !== C7_WRITE_FROM
-      || options.to !== C7_WRITE_TO
-      || uniqueDates.length !== C7_WRITE_DATES.length
-      || uniqueDates.some((date, index) => date !== C7_WRITE_DATES[index])
+      options.from !== C8_WRITE_FROM
+      || options.to !== C8_WRITE_TO
+      || uniqueDates.length !== C8_WRITE_DATES.length
+      || uniqueDates.some((date, index) => date !== C8_WRITE_DATES[index])
     ) {
       throw new Error(
-        `C7 public write is restricted to --from ${C7_WRITE_FROM} --to ${C7_WRITE_TO}`,
+        `C8 public write is restricted to --from ${C8_WRITE_FROM} --to ${C8_WRITE_TO}`,
       );
     }
     if (options.venueCode) {
-      throw new Error("C7 public write requires all venues; --venue-code is not allowed");
+      throw new Error("C8 public write requires all venues; --venue-code is not allowed");
     }
     validatePublicOutputPath(PUBLIC_OUTPUT_ROOT);
   }
@@ -1103,7 +1104,7 @@ async function buildDryRun(options) {
 
   const report = {
     mode: options.write
-      ? "public-seven-day-write"
+      ? "public-fourteen-day-write"
       : options.outputMode === "public"
         ? "public-target-preflight-dry-run"
       : "temp-only-dry-run",
@@ -1160,7 +1161,7 @@ async function buildDryRun(options) {
     : null;
   let publicWrittenFiles = [];
   let publicFinalFiles = [];
-  let existingShardPreserved = false;
+  let existingShardsPreserved = [];
   let publicPostWriteAvailability = null;
   if (options.write) {
     if (!publicOutputGuard?.passed) {
@@ -1169,18 +1170,18 @@ async function buildDryRun(options) {
       );
     }
     if (
-      writtenShards.size !== C7_WRITE_DATES.length
-      || C7_WRITE_DATES.some((date) => !writtenShards.has(date))
-      || writtenIndex.shardCount !== C7_WRITE_DATES.length
-      || writtenIndex.range.from !== C7_WRITE_FROM
-      || writtenIndex.range.to !== C7_WRITE_TO
+      writtenShards.size !== C8_WRITE_DATES.length
+      || C8_WRITE_DATES.some((date) => !writtenShards.has(date))
+      || writtenIndex.shardCount !== C8_WRITE_DATES.length
+      || writtenIndex.range.from !== C8_WRITE_FROM
+      || writtenIndex.range.to !== C8_WRITE_TO
     ) {
       throw new Error(
-        `C7 write candidate must contain only ${C7_WRITE_FROM} through ${C7_WRITE_TO}`,
+        `C8 write candidate must contain only ${C8_WRITE_FROM} through ${C8_WRITE_TO}`,
       );
     }
     const publicIndexPath = path.join(options.publicTarget, "index.generated.json");
-    const publicShardPaths = new Map(C7_WRITE_DATES.map((date) => [
+    const publicShardPaths = new Map(C8_WRITE_DATES.map((date) => [
       date,
       path.join(
         options.publicTarget,
@@ -1191,44 +1192,119 @@ async function buildDryRun(options) {
     ]));
     publicFinalFiles = [
       publicIndexPath,
-      ...C7_WRITE_DATES.map((date) => publicShardPaths.get(date)),
+      ...C8_WRITE_DATES.map((date) => publicShardPaths.get(date)),
     ];
     if (
       publicFinalFiles.some(
         (filePath) => !isChildPath(options.publicTarget, filePath),
       )
     ) {
-      throw new Error("C7 planned write escaped the allowed public namespace");
-    }
-
-    const existingC6ShardPath = publicShardPaths.get(C6_EXISTING_DATE);
-    let existingC6Shard;
-    try {
-      existingC6Shard = JSON.parse(await readFile(existingC6ShardPath, "utf8"));
-    } catch (error) {
-      throw new Error(
-        `C7 requires the existing C6 shard at ${existingC6ShardPath}: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
-    }
-    const existingC6Validation =
-      validator.validateKurariExHistoricalResultTrendLabDailyShard(
-        existingC6Shard,
-        C6_EXISTING_DATE,
-      );
-    if (
-      existingC6Validation.issues.length > 0
-      || existingC6Shard.races?.length !== 59
-      || writtenShards.get(C6_EXISTING_DATE)?.races?.length !== 59
-    ) {
-      throw new Error(
-        "C7 existing 2026-06-28 shard must remain valid with raceCount 59",
-      );
+      throw new Error("C8 planned write escaped the allowed public namespace");
     }
 
     const finalPublicShards = new Map(writtenShards);
-    finalPublicShards.set(C6_EXISTING_DATE, existingC6Shard);
+    for (const date of C7_EXISTING_DATES) {
+      const existingShardPath = publicShardPaths.get(date);
+      let existingShard;
+      try {
+        existingShard = JSON.parse(await readFile(existingShardPath, "utf8"));
+      } catch (error) {
+        throw new Error(
+          `C8 requires the existing C7 shard at ${existingShardPath}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+      const existingValidation =
+        validator.validateKurariExHistoricalResultTrendLabDailyShard(
+          existingShard,
+          date,
+        );
+      if (
+        existingValidation.issues.length > 0
+        || existingShard.races?.length !== writtenShards.get(date)?.races?.length
+      ) {
+        throw new Error(`C8 existing shard must remain valid: ${date}`);
+      }
+      if (date === C6_EXISTING_DATE && existingShard.races.length !== 59) {
+        throw new Error(
+          "C8 existing 2026-06-28 shard must remain valid with raceCount 59",
+        );
+      }
+      finalPublicShards.set(date, existingShard);
+      existingShardsPreserved.push(date);
+    }
+
+    const finalAllRaces = [...finalPublicShards.values()]
+      .flatMap((shard) => shard.races);
+    const finalTrendEligibleRaceCount = finalAllRaces.filter(
+      (race) => race.trendEligible,
+    ).length;
+    const finalDeadHeatRaceCount = finalAllRaces.filter(
+      (race) => race.deadHeat?.detected === true,
+    ).length;
+    writtenIndex.sourceStatus =
+      finalAllRaces.some((race) => !race.trendEligible) ? "partial" : "official";
+    writtenIndex.raceCount = finalAllRaces.length;
+    writtenIndex.coverage = coverageFor(finalAllRaces);
+    writtenIndex.shards = writtenIndex.shards.map((entry) => {
+      const shard = finalPublicShards.get(entry.date);
+      return {
+        ...entry,
+        raceCount: shard.races.length,
+        status: shard.sourceStatus === "official" ? "ready" : "partial",
+        sourceSummary: {
+          providers: ["KEIRIN.JP"],
+          fetchedAtFrom: shard.races[0]?.source.fetchedAt ?? null,
+          fetchedAtTo: shard.races.at(-1)?.source.fetchedAt ?? null,
+        },
+      };
+    });
+    writtenIndex.summary = {
+      ...writtenIndex.summary,
+      statusCount: Object.fromEntries(
+        ["confirmed", "cancelled", "unavailable"].map((status) => [
+          status,
+          finalAllRaces.filter((race) => race.status === status).length,
+        ]),
+      ),
+      classificationCount: Object.fromEntries(
+        [...new Set(finalAllRaces.map((race) => race.sourceClassification))]
+          .sort()
+          .map((classification) => [
+            classification,
+            finalAllRaces.filter(
+              (race) => race.sourceClassification === classification,
+            ).length,
+          ]),
+      ),
+      deadHeatRaceCount: finalDeadHeatRaceCount,
+      deadHeatTrendExcludedCount: finalAllRaces.filter(
+        (race) => race.deadHeat?.detected === true && !race.trendEligible,
+      ).length,
+      storageEligibleRaceCount: finalAllRaces.filter(
+        (race) => race.storageEligible,
+      ).length,
+      trendEligibleRaceCount: finalTrendEligibleRaceCount,
+      nonTrendRaceCount: finalAllRaces.length - finalTrendEligibleRaceCount,
+      partialReason:
+        finalDeadHeatRaceCount > 0
+          ? `dead heat excluded from trend: ${finalDeadHeatRaceCount}`
+          : finalAllRaces.some((race) => !race.trendEligible)
+            ? "one or more days contain source-backed non-confirmed records"
+            : null,
+    };
+    report.statusCount = writtenIndex.summary.statusCount;
+    report.classificationCount = writtenIndex.summary.classificationCount;
+    report.deadHeatRaceCount = writtenIndex.summary.deadHeatRaceCount;
+    report.deadHeatTrendExcludedCount =
+      writtenIndex.summary.deadHeatTrendExcludedCount;
+    report.storageEligibleRaceCount =
+      writtenIndex.summary.storageEligibleRaceCount;
+    report.trendEligibleRaceCount =
+      writtenIndex.summary.trendEligibleRaceCount;
+    report.nonTrendRaceCount = writtenIndex.summary.nonTrendRaceCount;
+    report.indexSummary = writtenIndex.summary;
     const preWriteHistory = await loadThroughActualLoader(
       validator,
       writtenIndex,
@@ -1245,18 +1321,17 @@ async function buildDryRun(options) {
     }
 
     publicWrittenFiles = [publicIndexPath];
-    for (const date of C7_WRITE_DATES) {
-      if (date === C6_EXISTING_DATE) continue;
+    for (const date of C8_WRITE_DATES) {
+      if (C7_EXISTING_DATES.includes(date)) continue;
       const publicShardPath = publicShardPaths.get(date);
       await writeJson(publicShardPath, writtenShards.get(date));
       publicWrittenFiles.push(publicShardPath);
     }
     await writeJson(publicIndexPath, writtenIndex);
-    existingShardPreserved = true;
 
     const publicIndex = JSON.parse(await readFile(publicIndexPath, "utf8"));
     const publicShards = new Map();
-    for (const date of C7_WRITE_DATES) {
+    for (const date of C8_WRITE_DATES) {
       const publicShard = JSON.parse(
         await readFile(publicShardPaths.get(date), "utf8"),
       );
@@ -1272,12 +1347,12 @@ async function buildDryRun(options) {
       !publicPostWriteAvailability.productionBackfillReady
       || publicPostWriteAvailability.rejectedRaceCount !== 0
       || publicPostWriteAvailability.acceptedRaceCount !== expectedAcceptedRaceCount
-      || publicIndex.range.from !== C7_WRITE_FROM
-      || publicIndex.range.to !== C7_WRITE_TO
-      || publicIndex.shardCount !== C7_WRITE_DATES.length
+      || publicIndex.range.from !== C8_WRITE_FROM
+      || publicIndex.range.to !== C8_WRITE_TO
+      || publicIndex.shardCount !== C8_WRITE_DATES.length
       || publicShards.get(C6_EXISTING_DATE)?.races?.length !== 59
     ) {
-      throw new Error("C7 public post-write loader validation failed");
+      throw new Error("C8 public post-write loader validation failed");
     }
   }
   return {
@@ -1285,7 +1360,7 @@ async function buildDryRun(options) {
     publicDataWritePerformed: options.write,
     publicWrittenFiles,
     publicFinalFiles,
-    existingShardPreserved,
+    existingShardsPreserved,
     publicPostWriteAvailability,
     publicOutputGuard,
     outputGuardControls,
@@ -1316,7 +1391,7 @@ async function main() {
       console.error(JSON.stringify({
       mode: options.outputMode === "public"
         ? options.write
-          ? "public-seven-day-write"
+          ? "public-fourteen-day-write"
           : "public-target-preflight-dry-run"
         : "temp-only-dry-run",
       output: options.output,
