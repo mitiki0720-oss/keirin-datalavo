@@ -1184,3 +1184,15 @@ EXページを出目ランキング、荒れ指数、レース連鎖、風速×�
 - Reviews, races, venues, legacy history, private input, bundled source data, package files, and workflows remain outside the operation.
 - No localStorage or sessionStorage persistence is involved.
 - The two-month production run remains disabled. C9 must explicitly review the next 30-day or two-month range before widening the guard.
+
+## 33-01-C9 thirty-day production write
+
+- The only enabled public write is the exact `2026-05-30` to `2026-06-28` range under `public/data/analytics/kurari-ex-result-trend-lab-history/`.
+- Required flags remain `--output-public --write --allow-public-output --confirm-namespace kurari-ex-result-trend-lab-history`.
+- A 31-day range or any different range is rejected before source discovery or filesystem writes.
+- Sixteen new daily shards were written. The existing C8 shards for `2026-06-15` through `2026-06-28` were validator-checked and preserved byte-for-byte.
+- Final index: 30 shards, 2,291 records, 2,258 trend eligible, 33 non-trend, 22 lossless dead heats, 0 source rejects, 0 loader rejects, and `productionBackfillReady=true`.
+- Eleven source-backed not-finalized records remain unavailable and are not promoted to confirmed or trend eligible.
+- Reviews, races, venues, legacy history, private input, bundled source data, package files, and workflows remain outside the operation.
+- No localStorage or sessionStorage persistence is involved.
+- The two-month production run remains disabled. C10 must explicitly review a 60-day or full two-month public write before widening the guard.
