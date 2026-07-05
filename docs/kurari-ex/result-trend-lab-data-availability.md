@@ -1,5 +1,32 @@
 # KURARI EX Result Trend Lab data availability audit
 
+## 33-01-A / 33-01-B historical backfill設計
+
+33-01-Aでは、既存の`public/data/analytics/kurari-ex/history/**`が2026-05-01〜2026-07-01を保持する一方、race単位のofficial source、取得日時、field provenanceを持たないため、official confirmed backfillへ直接採用できないことを確認した。
+
+33-01-Bでは実データを生成せず、次の専用namespaceを読むschema、validator、loaderだけを準備した。
+
+```text
+public/data/analytics/kurari-ex-result-trend-lab-history/
+  index.generated.json
+  daily/YYYY-MM/YYYY-MM-DD.generated.json
+```
+
+- indexとdaily shardは`kurari-ex-result-trend-lab-history/v1`でversion固定する
+- raceKeyは`date|venueCode（なければvenue）|raceNumber`へ正規化する
+- confirmed raceは着順、3連単組番、払戻と`result` / `payout` provenanceが`present`でなければrejectする
+- sourceにはprovider、fetchedAt、sourceDate、responseHash、parserVersionを必須とする
+- result、payout、kimarite、weather、odds、entries、lineup、bSbをfield provenanceで分離する
+- provenance statusは`present / absent-in-source / not-collected / source-unavailable / invalid / conflict`とする
+- duplicate raceKey、index/shard/raceの日付不一致、namespace外shard、malformed JSONは採用しない
+- index未生成時はthrowせず、`status=unavailable`、`indexFound=false`、`raceCount=0`、`canUseForTrendLab=false`を返す
+- missing shardはmissing、malformed shardはinvalidとしてavailabilityへ反映する
+- aggregateはaccepted raceからのみ動的算出する
+- localStorageは使用しない
+- `public/data/reviews/**`は対象外であり変更しない
+
+33-01-Cではofficial historical endpointの存在と日付指定方式を確認し、source-backed shard生成を設計する。33-01-Dで初めてResult Trend Lab本体をhistorical loaderへ接続する。
+
 ## 32-01の目的
 
 Result Trend Labで将来扱う出目ランキング、荒れ指数、レース連鎖、風速×決まり手、会場クセ、今日の流れについて、既存データだけで安全に実装できる範囲を棚卸しする。32-01では集計engine、ランキング、架空の分析数値を生成しない。

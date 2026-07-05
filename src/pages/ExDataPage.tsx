@@ -104,6 +104,9 @@ import {
   KURARI_EX_STRUCTURE_CATEGORY_COLUMNS,
   loadKurariExTrifectaTrendV1,
 } from "../lib/kurariExResultTrendLab";
+import {
+  loadKurariExHistoricalResultTrendLabHistory,
+} from "../lib/kurariExHistoricalResultLab";
 import type {
   KurariExCoverageStatus,
   KurariExTrendCarTop3Row,
@@ -111,6 +114,9 @@ import type {
   KurariExTrifectaTrendV1,
   KurariExTurbulenceBreakdownRow,
 } from "../lib/kurariExResultTrendLab";
+import type {
+  KurariExHistoricalAvailabilitySummary,
+} from "../types/kurariExHistoricalResult";
 import { SiteHeader, useIsMobile } from "./PageImplementations";
 
 const serif = '"Yu Mincho", "Hiragino Mincho ProN", "Times New Roman", serif';
@@ -1306,6 +1312,10 @@ export default function ExDataPage() {
   const [historyDailyError, setHistoryDailyError] = useState<string | null>(null);
   const [trifectaTrend, setTrifectaTrend] = useState<KurariExTrifectaTrendV1 | null>(null);
   const [trifectaTrendStatus, setTrifectaTrendStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [historicalAvailability, setHistoricalAvailability] =
+    useState<KurariExHistoricalAvailabilitySummary | null>(null);
+  const [historicalAvailabilityStatus, setHistoricalAvailabilityStatus] =
+    useState<"idle" | "loading" | "ready">("idle");
 
   useEffect(() => {
     let active = true;
@@ -1324,6 +1334,26 @@ export default function ExDataPage() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (activeSectionTab !== "structure-lab") return;
+    let active = true;
+    setHistoricalAvailabilityStatus("loading");
+    loadKurariExHistoricalResultTrendLabHistory()
+      .then((history) => {
+        if (!active) return;
+        setHistoricalAvailability(history.availability);
+        setHistoricalAvailabilityStatus("ready");
+      })
+      .catch(() => {
+        if (!active) return;
+        setHistoricalAvailability(null);
+        setHistoricalAvailabilityStatus("ready");
+      });
+    return () => {
+      active = false;
+    };
+  }, [activeSectionTab]);
 
   useEffect(() => {
     let active = true;
@@ -3825,6 +3855,26 @@ export default function ExDataPage() {
               <span className="ex-trend-status-pill is-caution">no inferred B/SB</span>
               <span className="ex-trend-status-pill is-partial">availability-first</span>
               <span className="ex-trend-status-pill is-partial">backfill-ready</span>
+            </div>
+
+            <div
+              className="ex-empty"
+              data-testid="historical-result-schema-loader-status"
+            >
+              <strong>HISTORICAL SCHEMA / LOADER: PREPARED</strong><br />
+              <span>historical data: {historicalAvailabilityStatus === "loading" ? "checking" : historicalAvailability?.indexFound ? "index found" : "not generated yet"}</span>
+              {" / "}
+              <span>status: {historicalAvailability?.status ?? "unavailable"}</span>
+              {" / "}
+              <span>future-accumulation</span>
+              <div className="ex-overview-status" style={{ marginTop: 12 }}>
+                <CoverageStatusPill status={historicalAvailability?.status ?? "unavailable"} />
+                <span className="ex-trend-status-pill is-ready">localStorage not used</span>
+                <span className="ex-trend-status-pill is-ready">public/data/reviews untouched</span>
+                <span className="ex-trend-status-pill is-partial">
+                  {historicalAvailability?.acceptedRaceCount ?? 0} accepted / {historicalAvailability?.rejectedRaceCount ?? 0} rejected
+                </span>
+              </div>
             </div>
 
             <div className="ex-kpi-grid">

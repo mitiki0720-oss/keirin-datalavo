@@ -1,5 +1,20 @@
 # 31-06 自動更新・official feed・EXデータ鮮度チェック
 
+## 33-01-B historical result schema / loader
+
+- 保存先候補は`public/data/analytics/kurari-ex-result-trend-lab-history/`に隔離する
+- 今回はschema、TypeScript型、validator、read-only fetch loaderのみ実装し、`public/data/**`を生成・変更していない
+- index＋日別shard構成とし、GitHub Pagesの`BASE_URL`へ対応する
+- race単位sourceとfield provenanceを必須にし、source不明値をimplementedへ昇格しない
+- confirmedの必須結果、source metadata、response hash、parser versionが欠けるraceはrejectする
+- 重複raceKeyは全該当raceをaggregate対象外にする
+- index未生成、missing shard、malformed JSON、fetch unavailableを区別し、画面を壊さずavailability summaryへ返す
+- 既存compact historyはprovenance不足のためofficial confirmed backfillへ直接流用しない
+- current official feedをhistorical schemaへ接続する正規化関数は、明示的に渡されたsource/provenanceだけを保持し、人気、風向、lineup、B/SBを推測しない
+- localStorageへhistorical dataを保存しない
+- `public/data/reviews/**`、`public/data/races/**`、`public/data/analytics/**`、workflowは変更していない
+- 33-01-Cでofficial historical endpointを確認し、33-01-DでResult Trend Lab consumerへ接続する
+
 ## 目的
 
 KURARI EX の次作業へ進む前に、race data、開催日程、KEIRIN.JP official feed、KURARI EX analytics、Slack 的中通知 state、GitHub Pages 配信の現状を読み取り専用で棚卸しする。
