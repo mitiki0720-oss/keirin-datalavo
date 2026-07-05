@@ -210,6 +210,13 @@ function classifyProbe({
   });
   const deadHeat = [1, 2, 3].some((rank) => (rankCounts.get(rank) ?? 0) > 1)
     || (trifectas.length > 1 && !topThree.every(Boolean));
+  const trifectaFullRefund =
+    trifectas.length > 0
+    && trifectas.every(
+      (row) =>
+        !present(row.kumiBan)
+        && String(row.haraiGaku ?? "").includes("全返還"),
+    );
 
   if (detailResponse.status === 429 || detailResponse.status >= 500) {
     return {
@@ -229,6 +236,24 @@ function classifyProbe({
       reason: "official JSJ012 response unavailable",
       rawStatusHint: `HTTP ${detailResponse.status}; resultCd=${detail?.resultCd ?? "missing"}`,
       nextAction: "retry-then-preserve-unavailable",
+    };
+  }
+  if (
+    detail.tyakujyunDispFlg === true
+    && detail.haraiGakuDispFlg === true
+    && rows.length > 0
+    && !topThree.every(Boolean)
+    && trifectaFullRefund
+  ) {
+    return {
+      classification: "refund-no-trifecta",
+      normalizedStatus: "unavailable",
+      storageEligible: true,
+      trendEligible: false,
+      reason: "official trifecta is fully refunded and no complete top-three result exists",
+      rawStatusHint:
+        `finishRows=${rows.length}; topThree=${topThree.map(Boolean).join(",")}; trifecta=全返還`,
+      nextAction: "store-official-refund-and-exclude-from-trend",
     };
   }
   if (deadHeat) {
