@@ -3674,7 +3674,7 @@ const renderMiniTable = (headers: string[], rows: ReactNode[][]) => (
     padding: isMobile ? "22px 18px 22px" : "34px 34px 30px",
     border: "1px solid #ebe3f3",
           backgroundImage:
-            'linear-gradient(135deg, rgba(255,255,255,0.48) 0%, rgba(248,242,255,0.42) 48%, rgba(238,248,255,0.46) 100%), url("/races-page/races-page-hero-bg-soft-pastel.png")',
+            `linear-gradient(135deg, rgba(255,255,255,0.48) 0%, rgba(248,242,255,0.42) 48%, rgba(238,248,255,0.46) 100%), url("${toPublicPath("/races-page/races-page-hero-bg-soft-pastel.png")}")`,
           backgroundSize: "112% auto",
           backgroundPosition: "center 38%",
           backgroundRepeat: "no-repeat",

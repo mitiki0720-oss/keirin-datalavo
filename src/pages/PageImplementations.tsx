@@ -2177,6 +2177,30 @@ export type PredictionWeatherCacheEntry = {
   data: PredictionWeatherData;
 };
 
+type PredictionWeatherPayload = {
+  current?: {
+    time?: string;
+    temperature_2m?: number;
+    weather_code?: number;
+    wind_speed_10m?: number;
+    wind_direction_10m?: number;
+    precipitation?: number;
+  };
+  hourly?: {
+    time?: string[];
+    temperature_2m?: Array<number | null>;
+    weather_code?: Array<number | null>;
+    wind_speed_10m?: Array<number | null>;
+    wind_direction_10m?: Array<number | null>;
+    precipitation?: Array<number | null>;
+  };
+};
+
+type PredictionWeatherPayloadCacheEntry = {
+  fetchedAt: number;
+  promise: Promise<PredictionWeatherPayload>;
+};
+
 export type PredictionWeatherRequestOptions = {
   isoDate?: string | null;
   raceTime?: string | null;
@@ -2227,6 +2251,8 @@ export const PREDICTION_VENUE_COORDINATE_MAP: Record<string, PredictionVenueCoor
 };
 
 export const predictionWeatherCache = new Map<string, PredictionWeatherCacheEntry>();
+const predictionWeatherPayloadCache = new Map<string, PredictionWeatherPayloadCacheEntry>();
+const PREDICTION_WEATHER_SESSION_CACHE_PREFIX = "kurari-weather-v1:";
 export const missingVenueWarningKeys = new Set<string>();
 export const favoriteFeedWarningKeys = new Set<string>();
 export const progressWarningKeys = new Set<string>();
@@ -3063,41 +3089,63 @@ export async function fetchPredictionVenueWeather(venueName: string, options: Pr
     return cached.data;
   }
 
+  let sessionCached: PredictionWeatherCacheEntry | null = null;
+  if (typeof window !== "undefined") {
+    try {
+      const raw = window.sessionStorage.getItem(`${PREDICTION_WEATHER_SESSION_CACHE_PREFIX}${cacheKey}`);
+      const parsed = raw ? JSON.parse(raw) as PredictionWeatherCacheEntry : null;
+      if (parsed?.data && Number.isFinite(parsed.fetchedAt)) {
+        sessionCached = parsed;
+        if (Date.now() - parsed.fetchedAt < PREDICTION_WEATHER_CACHE_TTL_MS) {
+          predictionWeatherCache.set(cacheKey, parsed);
+          return parsed.data;
+        }
+      }
+    } catch {
+      // Weather cache is optional.
+    }
+  }
+
   const coordinates = PREDICTION_VENUE_COORDINATE_MAP[normalizedVenueName]
     ?? PREDICTION_VENUE_COORDINATE_MAP[normalizePredictionVenueAlias(normalizedVenueName)]
     ?? await geocodePredictionVenue(normalizedVenueName);
   if (!coordinates) throw new Error("prediction-coordinate-not-found");
 
-  const url = new URL(PREDICTION_OPEN_METEO_FORECAST_URL);
-  url.searchParams.set("latitude", String(coordinates.latitude));
-  url.searchParams.set("longitude", String(coordinates.longitude));
-  url.searchParams.set("current", "temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,precipitation");
-  url.searchParams.set("hourly", "temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,precipitation");
-  url.searchParams.set("timezone", "Asia/Tokyo");
-  url.searchParams.set("temperature_unit", "celsius");
-  url.searchParams.set("wind_speed_unit", "kmh");
-  url.searchParams.set("precipitation_unit", "mm");
+  const payloadCacheKey = `${coordinates.latitude.toFixed(4)}:${coordinates.longitude.toFixed(4)}`;
+  const payloadCached = predictionWeatherPayloadCache.get(payloadCacheKey);
+  let payloadPromise = payloadCached && Date.now() - payloadCached.fetchedAt < PREDICTION_WEATHER_CACHE_TTL_MS
+    ? payloadCached.promise
+    : null;
 
-  const response = await fetch(url.toString(), { cache: "no-store" });
-  if (!response.ok) throw new Error(`prediction-weather-failed-${response.status}`);
-  const payload = await response.json() as {
-    current?: {
-      time?: string;
-      temperature_2m?: number;
-      weather_code?: number;
-      wind_speed_10m?: number;
-      wind_direction_10m?: number;
-      precipitation?: number;
-    };
-    hourly?: {
-      time?: string[];
-      temperature_2m?: Array<number | null>;
-      weather_code?: Array<number | null>;
-      wind_speed_10m?: Array<number | null>;
-      wind_direction_10m?: Array<number | null>;
-      precipitation?: Array<number | null>;
-    };
-  };
+  if (!payloadPromise) {
+    const url = new URL(PREDICTION_OPEN_METEO_FORECAST_URL);
+    url.searchParams.set("latitude", String(coordinates.latitude));
+    url.searchParams.set("longitude", String(coordinates.longitude));
+    url.searchParams.set("current", "temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,precipitation");
+    url.searchParams.set("hourly", "temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,precipitation");
+    url.searchParams.set("timezone", "Asia/Tokyo");
+    url.searchParams.set("temperature_unit", "celsius");
+    url.searchParams.set("wind_speed_unit", "kmh");
+    url.searchParams.set("precipitation_unit", "mm");
+
+    payloadPromise = fetch(url.toString(), { cache: "no-store" }).then(async (response) => {
+      if (!response.ok) throw new Error(`prediction-weather-failed-${response.status}`);
+      return response.json() as Promise<PredictionWeatherPayload>;
+    });
+    predictionWeatherPayloadCache.set(payloadCacheKey, {
+      fetchedAt: Date.now(),
+      promise: payloadPromise,
+    });
+  }
+
+  let payload: PredictionWeatherPayload;
+  try {
+    payload = await payloadPromise;
+  } catch (error) {
+    predictionWeatherPayloadCache.delete(payloadCacheKey);
+    if (sessionCached?.data) return sessionCached.data;
+    throw error;
+  }
   const current = payload.current;
   if (!current) throw new Error("prediction-weather-missing");
 
@@ -3132,7 +3180,18 @@ export async function fetchPredictionVenueWeather(venueName: string, options: Pr
     }),
   };
 
-  predictionWeatherCache.set(cacheKey, { fetchedAt: Date.now(), data });
+  const cacheEntry = { fetchedAt: Date.now(), data };
+  predictionWeatherCache.set(cacheKey, cacheEntry);
+  if (typeof window !== "undefined") {
+    try {
+      window.sessionStorage.setItem(
+        `${PREDICTION_WEATHER_SESSION_CACHE_PREFIX}${cacheKey}`,
+        JSON.stringify(cacheEntry),
+      );
+    } catch {
+      // Weather cache is optional.
+    }
+  }
   return data;
 }
 

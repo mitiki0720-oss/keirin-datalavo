@@ -309,7 +309,6 @@ const PREDICTION_SLOT_STORAGE_KEY = "kurari-data-labo-prediction-slots";
 const PREDICTION_RESULT_STORAGE_KEY = "kurari-data-labo-prediction-results";
 const REVIEW_REPORT_STORAGE_KEY = "kurari-data-labo-review-reports";
 const REVIEW_RACE_RESULT_SNAPSHOT_STORAGE_KEY = "kurari-data-labo-review-race-result-snapshots";
-const REVIEW_RACE_RESULT_SNAPSHOT_MAX_ITEMS = 1200;
 
 const toPublicPath = (path: string) => {
   const base = import.meta.env.BASE_URL || "/";
@@ -906,70 +905,25 @@ function compactReviewRaceResultSnapshot(race: PredictionRaceItem): PredictionRa
 function loadReviewRaceResultSnapshots() {
   if (typeof window === "undefined") return {} as ReviewRaceResultSnapshotMap;
 
-  const raw = safeJsonParse<ReviewRaceResultSnapshotMap>(
-    window.localStorage.getItem(REVIEW_RACE_RESULT_SNAPSHOT_STORAGE_KEY),
-    {},
-  );
-
-  const activeDate = getJstOperationalDate();
-  const keepFromDate = shiftReviewIsoDateByDays(activeDate, -1);
-  let changed = false;
-
-  const records = Object.fromEntries(
-    Object.entries(raw)
-      .filter(([key]) => {
-        const [snapshotDate] = key.split(":");
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(snapshotDate)) return true;
-        const keep = snapshotDate >= keepFromDate;
-        if (!keep) changed = true;
-        return keep;
-      })
-      .map(([key, race]) => [
-        key,
-        {
-          ...race,
-          oddsPreview: normalizeReviewOddsPreviewList(race.oddsPreview),
-          oddsTrifecta: normalizeReviewTrifectaOddsList(race.oddsTrifecta),
-        },
-      ])
-  ) as ReviewRaceResultSnapshotMap;
-
-  if (changed) {
-    try {
-      window.localStorage.setItem(REVIEW_RACE_RESULT_SNAPSHOT_STORAGE_KEY, JSON.stringify(records));
-    } catch {
-      // localStorage write failure is non-fatal
-    }
+  try {
+    window.localStorage.removeItem(REVIEW_RACE_RESULT_SNAPSHOT_STORAGE_KEY);
+  } catch {
+    // localStorage cleanup failure is non-fatal
   }
 
-  return records;
+  return {} as ReviewRaceResultSnapshotMap;
 }
 
 function saveReviewRaceResultSnapshots(records: ReviewRaceResultSnapshotMap) {
-  if (typeof window === "undefined") return records;
-
   const activeDate = getJstOperationalDate();
-  const keepFromDate = shiftReviewIsoDateByDays(activeDate, -1);
-
-  const compactRecords = Object.fromEntries(
+  return Object.fromEntries(
     Object.entries(records)
       .filter(([key]) => {
         const [snapshotDate] = key.split(":");
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(snapshotDate)) return true;
-        return snapshotDate >= keepFromDate;
+        return snapshotDate === activeDate;
       })
-      .filter(([key, race]) => Boolean(key) && Boolean(race?.raceNo))
-      .sort(([a], [b]) => b.localeCompare(a))
-      .slice(0, REVIEW_RACE_RESULT_SNAPSHOT_MAX_ITEMS),
+      .filter(([key, race]) => Boolean(key) && Boolean(race?.raceNo)),
   ) as ReviewRaceResultSnapshotMap;
-
-  try {
-    window.localStorage.setItem(REVIEW_RACE_RESULT_SNAPSHOT_STORAGE_KEY, JSON.stringify(compactRecords));
-  } catch {
-    // localStorage write failure is non-fatal
-  }
-
-  return compactRecords;
 }
 
 function mergePredictionRaceResult(
@@ -3024,6 +2978,10 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                   <h1 style={{ margin: 0, fontSize: "40px", lineHeight: 1.08, fontWeight: 900, color: "#111827", marginBottom: "16px", letterSpacing: "-0.05em" }}>
                     {workbenchLabel}
                   </h1>
+                  <div style={{ marginBottom: "10px", fontSize: "14px", fontWeight: 900, color: "#6f52b2" }}>
+                    対象日: {selectedDate.replaceAll("-", "/")}
+                    <span style={{ marginLeft: "8px", fontSize: "11px", fontWeight: 700, color: "#8b8495" }}>JST 6:00切替</span>
+                  </div>
                   <p style={{ margin: 0, maxWidth: "560px", fontSize: "15px", lineHeight: 1.95, color: "#5f6676" }}>
                     {isTodaySelected
                       ? "今日予想した会場を、見やすいカードで振り返る"
