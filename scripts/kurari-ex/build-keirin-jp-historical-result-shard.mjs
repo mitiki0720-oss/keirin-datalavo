@@ -29,6 +29,7 @@ const PUBLIC_OUTPUT_ROOT = path.join(
   "kurari-ex-result-trend-lab-history",
 );
 const CONFIRMED_NAMESPACE = "kurari-ex-result-trend-lab-history";
+const C6_WRITE_DATE = "2026-06-28";
 
 function parseArgs(argv) {
   const options = {
@@ -172,11 +173,21 @@ function validateOptions(options) {
     if (options.confirmNamespace !== CONFIRMED_NAMESPACE) {
       throw new Error(`--write requires --confirm-namespace ${CONFIRMED_NAMESPACE}`);
     }
+    if (
+      options.from !== C6_WRITE_DATE
+      || options.to !== C6_WRITE_DATE
+      || uniqueDates.length !== 1
+      || uniqueDates[0] !== C6_WRITE_DATE
+    ) {
+      throw new Error(`C6 public write is restricted to --from ${C6_WRITE_DATE} --to ${C6_WRITE_DATE}`);
+    }
+    if (options.venueCode) {
+      throw new Error("C6 public write requires all venues; --venue-code is not allowed");
+    }
     validatePublicOutputPath(PUBLIC_OUTPUT_ROOT);
-    throw new Error("public write execution is disabled in 33-01-C5");
   }
 
-  if (options.outputPublic && !options.dryRun) {
+  if (options.outputPublic && !options.dryRun && !options.write) {
     throw new Error("--output-public is path-validation only unless --dry-run is specified");
   }
   const output = validateTempOutputPath(
@@ -1086,8 +1097,10 @@ async function buildDryRun(options) {
   );
 
   const report = {
-    mode: options.outputMode === "public"
-      ? "public-target-preflight-dry-run"
+    mode: options.write
+      ? "public-single-day-write"
+      : options.outputMode === "public"
+        ? "public-target-preflight-dry-run"
       : "temp-only-dry-run",
     output: options.output,
     publicTarget: options.publicTarget,
@@ -1135,11 +1148,70 @@ async function buildDryRun(options) {
   const publicOutputGuard = options.outputMode === "public"
     ? evaluatePublicOutputGuard(report, {
         target: options.publicTarget,
-        write: false,
+        write: options.write,
+        allowPublicOutput: options.allowPublicOutput,
+        confirmNamespace: options.confirmNamespace,
       })
     : null;
+  let publicWrittenFiles = [];
+  let publicPostWriteAvailability = null;
+  if (options.write) {
+    if (!publicOutputGuard?.passed) {
+      throw new Error(
+        `public output guard rejected write: ${publicOutputGuard?.reasons.join("; ")}`,
+      );
+    }
+    if (
+      writtenShards.size !== 1
+      || !writtenShards.has(C6_WRITE_DATE)
+      || writtenIndex.shardCount !== 1
+      || writtenIndex.range.from !== C6_WRITE_DATE
+      || writtenIndex.range.to !== C6_WRITE_DATE
+    ) {
+      throw new Error("C6 write candidate contains a date outside 2026-06-28");
+    }
+    const publicShardPath = path.join(
+      options.publicTarget,
+      "daily",
+      "2026-06",
+      "2026-06-28.generated.json",
+    );
+    const publicIndexPath = path.join(options.publicTarget, "index.generated.json");
+    publicWrittenFiles = [publicIndexPath, publicShardPath];
+    if (
+      publicWrittenFiles.some(
+        (filePath) => !isChildPath(options.publicTarget, filePath),
+      )
+    ) {
+      throw new Error("C6 planned write escaped the allowed public namespace");
+    }
+
+    await writeJson(publicShardPath, writtenShards.get(C6_WRITE_DATE));
+    await writeJson(publicIndexPath, writtenIndex);
+
+    const publicIndex = JSON.parse(await readFile(publicIndexPath, "utf8"));
+    const publicShard = JSON.parse(await readFile(publicShardPath, "utf8"));
+    const publicHistory = await loadThroughActualLoader(
+      validator,
+      publicIndex,
+      new Map([[C6_WRITE_DATE, publicShard]]),
+    );
+    publicPostWriteAvailability = publicHistory.availability;
+    if (
+      !publicPostWriteAvailability.productionBackfillReady
+      || publicPostWriteAvailability.rejectedRaceCount !== 0
+      || publicPostWriteAvailability.acceptedRaceCount !== 59
+      || publicPostWriteAvailability.trendEligibleRaceCount !== 59
+      || publicPostWriteAvailability.nonTrendRaceCount !== 0
+    ) {
+      throw new Error("C6 public post-write loader validation failed");
+    }
+  }
   return {
     ...report,
+    publicDataWritePerformed: options.write,
+    publicWrittenFiles,
+    publicPostWriteAvailability,
     publicOutputGuard,
     outputGuardControls,
   };
@@ -1168,7 +1240,9 @@ async function main() {
   } catch (error) {
     console.error(JSON.stringify({
       mode: options.outputMode === "public"
-        ? "public-target-preflight-dry-run"
+        ? options.write
+          ? "public-single-day-write"
+          : "public-target-preflight-dry-run"
         : "temp-only-dry-run",
       output: options.output,
       publicDataWritePerformed: false,

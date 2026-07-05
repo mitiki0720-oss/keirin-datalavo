@@ -1,0 +1,95 @@
+{
+  "version": "kurari-ex-result-trend-lab-history/v1",
+  "generatedAt": "2026-07-05T12:02:37.400Z",
+  "sourceStatus": "official",
+  "range": {
+    "from": "2026-06-28",
+    "to": "2026-06-28"
+  },
+  "shardCount": 1,
+  "raceCount": 59,
+  "shards": [
+    {
+      "date": "2026-06-28",
+      "path": "/data/analytics/kurari-ex-result-trend-lab-history/daily/2026-06/2026-06-28.generated.json",
+      "raceCount": 59,
+      "status": "ready",
+      "sourceSummary": {
+        "providers": [
+          "KEIRIN.JP"
+        ],
+        "fetchedAtFrom": "2026-07-05T12:02:38.060Z",
+        "fetchedAtTo": "2026-07-05T12:02:51.688Z"
+      }
+    }
+  ],
+  "provenance": {
+    "provider": "KEIRIN.JP",
+    "generator": "scripts/kurari-ex/build-keirin-jp-historical-result-shard.mjs",
+    "parserVersion": "kurari-ex-keirin-jp-historical-shard/v1",
+    "generatedAt": "2026-07-05T12:02:37.400Z"
+  },
+  "coverage": {
+    "result": {
+      "status": "implemented",
+      "availableRaceCount": 59,
+      "totalRaceCount": 59
+    },
+    "payout": {
+      "status": "implemented",
+      "availableRaceCount": 59,
+      "totalRaceCount": 59
+    },
+    "kimarite": {
+      "status": "implemented",
+      "availableRaceCount": 59,
+      "totalRaceCount": 59
+    },
+    "weather": {
+      "status": "implemented",
+      "availableRaceCount": 59,
+      "totalRaceCount": 59
+    },
+    "odds": {
+      "status": "implemented",
+      "availableRaceCount": 59,
+      "totalRaceCount": 59
+    },
+    "entries": {
+      "status": "implemented",
+      "availableRaceCount": 59,
+      "totalRaceCount": 59
+    },
+    "lineup": {
+      "status": "unavailable",
+      "availableRaceCount": 0,
+      "totalRaceCount": 59
+    },
+    "bSb": {
+      "status": "implemented",
+      "availableRaceCount": 59,
+      "totalRaceCount": 59
+    }
+  },
+  "summary": {
+    "sourceRejectedCount": 0,
+    "sourceRejectByReason": [],
+    "statusCount": {
+      "confirmed": 59,
+      "cancelled": 0,
+      "unavailable": 0
+    },
+    "classificationCount": {
+      "confirmed-accepted": 59
+    },
+    "deadHeatRaceCount": 0,
+    "deadHeatTrendExcludedCount": 0,
+    "storageEligibleRaceCount": 59,
+    "trendEligibleRaceCount": 59,
+    "nonTrendRaceCount": 0,
+    "partialReason": null,
+    "blockedReason": [],
+    "productionBackfillReady": true,
+    "productionBackfillReadyReason": "all production gates passed"
+  }
+}

@@ -1150,3 +1150,13 @@ EXページを出目ランキング、荒れ指数、レース連鎖、風速×�
 - production ready、source/validator reject、禁止classification、date/sourceDate、duplicate、confirmed provenance、dead heat lossless、partial reason、storage/trend分離をguardする
 - positive control 2件、negative control 10件が全てpassした
 - `public/data/**`と`public/data/reviews/**`は未変更、localStorage/sessionStorageは使用しない
+
+## 33-01-C6 one-day production write
+
+- C6 public writeは`2026-06-28`の単日・全会場・確認flag完備の場合だけ許可する
+- 許可namespaceへindex 1件とdaily shard 1件を生成した
+- 59 racesは全てofficial confirmed、storage/trend eligible、sourceDate一致、raceKey一意
+- source reject、validator/loader reject、dead heat、non-trendは0
+- productionBackfillReady=true
+- reviews、races、venues、旧kurari-ex history、その他analytics namespaceは未変更
+- 2か月本番は未実施。次工程はC7の拡張前チェック

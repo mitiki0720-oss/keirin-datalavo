@@ -157,6 +157,39 @@ positive controlではOS Temp outputとpublic target dry-runが成功した。pu
 
 今回も`public/data/**`と`public/data/reviews/**`は未変更であり、次工程では1日分のpublic候補を同じpreflightに通してからwrite可否を判断する。
 
+## 33-01-C6 one-day public write
+
+C5 production guardを通し、2026-06-28の1日分だけを許可namespaceへ本番生成した。
+
+```text
+public/data/analytics/kurari-ex-result-trend-lab-history/
+  index.generated.json
+  daily/2026-06/2026-06-28.generated.json
+```
+
+実行条件:
+
+- `--from 2026-06-28 --to 2026-06-28`
+- `--output-public --write --allow-public-output`
+- `--confirm-namespace kurari-ex-result-trend-lab-history`
+- 全会場取得
+- productionBackfillReady=true
+- source/validator/loader reject 0
+
+C6 writeは上記単日以外を拒否し、期間拡張や`--venue-code`指定を許可しない。
+
+生成結果:
+
+- index range: 2026-06-28〜2026-06-28
+- shardCount: 1
+- raceCount / confirmed / storage eligible / trend eligible: 59
+- non-trend / dead heat / source reject / loader reject: 0
+- unique raceKey: 59
+- sourceDate: 全件2026-06-28
+- productionBackfillReady=true
+
+`public/data/reviews/**`、`public/data/races/**`、`public/data/venues/**`、旧`analytics/kurari-ex/history/**`は変更していない。2か月分本番は未実施であり、次工程はC7の7日分または2か月本番前チェックとする。
+
 ## 32-01の目的
 
 Result Trend Labで将来扱う出目ランキング、荒れ指数、レース連鎖、風速×決まり手、会場クセ、今日の流れについて、既存データだけで安全に実装できる範囲を棚卸しする。32-01では集計engine、ランキング、架空の分析数値を生成しない。
