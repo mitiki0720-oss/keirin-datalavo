@@ -356,7 +356,7 @@ function HistoricalTrendSourceSummary({
   if (!summary || !historical) {
     return (
       <div className="ex-empty" data-testid="result-trend-lab-source-summary">
-        <strong>historical 60日 + current</strong><br />
+        <strong>60日historical傾向 + 最新current</strong><br />
         {status === "error" ? "historical loader / current feedを取得できませんでした。" : "historical loaderを確認しています。"}
       </div>
     );
@@ -364,16 +364,34 @@ function HistoricalTrendSourceSummary({
   return (
     <div data-testid="result-trend-lab-source-summary">
       <div className="ex-overview-status">
-        <span className="ex-trend-status-pill is-ready">{summary.label}</span>
+        <span className="ex-trend-status-pill is-ready">60日historical傾向 + 最新current</span>
         <span className={`ex-trend-status-pill is-${historical.status === "implemented" ? "ready" : "partial"}`}>
           historical status: {historical.status}
+          {historical.status === "partial" ? "（正常読込・trend除外あり）" : ""}
         </span>
         <span className="ex-trend-status-pill is-ready">
-          analysis母数 {summary.analysisRaceCount.toLocaleString("ja-JP")}R
+          統合集計対象: {summary.analysisRaceCount.toLocaleString("ja-JP")}R
         </span>
         <span className="ex-trend-status-pill is-partial">
-          latest flow {trend.sourceDate || "unavailable"}
+          今日の流れ: 最新日current {trend.sourceDate || "unavailable"}のみ
         </span>
+      </div>
+      <div className="ex-empty" data-testid="result-trend-lab-basis-note">
+        <strong>母数の見方</strong><br />
+        historical読込: {historical.acceptedRaceCount.toLocaleString("ja-JP")}R
+        {" / "}
+        trend対象: {historical.trendEligibleRaceCount.toLocaleString("ja-JP")}R
+        {" / "}
+        最新current trend対象: {summary.currentIncludedRaceCount.toLocaleString("ja-JP")}R
+        <br />
+        除外: {historical.nonTrendRaceCount.toLocaleString("ja-JP")}R
+        （同着 {historical.deadHeatTrendExcludedCount.toLocaleString("ja-JP")}R
+        {" / "}
+        全返還・3連単不成立 {summary.refundNoTrifectaExcludedCount.toLocaleString("ja-JP")}R
+        {" / "}
+        未確定 {summary.notFinalizedExcludedCount.toLocaleString("ja-JP")}R）
+        <br />
+        partial = 読込失敗ではなく、保存済みデータにtrend集計から除外したレースを含む状態です。
       </div>
       <div className="ex-health-grid">
         <MetricCard
@@ -387,9 +405,9 @@ function HistoricalTrendSourceSummary({
           warning={historical.loadedShardCount !== historical.shardCount}
         />
         <MetricCard
-          label="ACCEPTED RACES"
-          value={historical.acceptedRaceCount.toLocaleString("ja-JP")}
-          note={`index raceCount ${historical.raceCount.toLocaleString("ja-JP")}`}
+          label="HISTORICAL 読込"
+          value={`${historical.acceptedRaceCount.toLocaleString("ja-JP")}R`}
+          note={`accepted / index raceCount ${historical.raceCount.toLocaleString("ja-JP")}R`}
         />
         <MetricCard
           label="REJECTED RACES"
@@ -397,14 +415,14 @@ function HistoricalTrendSourceSummary({
           warning={historical.rejectedRaceCount > 0}
         />
         <MetricCard
-          label="TREND ELIGIBLE"
-          value={historical.trendEligibleRaceCount.toLocaleString("ja-JP")}
-          note="historical 6分析母数"
+          label="HISTORICAL TREND対象"
+          value={`${historical.trendEligibleRaceCount.toLocaleString("ja-JP")}R`}
+          note="60日historicalの6分析母数"
         />
         <MetricCard
-          label="NON-TREND"
-          value={historical.nonTrendRaceCount.toLocaleString("ja-JP")}
-          note="保存済み・trend集計除外"
+          label="NON-TREND 除外"
+          value={`${historical.nonTrendRaceCount.toLocaleString("ja-JP")}R`}
+          note={`同着 ${historical.deadHeatTrendExcludedCount}R / 全返還等 ${summary.refundNoTrifectaExcludedCount}R / 未確定 ${summary.notFinalizedExcludedCount}R`}
           warning={historical.nonTrendRaceCount > 0}
         />
         <MetricCard
@@ -428,9 +446,9 @@ function HistoricalTrendSourceSummary({
           warning={summary.sourceRejectedCount > 0}
         />
         <MetricCard
-          label="CURRENT FEED"
+          label="最新 CURRENT TREND対象"
           value={`${summary.currentIncludedRaceCount.toLocaleString("ja-JP")} / ${summary.currentRaceCount.toLocaleString("ja-JP")}R`}
-          note={`trend除外 ${summary.currentExcludedRaceCount.toLocaleString("ja-JP")}R`}
+          note={`統合に採用 / current trend除外 ${summary.currentExcludedRaceCount.toLocaleString("ja-JP")}R`}
         />
         <MetricCard
           label="RACEKEY DEDUP"
@@ -3010,9 +3028,9 @@ export default function ExDataPage() {
                     warning={!trifectaTrend.sourceFetchedAt}
                   />
                   <MetricCard
-                    label="ELIGIBLE RACES"
-                    value={trifectaTrend.eligibleRaceCount.toLocaleString("ja-JP")}
-                    note={`全${trifectaTrend.totalRaceCount.toLocaleString("ja-JP")}R`}
+                    label="統合集計対象"
+                    value={`${trifectaTrend.eligibleRaceCount.toLocaleString("ja-JP")}R`}
+                    note="60日historical trend対象 + 最新current"
                   />
                   <MetricCard
                     label="EXCLUDED RACES"
@@ -3116,9 +3134,9 @@ export default function ExDataPage() {
                   <>
                     <div className="ex-kpi-grid">
                       <MetricCard
-                        label="ELIGIBLE RACES"
-                        value={trifectaTrend.turbulence.eligibleRaceCount.toLocaleString("ja-JP")}
-                        note={`全${trifectaTrend.turbulence.totalRaceCount.toLocaleString("ja-JP")}R`}
+                        label="統合集計対象"
+                        value={`${trifectaTrend.turbulence.eligibleRaceCount.toLocaleString("ja-JP")}R`}
+                        note="60日historical trend対象 + 最新current"
                       />
                       <MetricCard
                         label="EXCLUDED RACES"
@@ -3253,9 +3271,9 @@ export default function ExDataPage() {
                 <div className="ex-health-grid">
                   <MetricCard label="SOURCE" value="official result only" note={trifectaTrend.sourceName} />
                   <MetricCard
-                    label="ELIGIBLE PAIRS"
-                    value={trifectaTrend.chain.eligiblePairCount.toLocaleString("ja-JP")}
-                    note={`candidate ${trifectaTrend.chain.transitionCandidateCount.toLocaleString("ja-JP")} pairs`}
+                    label="統合・連続R PAIR対象"
+                    value={`${trifectaTrend.chain.eligiblePairCount.toLocaleString("ja-JP")} pairs`}
+                    note={`60日historical + 最新current / candidate ${trifectaTrend.chain.transitionCandidateCount.toLocaleString("ja-JP")} pairs`}
                   />
                   <MetricCard
                     label="EXCLUDED PAIRS"
@@ -3421,9 +3439,9 @@ export default function ExDataPage() {
               <>
                 <div className="ex-kpi-grid">
                   <MetricCard
-                    label="ELIGIBLE RACES"
-                    value={trifectaTrend.weather.eligibleRaceCount.toLocaleString("ja-JP")}
-                    note={`全${trifectaTrend.weather.totalRaceCount.toLocaleString("ja-JP")}R`}
+                    label="統合集計対象"
+                    value={`${trifectaTrend.weather.eligibleRaceCount.toLocaleString("ja-JP")}R`}
+                    note="60日historical trend対象 + 最新current"
                   />
                   <MetricCard
                     label="EXCLUDED RACES"
@@ -3598,9 +3616,9 @@ export default function ExDataPage() {
               <>
                 <div className="ex-kpi-grid">
                   <MetricCard
-                    label="ELIGIBLE RACES"
-                    value={trifectaTrend.venueBias.eligibleRaceCount.toLocaleString("ja-JP")}
-                    note={`全${trifectaTrend.venueBias.totalRaceCount.toLocaleString("ja-JP")}R`}
+                    label="統合集計対象"
+                    value={`${trifectaTrend.venueBias.eligibleRaceCount.toLocaleString("ja-JP")}R`}
+                    note="60日historical trend対象 + 最新current"
                   />
                   <MetricCard
                     label="EXCLUDED RACES"
@@ -3783,7 +3801,7 @@ export default function ExDataPage() {
               <span className="ex-trend-status-pill is-ready">confirmed only</span>
               <span className="ex-trend-status-pill is-ready">fake prohibited</span>
               <span className={`ex-trend-status-pill is-${trifectaTrend?.todayFlow.isToday ? "ready" : "partial"}`}>
-                latest official date
+                今日の流れ: 最新日currentのみで集計
               </span>
               <span className="ex-trend-status-pill is-caution">LOW SAMPLE</span>
             </div>
@@ -3795,15 +3813,15 @@ export default function ExDataPage() {
               <>
                 <div className="ex-kpi-grid">
                   <MetricCard
-                    label="TARGET DATE"
+                    label="最新 CURRENT 対象日"
                     value={trifectaTrend.todayFlow.targetDate || "--"}
-                    note={trifectaTrend.todayFlow.dateBasisLabel}
+                    note={`${trifectaTrend.todayFlow.dateBasisLabel} / historical全期間とは分離`}
                     warning={!trifectaTrend.todayFlow.isToday}
                   />
                   <MetricCard
-                    label="ELIGIBLE RACES"
-                    value={trifectaTrend.todayFlow.eligibleRaceCount.toLocaleString("ja-JP")}
-                    note={`対象${trifectaTrend.todayFlow.totalRaceCount.toLocaleString("ja-JP")}R`}
+                    label="最新 CURRENT 集計対象"
+                    value={`${trifectaTrend.todayFlow.eligibleRaceCount.toLocaleString("ja-JP")}R`}
+                    note={`最新日currentのみ / 対象${trifectaTrend.todayFlow.totalRaceCount.toLocaleString("ja-JP")}R`}
                   />
                   <MetricCard
                     label="EXCLUDED RACES"
