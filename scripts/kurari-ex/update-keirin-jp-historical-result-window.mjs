@@ -1,8 +1,12 @@
 import { build as buildModule } from "esbuild";
 import {
+  access,
+  mkdir,
   mkdtemp,
   readFile,
+  rename,
   rm,
+  writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -22,6 +26,7 @@ const BUILDER_PATH = path.join(
   "build-keirin-jp-historical-result-shard.mjs",
 );
 const PUBLIC_NAMESPACE = "/data/analytics/kurari-ex-result-trend-lab-history";
+const CONFIRMED_NAMESPACE = "kurari-ex-result-trend-lab-history";
 const PUBLIC_ROOT = path.join(
   REPO_ROOT,
   "public",
@@ -30,13 +35,18 @@ const PUBLIC_ROOT = path.join(
   "kurari-ex-result-trend-lab-history",
 );
 const INDEX_PATH = path.join(PUBLIC_ROOT, "index.generated.json");
-const PROTECTED_PATHS = [
+const DRY_RUN_PROTECTED_PATHS = [
   "public/data",
+  "src/data",
+];
+const FORBIDDEN_PATHS = [
   "public/data/reviews",
   "public/data/races",
   "public/data/venues",
   "src/data",
 ];
+const ALLOWED_HISTORY_PATH =
+  "public/data/analytics/kurari-ex-result-trend-lab-history";
 const COVERAGE_FIELDS = [
   "result",
   "payout",
@@ -51,11 +61,22 @@ const COVERAGE_FIELDS = [
 function parseArgs(argv) {
   const options = {
     targetDate: "",
+    write: false,
+    confirmNamespace: "",
+    confirmRollingWindow: "",
   };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--target-date") {
       options.targetDate = argv[index + 1] ?? "";
+      index += 1;
+    } else if (arg === "--write") {
+      options.write = true;
+    } else if (arg === "--confirm-namespace") {
+      options.confirmNamespace = argv[index + 1] ?? "";
+      index += 1;
+    } else if (arg === "--confirm-rolling-window") {
+      options.confirmRollingWindow = argv[index + 1] ?? "";
       index += 1;
     } else {
       throw new Error(`unknown argument: ${arg}`);
@@ -158,6 +179,26 @@ async function gitStatus(paths) {
     .split(/\r?\n/u)
     .map((line) => line.trimEnd())
     .filter(Boolean);
+}
+
+function gitStatusPaths(lines) {
+  return lines.flatMap((line) => {
+    const value = line.slice(3).trim().replaceAll("\\", "/");
+    if (!value) return [];
+    if (value.includes(" -> ")) {
+      return value.split(" -> ").map((item) => item.replace(/^"|"$/gu, ""));
+    }
+    return [value.replace(/^"|"$/gu, "")];
+  });
+}
+
+async function pathExists(filePath) {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function parseBuilderReport(result) {
@@ -321,6 +362,257 @@ function buildCandidateIndex({
   };
 }
 
+async function validatePublicState(validator, expectedIndex) {
+  const publicIndex = JSON.parse(await readFile(INDEX_PATH, "utf8"));
+  const publicShards = new Map();
+  for (const entry of publicIndex.shards) {
+    publicShards.set(
+      entry.date,
+      JSON.parse(await readFile(publicShardFile(entry.date), "utf8")),
+    );
+  }
+  const validatorIssues = [
+    ...validator.validateKurariExHistoricalResultTrendLabIndex(publicIndex).issues,
+  ];
+  for (const [date, shard] of publicShards) {
+    validatorIssues.push(
+      ...validator.validateKurariExHistoricalResultTrendLabDailyShard(
+        shard,
+        date,
+      ).issues,
+    );
+    shard.races.forEach((race, raceIndex) => {
+      validatorIssues.push(
+        ...validator.validateKurariExHistoricalResultRace(
+          race,
+          `${date}.races[${raceIndex}]`,
+        ).issues,
+      );
+    });
+  }
+  const history = await loadThroughActualLoader(
+    validator,
+    publicIndex,
+    publicShards,
+  );
+  const reasons = [];
+  if (
+    publicIndex.range.from !== expectedIndex.range.from
+    || publicIndex.range.to !== expectedIndex.range.to
+    || publicIndex.shardCount !== WINDOW_DAYS
+  ) {
+    reasons.push("post-write index range or shard count mismatch");
+  }
+  if (publicIndex.raceCount !== expectedIndex.raceCount) {
+    reasons.push("post-write raceCount mismatch");
+  }
+  if (Number(publicIndex.summary?.sourceRejectedCount ?? 0) > 0) {
+    reasons.push("post-write sourceRejectedCount is not zero");
+  }
+  if (validatorIssues.length > 0) {
+    reasons.push(`post-write validator issue count is ${validatorIssues.length}`);
+  }
+  if (history.availability.rejectedRaceCount > 0) {
+    reasons.push(
+      `post-write loader rejected count is ${history.availability.rejectedRaceCount}`,
+    );
+  }
+  if (!history.availability.productionBackfillReady) {
+    reasons.push(
+      `post-write production gate failed: ${history.availability.productionBackfillReadyReason}`,
+    );
+  }
+  return {
+    passed: reasons.length === 0,
+    reasons,
+    validatorIssueCount: validatorIssues.length,
+    availability: history.availability,
+  };
+}
+
+async function promoteCandidate({
+  options,
+  rollingIndex,
+  targetShard,
+  removalDate,
+  validator,
+}) {
+  const targetPath = publicShardFile(options.targetDate);
+  const removalPath = publicShardFile(removalDate);
+  const targetTempPath = `${targetPath}.rolling-${process.pid}.tmp`;
+  const indexTempPath = `${INDEX_PATH}.rolling-${process.pid}.tmp`;
+  const plannedPaths = [
+    targetPath,
+    targetTempPath,
+    INDEX_PATH,
+    indexTempPath,
+    removalPath,
+  ];
+  const namespaceEscape = plannedPaths.some(
+    (filePath) => !isChildPath(PUBLIC_ROOT, filePath),
+  );
+  if (namespaceEscape) {
+    return {
+      completed: false,
+      phase: "pre-write",
+      reasons: ["planned write escaped the allowed historical namespace"],
+      indexCommitted: false,
+      newShardCreated: false,
+      oldShardDeleted: false,
+      rollback: {
+        attempted: false,
+        newShardRemoved: false,
+        manualRecoveryRequired: false,
+      },
+    };
+  }
+  if (await pathExists(targetPath)) {
+    return {
+      completed: false,
+      phase: "pre-write",
+      reasons: [`target shard already exists: ${options.targetDate}`],
+      indexCommitted: false,
+      newShardCreated: false,
+      oldShardDeleted: false,
+      rollback: {
+        attempted: false,
+        newShardRemoved: false,
+        manualRecoveryRequired: false,
+      },
+    };
+  }
+  if (!await pathExists(removalPath)) {
+    return {
+      completed: false,
+      phase: "pre-write",
+      reasons: [`oldest shard does not exist: ${removalDate}`],
+      indexCommitted: false,
+      newShardCreated: false,
+      oldShardDeleted: false,
+      rollback: {
+        attempted: false,
+        newShardRemoved: false,
+        manualRecoveryRequired: false,
+      },
+    };
+  }
+
+  let phase = "create-new-shard";
+  let newShardCreated = false;
+  let indexCommitted = false;
+  let oldShardDeleted = false;
+  try {
+    await mkdir(path.dirname(targetPath), { recursive: true });
+    await writeFile(
+      targetTempPath,
+      `${JSON.stringify(targetShard, null, 2)}\n`,
+      { encoding: "utf8", flag: "wx" },
+    );
+    await rename(targetTempPath, targetPath);
+    newShardCreated = true;
+
+    phase = "create-index-temp";
+    await writeFile(
+      indexTempPath,
+      `${JSON.stringify(rollingIndex, null, 2)}\n`,
+      { encoding: "utf8", flag: "wx" },
+    );
+
+    phase = "commit-index";
+    await rename(indexTempPath, INDEX_PATH);
+    indexCommitted = true;
+
+    phase = "delete-old-shard";
+    await rm(removalPath, { force: false });
+    oldShardDeleted = true;
+
+    phase = "post-write-loader-validation";
+    const postWrite = await validatePublicState(validator, rollingIndex);
+    if (!postWrite.passed) {
+      throw new Error(postWrite.reasons.join("; "));
+    }
+
+    const forbiddenAfter = await gitStatus(FORBIDDEN_PATHS);
+    if (forbiddenAfter.length > 0) {
+      throw new Error("forbidden paths changed during promotion");
+    }
+    const allowedAfter = await gitStatus([ALLOWED_HISTORY_PATH]);
+    const allowedPaths = new Set([
+      path.relative(REPO_ROOT, INDEX_PATH).replaceAll("\\", "/"),
+      path.relative(REPO_ROOT, targetPath).replaceAll("\\", "/"),
+      path.relative(REPO_ROOT, removalPath).replaceAll("\\", "/"),
+    ]);
+    const unexpectedPaths = gitStatusPaths(allowedAfter)
+      .filter((filePath) => !allowedPaths.has(filePath));
+    if (unexpectedPaths.length > 0) {
+      throw new Error(
+        `unexpected historical paths changed: ${unexpectedPaths.join(", ")}`,
+      );
+    }
+
+    return {
+      completed: true,
+      phase: "complete",
+      reasons: [],
+      indexCommitted,
+      newShardCreated,
+      oldShardDeleted,
+      postWrite: {
+        acceptedRaceCount: postWrite.availability.acceptedRaceCount,
+        rejectedRaceCount: postWrite.availability.rejectedRaceCount,
+        trendEligibleRaceCount:
+          postWrite.availability.trendEligibleRaceCount,
+        loadedShardCount: postWrite.availability.loadedShardCount,
+        productionBackfillReady:
+          postWrite.availability.productionBackfillReady,
+      },
+      rollback: {
+        attempted: false,
+        newShardRemoved: false,
+        manualRecoveryRequired: false,
+      },
+    };
+  } catch (error) {
+    await rm(targetTempPath, { force: true }).catch(() => {});
+    await rm(indexTempPath, { force: true }).catch(() => {});
+    let rollbackAttempted = false;
+    let newShardRemoved = false;
+    let rollbackError = null;
+    // Before the index commit, removing the new shard restores the old window.
+    // After the index commit, never guess a rollback: stop and require inspection.
+    if (!indexCommitted && newShardCreated) {
+      rollbackAttempted = true;
+      try {
+        await rm(targetPath, { force: true });
+        newShardRemoved = !await pathExists(targetPath);
+      } catch (rollbackFailure) {
+        rollbackError = rollbackFailure instanceof Error
+          ? rollbackFailure.message
+          : String(rollbackFailure);
+      }
+    }
+    return {
+      completed: false,
+      phase,
+      reasons: [
+        error instanceof Error ? error.message : String(error),
+        ...(rollbackError ? [`rollback failed: ${rollbackError}`] : []),
+      ],
+      indexCommitted,
+      newShardCreated,
+      oldShardDeleted,
+      rollback: {
+        attempted: rollbackAttempted,
+        newShardRemoved,
+        manualRecoveryRequired: indexCommitted || rollbackError !== null,
+        policy: indexCommitted
+          ? "STOP: index was committed; inspect index, new shard, and old shard before any retry"
+          : "new shard is removed when failure occurs before index commit",
+      },
+    };
+  }
+}
+
 async function inspectCandidate(options, tempRoot, protectedBefore) {
   const currentIndex = JSON.parse(await readFile(INDEX_PATH, "utf8"));
   const expectedTargetDate = addDays(currentIndex.range.to, 1);
@@ -352,8 +644,20 @@ async function inspectCandidate(options, tempRoot, protectedBefore) {
       "kurari-ex-result-trend-lab-history",
     )
     || !isChildPath(tmpdir(), tempRoot);
+  const writeConfirmationMissing =
+    options.write
+    && (
+      options.confirmNamespace !== CONFIRMED_NAMESPACE
+      || options.confirmRollingWindow !== String(WINDOW_DAYS)
+    );
 
   const initialStopReasons = [];
+  if (writeConfirmationMissing) {
+    initialStopReasons.push(
+      `--write requires --confirm-namespace ${CONFIRMED_NAMESPACE} `
+      + `and --confirm-rolling-window ${WINDOW_DAYS}`,
+    );
+  }
   if (targetDateNotNext) {
     initialStopReasons.push(
       `target-date must be current range.to + 1 day: expected ${expectedTargetDate}`,
@@ -365,12 +669,14 @@ async function inspectCandidate(options, tempRoot, protectedBefore) {
   if (namespaceEscape) {
     initialStopReasons.push("candidate or planned public path escaped the allowed namespace");
   }
-  if (protectedBefore.length > 0) {
-    initialStopReasons.push("protected paths are not clean before dry-run");
+  if (options.write && protectedBefore.length > 0) {
+    initialStopReasons.push("protected paths are not clean before execution");
   }
   if (initialStopReasons.length > 0) {
     return {
-      mode: "historical-rolling-window-dry-run",
+      mode: options.write
+        ? "historical-rolling-window-write"
+        : "historical-rolling-window-dry-run",
       targetDate: options.targetDate,
       currentRange: currentIndex.range,
       candidateRange: newRange,
@@ -382,6 +688,7 @@ async function inspectCandidate(options, tempRoot, protectedBefore) {
         reasons: initialStopReasons,
       },
       stopConditions: {
+        writeConfirmationMissing,
         targetDateNotNext,
         sourceRejected: false,
         loaderRejected: false,
@@ -392,8 +699,11 @@ async function inspectCandidate(options, tempRoot, protectedBefore) {
         targetNotFinalized: false,
         namespaceEscape,
         protectedPathDiff: protectedBefore.length > 0,
+        protectedPathBaselineDirty: protectedBefore.length > 0,
+        protectedPathChangedDuringExecution: false,
       },
       protectedPathDiff: protectedBefore,
+      writeRequested: options.write,
       publicDataWritePerformed: false,
       oldShardDeleted: false,
       localStorageUsed: false,
@@ -573,10 +883,13 @@ async function inspectCandidate(options, tempRoot, protectedBefore) {
     shards,
   );
   const loaderRejectedCount = loaderResult.availability.rejectedRaceCount;
-  const protectedAfter = await gitStatus(PROTECTED_PATHS);
+  const protectedAfter = await gitStatus(DRY_RUN_PROTECTED_PATHS);
   const protectedDiff = [
     ...new Set([...protectedBefore, ...protectedAfter]),
   ];
+  const protectedChangedDuringExecution =
+    JSON.stringify([...protectedBefore].sort())
+    !== JSON.stringify([...protectedAfter].sort());
 
   const stopReasons = [...preflightBlockedReasons];
   if (validatorIssues.length > 0) {
@@ -590,13 +903,36 @@ async function inspectCandidate(options, tempRoot, protectedBefore) {
       `loader production gate failed: ${loaderResult.availability.productionBackfillReadyReason}`,
     );
   }
-  if (protectedDiff.length > 0) {
+  if (protectedBefore.length > 0) {
+    stopReasons.push("protected paths were not clean before dry-run");
+  }
+  if (protectedChangedDuringExecution) {
     stopReasons.push("protected paths changed during dry-run");
   }
-  const promotionPossible = stopReasons.length === 0;
+  const preWritePromotionPossible = stopReasons.length === 0;
+  const writeResult =
+    options.write && preWritePromotionPossible
+      ? await promoteCandidate({
+          options,
+          rollingIndex,
+          targetShard,
+          removalDate,
+          validator,
+        })
+      : null;
+  if (writeResult && !writeResult.completed) {
+    stopReasons.push(
+      `write promotion stopped at ${writeResult.phase}: ${writeResult.reasons.join("; ")}`,
+    );
+  }
+  const promotionPossible = options.write
+    ? preWritePromotionPossible && writeResult?.completed === true
+    : preWritePromotionPossible;
 
   return {
-    mode: "historical-rolling-window-dry-run",
+    mode: options.write
+      ? "historical-rolling-window-write"
+      : "historical-rolling-window-dry-run",
     targetDate: options.targetDate,
     currentRange: currentIndex.range,
     candidateRange: rollingIndex.range,
@@ -605,10 +941,16 @@ async function inspectCandidate(options, tempRoot, protectedBefore) {
     removalCandidate: removalDate,
     promotion: {
       possible: promotionPossible,
-      decision: promotionPossible ? "PROMOTION_READY" : "STOP",
+      decision: promotionPossible
+        ? options.write
+          ? "PROMOTED"
+          : "PROMOTION_READY"
+        : "STOP",
       reasons: stopReasons,
+      writeResult,
     },
     stopConditions: {
+      writeConfirmationMissing,
       targetDateNotNext,
       sourceRejected: sourceRejectedCount > 0,
       loaderRejected: loaderRejectedCount > 0,
@@ -623,6 +965,8 @@ async function inspectCandidate(options, tempRoot, protectedBefore) {
       targetNotFinalized: targetNotFinalizedCount > 0,
       namespaceEscape: namespaceEscape || candidatePathEscape,
       protectedPathDiff: protectedDiff.length > 0,
+      protectedPathBaselineDirty: protectedBefore.length > 0,
+      protectedPathChangedDuringExecution: protectedChangedDuringExecution,
       partialStatusOnly:
         rollingIndex.sourceStatus === "partial"
         && stopReasons.length === 0,
@@ -674,8 +1018,9 @@ async function inspectCandidate(options, tempRoot, protectedBefore) {
       unexpectedDates,
     },
     protectedPathDiff: protectedDiff,
-    publicDataWritePerformed: false,
-    oldShardDeleted: false,
+    writeRequested: options.write,
+    publicDataWritePerformed: writeResult?.completed === true,
+    oldShardDeleted: writeResult?.oldShardDeleted === true,
     localStorageUsed: false,
   };
 }
@@ -699,7 +1044,7 @@ async function main() {
 
   let tempRoot = null;
   try {
-    const protectedBefore = await gitStatus(PROTECTED_PATHS);
+    const protectedBefore = await gitStatus(DRY_RUN_PROTECTED_PATHS);
     tempRoot = await mkdtemp(
       path.join(tmpdir(), "kurari-ex-historical-window-"),
     );
@@ -708,7 +1053,9 @@ async function main() {
     process.exitCode = report.promotion.possible ? 0 : 1;
   } catch (error) {
     console.error(JSON.stringify({
-      mode: "historical-rolling-window-dry-run",
+      mode: options.write
+        ? "historical-rolling-window-write"
+        : "historical-rolling-window-dry-run",
       targetDate: options.targetDate,
       result: "STOP",
       reason: error instanceof Error ? error.stack : String(error),
