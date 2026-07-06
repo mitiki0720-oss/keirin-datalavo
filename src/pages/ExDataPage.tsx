@@ -367,7 +367,7 @@ function HistoricalTrendSourceSummary({
         <span className="ex-trend-status-pill is-ready">60日historical傾向 + 最新current</span>
         <span className={`ex-trend-status-pill is-${historical.status === "implemented" ? "ready" : "partial"}`}>
           historical status: {historical.status}
-          {historical.status === "partial" ? "（正常読込・trend除外あり）" : ""}
+          {historical.status === "partial" ? "（正常読込）" : ""}
         </span>
         <span className="ex-trend-status-pill is-ready">
           統合集計対象: {summary.analysisRaceCount.toLocaleString("ja-JP")}R
@@ -376,22 +376,23 @@ function HistoricalTrendSourceSummary({
           今日の流れ: 最新日current {trend.sourceDate || "unavailable"}のみ
         </span>
       </div>
-      <div className="ex-empty" data-testid="result-trend-lab-basis-note">
-        <strong>母数の見方</strong><br />
-        historical読込: {historical.acceptedRaceCount.toLocaleString("ja-JP")}R
-        {" / "}
-        trend対象: {historical.trendEligibleRaceCount.toLocaleString("ja-JP")}R
-        {" / "}
-        最新current trend対象: {summary.currentIncludedRaceCount.toLocaleString("ja-JP")}R
-        <br />
-        除外: {historical.nonTrendRaceCount.toLocaleString("ja-JP")}R
-        （同着 {historical.deadHeatTrendExcludedCount.toLocaleString("ja-JP")}R
-        {" / "}
-        全返還・3連単不成立 {summary.refundNoTrifectaExcludedCount.toLocaleString("ja-JP")}R
-        {" / "}
-        未確定 {summary.notFinalizedExcludedCount.toLocaleString("ja-JP")}R）
-        <br />
-        partial = 読込失敗ではなく、保存済みデータにtrend集計から除外したレースを含む状態です。
+      <div className="ex-trend-basis-note" data-testid="result-trend-lab-basis-note">
+        <strong>母数の見方</strong>
+        <div className="ex-trend-basis-row">
+          <span>historical読込 <b>{historical.acceptedRaceCount.toLocaleString("ja-JP")}R</b></span>
+          <span>trend対象 <b>{historical.trendEligibleRaceCount.toLocaleString("ja-JP")}R</b></span>
+          <span>最新current <b>{summary.currentIncludedRaceCount.toLocaleString("ja-JP")}R</b></span>
+          <span>統合集計 <b>{summary.analysisRaceCount.toLocaleString("ja-JP")}R</b></span>
+        </div>
+        <div className="ex-trend-basis-row is-exclusion">
+          <span>trend除外 <b>{historical.nonTrendRaceCount.toLocaleString("ja-JP")}R</b></span>
+          <span>同着 <b>{historical.deadHeatTrendExcludedCount.toLocaleString("ja-JP")}R</b></span>
+          <span>全返還・3連単なし <b>{summary.refundNoTrifectaExcludedCount.toLocaleString("ja-JP")}R</b></span>
+          <span>未確定 <b>{summary.notFinalizedExcludedCount.toLocaleString("ja-JP")}R</b></span>
+        </div>
+        <small>
+          partialは読込失敗ではありません。保存済み{historical.nonTrendRaceCount.toLocaleString("ja-JP")}Rをtrend対象外として保持しています。
+        </small>
       </div>
       <div className="ex-health-grid">
         <MetricCard
@@ -2393,6 +2394,12 @@ export default function ExDataPage() {
         .ex-section-tab.is-active span { color: #6e5ca8; }
         .ex-section-tab:focus-visible { outline: 3px solid rgba(112,90,179,.24); outline-offset: 2px; }
         .ex-overview-status { display: flex; flex-wrap: wrap; gap: 8px; }
+        .ex-trend-basis-note { margin-top: 12px; padding: ${isMobile ? "16px" : "18px 20px"}; border: 1px dashed #cbc7df; border-radius: 20px; color: #657187; background: rgba(255,255,255,.58); }
+        .ex-trend-basis-note > strong { display: block; color: #526176; font-size: 12px; }
+        .ex-trend-basis-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .ex-trend-basis-row span { padding: 7px 10px; border-radius: 999px; color: #526176; background: #eef7f3; font-size: 10px; line-height: 1.35; white-space: nowrap; }
+        .ex-trend-basis-row.is-exclusion span { color: #80591e; background: #fff3e1; }
+        .ex-trend-basis-note small { display: block; margin-top: 12px; color: #78859a; font-size: 10px; line-height: 1.65; }
         .ex-panel { border: 1px solid rgba(190,194,224,.62); border-radius: 30px; background: rgba(255,255,255,.78); box-shadow: 0 22px 55px rgba(82,74,135,.09); backdrop-filter: blur(18px); }
         .ex-hero { padding: ${isMobile ? "26px 22px" : "46px 48px"}; display: grid; grid-template-columns: ${isMobile ? "1fr" : "minmax(0,1.35fr) minmax(300px,.65fr)"}; gap: 28px; align-items: center; overflow: hidden; position: relative; }
         .ex-hero:after { content: ""; position: absolute; width: 360px; height: 360px; right: -90px; top: -170px; border-radius: 50%; background: linear-gradient(145deg, rgba(183,161,255,.42), rgba(153,219,255,.28)); }
