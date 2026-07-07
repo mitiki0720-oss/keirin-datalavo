@@ -181,6 +181,16 @@ function trifectaRows(detail) {
   return Array.isArray(rows) ? rows : [];
 }
 
+function payoutRows(detail) {
+  const payoutData = detail?.haraiGakuSubData;
+  if (!payoutData || typeof payoutData !== "object") return [];
+  return Object.entries(payoutData)
+    .filter(([key, value]) =>
+      key.endsWith("HaraiGakuDispItemSubData") && Array.isArray(value)
+    )
+    .flatMap(([, value]) => value);
+}
+
 function positiveInteger(value) {
   const parsed = Number(String(value ?? "").replaceAll(",", ""));
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
@@ -188,6 +198,13 @@ function positiveInteger(value) {
 
 function present(value) {
   return value !== null && value !== undefined && String(value).trim() !== "";
+}
+
+function isRefundOrUnreleasedPayout(row) {
+  const payout = String(row?.haraiGaku ?? "");
+  return !present(row?.kumiBan)
+    && !positiveInteger(row?.haraiGaku)
+    && (payout.includes("全返還") || payout.includes("未発売"));
 }
 
 function availability(count, total) {
@@ -212,11 +229,12 @@ function classifyProbe({
     || (trifectas.length > 1 && !topThree.every(Boolean));
   const trifectaFullRefund =
     trifectas.length > 0
-    && trifectas.every(
-      (row) =>
-        !present(row.kumiBan)
-        && String(row.haraiGaku ?? "").includes("全返還"),
-    );
+    && trifectas.every((row) => isRefundOrUnreleasedPayout(row));
+  const allVisiblePayoutsRefundOrUnreleased = payoutRows(detail).length > 0
+    && payoutRows(detail).every((row) => isRefundOrUnreleasedPayout(row));
+  const validTrifecta = trifectas.some(
+    (row) => present(row?.kumiBan) && positiveInteger(row?.haraiGaku),
+  );
 
   if (detailResponse.status === 429 || detailResponse.status >= 500) {
     return {
@@ -239,20 +257,20 @@ function classifyProbe({
     };
   }
   if (
-    detail.tyakujyunDispFlg === true
-    && detail.haraiGakuDispFlg === true
-    && rows.length > 0
+    detail.haraiGakuDispFlg === true
     && !topThree.every(Boolean)
-    && trifectaFullRefund
+    && !validTrifecta
+    && (trifectaFullRefund || allVisiblePayoutsRefundOrUnreleased)
   ) {
     return {
       classification: "refund-no-trifecta",
       normalizedStatus: "unavailable",
       storageEligible: true,
       trendEligible: false,
-      reason: "official trifecta is fully refunded and no complete top-three result exists",
+      reason: "official payouts are refunded or unreleased and no complete top-three result exists",
       rawStatusHint:
-        `finishRows=${rows.length}; topThree=${topThree.map(Boolean).join(",")}; trifecta=全返還`,
+        `finishRows=${rows.length}; topThree=${topThree.map(Boolean).join(",")}; `
+        + `trifectaRefund=${trifectaFullRefund}; payoutsRefundOrUnreleased=${allVisiblePayoutsRefundOrUnreleased}`,
       nextAction: "store-official-refund-and-exclude-from-trend",
     };
   }
