@@ -107,6 +107,7 @@ import {
 import type {
   KurariExCoverageStatus,
   KurariExRaceChainSegment,
+  KurariExTodayFlowAttentionSign,
   KurariExTodayFlowBaselineComparison,
   KurariExTrendCarTop3Row,
   KurariExTrendRankingRow,
@@ -558,6 +559,14 @@ function formatTodayBaselineDiff(row: KurariExTodayFlowBaselineComparison) {
   return row.metricType === "payout"
     ? formatSignedNumber(row.diff, "円")
     : formatSignedNumber(row.diff, "pt");
+}
+
+function formatTodayAttentionSignValue(sign: KurariExTodayFlowAttentionSign, value: number | null) {
+  if (sign.metricType === "summary") return "--";
+  if (value == null) return "--";
+  return sign.metricType === "payout"
+    ? formatPayoutYen(value)
+    : `${value.toFixed(1)}%`;
 }
 
 function todayBaselineDiffStatusClass(label: KurariExTodayFlowBaselineComparison["diffLabel"]) {
@@ -4356,6 +4365,44 @@ export default function ExDataPage() {
 
                 {trifectaTrend.todayFlow.status === "ready" ? (
                   <>
+                    <div>
+                      <SectionTitle
+                        eyebrow="TODAY ATTENTION SIGNS"
+                        title="今日の注意サイン"
+                        lead="既存のtoday vs 60D baseline comparisonsだけを使い、断定ではなく差分傾向として表示します。"
+                      />
+                      {trifectaTrend.todayFlow.attentionSampleCaution.enabled ? (
+                        <div className="ex-empty">
+                          <strong>{trifectaTrend.todayFlow.attentionSampleCaution.label}</strong><br />
+                          {trifectaTrend.todayFlow.attentionSampleCaution.note}
+                        </div>
+                      ) : null}
+                      {trifectaTrend.todayFlow.attentionSigns.length ? (
+                        <div className="ex-today-flow-grid">
+                          {trifectaTrend.todayFlow.attentionSigns.map((sign) => (
+                            <article className="ex-today-flow-card" key={sign.key}>
+                              <div className="ex-location-head">
+                                <div>
+                                  <div className="ex-eyebrow">{sign.metricLabel}</div>
+                                  <h3>{sign.label}</h3>
+                                </div>
+                                <span className={`ex-location-status is-${sign.tone}`}>
+                                  {sign.diffLabel === "summary" ? "near" : sign.diffLabel}
+                                </span>
+                              </div>
+                              <div className="ex-venue-bias-metrics">
+                                <div>今日<strong>{formatTodayAttentionSignValue(sign, sign.todayValue)}</strong></div>
+                                <div>60日<strong>{formatTodayAttentionSignValue(sign, sign.baselineValue)}</strong></div>
+                              </div>
+                              <div className="ex-muted" style={{ marginTop: 8 }}>{sign.note}</div>
+                            </article>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="ex-muted">historical baseline unavailable / 注意サインなし</div>
+                      )}
+                    </div>
+
                     <div>
                       <SectionTitle eyebrow="OVERALL FLOW METER" title="最新日 全体フロー" />
                       <div className="ex-today-flow-meter">

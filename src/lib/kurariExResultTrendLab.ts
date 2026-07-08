@@ -386,6 +386,28 @@ export type KurariExTodayFlowBaselineComparison = {
   diffLabel: KurariExTodayFlowBaselineDiffLabel | "unavailable";
 };
 
+export type KurariExTodayFlowAttentionSignKey =
+  | "high-payout-caution"
+  | "very-high-payout-caution"
+  | "outside-involvement-caution"
+  | "one-car-out-caution"
+  | "average-payout-above"
+  | "average-payout-below"
+  | "near-baseline";
+
+export type KurariExTodayFlowAttentionSign = {
+  key: KurariExTodayFlowAttentionSignKey;
+  label: string;
+  tone: "caution" | "ready" | "partial";
+  metricKey: KurariExTodayFlowBaselineComparison["key"] | "summary";
+  metricLabel: string;
+  metricType: KurariExTodayFlowBaselineComparison["metricType"] | "summary";
+  todayValue: number | null;
+  baselineValue: number | null;
+  diffLabel: KurariExTodayFlowBaselineComparison["diffLabel"] | "summary";
+  note: string;
+};
+
 export type KurariExTodayFlowTransitionKey =
   | "favorite-return"
   | "upset-acceleration"
@@ -423,6 +445,12 @@ export type KurariExTodayFlowV1 = {
     label: "historical 60日 trendEligible";
     sampleSize: number;
     comparisons: KurariExTodayFlowBaselineComparison[];
+  };
+  attentionSigns: KurariExTodayFlowAttentionSign[];
+  attentionSampleCaution: {
+    enabled: boolean;
+    label: string;
+    note: string;
   };
   transitionHints: Array<{
     key: KurariExTodayFlowTransitionKey;
@@ -1977,6 +2005,86 @@ function buildKurariExTodayFlowV1(
       count: exclusionCategoryCounts.get(key) ?? 0,
     }))
     .filter((row) => row.count > 0);
+  const baselineComparisons = baselineRows.length ? [
+    baselineComparison("highPayoutRate", "万車券率", "rate", overall.highPayoutRate, baselineMetrics.highPayoutRate),
+    baselineComparison("veryHighPayoutRate", "大荒れ率", "rate", overall.veryHighPayoutRate, baselineMetrics.veryHighPayoutRate),
+    baselineComparison("ultraHighPayoutRate", "超荒れ率", "rate", overall.ultraHighPayoutRate, baselineMetrics.ultraHighPayoutRate),
+    baselineComparison("outsideInvolvementRate", "外枠絡み率", "rate", overall.outsideInvolvementRate, baselineMetrics.outsideInvolvementRate),
+    baselineComparison("oneCarOutRate", "1番車飛び率", "rate", overall.oneCarOutRate, baselineMetrics.oneCarOutRate),
+    baselineComparison("averageTrifectaPayoutYen", "平均3連単配当", "payout", overall.averageTrifectaPayoutYen, baselineMetrics.averageTrifectaPayoutYen),
+    baselineComparison("medianTrifectaPayoutYen", "中央値3連単配当", "payout", overall.medianTrifectaPayoutYen, baselineMetrics.medianTrifectaPayoutYen),
+  ] : [];
+  const comparisonByKey = new Map(baselineComparisons.map((row) => [row.key, row]));
+  const attentionSigns: KurariExTodayFlowAttentionSign[] = [];
+  const pushAttentionSign = (
+    key: KurariExTodayFlowAttentionSignKey,
+    label: string,
+    row: KurariExTodayFlowBaselineComparison,
+    note: string,
+    tone: KurariExTodayFlowAttentionSign["tone"] = "caution",
+  ) => {
+    attentionSigns.push({
+      key,
+      label,
+      tone,
+      metricKey: row.key,
+      metricLabel: row.label,
+      metricType: row.metricType,
+      todayValue: row.todayValue,
+      baselineValue: row.baselineValue,
+      diffLabel: row.diffLabel,
+      note,
+    });
+  };
+  const highPayoutComparison = comparisonByKey.get("highPayoutRate");
+  if (highPayoutComparison?.diffLabel === "above") {
+    pushAttentionSign("high-payout-caution", "荒れ注意", highPayoutComparison, "万車券率が60日平均との差で上振れ傾向");
+  }
+  const ultraHighPayoutComparison = comparisonByKey.get("ultraHighPayoutRate");
+  const veryHighPayoutComparison = comparisonByKey.get("veryHighPayoutRate");
+  if (ultraHighPayoutComparison?.diffLabel === "above") {
+    pushAttentionSign("very-high-payout-caution", "超荒れ注意", ultraHighPayoutComparison, "超荒れ率が60日平均との差で上振れ傾向");
+  } else if (veryHighPayoutComparison?.diffLabel === "above") {
+    pushAttentionSign("very-high-payout-caution", "超荒れ注意", veryHighPayoutComparison, "大荒れ率が60日平均との差で上振れ傾向");
+  }
+  const outsideComparison = comparisonByKey.get("outsideInvolvementRate");
+  if (outsideComparison?.diffLabel === "above") {
+    pushAttentionSign("outside-involvement-caution", "外枠絡み注意", outsideComparison, "外枠絡み率が60日平均との差で上振れ傾向");
+  }
+  const oneCarOutComparison = comparisonByKey.get("oneCarOutRate");
+  if (oneCarOutComparison?.diffLabel === "above") {
+    pushAttentionSign("one-car-out-caution", "1番車飛び注意", oneCarOutComparison, "1番車飛び率が60日平均との差で上振れ傾向");
+  }
+  const averagePayoutComparison = comparisonByKey.get("averageTrifectaPayoutYen");
+  if (averagePayoutComparison?.diffLabel === "above") {
+    pushAttentionSign("average-payout-above", "平均配当上振れ", averagePayoutComparison, "平均3連単配当が60日平均との差で上振れ傾向");
+  } else if (averagePayoutComparison?.diffLabel === "below") {
+    pushAttentionSign("average-payout-below", "平均配当下振れ", averagePayoutComparison, "平均3連単配当が60日平均との差で下振れ傾向", "partial");
+  }
+  if (
+    baselineComparisons.length
+    && attentionSigns.length === 0
+    && baselineComparisons.some((row) => row.diffLabel === "near")
+    && baselineComparisons.every((row) => row.diffLabel === "near" || row.diffLabel === "unavailable")
+  ) {
+    attentionSigns.push({
+      key: "near-baseline",
+      label: "平常寄り",
+      tone: "ready",
+      metricKey: "summary",
+      metricLabel: "60日平均との差分",
+      metricType: "summary",
+      todayValue: null,
+      baselineValue: null,
+      diffLabel: "summary",
+      note: "主要指標は60日平均のnear範囲が中心",
+    });
+  }
+  const attentionSampleCaution = {
+    enabled: sample.status !== "usable",
+    label: sample.label,
+    note: `current対象${eligible.length.toLocaleString("ja-JP")}Rのため、注意サインは参考扱い`,
+  };
 
   return {
     status: eligible.length ? "ready" : "no-eligible-data",
@@ -2003,16 +2111,10 @@ function buildKurariExTodayFlowV1(
       status: baselineRows.length ? "ready" : "unavailable",
       label: "historical 60日 trendEligible",
       sampleSize: baselineRows.length,
-      comparisons: baselineRows.length ? [
-        baselineComparison("highPayoutRate", "万車券率", "rate", overall.highPayoutRate, baselineMetrics.highPayoutRate),
-        baselineComparison("veryHighPayoutRate", "大荒れ率", "rate", overall.veryHighPayoutRate, baselineMetrics.veryHighPayoutRate),
-        baselineComparison("ultraHighPayoutRate", "超荒れ率", "rate", overall.ultraHighPayoutRate, baselineMetrics.ultraHighPayoutRate),
-        baselineComparison("outsideInvolvementRate", "外枠絡み率", "rate", overall.outsideInvolvementRate, baselineMetrics.outsideInvolvementRate),
-        baselineComparison("oneCarOutRate", "1番車飛び率", "rate", overall.oneCarOutRate, baselineMetrics.oneCarOutRate),
-        baselineComparison("averageTrifectaPayoutYen", "平均3連単配当", "payout", overall.averageTrifectaPayoutYen, baselineMetrics.averageTrifectaPayoutYen),
-        baselineComparison("medianTrifectaPayoutYen", "中央値3連単配当", "payout", overall.medianTrifectaPayoutYen, baselineMetrics.medianTrifectaPayoutYen),
-      ] : [],
+      comparisons: baselineComparisons,
     },
+    attentionSigns,
+    attentionSampleCaution,
     transitionHints: (Object.entries(TODAY_FLOW_TRANSITION_LABELS) as Array<[KurariExTodayFlowTransitionKey, string]>)
       .map(([key, label]) => ({ key, label, count: transitionCounts.get(key) ?? 0 })),
     byVenue,
