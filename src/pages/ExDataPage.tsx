@@ -4330,6 +4330,30 @@ export default function ExDataPage() {
                   </div>
                 ) : null}
 
+                <div className="ex-empty">
+                  <strong>
+                    current除外: {trifectaTrend.todayFlow.excludedRaceCount.toLocaleString("ja-JP")}R
+                    {trifectaTrend.todayFlow.exclusionBreakdown.length
+                      ? `（${trifectaTrend.todayFlow.exclusionBreakdown
+                        .map((reason) => `${reason.label}${reason.count.toLocaleString("ja-JP")}R`)
+                        .join(" / ")}）`
+                      : ""}
+                  </strong>
+                  <br />
+                  pending / resultVisible=false / finishOrderなしは未確定として扱い、1〜3着や払戻金を推測採用しません。
+                  {trifectaTrend.todayFlow.exclusionBreakdown.length ? (
+                    <div className="ex-trend-status-row" style={{ marginTop: 8 }}>
+                      {trifectaTrend.todayFlow.exclusionBreakdown.map((reason) => (
+                        <span className="ex-trend-status-pill is-caution" key={reason.key}>
+                          {reason.label}: {reason.count.toLocaleString("ja-JP")}R
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="ex-muted" style={{ marginTop: 8 }}>current除外なし</div>
+                  )}
+                </div>
+
                 {trifectaTrend.todayFlow.status === "ready" ? (
                   <>
                     <div>

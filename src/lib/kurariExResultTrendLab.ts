@@ -393,6 +393,14 @@ export type KurariExTodayFlowTransitionKey =
   | "firm-continues"
   | "upset-chain";
 
+export type KurariExTodayFlowExclusionCategoryKey =
+  | "not-confirmed"
+  | "dead-heat"
+  | "refund-no-trifecta"
+  | "missing-payout"
+  | "validation-mismatch"
+  | "other";
+
 export type KurariExTodayFlowV1 = {
   status: "ready" | "no-eligible-data";
   sourcePolicy: "official result only";
@@ -403,6 +411,7 @@ export type KurariExTodayFlowV1 = {
   eligibleRaceCount: number;
   excludedRaceCount: number;
   exclusionReasons: Array<{ key: string; label: string; count: number }>;
+  exclusionBreakdown: Array<{ key: KurariExTodayFlowExclusionCategoryKey; label: string; count: number }>;
   venueCount: number;
   sampleStatus: KurariExTrendSampleStatus;
   sampleLabel: string;
@@ -850,6 +859,25 @@ const TODAY_FLOW_TRANSITION_LABELS: Record<KurariExTodayFlowTransitionKey, strin
   "firm-continues": "堅め継続",
   "upset-chain": "荒れ連鎖",
 };
+
+const TODAY_FLOW_EXCLUSION_CATEGORY_LABELS: Record<KurariExTodayFlowExclusionCategoryKey, string> = {
+  "not-confirmed": "未確定",
+  "dead-heat": "同着",
+  "refund-no-trifecta": "全返還・3連単なし",
+  "missing-payout": "払戻欠損",
+  "validation-mismatch": "検証不一致",
+  other: "その他",
+};
+
+function todayFlowExclusionCategory(reason: string): KurariExTodayFlowExclusionCategoryKey {
+  if (reason === "not-confirmed") return "not-confirmed";
+  if (reason === "payout-missing-or-invalid") return "missing-payout";
+  if (reason === "trifecta-missing-or-mismatch") return "refund-no-trifecta";
+  if (reason === "finish-order-missing" || reason === "invalid-car-number" || reason === "duplicate-race-key") {
+    return "validation-mismatch";
+  }
+  return "other";
+}
 
 const WEATHER_EXCLUSION_LABELS: Record<string, string> = {
   "source-unavailable": "official source / provenanceを確認できない",
@@ -1930,6 +1958,25 @@ function buildKurariExTodayFlowV1(
       };
     })
     .sort((left, right) => right.sampleSize - left.sampleSize || left.venueCode.localeCompare(right.venueCode));
+  const exclusionCategoryCounts = new Map<KurariExTodayFlowExclusionCategoryKey, number>();
+  exclusionCounts.forEach((count, reason) => {
+    const category = todayFlowExclusionCategory(reason);
+    exclusionCategoryCounts.set(category, (exclusionCategoryCounts.get(category) ?? 0) + count);
+  });
+  const exclusionBreakdown = ([
+    "not-confirmed",
+    "dead-heat",
+    "refund-no-trifecta",
+    "missing-payout",
+    "validation-mismatch",
+    "other",
+  ] as KurariExTodayFlowExclusionCategoryKey[])
+    .map((key) => ({
+      key,
+      label: TODAY_FLOW_EXCLUSION_CATEGORY_LABELS[key],
+      count: exclusionCategoryCounts.get(key) ?? 0,
+    }))
+    .filter((row) => row.count > 0);
 
   return {
     status: eligible.length ? "ready" : "no-eligible-data",
@@ -1945,6 +1992,7 @@ function buildKurariExTodayFlowV1(
       label: VENUE_BIAS_EXCLUSION_LABELS[key] ?? key,
       count,
     })),
+    exclusionBreakdown,
     venueCount: byVenue.length,
     sampleStatus: sample.status,
     sampleLabel: sample.label,
