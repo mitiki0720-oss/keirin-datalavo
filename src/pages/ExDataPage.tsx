@@ -110,6 +110,7 @@ import type {
   KurariExTrendRankingRow,
   KurariExTrifectaTrendV1,
   KurariExTurbulenceBreakdownRow,
+  KurariExVenueBiasSegment,
 } from "../lib/kurariExResultTrendLab";
 import type {
   KurariExHistoricalAvailabilitySummary,
@@ -500,6 +501,34 @@ function TrendRankingCard({
 
 function formatPayoutYen(value: number | null) {
   return value == null ? "未取得" : `${value.toLocaleString("ja-JP")}円`;
+}
+
+function venueBiasSegmentStatusClass(status: KurariExVenueBiasSegment["sampleStatus"]) {
+  return status === "strong" ? "ready" : status === "medium" ? "partial" : "warning";
+}
+
+function VenueBiasSegmentCard({ segment }: { segment: KurariExVenueBiasSegment }) {
+  return (
+    <article className="ex-venue-bias-card">
+      <div className="ex-venue-bias-card-head">
+        <div>
+          <div className="ex-eyebrow">{segment.venueCode || "VENUE"} / {segment.segmentLabel}</div>
+          <h3>{segment.venueName}</h3>
+        </div>
+        <span className={`ex-location-status is-${venueBiasSegmentStatusClass(segment.sampleStatus)}`}>
+          {segment.sampleSize.toLocaleString("ja-JP")}R / {segment.sampleStatus}
+        </span>
+      </div>
+      <div className="ex-venue-bias-metrics">
+        <div>外枠絡み率<strong>{segment.outsideInvolvementRate.toFixed(1)}%</strong></div>
+        <div>1番車飛び率<strong>{segment.oneCarEligibleCount ? `${segment.oneCarOutRate.toFixed(1)}%` : "--"}</strong></div>
+        <div>万車券率<strong>{segment.highPayoutRate.toFixed(1)}%</strong></div>
+        <div>平均3連単<strong>{formatPayoutYen(segment.averageTrifectaPayoutYen)}</strong></div>
+        <div>逃げ決着率<strong>{segment.decisionEligibleCount ? `${segment.escapeRate.toFixed(1)}%` : "--"}</strong></div>
+        <div>捲り決着率<strong>{segment.decisionEligibleCount ? `${segment.sprintRate.toFixed(1)}%` : "--"}</strong></div>
+      </div>
+    </article>
+  );
 }
 
 function TurbulenceBreakdownTable({
@@ -3730,6 +3759,78 @@ export default function ExDataPage() {
                             </div>
                           </article>
                         ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <SectionTitle
+                        eyebrow="VENUE BIAS SEGMENTS v2"
+                        title="条件別クセ"
+                        lead="trend対象だけを使い、会場 × 車数 / 会場 × R番号帯 / source-backedグレードで切った補助指標です。strong >= 80R、medium >= 30R、weak < 30R。"
+                      />
+                      <div className="ex-note-grid">
+                        <MetricCard
+                          label="会場 × 車数"
+                          value={trifectaTrend.venueBias.byVenueCarCount.length.toLocaleString("ja-JP")}
+                          note="carCountがsourceにあるレースのみ"
+                          warning={!trifectaTrend.venueBias.byVenueCarCount.length}
+                        />
+                        <MetricCard
+                          label="会場 × R番号帯"
+                          value={trifectaTrend.venueBias.byVenueRaceBand.length.toLocaleString("ja-JP")}
+                          note="early 1〜4R / middle 5〜8R / late 9R以降"
+                          warning={!trifectaTrend.venueBias.byVenueRaceBand.length}
+                        />
+                        <MetricCard
+                          label="会場 × グレード"
+                          value={trifectaTrend.venueBias.byVenueGrade.length.toLocaleString("ja-JP")}
+                          note="gradeがsource-backedで取れる場合のみ"
+                          warning={!trifectaTrend.venueBias.byVenueGrade.length}
+                        />
+                      </div>
+
+                      <div className="ex-location-grid">
+                        <article className="ex-location-card">
+                          <div className="ex-location-head">
+                            <h3>会場 × 車数</h3>
+                            <span className="ex-location-status is-partial">TOP 6</span>
+                          </div>
+                          {trifectaTrend.venueBias.byVenueCarCount.length ? (
+                            <div className="ex-venue-bias-grid">
+                              {trifectaTrend.venueBias.byVenueCarCount.slice(0, 6).map((segment) => (
+                                <VenueBiasSegmentCard key={segment.key} segment={segment} />
+                              ))}
+                            </div>
+                          ) : <div className="ex-muted">source-backed carCount segmentなし</div>}
+                        </article>
+
+                        <article className="ex-location-card">
+                          <div className="ex-location-head">
+                            <h3>会場 × R番号帯</h3>
+                            <span className="ex-location-status is-partial">TOP 6</span>
+                          </div>
+                          {trifectaTrend.venueBias.byVenueRaceBand.length ? (
+                            <div className="ex-venue-bias-grid">
+                              {trifectaTrend.venueBias.byVenueRaceBand.slice(0, 6).map((segment) => (
+                                <VenueBiasSegmentCard key={segment.key} segment={segment} />
+                              ))}
+                            </div>
+                          ) : <div className="ex-muted">race band segmentなし</div>}
+                        </article>
+
+                        <article className="ex-location-card">
+                          <div className="ex-location-head">
+                            <h3>会場 × グレード</h3>
+                            <span className="ex-location-status is-partial">TOP 6</span>
+                          </div>
+                          {trifectaTrend.venueBias.byVenueGrade.length ? (
+                            <div className="ex-venue-bias-grid">
+                              {trifectaTrend.venueBias.byVenueGrade.slice(0, 6).map((segment) => (
+                                <VenueBiasSegmentCard key={segment.key} segment={segment} />
+                              ))}
+                            </div>
+                          ) : <div className="ex-muted">source-backed grade segmentなし</div>}
+                        </article>
                       </div>
                     </div>
                   </>

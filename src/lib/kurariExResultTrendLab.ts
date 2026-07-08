@@ -218,6 +218,18 @@ export type KurariExVenueBiasMetrics = {
   highPayoutRate: number;
 };
 
+export type KurariExVenueBiasSegmentSampleStatus = "strong" | "medium" | "weak";
+
+export type KurariExVenueBiasSegment = KurariExVenueBiasMetrics & {
+  key: string;
+  label: string;
+  venueCode: string;
+  venueName: string;
+  segmentKey: string;
+  segmentLabel: string;
+  sampleStatus: KurariExVenueBiasSegmentSampleStatus;
+};
+
 export type KurariExVenueBiasV1 = {
   status: "ready" | "no-eligible-data";
   sourcePolicy: "official result only";
@@ -239,6 +251,9 @@ export type KurariExVenueBiasV1 = {
     sampleLabel: string;
     featureLabels: string[];
   }>;
+  byVenueCarCount: KurariExVenueBiasSegment[];
+  byVenueRaceBand: KurariExVenueBiasSegment[];
+  byVenueGrade: KurariExVenueBiasSegment[];
   examples: Array<{
     raceKey: string;
     date: string;
@@ -1114,6 +1129,9 @@ function buildKurariExVenueBiasV1(
     venueCode: string;
     venueName: string;
     raceNumber: number;
+    carCount: number | null;
+    grade: string;
+    raceBand: "early" | "middle" | "late";
     top3: number[];
     oneCarConfirmed: boolean;
     combination: string;
@@ -1183,12 +1201,21 @@ function buildKurariExVenueBiasV1(
         .map((row) => validCarNo(row.carNo))
         .filter((carNo): carNo is number => carNo != null),
     );
+    const explicitCarCount = Number(race.carCount);
+    const carCount = Number.isInteger(explicitCarCount) && explicitCarCount >= 1 && explicitCarCount <= 9
+      ? explicitCarCount
+      : null;
+    const raceNumber = Number(race.raceNumber);
+    const raceBand = raceNumber <= 4 ? "early" : raceNumber <= 8 ? "middle" : "late";
     eligible.push({
       raceKey,
       date: clean(venue.date || sourceDate),
       venueCode: clean(venue.venueCode),
       venueName: clean(venue.venueName) || clean(venue.venueCode),
-      raceNumber: Number(race.raceNumber),
+      raceNumber,
+      carCount,
+      grade: clean(venue.grade),
+      raceBand,
       top3,
       oneCarConfirmed: recordedCars.has(1),
       combination,
@@ -1253,6 +1280,69 @@ function buildKurariExVenueBiasV1(
       };
     })
     .sort((left, right) => right.sampleSize - left.sampleSize || left.venueCode.localeCompare(right.venueCode));
+  const segmentSampleStatus = (sampleSize: number): KurariExVenueBiasSegmentSampleStatus => {
+    if (sampleSize >= 80) return "strong";
+    if (sampleSize >= 30) return "medium";
+    return "weak";
+  };
+  const raceBandLabels: Record<typeof eligible[number]["raceBand"], string> = {
+    early: "early 1〜4R",
+    middle: "middle 5〜8R",
+    late: "late 9R以降",
+  };
+  const buildSegments = (
+    segmentKey: "carCount" | "raceBand" | "grade",
+    segmentLabel: (row: typeof eligible[number]) => string,
+    segmentValue: (row: typeof eligible[number]) => string,
+  ): KurariExVenueBiasSegment[] => {
+    const groups = new Map<string, typeof eligible>();
+    eligible.forEach((row) => {
+      const value = segmentValue(row);
+      if (!value) return;
+      const venueKey = row.venueCode || row.venueName;
+      const key = `${venueKey}|${segmentKey}|${value}`;
+      const group = groups.get(key) ?? [];
+      group.push(row);
+      groups.set(key, group);
+    });
+    return [...groups.entries()]
+      .map(([key, rows]) => {
+        const metrics = summarize(rows);
+        const first = rows[0];
+        const value = segmentValue(first);
+        const label = segmentLabel(first);
+        return {
+          key,
+          label: `${first.venueName} / ${label}`,
+          venueCode: first.venueCode,
+          venueName: first.venueName,
+          segmentKey: value,
+          segmentLabel: label,
+          sampleStatus: segmentSampleStatus(rows.length),
+          ...metrics,
+        };
+      })
+      .sort((left, right) =>
+        right.sampleSize - left.sampleSize
+        || left.venueCode.localeCompare(right.venueCode, "ja", { numeric: true })
+        || left.segmentKey.localeCompare(right.segmentKey, "ja", { numeric: true }),
+      );
+  };
+  const byVenueCarCount = buildSegments(
+    "carCount",
+    (row) => `${row.carCount}車`,
+    (row) => row.carCount == null ? "" : String(row.carCount),
+  );
+  const byVenueRaceBand = buildSegments(
+    "raceBand",
+    (row) => raceBandLabels[row.raceBand],
+    (row) => row.raceBand,
+  );
+  const byVenueGrade = buildSegments(
+    "grade",
+    (row) => row.grade,
+    (row) => row.grade,
+  );
   const highestOutside = [...byVenue].sort(
     (left, right) => right.outsideInvolvementRate - left.outsideInvolvementRate || right.sampleSize - left.sampleSize,
   )[0];
@@ -1289,6 +1379,9 @@ function buildKurariExVenueBiasV1(
       ? { venueName: highestAverage.venueName, averagePayoutYen: highestAverage.averageTrifectaPayoutYen }
       : null,
     byVenue,
+    byVenueCarCount,
+    byVenueRaceBand,
+    byVenueGrade,
     examples: [...eligible]
       .sort((left, right) => right.payoutYen - left.payoutYen || left.raceKey.localeCompare(right.raceKey))
       .slice(0, 5)
