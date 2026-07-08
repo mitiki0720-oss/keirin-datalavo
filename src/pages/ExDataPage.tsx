@@ -114,6 +114,7 @@ import type {
   KurariExTurbulenceBreakdownRow,
   KurariExTurbulenceSegment,
   KurariExVenueBiasSegment,
+  KurariExWindDecisionSegment,
 } from "../lib/kurariExResultTrendLab";
 import type {
   KurariExHistoricalAvailabilitySummary,
@@ -531,6 +532,34 @@ function todayBaselineDiffStatusClass(label: KurariExTodayFlowBaselineComparison
   if (label === "below") return "partial";
   if (label === "near") return "ready";
   return "partial";
+}
+
+function weatherSegmentStatusClass(status: KurariExWindDecisionSegment["sampleStatus"]) {
+  return status === "strong" ? "ready" : status === "medium" ? "partial" : "warning";
+}
+
+function WeatherVenueWindSegmentCard({ segment }: { segment: KurariExWindDecisionSegment }) {
+  return (
+    <article className="ex-weather-venue-card">
+      <div className="ex-location-head">
+        <div>
+          <div className="ex-eyebrow">{segment.venueCode || "VENUE"} / {segment.windBucketLabel}</div>
+          <h3>{segment.venueName}</h3>
+        </div>
+        <span className={`ex-location-status is-${weatherSegmentStatusClass(segment.sampleStatus)}`}>
+          {segment.sampleSize.toLocaleString("ja-JP")}R / {segment.sampleStatus}
+        </span>
+      </div>
+      <div className="ex-venue-bias-metrics">
+        <div>逃げ率<strong>{segment.escapeRate.toFixed(1)}%</strong></div>
+        <div>捲り率<strong>{segment.sprintRate.toFixed(1)}%</strong></div>
+        <div>差し率<strong>{segment.pursuitRate.toFixed(1)}%</strong></div>
+        <div>万車券率<strong>{segment.highPayoutRate.toFixed(1)}%</strong></div>
+        <div>平均3連単<strong>{formatPayoutYen(segment.averageTrifectaPayoutYen)}</strong></div>
+        <div>中央値<strong>{formatPayoutYen(segment.medianTrifectaPayoutYen)}</strong></div>
+      </div>
+    </article>
+  );
 }
 
 function raceChainSegmentStatusClass(status: KurariExRaceChainSegment["sampleStatus"]) {
@@ -3645,6 +3674,7 @@ export default function ExDataPage() {
                         ))}
                       </div>
                     </div>
+
                   </>
                 ) : (
                   <EmptyState text="No eligible official transition data" />
@@ -3786,6 +3816,41 @@ export default function ExDataPage() {
                           </article>
                         ))}
                       </div>
+                    </div>
+
+                    <div>
+                      <SectionTitle
+                        eyebrow="WEATHER SEGMENTS v2"
+                        title="会場×風速傾向"
+                        lead="既存の風速bucketを使い、会場 × 風速bucketごとの決まり手・3連単配当傾向を表示します。風速と払戻金がsource-backedで存在するレースだけを対象にします。"
+                      />
+                      <div className="ex-note-grid">
+                        <MetricCard
+                          label="会場 × 風速bucket"
+                          value={trifectaTrend.weather.byVenueWindBucket.length.toLocaleString("ja-JP")}
+                          note="既存bucket: 0-1m / 1-3m / 3-5m / 5m以上"
+                          warning={!trifectaTrend.weather.byVenueWindBucket.length}
+                        />
+                        <MetricCard
+                          label="sampleStatus"
+                          value="strong / medium / weak"
+                          note="80R以上 / 30R以上 / 30R未満"
+                        />
+                        <MetricCard
+                          label="風向"
+                          value="unused"
+                          note="source-backedで安定するまで未使用"
+                        />
+                      </div>
+                      {trifectaTrend.weather.byVenueWindBucket.length ? (
+                        <div className="ex-weather-venue-grid">
+                          {trifectaTrend.weather.byVenueWindBucket.slice(0, 8).map((segment) => (
+                            <WeatherVenueWindSegmentCard key={segment.key} segment={segment} />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="ex-muted">venue wind bucket segmentなし</div>
+                      )}
                     </div>
                   </>
                 ) : (

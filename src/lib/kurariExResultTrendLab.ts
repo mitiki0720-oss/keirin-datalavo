@@ -186,6 +186,25 @@ export type KurariExRaceChainV1 = {
 export type KurariExWindBucketKey = "0-1m" | "1-3m" | "3-5m" | "5m-plus";
 export type KurariExDecisionMethodKey = "escape" | "sprint" | "difference" | "mark";
 
+export type KurariExWindDecisionSegmentSampleStatus = "strong" | "medium" | "weak";
+
+export type KurariExWindDecisionSegment = {
+  key: string;
+  label: string;
+  venueCode: string;
+  venueName: string;
+  windBucket: KurariExWindBucketKey;
+  windBucketLabel: string;
+  sampleSize: number;
+  sampleStatus: KurariExWindDecisionSegmentSampleStatus;
+  escapeRate: number;
+  sprintRate: number;
+  pursuitRate: number;
+  highPayoutRate: number;
+  averageTrifectaPayoutYen: number;
+  medianTrifectaPayoutYen: number;
+};
+
 export type KurariExWindDecisionV1 = {
   status: "ready" | "no-eligible-data";
   sourcePolicy: "official result only";
@@ -232,6 +251,7 @@ export type KurariExWindDecisionV1 = {
       rateWithinVenue: number;
     }>;
   }>;
+  byVenueWindBucket: KurariExWindDecisionSegment[];
   examples: Array<{
     raceKey: string;
     date: string;
@@ -997,6 +1017,7 @@ function buildKurariExWindDecisionV1(
     windSpeedMps: number;
     windBucket: KurariExWindBucketKey;
     decisionMethod: KurariExDecisionMethodKey;
+    payoutYen: number | null;
   }> = [];
   const exclude = (reason: string) => {
     exclusionCounts.set(reason, (exclusionCounts.get(reason) ?? 0) + 1);
@@ -1058,6 +1079,7 @@ function buildKurariExWindDecisionV1(
       windSpeedMps,
       windBucket,
       decisionMethod,
+      payoutYen: positiveYen(race.payout3tan?.payoutYen),
     });
   });
 
@@ -1086,6 +1108,49 @@ function buildKurariExWindDecisionV1(
     group.push(row);
     venueGroups.set(key, group);
   });
+  const windSegmentSampleStatus = (sampleSize: number): KurariExWindDecisionSegmentSampleStatus => {
+    if (sampleSize >= 80) return "strong";
+    if (sampleSize >= 30) return "medium";
+    return "weak";
+  };
+  const byVenueWindBucketGroups = new Map<string, typeof eligible>();
+  eligible.forEach((row) => {
+    if (row.payoutYen == null) return;
+    const venueKey = row.venueCode || row.venueName;
+    const key = `${venueKey}|${row.windBucket}`;
+    const group = byVenueWindBucketGroups.get(key) ?? [];
+    group.push(row);
+    byVenueWindBucketGroups.set(key, group);
+  });
+  const byVenueWindBucket = [...byVenueWindBucketGroups.entries()]
+    .map(([key, rows]): KurariExWindDecisionSegment => {
+      const first = rows[0];
+      const payouts = rows
+        .map((row) => row.payoutYen)
+        .filter((payout): payout is number => payout != null);
+      const windBucketLabel = WIND_BUCKETS.find((bucket) => bucket.key === first.windBucket)?.label ?? first.windBucket;
+      return {
+        key,
+        label: `${first.venueName} / ${windBucketLabel}`,
+        venueCode: first.venueCode,
+        venueName: first.venueName,
+        windBucket: first.windBucket,
+        windBucketLabel,
+        sampleSize: rows.length,
+        sampleStatus: windSegmentSampleStatus(rows.length),
+        escapeRate: rate(rows.filter((row) => row.decisionMethod === "escape").length, rows.length),
+        sprintRate: rate(rows.filter((row) => row.decisionMethod === "sprint").length, rows.length),
+        pursuitRate: rate(rows.filter((row) => row.decisionMethod === "difference").length, rows.length),
+        highPayoutRate: rate(rows.filter((row) => (row.payoutYen ?? 0) >= 10_000).length, rows.length),
+        averageTrifectaPayoutYen: Math.round(payouts.reduce((sum, payout) => sum + payout, 0) / payouts.length),
+        medianTrifectaPayoutYen: median(payouts),
+      };
+    })
+    .sort((left, right) =>
+      right.sampleSize - left.sampleSize
+      || left.venueCode.localeCompare(right.venueCode, "ja", { numeric: true })
+      || left.windBucket.localeCompare(right.windBucket, "ja", { numeric: true }),
+    );
   const sample = sampleStatus(eligible.length);
 
   return {
@@ -1156,6 +1221,7 @@ function buildKurariExWindDecisionV1(
         };
       })
       .sort((left, right) => right.sampleSize - left.sampleSize || left.venueCode.localeCompare(right.venueCode)),
+    byVenueWindBucket,
     examples: eligible.slice(0, 5).map((row) => ({
       raceKey: row.raceKey,
       date: row.date,
