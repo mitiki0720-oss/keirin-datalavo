@@ -110,6 +110,7 @@ import type {
   KurariExTodayFlowBaselineComparison,
   KurariExTrendCarTop3Row,
   KurariExTrendRankingRow,
+  KurariExTrifectaRankingSegment,
   KurariExTrifectaTrendV1,
   KurariExTurbulenceBreakdownRow,
   KurariExTurbulenceSegment,
@@ -499,6 +500,38 @@ function TrendRankingCard({
       ) : (
         <div className="ex-muted">No eligible official result data</div>
       )}
+    </article>
+  );
+}
+
+function rankingSegmentStatusClass(status: KurariExTrifectaRankingSegment["sampleStatus"]) {
+  return status === "strong" ? "ready" : status === "medium" ? "partial" : "warning";
+}
+
+function TrifectaRankingSegmentCard({ segment }: { segment: KurariExTrifectaRankingSegment }) {
+  const topTrifecta = segment.topTrifectaResults[0];
+  const firstCar = segment.firstCarRanking[0];
+  const secondCar = segment.secondCarRanking[0];
+  const thirdCar = segment.thirdCarRanking[0];
+  const pair = segment.quinellaLikeTopPairs[0];
+  return (
+    <article className="ex-weather-venue-card">
+      <div className="ex-location-head">
+        <div>
+          <div className="ex-eyebrow">{segment.venueCode ? `${segment.venueCode} / ` : ""}{segment.segmentKey}</div>
+          <h3>{segment.label}</h3>
+        </div>
+        <span className={`ex-location-status is-${rankingSegmentStatusClass(segment.sampleStatus)}`}>
+          {segment.sampleSize.toLocaleString("ja-JP")}R / {segment.sampleStatus}
+        </span>
+      </div>
+      <div className="ex-venue-bias-metrics">
+        <div>3連単TOP<strong>{topTrifecta ? `${topTrifecta.label} ${topTrifecta.rate.toFixed(1)}%` : "--"}</strong></div>
+        <div>1着TOP<strong>{firstCar ? `${firstCar.label} ${firstCar.rate.toFixed(1)}%` : "--"}</strong></div>
+        <div>2着TOP<strong>{secondCar ? `${secondCar.label} ${secondCar.rate.toFixed(1)}%` : "--"}</strong></div>
+        <div>3着TOP<strong>{thirdCar ? `${thirdCar.label} ${thirdCar.rate.toFixed(1)}%` : "--"}</strong></div>
+        <div>2車複風TOP<strong>{pair ? `${pair.label} ${pair.rate.toFixed(1)}%` : "--"}</strong></div>
+      </div>
     </article>
   );
 }
@@ -3212,6 +3245,74 @@ export default function ExDataPage() {
                 ) : (
                   <EmptyState text="No eligible official result data" />
                 )}
+
+                <div>
+                  <SectionTitle
+                    eyebrow="TRIFECTA SEGMENTS v2"
+                    title="条件別出目"
+                    lead="全体出目は維持したまま、会場別とsource-backedなraceClass別に3連単・1〜3着車番・2車複風ペアの上位傾向を表示します。raceClassはhistorical category.raceClassが明示されたレースだけを分類します。"
+                  />
+                  <div className="ex-note-grid">
+                    <MetricCard
+                      label="会場別出目"
+                      value={trifectaTrend.rankingSegments.byVenue.length.toLocaleString("ja-JP")}
+                      note="venueCode / venueNameで集計"
+                      warning={!trifectaTrend.rankingSegments.byVenue.length}
+                    />
+                    <MetricCard
+                      label="S級 / A級 / L級"
+                      value={`${trifectaTrend.rankingSegments.raceClassSummary.sourceBackedCount.toLocaleString("ja-JP")}R`}
+                      note={`S ${trifectaTrend.rankingSegments.raceClassSummary.sClassCount.toLocaleString("ja-JP")} / A ${trifectaTrend.rankingSegments.raceClassSummary.aClassCount.toLocaleString("ja-JP")} / L ${trifectaTrend.rankingSegments.raceClassSummary.lClassCount.toLocaleString("ja-JP")}`}
+                      warning={!trifectaTrend.rankingSegments.raceClassSummary.sourceBackedCount}
+                    />
+                    <MetricCard
+                      label="raceClass unknown"
+                      value={`${trifectaTrend.rankingSegments.raceClassSummary.unknownCount.toLocaleString("ja-JP")}R`}
+                      note="current feed等、明示raceClassなし"
+                      warning={trifectaTrend.rankingSegments.raceClassSummary.unknownCount > 0}
+                    />
+                    <MetricCard
+                      label="sampleStatus"
+                      value="strong / medium / weak"
+                      note="80R以上 / 30R以上 / 30R未満"
+                    />
+                  </div>
+
+                  {trifectaTrend.rankingSegments.byVenue.length ? (
+                    <div className="ex-subsection">
+                      <div className="ex-eyebrow">BY VENUE / TOP 6</div>
+                      <div className="ex-weather-venue-grid">
+                        {trifectaTrend.rankingSegments.byVenue.slice(0, 6).map((segment) => (
+                          <TrifectaRankingSegmentCard key={segment.key} segment={segment} />
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {trifectaTrend.rankingSegments.byRaceClass.length ? (
+                    <div className="ex-subsection">
+                      <div className="ex-eyebrow">BY RACE CLASS / SOURCE-BACKED</div>
+                      <div className="ex-weather-venue-grid">
+                        {trifectaTrend.rankingSegments.byRaceClass.map((segment) => (
+                          <TrifectaRankingSegmentCard key={segment.key} segment={segment} />
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="ex-muted">source-backedなraceClass segmentなし</div>
+                  )}
+
+                  {trifectaTrend.rankingSegments.byVenueRaceClass.length ? (
+                    <div className="ex-subsection">
+                      <div className="ex-eyebrow">BY VENUE × RACE CLASS / TOP 6</div>
+                      <div className="ex-weather-venue-grid">
+                        {trifectaTrend.rankingSegments.byVenueRaceClass.slice(0, 6).map((segment) => (
+                          <TrifectaRankingSegmentCard key={segment.key} segment={segment} />
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
 
                 <div className="ex-location-grid">
                   <article className="ex-location-card">

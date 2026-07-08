@@ -17,6 +17,27 @@ export type KurariExTrendCarTop3Row = KurariExTrendRankingRow & {
   eligibleStarts: number;
 };
 
+export type KurariExTrifectaRankingSegmentSampleStatus = "strong" | "medium" | "weak";
+
+export type KurariExTrifectaRaceClassKey = "s-class" | "a-class" | "l-class";
+
+export type KurariExTrifectaRankingSegment = {
+  key: string;
+  label: string;
+  segmentKey: string;
+  segmentLabel: string;
+  venueCode?: string;
+  venueName?: string;
+  raceClass?: KurariExTrifectaRaceClassKey;
+  sampleSize: number;
+  sampleStatus: KurariExTrifectaRankingSegmentSampleStatus;
+  topTrifectaResults: KurariExTrendRankingRow[];
+  firstCarRanking: KurariExTrendRankingRow[];
+  secondCarRanking: KurariExTrendRankingRow[];
+  thirdCarRanking: KurariExTrendRankingRow[];
+  quinellaLikeTopPairs: KurariExTrendRankingRow[];
+};
+
 export type KurariExTrendFilterReadiness = {
   key: "all" | "7-car" | "9-car" | "a-class" | "s-class" | "g-race" | "venue" | "race-number";
   label: string;
@@ -647,6 +668,18 @@ export type KurariExTrifectaTrendV1 = {
   thirdCarRanking: KurariExTrendRankingRow[];
   carTop3RateRanking: KurariExTrendCarTop3Row[];
   filterReadiness: KurariExTrendFilterReadiness[];
+  rankingSegments: {
+    byVenue: KurariExTrifectaRankingSegment[];
+    byRaceClass: KurariExTrifectaRankingSegment[];
+    byVenueRaceClass: KurariExTrifectaRankingSegment[];
+    raceClassSummary: {
+      sourceBackedCount: number;
+      unknownCount: number;
+      sClassCount: number;
+      aClassCount: number;
+      lClassCount: number;
+    };
+  };
   turbulence: KurariExTurbulenceV1;
   chain: KurariExRaceChainV1;
   weather: KurariExWindDecisionV1;
@@ -669,6 +702,7 @@ type OfficialResultRace = {
   secondKimarite?: unknown;
   bLeaderCarNo?: unknown;
   carCount?: unknown;
+  raceClass?: unknown;
   weatherActual?: {
     condition?: unknown;
     windSpeedMps?: unknown;
@@ -905,6 +939,24 @@ function payoutCategoryKey(payoutYen: number) {
 
 function payoutCategoryLabel(key: KurariExTurbulenceCategoryKey) {
   return TURBULENCE_CATEGORY_DEFINITIONS.find((definition) => definition.key === key)?.label ?? key;
+}
+
+function normalizeRaceClass(value: unknown): {
+  key: KurariExTrifectaRaceClassKey | null;
+  label: string;
+} {
+  const normalized = clean(value).normalize("NFKC");
+  if (!normalized) return { key: null, label: "" };
+  if (/^S級/u.test(normalized) || /\bS級/u.test(normalized)) {
+    return { key: "s-class", label: "S級" };
+  }
+  if (/^A級/u.test(normalized) || /\bA級/u.test(normalized)) {
+    return { key: "a-class", label: "A級" };
+  }
+  if (/^L級/u.test(normalized) || /\bL級/u.test(normalized) || /ガールズ/u.test(normalized)) {
+    return { key: "l-class", label: "L級" };
+  }
+  return { key: null, label: "" };
 }
 
 function isUpsetOrAbove(key: KurariExTurbulenceCategoryKey) {
@@ -1970,7 +2022,13 @@ export function buildKurariExTrifectaTrendV1(
     raceBand: "early" | "middle" | "late";
     carCount: number | null;
     grade: string;
+    raceClass: KurariExTrifectaRaceClassKey | null;
+    raceClassLabel: string;
     combination: string;
+    firstCarNo: number;
+    secondCarNo: number;
+    thirdCarNo: number;
+    quinellaLikePair: string;
     payoutYen: number;
   }> = [];
   let eligibleRaceCount = 0;
@@ -2037,6 +2095,8 @@ export function buildKurariExTrifectaTrendV1(
       ? explicitCarCountForSegment
       : null;
     const raceBand = raceNumber <= 4 ? "early" : raceNumber <= 8 ? "middle" : "late";
+    const raceClass = normalizeRaceClass(race.raceClass);
+    const quinellaLikePair = [...top3.slice(0, 2)].sort((left, right) => left - right).join("=");
 
     eligibleRaceCount += 1;
     eligiblePayoutRaces.push({
@@ -2048,7 +2108,13 @@ export function buildKurariExTrifectaTrendV1(
       raceBand,
       carCount: segmentCarCount,
       grade: clean(venue.grade),
+      raceClass: raceClass.key,
+      raceClassLabel: raceClass.label,
       combination,
+      firstCarNo: top3[0],
+      secondCarNo: top3[1],
+      thirdCarNo: top3[2],
+      quinellaLikePair,
       payoutYen,
     });
     trifectaCounts.set(combination, (trifectaCounts.get(combination) ?? 0) + 1);
@@ -2091,6 +2157,93 @@ export function buildKurariExTrifectaTrendV1(
       || right.count - left.count
       || Number(left.key) - Number(right.key),
     );
+  const rankingSegmentSampleStatus = (sampleSize: number): KurariExTrifectaRankingSegmentSampleStatus => {
+    if (sampleSize >= 80) return "strong";
+    if (sampleSize >= 30) return "medium";
+    return "weak";
+  };
+  const summarizeRankingSegment = (
+    key: string,
+    rows: typeof eligiblePayoutRaces,
+    segmentKey: (race: typeof eligiblePayoutRaces[number]) => string,
+    segmentLabel: (race: typeof eligiblePayoutRaces[number]) => string,
+  ): KurariExTrifectaRankingSegment => {
+    const first = rows[0];
+    const segmentTrifectaCounts = new Map<string, number>();
+    const segmentPositionCounts = [new Map<string, number>(), new Map<string, number>(), new Map<string, number>()];
+    const segmentPairCounts = new Map<string, number>();
+    rows.forEach((race) => {
+      segmentTrifectaCounts.set(race.combination, (segmentTrifectaCounts.get(race.combination) ?? 0) + 1);
+      [race.firstCarNo, race.secondCarNo, race.thirdCarNo].forEach((carNo, position) => {
+        const carKey = String(carNo);
+        segmentPositionCounts[position].set(carKey, (segmentPositionCounts[position].get(carKey) ?? 0) + 1);
+      });
+      segmentPairCounts.set(race.quinellaLikePair, (segmentPairCounts.get(race.quinellaLikePair) ?? 0) + 1);
+    });
+    return {
+      key,
+      label: segmentLabel(first),
+      segmentKey: segmentKey(first),
+      segmentLabel: segmentLabel(first),
+      venueCode: first.venueCode,
+      venueName: first.venueName,
+      raceClass: first.raceClass ?? undefined,
+      sampleSize: rows.length,
+      sampleStatus: rankingSegmentSampleStatus(rows.length),
+      topTrifectaResults: countRanking(segmentTrifectaCounts, rows.length, (combination) => combination),
+      firstCarRanking: countRanking(segmentPositionCounts[0], rows.length, (carNo) => `${carNo}番車`),
+      secondCarRanking: countRanking(segmentPositionCounts[1], rows.length, (carNo) => `${carNo}番車`),
+      thirdCarRanking: countRanking(segmentPositionCounts[2], rows.length, (carNo) => `${carNo}番車`),
+      quinellaLikeTopPairs: countRanking(segmentPairCounts, rows.length, (pair) => pair),
+    };
+  };
+  const rankingSegments = (
+    axis: "venue" | "raceClass" | "venueRaceClass",
+    segmentKey: (race: typeof eligiblePayoutRaces[number]) => string,
+    segmentLabel: (race: typeof eligiblePayoutRaces[number]) => string,
+  ): KurariExTrifectaRankingSegment[] => {
+    const groups = new Map<string, typeof eligiblePayoutRaces>();
+    eligiblePayoutRaces.forEach((race) => {
+      const value = segmentKey(race);
+      if (!value) return;
+      const key = axis === "venueRaceClass"
+        ? `${race.venueCode || race.venueName}|${value}`
+        : value;
+      const group = groups.get(key) ?? [];
+      group.push(race);
+      groups.set(key, group);
+    });
+    return [...groups.entries()]
+      .map(([key, rows]) => summarizeRankingSegment(key, rows, segmentKey, segmentLabel))
+      .sort((left, right) =>
+        right.sampleSize - left.sampleSize
+        || (left.venueCode ?? "").localeCompare(right.venueCode ?? "", "ja", { numeric: true })
+        || left.segmentKey.localeCompare(right.segmentKey, "ja", { numeric: true }),
+      );
+  };
+  const byRankingVenue = rankingSegments(
+    "venue",
+    (race) => race.venueCode || race.venueName,
+    (race) => race.venueName,
+  );
+  const byRankingRaceClass = rankingSegments(
+    "raceClass",
+    (race) => race.raceClass ?? "",
+    (race) => race.raceClassLabel,
+  );
+  const byRankingVenueRaceClass = rankingSegments(
+    "venueRaceClass",
+    (race) => race.raceClass ?? "",
+    (race) => `${race.venueName} / ${race.raceClassLabel}`,
+  );
+  const raceClassSourceBackedCount = eligiblePayoutRaces.filter((race) => race.raceClass != null).length;
+  const raceClassSummary = {
+    sourceBackedCount: raceClassSourceBackedCount,
+    unknownCount: eligiblePayoutRaces.length - raceClassSourceBackedCount,
+    sClassCount: eligiblePayoutRaces.filter((race) => race.raceClass === "s-class").length,
+    aClassCount: eligiblePayoutRaces.filter((race) => race.raceClass === "a-class").length,
+    lClassCount: eligiblePayoutRaces.filter((race) => race.raceClass === "l-class").length,
+  };
   const payouts = eligiblePayoutRaces.map((race) => race.payoutYen);
   const breakdown = (
     key: (race: typeof eligiblePayoutRaces[number]) => string,
@@ -2462,12 +2615,18 @@ export function buildKurariExTrifectaTrendV1(
     secondCarRanking: countRanking(positionCounts[1], eligibleRaceCount, (key) => `${key}番車`),
     thirdCarRanking: countRanking(positionCounts[2], eligibleRaceCount, (key) => `${key}番車`),
     carTop3RateRanking,
+    rankingSegments: {
+      byVenue: byRankingVenue,
+      byRaceClass: byRankingRaceClass,
+      byVenueRaceClass: byRankingVenueRaceClass,
+      raceClassSummary,
+    },
     filterReadiness: [
       { key: "all", label: "all", status: "ready", note: "eligible official result全件" },
       { key: "7-car", label: "7車", status: "partial", note: "official finishOrder記録から判定可能" },
       { key: "9-car", label: "9車", status: "partial", note: "official finishOrder記録から判定可能" },
-      { key: "a-class", label: "A級", status: "future-accumulation", note: "current resultにraceClassなし" },
-      { key: "s-class", label: "S級", status: "future-accumulation", note: "current resultにraceClassなし" },
+      { key: "a-class", label: "A級", status: raceClassSummary.aClassCount > 0 ? "partial" : "future-accumulation", note: "historical category.raceClassが明示されたraceのみ" },
+      { key: "s-class", label: "S級", status: raceClassSummary.sClassCount > 0 ? "partial" : "future-accumulation", note: "historical category.raceClassが明示されたraceのみ" },
       { key: "g-race", label: "Gレース", status: "partial", note: "venue grade確定時のみ" },
       { key: "venue", label: "会場", status: "ready", note: "venueCode / venueNameあり" },
       { key: "race-number", label: "R", status: "ready", note: "raceNumberあり" },
@@ -2717,6 +2876,7 @@ function historicalRaceToOfficialRace(race: KurariExHistoricalRace): OfficialRes
     secondKimarite: race.kimarite.second,
     bLeaderCarNo: race.bSb.bCarNo,
     carCount: race.category.carCount,
+    raceClass: race.category.raceClass,
     weatherActual: {
       condition: race.weather.weather,
       windSpeedMps: race.weather.windSpeed,
