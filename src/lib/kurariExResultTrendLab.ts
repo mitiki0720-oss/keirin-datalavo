@@ -51,6 +51,25 @@ export type KurariExTurbulenceBreakdownRow = {
   categories: KurariExTurbulenceCategory[];
 };
 
+export type KurariExTurbulenceSegmentSampleStatus = "strong" | "medium" | "weak";
+
+export type KurariExTurbulenceSegment = {
+  key: string;
+  label: string;
+  venueCode: string;
+  venueName: string;
+  segmentKey: string;
+  segmentLabel: string;
+  sampleSize: number;
+  sampleStatus: KurariExTurbulenceSegmentSampleStatus;
+  averageTrifectaPayoutYen: number;
+  medianTrifectaPayoutYen: number;
+  highPayoutRate: number;
+  veryHighPayoutRate: number;
+  ultraHighPayoutRate: number;
+  maxTrifectaPayoutYen: number;
+};
+
 export type KurariExTurbulenceV1 = {
   status: "ready" | "no-eligible-data";
   sourcePolicy: "official result only";
@@ -78,6 +97,8 @@ export type KurariExTurbulenceV1 = {
   byRaceNumber: KurariExTurbulenceBreakdownRow[];
   byVenue: KurariExTurbulenceBreakdownRow[];
   byGrade: KurariExTurbulenceBreakdownRow[];
+  byVenueRaceBand: KurariExTurbulenceSegment[];
+  byVenueCarCount: KurariExTurbulenceSegment[];
   classGradeReadiness: Array<{
     key: "a-class" | "s-class" | "g-race";
     label: string;
@@ -1711,6 +1732,8 @@ export function buildKurariExTrifectaTrendV1(
     venueCode: string;
     venueName: string;
     raceNumber: number;
+    raceBand: "early" | "middle" | "late";
+    carCount: number | null;
     grade: string;
     combination: string;
     payoutYen: number;
@@ -1771,6 +1794,14 @@ export function buildKurariExTrifectaTrendV1(
       exclude("payout-missing-or-invalid", index);
       return;
     }
+    const raceNumber = Number(race.raceNumber);
+    const explicitCarCountForSegment = Number(race.carCount);
+    const segmentCarCount = Number.isInteger(explicitCarCountForSegment)
+      && explicitCarCountForSegment >= 1
+      && explicitCarCountForSegment <= 9
+      ? explicitCarCountForSegment
+      : null;
+    const raceBand = raceNumber <= 4 ? "early" : raceNumber <= 8 ? "middle" : "late";
 
     eligibleRaceCount += 1;
     eligiblePayoutRaces.push({
@@ -1778,7 +1809,9 @@ export function buildKurariExTrifectaTrendV1(
       date: clean(venue.date || sourceDate),
       venueCode: clean(venue.venueCode),
       venueName: clean(venue.venueName) || clean(venue.venueCode),
-      raceNumber: Number(race.raceNumber),
+      raceNumber,
+      raceBand,
+      carCount: segmentCarCount,
       grade: clean(venue.grade),
       combination,
       payoutYen,
@@ -1843,6 +1876,79 @@ export function buildKurariExTrifectaTrendV1(
         || left.label.localeCompare(right.label, "ja", { numeric: true }),
       );
   };
+  const turbulenceSegmentSampleStatus = (sampleSize: number): KurariExTurbulenceSegmentSampleStatus => {
+    if (sampleSize >= 80) return "strong";
+    if (sampleSize >= 30) return "medium";
+    return "weak";
+  };
+  const turbulenceThreshold = (key: KurariExTurbulenceCategoryKey) =>
+    TURBULENCE_CATEGORY_DEFINITIONS.find((definition) => definition.key === key)?.min ?? Number.POSITIVE_INFINITY;
+  const highPayoutThreshold = turbulenceThreshold("upset");
+  const veryHighPayoutThreshold = turbulenceThreshold("major-upset");
+  const ultraHighPayoutThreshold = turbulenceThreshold("extreme-upset");
+  const raceBandLabels: Record<typeof eligiblePayoutRaces[number]["raceBand"], string> = {
+    early: "early 1〜4R",
+    middle: "middle 5〜8R",
+    late: "late 9R以降",
+  };
+  const summarizeTurbulenceSegment = (
+    key: string,
+    rows: typeof eligiblePayoutRaces,
+    segmentValue: (race: typeof eligiblePayoutRaces[number]) => string,
+    segmentLabel: (race: typeof eligiblePayoutRaces[number]) => string,
+  ): KurariExTurbulenceSegment => {
+    const first = rows[0];
+    const payoutsForSegment = rows.map((race) => race.payoutYen);
+    return {
+      key,
+      label: `${first.venueName} / ${segmentLabel(first)}`,
+      venueCode: first.venueCode,
+      venueName: first.venueName,
+      segmentKey: segmentValue(first),
+      segmentLabel: segmentLabel(first),
+      sampleSize: rows.length,
+      sampleStatus: turbulenceSegmentSampleStatus(rows.length),
+      averageTrifectaPayoutYen: Math.round(payoutsForSegment.reduce((sum, payout) => sum + payout, 0) / rows.length),
+      medianTrifectaPayoutYen: median(payoutsForSegment),
+      highPayoutRate: rate(rows.filter((race) => race.payoutYen >= highPayoutThreshold).length, rows.length),
+      veryHighPayoutRate: rate(rows.filter((race) => race.payoutYen >= veryHighPayoutThreshold).length, rows.length),
+      ultraHighPayoutRate: rate(rows.filter((race) => race.payoutYen >= ultraHighPayoutThreshold).length, rows.length),
+      maxTrifectaPayoutYen: Math.max(...payoutsForSegment),
+    };
+  };
+  const turbulenceSegments = (
+    segmentKey: "raceBand" | "carCount",
+    segmentValue: (race: typeof eligiblePayoutRaces[number]) => string,
+    segmentLabel: (race: typeof eligiblePayoutRaces[number]) => string,
+  ): KurariExTurbulenceSegment[] => {
+    const groups = new Map<string, typeof eligiblePayoutRaces>();
+    eligiblePayoutRaces.forEach((race) => {
+      const value = segmentValue(race);
+      if (!value) return;
+      const venueKey = race.venueCode || race.venueName;
+      const key = `${venueKey}|${segmentKey}|${value}`;
+      const group = groups.get(key) ?? [];
+      group.push(race);
+      groups.set(key, group);
+    });
+    return [...groups.entries()]
+      .map(([key, rows]) => summarizeTurbulenceSegment(key, rows, segmentValue, segmentLabel))
+      .sort((left, right) =>
+        right.sampleSize - left.sampleSize
+        || left.venueCode.localeCompare(right.venueCode, "ja", { numeric: true })
+        || left.segmentKey.localeCompare(right.segmentKey, "ja", { numeric: true }),
+      );
+  };
+  const byVenueRaceBand = turbulenceSegments(
+    "raceBand",
+    (race) => race.raceBand,
+    (race) => raceBandLabels[race.raceBand],
+  );
+  const byVenueCarCount = turbulenceSegments(
+    "carCount",
+    (race) => race.carCount == null ? "" : String(race.carCount),
+    (race) => `${race.carCount}車`,
+  );
   const highestPayoutRace = eligiblePayoutRaces.reduce<typeof eligiblePayoutRaces[number] | null>(
     (highest, race) => !highest || race.payoutYen > highest.payoutYen ? race : highest,
     null,
@@ -2076,6 +2182,8 @@ export function buildKurariExTrifectaTrendV1(
         (race) => /^G\d*$/iu.test(race.grade) ? race.grade : "",
         (race) => `${race.grade} / Gレース`,
       ),
+      byVenueRaceBand,
+      byVenueCarCount,
       classGradeReadiness: [
         {
           key: "a-class",

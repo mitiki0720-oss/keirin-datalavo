@@ -110,6 +110,7 @@ import type {
   KurariExTrendRankingRow,
   KurariExTrifectaTrendV1,
   KurariExTurbulenceBreakdownRow,
+  KurariExTurbulenceSegment,
   KurariExVenueBiasSegment,
 } from "../lib/kurariExResultTrendLab";
 import type {
@@ -501,6 +502,34 @@ function TrendRankingCard({
 
 function formatPayoutYen(value: number | null) {
   return value == null ? "未取得" : `${value.toLocaleString("ja-JP")}円`;
+}
+
+function turbulenceSegmentStatusClass(status: KurariExTurbulenceSegment["sampleStatus"]) {
+  return status === "strong" ? "ready" : status === "medium" ? "partial" : "warning";
+}
+
+function TurbulenceSegmentCard({ segment }: { segment: KurariExTurbulenceSegment }) {
+  return (
+    <article className="ex-turbulence-breakdown">
+      <div className="ex-location-head">
+        <div>
+          <div className="ex-eyebrow">{segment.venueCode || "VENUE"} / {segment.segmentLabel}</div>
+          <h3>{segment.venueName}</h3>
+        </div>
+        <span className={`ex-location-status is-${turbulenceSegmentStatusClass(segment.sampleStatus)}`}>
+          {segment.sampleSize.toLocaleString("ja-JP")}R / {segment.sampleStatus}
+        </span>
+      </div>
+      <div className="ex-venue-bias-metrics">
+        <div>平均3連単<strong>{formatPayoutYen(segment.averageTrifectaPayoutYen)}</strong></div>
+        <div>中央値<strong>{formatPayoutYen(segment.medianTrifectaPayoutYen)}</strong></div>
+        <div>万車券率<strong>{segment.highPayoutRate.toFixed(1)}%</strong></div>
+        <div>大荒れ率<strong>{segment.veryHighPayoutRate.toFixed(1)}%</strong></div>
+        <div>超荒れ率<strong>{segment.ultraHighPayoutRate.toFixed(1)}%</strong></div>
+        <div>最大3連単<strong>{formatPayoutYen(segment.maxTrifectaPayoutYen)}</strong></div>
+      </div>
+    </article>
+  );
 }
 
 function venueBiasSegmentStatusClass(status: KurariExVenueBiasSegment["sampleStatus"]) {
@@ -3209,6 +3238,63 @@ export default function ExDataPage() {
                           <small>{category.rangeLabel}</small>
                         </article>
                       ))}
+                    </div>
+
+                    <div>
+                      <SectionTitle
+                        eyebrow="TURBULENCE SEGMENTS v2"
+                        title="条件別荒れ傾向"
+                        lead="trend対象かつ3連単払戻金がsource-backedで存在するレースだけを、会場 × R番号帯 / 会場 × 車数で集計します。閾値は既存荒れカテゴリと同じです。strong >= 80R、medium >= 30R、weak < 30R。"
+                      />
+                      <div className="ex-note-grid">
+                        <MetricCard
+                          label="会場 × R番号帯"
+                          value={trifectaTrend.turbulence.byVenueRaceBand.length.toLocaleString("ja-JP")}
+                          note="early 1〜4R / middle 5〜8R / late 9R以降"
+                          warning={!trifectaTrend.turbulence.byVenueRaceBand.length}
+                        />
+                        <MetricCard
+                          label="会場 × 車数"
+                          value={trifectaTrend.turbulence.byVenueCarCount.length.toLocaleString("ja-JP")}
+                          note="carCountがsourceにあるレースのみ"
+                          warning={!trifectaTrend.turbulence.byVenueCarCount.length}
+                        />
+                        <MetricCard
+                          label="荒れ閾値"
+                          value="10k / 30k / 100k"
+                          note="荒れ・大荒れ・超荒れの既存カテゴリを使用"
+                        />
+                      </div>
+
+                      <div className="ex-location-grid">
+                        <article className="ex-location-card">
+                          <div className="ex-location-head">
+                            <h3>会場 × R番号帯</h3>
+                            <span className="ex-location-status is-partial">TOP 6</span>
+                          </div>
+                          {trifectaTrend.turbulence.byVenueRaceBand.length ? (
+                            <div className="ex-venue-bias-grid">
+                              {trifectaTrend.turbulence.byVenueRaceBand.slice(0, 6).map((segment) => (
+                                <TurbulenceSegmentCard key={segment.key} segment={segment} />
+                              ))}
+                            </div>
+                          ) : <div className="ex-muted">race band segmentなし</div>}
+                        </article>
+
+                        <article className="ex-location-card">
+                          <div className="ex-location-head">
+                            <h3>会場 × 車数</h3>
+                            <span className="ex-location-status is-partial">TOP 6</span>
+                          </div>
+                          {trifectaTrend.turbulence.byVenueCarCount.length ? (
+                            <div className="ex-venue-bias-grid">
+                              {trifectaTrend.turbulence.byVenueCarCount.slice(0, 6).map((segment) => (
+                                <TurbulenceSegmentCard key={segment.key} segment={segment} />
+                              ))}
+                            </div>
+                          ) : <div className="ex-muted">source-backed carCount segmentなし</div>}
+                        </article>
+                      </div>
                     </div>
 
                     <div className="ex-location-grid">
