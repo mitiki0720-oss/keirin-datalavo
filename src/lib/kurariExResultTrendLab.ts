@@ -322,6 +322,27 @@ export type KurariExTodayFlowMetrics = {
   averageTrifectaPayoutYen: number | null;
   medianTrifectaPayoutYen: number | null;
   highPayoutRate: number;
+  veryHighPayoutRate: number;
+  ultraHighPayoutRate: number;
+};
+
+export type KurariExTodayFlowBaselineDiffLabel = "above" | "near" | "below";
+
+export type KurariExTodayFlowBaselineComparison = {
+  key:
+    | "highPayoutRate"
+    | "veryHighPayoutRate"
+    | "ultraHighPayoutRate"
+    | "outsideInvolvementRate"
+    | "oneCarOutRate"
+    | "averageTrifectaPayoutYen"
+    | "medianTrifectaPayoutYen";
+  label: string;
+  metricType: "rate" | "payout";
+  todayValue: number | null;
+  baselineValue: number | null;
+  diff: number | null;
+  diffLabel: KurariExTodayFlowBaselineDiffLabel | "unavailable";
 };
 
 export type KurariExTodayFlowTransitionKey =
@@ -347,6 +368,12 @@ export type KurariExTodayFlowV1 = {
   dominantFlowLabel: string;
   cautionLabels: string[];
   overall: KurariExTodayFlowMetrics;
+  baseline: {
+    status: "ready" | "unavailable";
+    label: "historical 60日 trendEligible";
+    sampleSize: number;
+    comparisons: KurariExTodayFlowBaselineComparison[];
+  };
   transitionHints: Array<{
     key: KurariExTodayFlowTransitionKey;
     label: string;
@@ -1455,6 +1482,7 @@ function buildKurariExTodayFlowV1(
   feed: OfficialResultFeed,
   sourceIsOfficial: boolean,
   sourceDate: string,
+  baselineFeed?: OfficialResultFeed,
 ): KurariExTodayFlowV1 {
   const candidates = (feed.venues ?? []).flatMap((venue) =>
     (venue.races ?? []).map((race) => ({
@@ -1586,6 +1614,106 @@ function buildKurariExTodayFlowV1(
         : null,
       medianTrifectaPayoutYen: payouts.length ? median(payouts) : null,
       highPayoutRate: rate(rows.filter((row) => row.payoutYen >= 10_000).length, rows.length),
+      veryHighPayoutRate: rate(rows.filter((row) => row.payoutYen >= 30_000).length, rows.length),
+      ultraHighPayoutRate: rate(rows.filter((row) => row.payoutYen >= 100_000).length, rows.length),
+    };
+  };
+  const extractBaselineEligible = (baseline: OfficialResultFeed | undefined) => {
+    if (!baseline) return [];
+    const baselineSourceDate = clean(baseline.date);
+    const baselineSourceIsOfficial =
+      clean(baseline.source?.provider) === "KEIRIN.JP"
+      && clean(baseline.source?.listType) === "JSJ048"
+      && /^\d{4}-\d{2}-\d{2}$/u.test(baselineSourceDate)
+      && !Number.isNaN(Date.parse(clean(baseline.generatedAt)));
+    if (!baselineSourceIsOfficial) return [];
+    const baselineCandidates = (baseline.venues ?? []).flatMap((venue) =>
+      (venue.races ?? []).map((race) => ({
+        venue,
+        race,
+        date: clean(venue.date || baselineSourceDate),
+      })),
+    );
+    const baselineRaceKeys = baselineCandidates.map(({ venue, race, date }) => {
+      const venueKey = clean(venue.venueCode) || clean(venue.venueName);
+      const raceNumber = Number(race.raceNumber);
+      return date && venueKey && Number.isInteger(raceNumber) && raceNumber > 0
+        ? `${date}|${venueKey}|${raceNumber}`
+        : "";
+    });
+    const baselineKeyCounts = new Map<string, number>();
+    baselineRaceKeys.filter(Boolean).forEach((key) => {
+      baselineKeyCounts.set(key, (baselineKeyCounts.get(key) ?? 0) + 1);
+    });
+    const rows: typeof eligible = [];
+    baselineCandidates.forEach(({ venue, race, date }, index) => {
+      const raceKey = baselineRaceKeys[index];
+      const venueKey = clean(venue.venueCode) || clean(venue.venueName);
+      const raceNumber = Number(race.raceNumber);
+      if (!date || !venueKey || !Number.isInteger(raceNumber) || raceNumber <= 0 || !raceKey) return;
+      if ((baselineKeyCounts.get(raceKey) ?? 0) !== 1) return;
+      if (["cancelled", "no-race"].includes(clean(race.operationStatus).toLowerCase())) return;
+      if (clean(race.resultStatus) !== "confirmed") return;
+      const ranked = (race.finishOrder ?? [])
+        .map((row) => ({ rank: Number(clean(row.rank)), carNo: validCarNo(row.carNo) }))
+        .filter((row) => Number.isInteger(row.rank) && row.rank >= 1 && row.rank <= 3)
+        .sort((left, right) => left.rank - right.rank);
+      if (ranked.length !== 3 || ranked.some((row, position) => row.rank !== position + 1)) return;
+      if (ranked.some((row) => row.carNo == null)) return;
+      const top3 = ranked.map((row) => row.carNo as number);
+      if (new Set(top3).size !== 3) return;
+      const combination = top3.join("-");
+      if (clean(race.payout3tan?.combination) !== combination) return;
+      const payoutYen = positiveYen(race.payout3tan?.payoutYen);
+      if (payoutYen == null) return;
+      rows.push({
+        raceKey,
+        date,
+        venueCode: clean(venue.venueCode),
+        venueName: clean(venue.venueName) || venueKey,
+        raceNumber,
+        top3,
+        combination,
+        payoutYen,
+        category: payoutCategoryKey(payoutYen),
+      });
+    });
+    return rows;
+  };
+  const baselineRows = extractBaselineEligible(baselineFeed);
+  const baselineMetrics = summarize(baselineRows);
+  const rateDiffLabel = (diff: number | null): KurariExTodayFlowBaselineDiffLabel | "unavailable" => {
+    if (diff == null) return "unavailable";
+    if (Math.abs(diff) <= 5) return "near";
+    return diff > 0 ? "above" : "below";
+  };
+  const payoutDiffLabel = (
+    todayValue: number | null,
+    baselineValue: number | null,
+    diff: number | null,
+  ): KurariExTodayFlowBaselineDiffLabel | "unavailable" => {
+    if (todayValue == null || baselineValue == null || diff == null || baselineValue <= 0) return "unavailable";
+    if (Math.abs(diff) / baselineValue <= 0.1) return "near";
+    return diff > 0 ? "above" : "below";
+  };
+  const baselineComparison = (
+    key: KurariExTodayFlowBaselineComparison["key"],
+    label: string,
+    metricType: KurariExTodayFlowBaselineComparison["metricType"],
+    todayValue: number | null,
+    baselineValue: number | null,
+  ): KurariExTodayFlowBaselineComparison => {
+    const diff = todayValue == null || baselineValue == null ? null : todayValue - baselineValue;
+    return {
+      key,
+      label,
+      metricType,
+      todayValue,
+      baselineValue,
+      diff,
+      diffLabel: metricType === "rate"
+        ? rateDiffLabel(diff)
+        : payoutDiffLabel(todayValue, baselineValue, diff),
     };
   };
   const isUpset = (category: KurariExTurbulenceCategoryKey) =>
@@ -1705,6 +1833,20 @@ function buildKurariExTodayFlowV1(
     dominantFlowLabel: flowLabel(overall, transitionCounts),
     cautionLabels,
     overall,
+    baseline: {
+      status: baselineRows.length ? "ready" : "unavailable",
+      label: "historical 60日 trendEligible",
+      sampleSize: baselineRows.length,
+      comparisons: baselineRows.length ? [
+        baselineComparison("highPayoutRate", "万車券率", "rate", overall.highPayoutRate, baselineMetrics.highPayoutRate),
+        baselineComparison("veryHighPayoutRate", "大荒れ率", "rate", overall.veryHighPayoutRate, baselineMetrics.veryHighPayoutRate),
+        baselineComparison("ultraHighPayoutRate", "超荒れ率", "rate", overall.ultraHighPayoutRate, baselineMetrics.ultraHighPayoutRate),
+        baselineComparison("outsideInvolvementRate", "外枠絡み率", "rate", overall.outsideInvolvementRate, baselineMetrics.outsideInvolvementRate),
+        baselineComparison("oneCarOutRate", "1番車飛び率", "rate", overall.oneCarOutRate, baselineMetrics.oneCarOutRate),
+        baselineComparison("averageTrifectaPayoutYen", "平均3連単配当", "payout", overall.averageTrifectaPayoutYen, baselineMetrics.averageTrifectaPayoutYen),
+        baselineComparison("medianTrifectaPayoutYen", "中央値3連単配当", "payout", overall.medianTrifectaPayoutYen, baselineMetrics.medianTrifectaPayoutYen),
+      ] : [],
+    },
     transitionHints: (Object.entries(TODAY_FLOW_TRANSITION_LABELS) as Array<[KurariExTodayFlowTransitionKey, string]>)
       .map(([key, label]) => ({ key, label, count: transitionCounts.get(key) ?? 0 })),
     byVenue,
@@ -1715,8 +1857,14 @@ function buildKurariExTodayFlowV1(
   };
 }
 
+type KurariExTrifectaTrendBuildOptions = {
+  todayFlowFeed?: OfficialResultFeed;
+  todayFlowBaselineFeed?: OfficialResultFeed;
+};
+
 export function buildKurariExTrifectaTrendV1(
   feed: OfficialResultFeed,
+  options: KurariExTrifectaTrendBuildOptions = {},
 ): KurariExTrifectaTrendV1 {
   const sourceDate = clean(feed.date);
   const sourceFetchedAt = clean(feed.generatedAt);
@@ -2211,7 +2359,21 @@ export function buildKurariExTrifectaTrendV1(
     () => buildKurariExVenueBiasV1(feed, sourceIsOfficial, sourceDate),
   );
   const getTodayFlow = memoizeOnce(
-    () => buildKurariExTodayFlowV1(feed, sourceIsOfficial, sourceDate),
+    () => {
+      const todayFeed = options.todayFlowFeed ?? feed;
+      const todaySourceDate = clean(todayFeed.date);
+      const todaySourceIsOfficial =
+        clean(todayFeed.source?.provider) === "KEIRIN.JP"
+        && clean(todayFeed.source?.listType) === "JSJ048"
+        && /^\d{4}-\d{2}-\d{2}$/u.test(todaySourceDate)
+        && !Number.isNaN(Date.parse(clean(todayFeed.generatedAt)));
+      return buildKurariExTodayFlowV1(
+        todayFeed,
+        todaySourceIsOfficial,
+        todaySourceDate,
+        options.todayFlowBaselineFeed,
+      );
+    },
   );
   const result: KurariExTrifectaTrendV1 = {
     status: eligibleRaceCount > 0 ? "ready" : "no-eligible-data",
@@ -2397,7 +2559,19 @@ async function loadKurariExTrifectaTrendV1Uncached() {
     },
     venues: [...historicalVenueGroups.values(), ...currentVenues],
   };
-  const trend = buildKurariExTrifectaTrendV1(mergedFeed);
+  const historicalBaselineFeed: OfficialResultFeed = {
+    date: history.availability.dateRange.to ?? sourceDate,
+    generatedAt: currentFeed.generatedAt,
+    source: {
+      provider: "KEIRIN.JP",
+      listType: "JSJ048",
+    },
+    venues: [...historicalVenueGroups.values()],
+  };
+  const trend = buildKurariExTrifectaTrendV1(mergedFeed, {
+    todayFlowFeed: currentFeed,
+    todayFlowBaselineFeed: historicalBaselineFeed,
+  });
   const classificationCount = history.index?.summary?.classificationCount ?? {};
   trend.sourceName = "historical 60日 + current";
   trend.sourceSummary = {

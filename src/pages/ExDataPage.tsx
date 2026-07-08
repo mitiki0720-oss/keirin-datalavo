@@ -107,6 +107,7 @@ import {
 import type {
   KurariExCoverageStatus,
   KurariExRaceChainSegment,
+  KurariExTodayFlowBaselineComparison,
   KurariExTrendCarTop3Row,
   KurariExTrendRankingRow,
   KurariExTrifectaTrendV1,
@@ -503,6 +504,33 @@ function TrendRankingCard({
 
 function formatPayoutYen(value: number | null) {
   return value == null ? "未取得" : `${value.toLocaleString("ja-JP")}円`;
+}
+
+function formatSignedNumber(value: number | null, suffix: string) {
+  if (value == null) return "--";
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value.toLocaleString("ja-JP", { maximumFractionDigits: 1 })}${suffix}`;
+}
+
+function formatTodayBaselineMetricValue(row: KurariExTodayFlowBaselineComparison, value: number | null) {
+  if (value == null) return "--";
+  return row.metricType === "payout"
+    ? formatPayoutYen(value)
+    : `${value.toFixed(1)}%`;
+}
+
+function formatTodayBaselineDiff(row: KurariExTodayFlowBaselineComparison) {
+  if (row.diff == null) return "--";
+  return row.metricType === "payout"
+    ? formatSignedNumber(row.diff, "円")
+    : formatSignedNumber(row.diff, "pt");
+}
+
+function todayBaselineDiffStatusClass(label: KurariExTodayFlowBaselineComparison["diffLabel"]) {
+  if (label === "above") return "warning";
+  if (label === "below") return "partial";
+  if (label === "near") return "ready";
+  return "partial";
 }
 
 function raceChainSegmentStatusClass(status: KurariExRaceChainSegment["sampleStatus"]) {
@@ -4150,6 +4178,55 @@ export default function ExDataPage() {
                         <article><span>中央値3連単配当</span><strong>{formatPayoutYen(trifectaTrend.todayFlow.overall.medianTrifectaPayoutYen)}</strong><small>eligible中央値</small></article>
                         <article><span>万車券率</span><strong>{trifectaTrend.todayFlow.overall.highPayoutRate.toFixed(1)}%</strong><small>3連単10,000円以上</small></article>
                       </div>
+                    </div>
+
+                    <div>
+                      <SectionTitle
+                        eyebrow="TODAY VS 60D BASELINE v2"
+                        title="60日平均との差分"
+                        lead="今日の流れは最新日currentのみ、baselineはhistorical 60日 trendEligibleのみで比較します。rate系は±5pt以内、payout系は±10%以内をnearとします。"
+                      />
+                      {trifectaTrend.todayFlow.baseline.status === "ready" ? (
+                        <>
+                          <div className="ex-note-grid">
+                            <MetricCard
+                              label="today scope"
+                              value={`${trifectaTrend.todayFlow.eligibleRaceCount.toLocaleString("ja-JP")}R`}
+                              note={`最新日current ${trifectaTrend.todayFlow.targetDate || "--"} のみ`}
+                            />
+                            <MetricCard
+                              label="baseline"
+                              value={`${trifectaTrend.todayFlow.baseline.sampleSize.toLocaleString("ja-JP")}R`}
+                              note={trifectaTrend.todayFlow.baseline.label}
+                            />
+                            <MetricCard
+                              label="diff label"
+                              value="above / near / below"
+                              note="rate ±5pt / payout ±10%"
+                            />
+                          </div>
+                          <div className="ex-today-flow-grid">
+                            {trifectaTrend.todayFlow.baseline.comparisons.map((row) => (
+                              <article className="ex-today-flow-card" key={row.key}>
+                                <div className="ex-location-head">
+                                  <h3>{row.label}</h3>
+                                  <span className={`ex-location-status is-${todayBaselineDiffStatusClass(row.diffLabel)}`}>
+                                    {row.diffLabel}
+                                  </span>
+                                </div>
+                                <div className="ex-venue-bias-metrics">
+                                  <div>today<strong>{formatTodayBaselineMetricValue(row, row.todayValue)}</strong></div>
+                                  <div>60日平均<strong>{formatTodayBaselineMetricValue(row, row.baselineValue)}</strong></div>
+                                  <div>差分<strong>{formatTodayBaselineDiff(row)}</strong></div>
+                                  <div>type<strong>{row.metricType}</strong></div>
+                                </div>
+                              </article>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="ex-muted">historical baseline unavailable</div>
+                      )}
                     </div>
 
                     <div>
