@@ -115,6 +115,25 @@ export type KurariExRaceChainTypeKey =
   | "firm-continues"
   | "other";
 
+export type KurariExRaceChainSegmentSampleStatus = "strong" | "medium" | "weak";
+
+export type KurariExRaceChainSegment = {
+  key: string;
+  label: string;
+  venueCode: string;
+  venueName: string;
+  segmentKey: string;
+  segmentLabel: string;
+  sampleSize: number;
+  sampleStatus: KurariExRaceChainSegmentSampleStatus;
+  favoriteReturnRate: number;
+  turbulenceContinueRate: number;
+  middleContinueRate: number;
+  turbulenceAccelerationRate: number;
+  averageNextPayoutYen: number;
+  highNextPayoutRate: number;
+};
+
 export type KurariExRaceChainV1 = {
   status: "ready" | "no-eligible-data";
   sourcePolicy: "official result only";
@@ -145,6 +164,8 @@ export type KurariExRaceChainV1 = {
     upsetChainCount: number;
     upsetChainRate: number;
   };
+  byVenue: KurariExRaceChainSegment[];
+  byVenueRaceBand: KurariExRaceChainSegment[];
   examples: Array<{
     date: string;
     venueCode: string;
@@ -2050,6 +2071,73 @@ export function buildKurariExTrifectaTrendV1(
   const favoriteReturnCount = afterUpsetPairs.filter((pair) => pair.nextCategory === "firm").length;
   const upsetChainCount = afterUpsetPairs.filter((pair) => isUpsetOrAbove(pair.nextCategory)).length;
   const categoryKeys = TURBULENCE_CATEGORY_DEFINITIONS.map((definition) => definition.key);
+  const chainSegmentSampleStatus = (sampleSize: number): KurariExRaceChainSegmentSampleStatus => {
+    if (sampleSize >= 80) return "strong";
+    if (sampleSize >= 30) return "medium";
+    return "weak";
+  };
+  const summarizeChainSegment = (
+    key: string,
+    pairs: typeof chainPairs,
+    segmentKey: (pair: typeof chainPairs[number]) => string,
+    segmentLabel: (pair: typeof chainPairs[number]) => string,
+  ): KurariExRaceChainSegment => {
+    const first = pairs[0];
+    const favoriteReturnCountInSegment = pairs.filter((pair) => pair.type === "favorite-return").length;
+    const turbulenceContinueCount = pairs.filter((pair) => pair.type === "upset-chain").length;
+    const middleContinueCount = pairs.filter((pair) => pair.type === "mid-upset-continues").length;
+    const turbulenceAccelerationCount = pairs.filter((pair) => pair.type === "upset-acceleration").length;
+    const nextPayouts = pairs.map((pair) => pair.next.payoutYen);
+    return {
+      key,
+      label: `${first.previous.venueName} / ${segmentLabel(first)}`,
+      venueCode: first.previous.venueCode,
+      venueName: first.previous.venueName,
+      segmentKey: segmentKey(first),
+      segmentLabel: segmentLabel(first),
+      sampleSize: pairs.length,
+      sampleStatus: chainSegmentSampleStatus(pairs.length),
+      favoriteReturnRate: rate(favoriteReturnCountInSegment, pairs.length),
+      turbulenceContinueRate: rate(turbulenceContinueCount, pairs.length),
+      middleContinueRate: rate(middleContinueCount, pairs.length),
+      turbulenceAccelerationRate: rate(turbulenceAccelerationCount, pairs.length),
+      averageNextPayoutYen: Math.round(nextPayouts.reduce((sum, payout) => sum + payout, 0) / pairs.length),
+      highNextPayoutRate: rate(pairs.filter((pair) => pair.next.payoutYen >= highPayoutThreshold).length, pairs.length),
+    };
+  };
+  const chainSegments = (
+    axis: "venue" | "venueRaceBand",
+    segmentKey: (pair: typeof chainPairs[number]) => string,
+    segmentLabel: (pair: typeof chainPairs[number]) => string,
+  ): KurariExRaceChainSegment[] => {
+    const groups = new Map<string, typeof chainPairs>();
+    chainPairs.forEach((pair) => {
+      const value = segmentKey(pair);
+      if (!value) return;
+      const venueKey = pair.previous.venueCode || pair.previous.venueName;
+      const key = `${venueKey}|${axis}|${value}`;
+      const group = groups.get(key) ?? [];
+      group.push(pair);
+      groups.set(key, group);
+    });
+    return [...groups.entries()]
+      .map(([key, pairs]) => summarizeChainSegment(key, pairs, segmentKey, segmentLabel))
+      .sort((left, right) =>
+        right.sampleSize - left.sampleSize
+        || left.venueCode.localeCompare(right.venueCode, "ja", { numeric: true })
+        || left.segmentKey.localeCompare(right.segmentKey, "ja", { numeric: true }),
+      );
+  };
+  const byVenue = chainSegments(
+    "venue",
+    (pair) => pair.previous.venueCode || pair.previous.venueName,
+    () => "全連続R",
+  );
+  const byVenueRaceBand = chainSegments(
+    "venueRaceBand",
+    (pair) => pair.previous.raceBand,
+    (pair) => `前R ${raceBandLabels[pair.previous.raceBand]}`,
+  );
   const chainResult: KurariExRaceChainV1 = {
     status: chainPairs.length ? "ready" : "no-eligible-data",
     sourcePolicy: "official result only",
@@ -2088,6 +2176,8 @@ export function buildKurariExTrifectaTrendV1(
       upsetChainCount,
       upsetChainRate: rate(upsetChainCount, afterUpsetPairs.length),
     },
+    byVenue,
+    byVenueRaceBand,
     examples: [...chainPairs]
       .sort((left, right) =>
         Math.max(right.previous.payoutYen, right.next.payoutYen)

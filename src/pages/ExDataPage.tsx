@@ -106,6 +106,7 @@ import {
 } from "../lib/kurariExResultTrendLab";
 import type {
   KurariExCoverageStatus,
+  KurariExRaceChainSegment,
   KurariExTrendCarTop3Row,
   KurariExTrendRankingRow,
   KurariExTrifectaTrendV1,
@@ -502,6 +503,34 @@ function TrendRankingCard({
 
 function formatPayoutYen(value: number | null) {
   return value == null ? "未取得" : `${value.toLocaleString("ja-JP")}円`;
+}
+
+function raceChainSegmentStatusClass(status: KurariExRaceChainSegment["sampleStatus"]) {
+  return status === "strong" ? "ready" : status === "medium" ? "partial" : "warning";
+}
+
+function RaceChainSegmentCard({ segment }: { segment: KurariExRaceChainSegment }) {
+  return (
+    <article className="ex-chain-example">
+      <div className="ex-location-head">
+        <div>
+          <div className="ex-eyebrow">{segment.venueCode || "VENUE"} / {segment.segmentLabel}</div>
+          <h3>{segment.venueName}</h3>
+        </div>
+        <span className={`ex-location-status is-${raceChainSegmentStatusClass(segment.sampleStatus)}`}>
+          {segment.sampleSize.toLocaleString("ja-JP")} pairs / {segment.sampleStatus}
+        </span>
+      </div>
+      <div className="ex-venue-bias-metrics">
+        <div>本命戻り<strong>{segment.favoriteReturnRate.toFixed(1)}%</strong></div>
+        <div>荒れ継続<strong>{segment.turbulenceContinueRate.toFixed(1)}%</strong></div>
+        <div>中穴継続<strong>{segment.middleContinueRate.toFixed(1)}%</strong></div>
+        <div>波乱加速<strong>{segment.turbulenceAccelerationRate.toFixed(1)}%</strong></div>
+        <div>次R平均配当<strong>{formatPayoutYen(segment.averageNextPayoutYen)}</strong></div>
+        <div>次R万車券率<strong>{segment.highNextPayoutRate.toFixed(1)}%</strong></div>
+      </div>
+    </article>
+  );
 }
 
 function turbulenceSegmentStatusClass(status: KurariExTurbulenceSegment["sampleStatus"]) {
@@ -3447,6 +3476,63 @@ export default function ExDataPage() {
                         warning={trifectaTrend.chain.afterUpset.sampleSize < 30}
                       />
                       <MetricCard label="PAIR RULE" value="R → R+1" note="同日 / 同会場 / 一意race key" />
+                    </div>
+
+                    <div>
+                      <SectionTitle
+                        eyebrow="RACE CHAIN SEGMENTS v2"
+                        title="会場別連鎖"
+                        lead="同日・同会場・連続Rで、前後ともtrend対象のeligible pairだけを会場別に集計します。R番号帯は前Rの帯で集計します。strong >= 80 pairs、medium >= 30 pairs、weak < 30 pairs。"
+                      />
+                      <div className="ex-note-grid">
+                        <MetricCard
+                          label="会場別"
+                          value={trifectaTrend.chain.byVenue.length.toLocaleString("ja-JP")}
+                          note="eligible pairを会場ごとに集計"
+                          warning={!trifectaTrend.chain.byVenue.length}
+                        />
+                        <MetricCard
+                          label="会場 × 前R番号帯"
+                          value={trifectaTrend.chain.byVenueRaceBand.length.toLocaleString("ja-JP")}
+                          note="early 1〜4R / middle 5〜8R / late 9R以降"
+                          warning={!trifectaTrend.chain.byVenueRaceBand.length}
+                        />
+                        <MetricCard
+                          label="次R万車券閾値"
+                          value="10,000円以上"
+                          note="既存の荒れカテゴリ閾値を使用"
+                        />
+                      </div>
+
+                      <div className="ex-location-grid">
+                        <article className="ex-location-card">
+                          <div className="ex-location-head">
+                            <h3>会場別</h3>
+                            <span className="ex-location-status is-partial">TOP 6</span>
+                          </div>
+                          {trifectaTrend.chain.byVenue.length ? (
+                            <div className="ex-chain-examples">
+                              {trifectaTrend.chain.byVenue.slice(0, 6).map((segment) => (
+                                <RaceChainSegmentCard key={segment.key} segment={segment} />
+                              ))}
+                            </div>
+                          ) : <div className="ex-muted">venue chain segmentなし</div>}
+                        </article>
+
+                        <article className="ex-location-card">
+                          <div className="ex-location-head">
+                            <h3>会場 × 前R番号帯</h3>
+                            <span className="ex-location-status is-partial">TOP 6</span>
+                          </div>
+                          {trifectaTrend.chain.byVenueRaceBand.length ? (
+                            <div className="ex-chain-examples">
+                              {trifectaTrend.chain.byVenueRaceBand.slice(0, 6).map((segment) => (
+                                <RaceChainSegmentCard key={segment.key} segment={segment} />
+                              ))}
+                            </div>
+                          ) : <div className="ex-muted">race band chain segmentなし</div>}
+                        </article>
+                      </div>
                     </div>
 
                     <div className="ex-location-grid">
