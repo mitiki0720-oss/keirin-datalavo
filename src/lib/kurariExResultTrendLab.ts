@@ -477,6 +477,27 @@ export type KurariExTodayFlowV1 = {
   };
 };
 
+export type KurariExPredictionSignal = {
+  key: string;
+  label: string;
+  source: "turbulence" | "venue-bias" | "ranking" | "today-flow" | "race-chain" | "weather" | "sample" | "source";
+  note: string;
+  sampleStatus?: "strong" | "medium" | "weak" | KurariExTrendSampleStatus;
+  sampleSize?: number;
+  tone: "primary" | "caution" | "sample" | "source";
+};
+
+export type KurariExPredictionSignals = {
+  primarySignals: KurariExPredictionSignal[];
+  cautionSignals: KurariExPredictionSignal[];
+  sampleWarnings: KurariExPredictionSignal[];
+  conflictNotes: KurariExPredictionSignal[];
+  sourcePolicy: {
+    label: "official result only / fake補完なし / trendEligibleのみ";
+    items: string[];
+  };
+};
+
 export type KurariExCoverageStatus =
   | "implemented"
   | "partial"
@@ -722,6 +743,7 @@ export type KurariExTrifectaTrendV1 = {
   weather: KurariExWindDecisionV1;
   venueBias: KurariExVenueBiasV1;
   todayFlow: KurariExTodayFlowV1;
+  predictionSignals: KurariExPredictionSignals;
 };
 
 type OfficialFinishRow = {
@@ -907,6 +929,10 @@ function todayFlowExclusionCategory(reason: string): KurariExTodayFlowExclusionC
   return "other";
 }
 
+function isStrongEnoughSample(status: "strong" | "medium" | "weak") {
+  return status === "strong" || status === "medium";
+}
+
 const WEATHER_EXCLUSION_LABELS: Record<string, string> = {
   "source-unavailable": "official source / provenanceを確認できない",
   "race-key-missing": "date / venue / raceNumberから一意race keyを作れない",
@@ -1077,6 +1103,202 @@ function sampleStatus(sampleSize: number): {
   if (sampleSize < 30) return { status: "low-sample", label: "LOW SAMPLE / 参考のみ" };
   if (sampleSize < 100) return { status: "caution", label: "caution / 傾向注意" };
   return { status: "usable", label: "usable trend / 予想の補助" };
+}
+
+function buildKurariExPredictionSignals(trend: KurariExTrifectaTrendV1): KurariExPredictionSignals {
+  const primarySignals: KurariExPredictionSignal[] = [];
+  const cautionSignals: KurariExPredictionSignal[] = [];
+  const sampleWarnings: KurariExPredictionSignal[] = [];
+  const conflictNotes: KurariExPredictionSignal[] = [];
+
+  const turbulenceSegment = [...trend.turbulence.byVenueRaceBand, ...trend.turbulence.byVenueCarCount]
+    .filter((segment) => isStrongEnoughSample(segment.sampleStatus))
+    .sort((left, right) =>
+      right.veryHighPayoutRate - left.veryHighPayoutRate
+      || right.highPayoutRate - left.highPayoutRate
+      || right.sampleSize - left.sampleSize,
+    )[0];
+  if (turbulenceSegment) {
+    primarySignals.push({
+      key: `turbulence:${turbulenceSegment.key}`,
+      label: "荒れ注意",
+      source: "turbulence",
+      note: `${turbulenceSegment.label}: 万車券率${turbulenceSegment.highPayoutRate.toFixed(1)}% / 大荒れ率${turbulenceSegment.veryHighPayoutRate.toFixed(1)}%`,
+      sampleStatus: turbulenceSegment.sampleStatus,
+      sampleSize: turbulenceSegment.sampleSize,
+      tone: "primary",
+    });
+  }
+
+  const venueBiasSegment = [...trend.venueBias.byVenueRaceBand, ...trend.venueBias.byVenueCarCount, ...trend.venueBias.byVenueGrade]
+    .filter((segment) => isStrongEnoughSample(segment.sampleStatus))
+    .sort((left, right) =>
+      right.outsideInvolvementRate - left.outsideInvolvementRate
+      || right.oneCarOutRate - left.oneCarOutRate
+      || right.sampleSize - left.sampleSize,
+    )[0];
+  if (venueBiasSegment) {
+    primarySignals.push({
+      key: `venue-bias:${venueBiasSegment.key}`,
+      label: venueBiasSegment.oneCarOutRate >= 45 ? "1番車飛び注意" : "外枠絡み注意",
+      source: "venue-bias",
+      note: `${venueBiasSegment.label}: 外枠絡み${venueBiasSegment.outsideInvolvementRate.toFixed(1)}% / 1番車飛び${venueBiasSegment.oneCarOutRate.toFixed(1)}%`,
+      sampleStatus: venueBiasSegment.sampleStatus,
+      sampleSize: venueBiasSegment.sampleSize,
+      tone: "primary",
+    });
+  }
+
+  const rankingSegment = [...trend.rankingSegments.byVenueRaceClass, ...trend.rankingSegments.byRaceClass, ...trend.rankingSegments.byVenue]
+    .filter((segment) => isStrongEnoughSample(segment.sampleStatus) && segment.topTrifectaResults.length > 0)
+    .sort((left, right) =>
+      (right.topTrifectaResults[0]?.rate ?? 0) - (left.topTrifectaResults[0]?.rate ?? 0)
+      || right.sampleSize - left.sampleSize,
+    )[0];
+  const topTrifecta = rankingSegment?.topTrifectaResults[0];
+  if (rankingSegment && topTrifecta) {
+    primarySignals.push({
+      key: `ranking:${rankingSegment.key}:${topTrifecta.key}`,
+      label: "よく出る出目形",
+      source: "ranking",
+      note: `${rankingSegment.label}: ${topTrifecta.label} ${topTrifecta.rate.toFixed(1)}%`,
+      sampleStatus: rankingSegment.sampleStatus,
+      sampleSize: rankingSegment.sampleSize,
+      tone: "primary",
+    });
+  }
+
+  trend.todayFlow.attentionSigns.slice(0, 2).forEach((sign) => {
+    cautionSignals.push({
+      key: `today-flow:${sign.key}`,
+      label: sign.label,
+      source: "today-flow",
+      note: sign.note,
+      sampleStatus: trend.todayFlow.sampleStatus,
+      sampleSize: trend.todayFlow.eligibleRaceCount,
+      tone: "caution",
+    });
+  });
+
+  const chainSegment = trend.chain.byVenue
+    .filter((segment) => isStrongEnoughSample(segment.sampleStatus))
+    .sort((left, right) =>
+      right.turbulenceAccelerationRate - left.turbulenceAccelerationRate
+      || right.turbulenceContinueRate - left.turbulenceContinueRate
+      || right.sampleSize - left.sampleSize,
+    )[0];
+  if (chainSegment) {
+    cautionSignals.push({
+      key: `race-chain:${chainSegment.key}`,
+      label: "連鎖は参考",
+      source: "race-chain",
+      note: `${chainSegment.label}: 波乱加速${chainSegment.turbulenceAccelerationRate.toFixed(1)}% / 荒れ連鎖${chainSegment.turbulenceContinueRate.toFixed(1)}%`,
+      sampleStatus: chainSegment.sampleStatus,
+      sampleSize: chainSegment.sampleSize,
+      tone: "caution",
+    });
+  }
+
+  const weatherSegment = trend.weather.byVenueWindBucket
+    .filter((segment) => isStrongEnoughSample(segment.sampleStatus))
+    .sort((left, right) =>
+      right.highPayoutRate - left.highPayoutRate
+      || Math.max(right.escapeRate, right.sprintRate) - Math.max(left.escapeRate, left.sprintRate)
+      || right.sampleSize - left.sampleSize,
+    )[0];
+  if (weatherSegment) {
+    cautionSignals.push({
+      key: `weather:${weatherSegment.key}`,
+      label: "風速条件は補助",
+      source: "weather",
+      note: `${weatherSegment.label}: 万車券率${weatherSegment.highPayoutRate.toFixed(1)}% / 逃げ${weatherSegment.escapeRate.toFixed(1)}% / 捲り${weatherSegment.sprintRate.toFixed(1)}%`,
+      sampleStatus: weatherSegment.sampleStatus,
+      sampleSize: weatherSegment.sampleSize,
+      tone: "caution",
+    });
+  }
+
+  const weakSegments = [
+    ...[...trend.rankingSegments.byVenue, ...trend.rankingSegments.byRaceClass, ...trend.rankingSegments.byVenueRaceClass]
+      .filter((segment) => segment.sampleStatus === "weak" && segment.sampleSize < 30)
+      .map((segment) => ({ key: `ranking:${segment.key}`, label: "出目ランキング", segmentLabel: segment.label, sampleSize: segment.sampleSize })),
+    ...[...trend.turbulence.byVenueRaceBand, ...trend.turbulence.byVenueCarCount]
+      .filter((segment) => segment.sampleStatus === "weak" && segment.sampleSize < 30)
+      .map((segment) => ({ key: `turbulence:${segment.key}`, label: "荒れ指数", segmentLabel: segment.label, sampleSize: segment.sampleSize })),
+    ...[...trend.venueBias.byVenueCarCount, ...trend.venueBias.byVenueRaceBand, ...trend.venueBias.byVenueGrade]
+      .filter((segment) => segment.sampleStatus === "weak" && segment.sampleSize < 30)
+      .map((segment) => ({ key: `venue-bias:${segment.key}`, label: "会場クセ", segmentLabel: segment.label, sampleSize: segment.sampleSize })),
+    ...[...trend.chain.byVenue, ...trend.chain.byVenueRaceBand]
+      .filter((segment) => segment.sampleStatus === "weak" && segment.sampleSize < 30)
+      .map((segment) => ({ key: `race-chain:${segment.key}`, label: "レース連鎖", segmentLabel: segment.label, sampleSize: segment.sampleSize })),
+    ...trend.weather.byVenueWindBucket
+      .filter((segment) => segment.sampleStatus === "weak" && segment.sampleSize < 30)
+      .map((segment) => ({ key: `weather:${segment.key}`, label: "WEATHER", segmentLabel: segment.label, sampleSize: segment.sampleSize })),
+  ].sort((left, right) => left.sampleSize - right.sampleSize || left.key.localeCompare(right.key, "ja", { numeric: true }));
+  weakSegments.slice(0, 3).forEach((segment) => {
+    sampleWarnings.push({
+      key: `sample:${segment.key}`,
+      label: `${segment.label} weak sample`,
+      source: "sample",
+      note: `${segment.segmentLabel}: ${segment.sampleSize.toLocaleString("ja-JP")}件。weak sampleは参考扱い、medium以上を主に扱う`,
+      sampleStatus: "weak",
+      sampleSize: segment.sampleSize,
+      tone: "sample",
+    });
+  });
+  if (trend.todayFlow.attentionSampleCaution.enabled) {
+    sampleWarnings.unshift({
+      key: "sample:today-flow",
+      label: "単日current参考",
+      source: "sample",
+      note: `単日currentのため参考扱い。${trend.todayFlow.attentionSampleCaution.note}`,
+      sampleStatus: trend.todayFlow.sampleStatus,
+      sampleSize: trend.todayFlow.eligibleRaceCount,
+      tone: "sample",
+    });
+  }
+
+  const todayHighPayout = trend.todayFlow.baseline.comparisons.find((row) => row.key === "highPayoutRate");
+  const todayAveragePayout = trend.todayFlow.baseline.comparisons.find((row) => row.key === "averageTrifectaPayoutYen");
+  const todayOutside = trend.todayFlow.baseline.comparisons.find((row) => row.key === "outsideInvolvementRate");
+  if (turbulenceSegment && turbulenceSegment.highPayoutRate >= 30 && (todayHighPayout?.diffLabel === "below" || todayAveragePayout?.diffLabel === "below")) {
+    conflictNotes.push({
+      key: "conflict:turbulence-vs-today",
+      label: "60日荒れ傾向 vs 今日の下振れ",
+      source: "today-flow",
+      note: "60日条件別傾向を主、今日の流れは補正として扱う",
+      sampleStatus: turbulenceSegment.sampleStatus,
+      sampleSize: turbulenceSegment.sampleSize,
+      tone: "caution",
+    });
+  }
+  if (venueBiasSegment && venueBiasSegment.outsideInvolvementRate >= 85 && todayOutside?.diffLabel === "below") {
+    conflictNotes.push({
+      key: "conflict:venue-bias-vs-today",
+      label: "60日外枠傾向 vs 今日の下振れ",
+      source: "today-flow",
+      note: "会場クセを主、今日の流れは注意サインに留める",
+      sampleStatus: venueBiasSegment.sampleStatus,
+      sampleSize: venueBiasSegment.sampleSize,
+      tone: "caution",
+    });
+  }
+
+  return {
+    primarySignals: primarySignals.slice(0, 3),
+    cautionSignals: cautionSignals.slice(0, 3),
+    sampleWarnings: sampleWarnings.slice(0, 3),
+    conflictNotes: conflictNotes.slice(0, 2),
+    sourcePolicy: {
+      label: "official result only / fake補完なし / trendEligibleのみ",
+      items: [
+        "KEIRIN.JP official result only",
+        "trendEligible=trueのみを主母数に使用",
+        "dead heat / refund-no-trifecta / not-finalized はtrend集計から除外",
+        "fake補完・推測補完なし",
+      ],
+    },
+  };
 }
 
 function countRanking(
@@ -2744,6 +2966,9 @@ export function buildKurariExTrifectaTrendV1(
       );
     },
   );
+  const getPredictionSignals = memoizeOnce(
+    () => buildKurariExPredictionSignals(result),
+  );
   const result: KurariExTrifectaTrendV1 = {
     status: eligibleRaceCount > 0 ? "ready" : "no-eligible-data",
     sourcePolicy: "official result only",
@@ -2836,12 +3061,14 @@ export function buildKurariExTrifectaTrendV1(
     weather: undefined as unknown as KurariExWindDecisionV1,
     venueBias: undefined as unknown as KurariExVenueBiasV1,
     todayFlow: undefined as unknown as KurariExTodayFlowV1,
+    predictionSignals: undefined as unknown as KurariExPredictionSignals,
   };
   Object.defineProperties(result, {
     chain: { enumerable: true, get: getChainResult },
     weather: { enumerable: true, get: getWeather },
     venueBias: { enumerable: true, get: getVenueBias },
     todayFlow: { enumerable: true, get: getTodayFlow },
+    predictionSignals: { enumerable: true, get: getPredictionSignals },
   });
   return result;
 }

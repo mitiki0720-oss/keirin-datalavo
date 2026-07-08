@@ -3174,6 +3174,85 @@ export default function ExDataPage() {
           <div hidden={!["ranking", "turbulence", "chain", "weather", "venue-bias", "today-flow"].includes(activeSectionTab)}>
             <HistoricalTrendSourceSummary trend={trifectaTrend} status={trifectaTrendStatus} />
           </div>
+          {trifectaTrend && ["trend", "ranking", "turbulence", "chain", "weather", "venue-bias", "today-flow"].includes(activeSectionTab) ? (
+            <div className="ex-subsection" data-testid="result-trend-lab-prediction-signals">
+              <SectionTitle
+                eyebrow="PREDICTION SIGNALS / MOBILE SUMMARY"
+                title="予想用サマリー"
+                lead="Result Trend Lab v2から、予想画面・モバイルへ渡す前提の軽量サマリーです。断定ではなく、傾向・注意・参考として扱います。"
+              />
+              <div className="ex-note-grid">
+                <div className="ex-empty">
+                  <strong>PRIMARY</strong><br />
+                  {trifectaTrend.predictionSignals.primarySignals.length ? (
+                    <div className="ex-trend-status-row" style={{ marginTop: 8 }}>
+                      {trifectaTrend.predictionSignals.primarySignals.map((signal) => (
+                        <span className="ex-trend-status-pill is-ready" key={signal.key}>
+                          {signal.label}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="ex-muted">買い目直結寄りのstrong/medium signalなし</span>
+                  )}
+                  {trifectaTrend.predictionSignals.primarySignals.map((signal) => (
+                    <div className="ex-muted" key={`${signal.key}:note`} style={{ marginTop: 6 }}>
+                      {signal.note}{signal.sampleSize ? ` / ${signal.sampleSize.toLocaleString("ja-JP")}件` : ""}
+                    </div>
+                  ))}
+                </div>
+                <div className="ex-empty">
+                  <strong>CAUTION</strong><br />
+                  {trifectaTrend.predictionSignals.cautionSignals.length ? (
+                    <div className="ex-trend-status-row" style={{ marginTop: 8 }}>
+                      {trifectaTrend.predictionSignals.cautionSignals.map((signal) => (
+                        <span className="ex-trend-status-pill is-caution" key={signal.key}>
+                          {signal.label}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="ex-muted">注意サインなし</span>
+                  )}
+                  {trifectaTrend.predictionSignals.cautionSignals.map((signal) => (
+                    <div className="ex-muted" key={`${signal.key}:note`} style={{ marginTop: 6 }}>
+                      {signal.note}{signal.sampleSize ? ` / ${signal.sampleSize.toLocaleString("ja-JP")}件` : ""}
+                    </div>
+                  ))}
+                </div>
+                <div className="ex-empty">
+                  <strong>SAMPLE</strong><br />
+                  {trifectaTrend.predictionSignals.sampleWarnings.length ? (
+                    trifectaTrend.predictionSignals.sampleWarnings.map((signal) => (
+                      <div className="ex-muted" key={signal.key} style={{ marginTop: 6 }}>
+                        {signal.label}: {signal.note}
+                      </div>
+                    ))
+                  ) : (
+                    <span className="ex-muted">weak sample warningなし</span>
+                  )}
+                </div>
+                <div className="ex-empty">
+                  <strong>CONFLICT</strong><br />
+                  {trifectaTrend.predictionSignals.conflictNotes.length ? (
+                    trifectaTrend.predictionSignals.conflictNotes.map((signal) => (
+                      <div className="ex-muted" key={signal.key} style={{ marginTop: 6 }}>
+                        {signal.label}: {signal.note}
+                      </div>
+                    ))
+                  ) : (
+                    <span className="ex-muted">60日傾向と今日の流れの明確な矛盾なし</span>
+                  )}
+                </div>
+              </div>
+              <div className="ex-overview-status" style={{ marginTop: 10 }}>
+                <span className="ex-trend-status-pill is-ready">SOURCE: {trifectaTrend.predictionSignals.sourcePolicy.label}</span>
+                {trifectaTrend.predictionSignals.sourcePolicy.items.map((item) => (
+                  <span className="ex-trend-status-pill is-ready" key={item}>{item}</span>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <div className="ex-health-grid" hidden={activeSectionTab !== "trend"}>
             <MetricCard label="DATA AVAILABILITY AUDIT" value="IMPLEMENTED" note="schema / coverage / provenance監査" />
             <MetricCard label="RANKING / PAYOUT ENGINE" value="IMPLEMENTED v1" note="official 3連単結果・実払戻金のみ" />
