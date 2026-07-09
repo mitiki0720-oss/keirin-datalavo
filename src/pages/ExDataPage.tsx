@@ -2569,8 +2569,8 @@ export default function ExDataPage() {
         .ex-panel, .ex-section, .ex-subsection, .ex-detail, .ex-workspace, .ex-table-wrap { min-width: 0; max-width: 100%; box-sizing: border-box; }
         .ex-subsection, .ex-table-wrap { width: 100%; }
         .ex-main h1, .ex-main h2, .ex-main h3, .ex-main h4, .ex-main p, .ex-main li, .ex-main td, .ex-main th, .ex-main span, .ex-main strong { overflow-wrap: anywhere; }
-        .ex-health-grid, .ex-kpi-grid, .ex-location-grid, .ex-category-grid, .ex-insights, .ex-note-grid, .ex-trend-ranking-grid, .ex-turbulence-category-grid, .ex-chain-type-grid, .ex-chain-examples, .ex-weather-bucket-grid, .ex-weather-venue-grid, .ex-venue-bias-grid, .ex-venue-definition-grid, .ex-today-flow-grid, .ex-today-flow-meter, .ex-coverage-tab-map, .ex-backfill-grid, .ex-definition-grid { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
-        .ex-health-grid > *, .ex-kpi-grid > *, .ex-location-grid > *, .ex-category-grid > *, .ex-insights > *, .ex-note-grid > *, .ex-trend-ranking-grid > *, .ex-turbulence-category-grid > *, .ex-chain-type-grid > *, .ex-chain-examples > *, .ex-venue-bias-grid > *, .ex-venue-definition-grid > *, .ex-today-flow-grid > *, .ex-today-flow-meter > *, .ex-coverage-tab-map > *, .ex-backfill-grid > *, .ex-definition-grid > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
+        .ex-health-grid, .ex-kpi-grid, .ex-location-grid, .ex-category-grid, .ex-insights, .ex-note-grid, .ex-prediction-summary, .ex-prediction-support-grid, .ex-trend-ranking-grid, .ex-turbulence-category-grid, .ex-chain-type-grid, .ex-chain-examples, .ex-weather-bucket-grid, .ex-weather-venue-grid, .ex-venue-bias-grid, .ex-venue-definition-grid, .ex-today-flow-grid, .ex-today-flow-meter, .ex-coverage-tab-map, .ex-backfill-grid, .ex-definition-grid { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+        .ex-health-grid > *, .ex-kpi-grid > *, .ex-location-grid > *, .ex-category-grid > *, .ex-insights > *, .ex-note-grid > *, .ex-prediction-summary > *, .ex-prediction-support-grid > *, .ex-trend-ranking-grid > *, .ex-turbulence-category-grid > *, .ex-chain-type-grid > *, .ex-chain-examples > *, .ex-venue-bias-grid > *, .ex-venue-definition-grid > *, .ex-today-flow-grid > *, .ex-today-flow-meter > *, .ex-coverage-tab-map > *, .ex-backfill-grid > *, .ex-definition-grid > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
         .ex-main [hidden] { display: none !important; }
         .ex-section-tabs { display: grid; grid-template-columns: repeat(auto-fit,minmax(${isMobile ? "128px" : "150px"},1fr)); gap: 9px; padding: 12px; border: 1px solid rgba(190,194,224,.62); border-radius: 24px; background: rgba(255,255,255,.82); box-shadow: 0 16px 40px rgba(82,74,135,.08); }
         .ex-section-tab { min-width: 0; cursor: pointer; display: grid; gap: 4px; padding: 12px 13px; border: 1px solid #e2e2ed; border-radius: 16px; background: rgba(248,249,253,.9); color: #657187; text-align: left; }
@@ -2751,6 +2751,28 @@ export default function ExDataPage() {
         .ex-trend-status-pill.is-future-accumulation { color: #687184; background: #eceef2; }
         .ex-trend-status-pill.is-low-sample, .ex-trend-status-pill.is-caution { color: #925711; background: #fff0d3; }
         .ex-trend-status-pill.is-usable { color: #23664c; background: #daf5e8; }
+        .ex-prediction-summary { display: grid; gap: 12px; }
+        .ex-prediction-primary { display: grid; gap: 12px; padding: ${isMobile ? "18px" : "22px"}; border: 1px solid rgba(119,97,183,.34); border-radius: 24px; background: linear-gradient(135deg, rgba(245,240,255,.98), rgba(236,250,255,.94)); box-shadow: 0 18px 36px rgba(88,75,148,.10); }
+        .ex-prediction-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .ex-prediction-head strong { color: #2a2351; font: 850 18px/1.25 ${serif}; }
+        .ex-prediction-head span { color: #6e5ca8; font-size: 10px; font-weight: 950; letter-spacing: .12em; }
+        .ex-prediction-signal-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+        .ex-prediction-primary .ex-trend-status-pill { padding: 9px 12px; color: #fff; background: linear-gradient(135deg,#6c58ad,#3c7c9f); box-shadow: 0 9px 18px rgba(72,85,153,.14); }
+        .ex-prediction-note-list { display: grid; gap: 7px; }
+        .ex-prediction-signal-note { padding: 9px 11px; border-radius: 14px; color: #50617b; background: rgba(255,255,255,.66); font-size: 11px; font-weight: 750; line-height: 1.55; }
+        .ex-prediction-support-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 3}, minmax(0,1fr)); gap: 12px; }
+        .ex-prediction-card { display: grid; align-content: start; gap: 10px; padding: 17px; border: 1px solid #e2e5ef; border-radius: 20px; background: rgba(255,255,255,.74); }
+        .ex-prediction-card.is-caution { border-color: #f0d9aa; background: #fffaf0; }
+        .ex-prediction-card.is-sample { border-color: #ead9b9; background: #fffaf2; }
+        .ex-prediction-card.is-conflict { border-color: #d8dce9; background: #f8f9fd; }
+        .ex-prediction-card-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #34435b; font-size: 11px; font-weight: 950; letter-spacing: .1em; }
+        .ex-prediction-card-title small { color: #8b96a8; font-size: 9px; font-weight: 900; letter-spacing: .04em; }
+        .ex-prediction-card .ex-trend-status-pill { padding: 6px 9px; font-size: 9px; }
+        .ex-prediction-sample-current { padding: 9px 11px; border: 1px solid #d8e5f5; border-radius: 14px; color: #42607f; background: #f2f7ff; font-size: 11px; font-weight: 800; line-height: 1.55; }
+        .ex-prediction-sample-weak { padding: 9px 11px; border-left: 4px solid #d79b31; border-radius: 12px; color: #775017; background: #fff6e5; font-size: 11px; font-weight: 800; line-height: 1.55; }
+        .ex-prediction-source-policy { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; padding: 10px 13px; border: 1px solid #dfe8e5; border-radius: 17px; color: #657187; background: rgba(247,251,250,.78); font-size: 10px; font-weight: 850; line-height: 1.55; }
+        .ex-prediction-source-policy strong { color: #37614f; font-size: 10px; letter-spacing: .08em; }
+        .ex-prediction-source-policy span { color: #748096; }
         .ex-trend-ranking-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 2}, minmax(0,1fr)); gap: 13px; }
         .ex-trend-ranking-card { min-width: 0; padding: 18px; border: 1px solid #e1e4f0; border-radius: 21px; background: linear-gradient(145deg,rgba(255,255,255,.96),rgba(247,246,255,.9)); }
         .ex-trend-ranking-card:first-child { grid-column: ${isMobile ? "auto" : "1 / -1"}; }
@@ -3181,11 +3203,14 @@ export default function ExDataPage() {
                 title="予想用サマリー"
                 lead="Result Trend Lab v2から、予想画面・モバイルへ渡す前提の軽量サマリーです。断定ではなく、傾向・注意・参考として扱います。"
               />
-              <div className="ex-note-grid">
-                <div className="ex-empty">
-                  <strong>PRIMARY</strong><br />
+              <div className="ex-prediction-summary">
+                <div className="ex-prediction-primary">
+                  <div className="ex-prediction-head">
+                    <strong>PRIMARY / 買い目判断の入口</strong>
+                    <span>strong / medium only</span>
+                  </div>
                   {trifectaTrend.predictionSignals.primarySignals.length ? (
-                    <div className="ex-trend-status-row" style={{ marginTop: 8 }}>
+                    <div className="ex-prediction-signal-pills">
                       {trifectaTrend.predictionSignals.primarySignals.map((signal) => (
                         <span className="ex-trend-status-pill is-ready" key={signal.key}>
                           {signal.label}
@@ -3195,61 +3220,92 @@ export default function ExDataPage() {
                   ) : (
                     <span className="ex-muted">買い目直結寄りのstrong/medium signalなし</span>
                   )}
-                  {trifectaTrend.predictionSignals.primarySignals.map((signal) => (
-                    <div className="ex-muted" key={`${signal.key}:note`} style={{ marginTop: 6 }}>
-                      {signal.note}{signal.sampleSize ? ` / ${signal.sampleSize.toLocaleString("ja-JP")}件` : ""}
-                    </div>
-                  ))}
+                  <div className="ex-prediction-note-list">
+                    {trifectaTrend.predictionSignals.primarySignals.map((signal) => (
+                      <div className="ex-prediction-signal-note" key={`${signal.key}:note`}>
+                        {signal.note}{signal.sampleSize ? ` / ${signal.sampleSize.toLocaleString("ja-JP")}件` : ""}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="ex-empty">
-                  <strong>CAUTION</strong><br />
-                  {trifectaTrend.predictionSignals.cautionSignals.length ? (
-                    <div className="ex-trend-status-row" style={{ marginTop: 8 }}>
+
+                <div className="ex-prediction-support-grid">
+                  <div className="ex-prediction-card is-caution">
+                    <div className="ex-prediction-card-title">
+                      <strong>CAUTION</strong>
+                      <small>買い方の補助</small>
+                    </div>
+                    {trifectaTrend.predictionSignals.cautionSignals.length ? (
+                      <div className="ex-prediction-signal-pills">
+                        {trifectaTrend.predictionSignals.cautionSignals.map((signal) => (
+                          <span className="ex-trend-status-pill is-caution" key={signal.key}>
+                            {signal.label}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="ex-muted">注意サインなし</span>
+                    )}
+                    <div className="ex-prediction-note-list">
                       {trifectaTrend.predictionSignals.cautionSignals.map((signal) => (
-                        <span className="ex-trend-status-pill is-caution" key={signal.key}>
-                          {signal.label}
-                        </span>
+                        <div className="ex-muted" key={`${signal.key}:note`}>
+                          {signal.note}{signal.sampleSize ? ` / ${signal.sampleSize.toLocaleString("ja-JP")}件` : ""}
+                        </div>
                       ))}
                     </div>
-                  ) : (
-                    <span className="ex-muted">注意サインなし</span>
-                  )}
-                  {trifectaTrend.predictionSignals.cautionSignals.map((signal) => (
-                    <div className="ex-muted" key={`${signal.key}:note`} style={{ marginTop: 6 }}>
-                      {signal.note}{signal.sampleSize ? ` / ${signal.sampleSize.toLocaleString("ja-JP")}件` : ""}
+                  </div>
+
+                  <div className="ex-prediction-card is-sample">
+                    <div className="ex-prediction-card-title">
+                      <strong>SAMPLE</strong>
+                      <small>weakは参考</small>
                     </div>
-                  ))}
-                </div>
-                <div className="ex-empty">
-                  <strong>SAMPLE</strong><br />
-                  {trifectaTrend.predictionSignals.sampleWarnings.length ? (
-                    trifectaTrend.predictionSignals.sampleWarnings.map((signal) => (
-                      <div className="ex-muted" key={signal.key} style={{ marginTop: 6 }}>
-                        {signal.label}: {signal.note}
+                    {trifectaTrend.predictionSignals.sampleWarnings.length ? (
+                      <div className="ex-prediction-note-list">
+                        {trifectaTrend.predictionSignals.sampleWarnings
+                          .filter((signal) => signal.label.includes("単日current"))
+                          .map((signal) => (
+                            <div className="ex-prediction-sample-current" key={signal.key}>
+                              <strong>{signal.label}</strong>: {signal.note}
+                            </div>
+                          ))}
+                        {trifectaTrend.predictionSignals.sampleWarnings
+                          .filter((signal) => !signal.label.includes("単日current"))
+                          .map((signal) => (
+                            <div className="ex-prediction-sample-weak" key={signal.key}>
+                              <strong>{signal.label}</strong>: {signal.note}
+                            </div>
+                          ))}
                       </div>
-                    ))
-                  ) : (
-                    <span className="ex-muted">weak sample warningなし</span>
-                  )}
-                </div>
-                <div className="ex-empty">
-                  <strong>CONFLICT</strong><br />
-                  {trifectaTrend.predictionSignals.conflictNotes.length ? (
-                    trifectaTrend.predictionSignals.conflictNotes.map((signal) => (
-                      <div className="ex-muted" key={signal.key} style={{ marginTop: 6 }}>
-                        {signal.label}: {signal.note}
+                    ) : (
+                      <span className="ex-muted">weak sample warningなし</span>
+                    )}
+                  </div>
+
+                  <div className="ex-prediction-card is-conflict">
+                    <div className="ex-prediction-card-title">
+                      <strong>CONFLICT</strong>
+                      <small>矛盾補足</small>
+                    </div>
+                    {trifectaTrend.predictionSignals.conflictNotes.length ? (
+                      <div className="ex-prediction-note-list">
+                        {trifectaTrend.predictionSignals.conflictNotes.map((signal) => (
+                          <div className="ex-muted" key={signal.key}>
+                            <strong>{signal.label}</strong>: {signal.note}
+                          </div>
+                        ))}
                       </div>
-                    ))
-                  ) : (
-                    <span className="ex-muted">60日傾向と今日の流れの明確な矛盾なし</span>
-                  )}
+                    ) : (
+                      <span className="ex-muted">60日傾向と今日の流れの明確な矛盾なし</span>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <div className="ex-overview-status" style={{ marginTop: 10 }}>
-                <span className="ex-trend-status-pill is-ready">SOURCE: {trifectaTrend.predictionSignals.sourcePolicy.label}</span>
-                {trifectaTrend.predictionSignals.sourcePolicy.items.map((item) => (
-                  <span className="ex-trend-status-pill is-ready" key={item}>{item}</span>
-                ))}
+
+                <div className="ex-prediction-source-policy">
+                  <strong>SOURCE</strong>
+                  <span>{trifectaTrend.predictionSignals.sourcePolicy.label}</span>
+                  <span>{trifectaTrend.predictionSignals.sourcePolicy.items.join(" / ")}</span>
+                </div>
               </div>
             </div>
           ) : null}
