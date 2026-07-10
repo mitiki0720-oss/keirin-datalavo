@@ -336,14 +336,15 @@ function formatMatchupOverviewLine(stats: KurariExMatchupComparableStats) {
   return `${stats.sharedRaceCount}R / A先着${stats.selfAheadCount} / B先着${stats.opponentAheadCount}`;
 }
 
-function MetricCard({ label, value, note, warning }: {
+function MetricCard({ label, value, note, warning, className }: {
   label: string;
   value: string;
   note?: string;
   warning?: boolean;
+  className?: string;
 }) {
   return (
-    <article className={`ex-metric-card${warning ? " is-warning" : ""}`}>
+    <article className={`ex-metric-card${warning ? " is-warning" : ""}${className ? ` ${className}` : ""}`}>
       <div className="ex-eyebrow">{label}</div>
       <div className="ex-metric-value">{value}</div>
       {note ? <div className="ex-muted">{note}</div> : null}
@@ -505,8 +506,73 @@ function TrendRankingCard({
   );
 }
 
-function rankingSegmentStatusClass(status: KurariExTrifectaRankingSegment["sampleStatus"]) {
-  return status === "strong" ? "ready" : status === "medium" ? "partial" : "warning";
+type ResultTrendSegmentSampleStatus = "strong" | "medium" | "weak";
+type ResultTrendOverallSampleStatus = "usable" | "caution" | "low-sample";
+
+function getResultTrendSegmentSampleView(status: ResultTrendSegmentSampleStatus) {
+  if (status === "strong") {
+    return {
+      className: "is-strong",
+      label: "sample strong",
+      note: "比較的安定",
+    };
+  }
+  if (status === "medium") {
+    return {
+      className: "is-medium",
+      label: "sample medium",
+      note: "補助根拠",
+    };
+  }
+  return {
+    className: "is-weak",
+    label: "sample weak",
+    note: "参考・主根拠にしない",
+  };
+}
+
+function getResultTrendOverallSampleView(status: ResultTrendOverallSampleStatus) {
+  if (status === "usable") {
+    return {
+      className: "is-strong",
+      label: "sample strong / 比較的安定",
+      note: "母数は比較的安定。単独で断定せず、他条件と併用",
+    };
+  }
+  if (status === "caution") {
+    return {
+      className: "is-medium",
+      label: "sample medium / 補助根拠",
+      note: "母数は補助根拠。PRIMARYより弱く扱う",
+    };
+  }
+  return {
+    className: "is-weak",
+    label: "sample weak / 参考・主根拠にしない",
+    note: "母数不足。参考表示のみで主根拠にしない",
+  };
+}
+
+function getResultTrendOverallSampleMetricClass(status: ResultTrendOverallSampleStatus) {
+  return getResultTrendOverallSampleView(status).className.replace("is-", "is-sample-");
+}
+
+function SampleStatusBadge({
+  sampleSize,
+  status,
+  unit,
+}: {
+  sampleSize: number;
+  status: ResultTrendSegmentSampleStatus;
+  unit: string;
+}) {
+  const view = getResultTrendSegmentSampleView(status);
+  return (
+    <span className={`ex-sample-status-badge ${view.className}`}>
+      <b>{view.label}</b>
+      <span>{sampleSize.toLocaleString("ja-JP")}{unit} / {view.note}</span>
+    </span>
+  );
 }
 
 function TrifectaRankingSegmentCard({ segment }: { segment: KurariExTrifectaRankingSegment }) {
@@ -522,9 +588,7 @@ function TrifectaRankingSegmentCard({ segment }: { segment: KurariExTrifectaRank
           <div className="ex-eyebrow">{segment.venueCode ? `${segment.venueCode} / ` : ""}{segment.segmentKey}</div>
           <h3>{segment.label}</h3>
         </div>
-        <span className={`ex-location-status is-${rankingSegmentStatusClass(segment.sampleStatus)}`}>
-          {segment.sampleSize.toLocaleString("ja-JP")}R / {segment.sampleStatus}
-        </span>
+        <SampleStatusBadge sampleSize={segment.sampleSize} status={segment.sampleStatus} unit="R" />
       </div>
       <div className="ex-venue-bias-metrics">
         <div>3連単TOP<strong>{topTrifecta ? `${topTrifecta.label} ${topTrifecta.rate.toFixed(1)}%` : "--"}</strong></div>
@@ -576,10 +640,6 @@ function todayBaselineDiffStatusClass(label: KurariExTodayFlowBaselineComparison
   return "partial";
 }
 
-function weatherSegmentStatusClass(status: KurariExWindDecisionSegment["sampleStatus"]) {
-  return status === "strong" ? "ready" : status === "medium" ? "partial" : "warning";
-}
-
 function WeatherVenueWindSegmentCard({ segment }: { segment: KurariExWindDecisionSegment }) {
   return (
     <article className="ex-weather-venue-card">
@@ -588,9 +648,7 @@ function WeatherVenueWindSegmentCard({ segment }: { segment: KurariExWindDecisio
           <div className="ex-eyebrow">{segment.venueCode || "VENUE"} / {segment.windBucketLabel}</div>
           <h3>{segment.venueName}</h3>
         </div>
-        <span className={`ex-location-status is-${weatherSegmentStatusClass(segment.sampleStatus)}`}>
-          {segment.sampleSize.toLocaleString("ja-JP")}R / {segment.sampleStatus}
-        </span>
+        <SampleStatusBadge sampleSize={segment.sampleSize} status={segment.sampleStatus} unit="R" />
       </div>
       <div className="ex-venue-bias-metrics">
         <div>逃げ率<strong>{segment.escapeRate.toFixed(1)}%</strong></div>
@@ -604,10 +662,6 @@ function WeatherVenueWindSegmentCard({ segment }: { segment: KurariExWindDecisio
   );
 }
 
-function raceChainSegmentStatusClass(status: KurariExRaceChainSegment["sampleStatus"]) {
-  return status === "strong" ? "ready" : status === "medium" ? "partial" : "warning";
-}
-
 function RaceChainSegmentCard({ segment }: { segment: KurariExRaceChainSegment }) {
   return (
     <article className="ex-chain-example">
@@ -616,9 +670,7 @@ function RaceChainSegmentCard({ segment }: { segment: KurariExRaceChainSegment }
           <div className="ex-eyebrow">{segment.venueCode || "VENUE"} / {segment.segmentLabel}</div>
           <h3>{segment.venueName}</h3>
         </div>
-        <span className={`ex-location-status is-${raceChainSegmentStatusClass(segment.sampleStatus)}`}>
-          {segment.sampleSize.toLocaleString("ja-JP")} pairs / {segment.sampleStatus}
-        </span>
+        <SampleStatusBadge sampleSize={segment.sampleSize} status={segment.sampleStatus} unit=" pairs" />
       </div>
       <div className="ex-venue-bias-metrics">
         <div>本命戻り<strong>{segment.favoriteReturnRate.toFixed(1)}%</strong></div>
@@ -632,10 +684,6 @@ function RaceChainSegmentCard({ segment }: { segment: KurariExRaceChainSegment }
   );
 }
 
-function turbulenceSegmentStatusClass(status: KurariExTurbulenceSegment["sampleStatus"]) {
-  return status === "strong" ? "ready" : status === "medium" ? "partial" : "warning";
-}
-
 function TurbulenceSegmentCard({ segment }: { segment: KurariExTurbulenceSegment }) {
   return (
     <article className="ex-turbulence-breakdown">
@@ -644,9 +692,7 @@ function TurbulenceSegmentCard({ segment }: { segment: KurariExTurbulenceSegment
           <div className="ex-eyebrow">{segment.venueCode || "VENUE"} / {segment.segmentLabel}</div>
           <h3>{segment.venueName}</h3>
         </div>
-        <span className={`ex-location-status is-${turbulenceSegmentStatusClass(segment.sampleStatus)}`}>
-          {segment.sampleSize.toLocaleString("ja-JP")}R / {segment.sampleStatus}
-        </span>
+        <SampleStatusBadge sampleSize={segment.sampleSize} status={segment.sampleStatus} unit="R" />
       </div>
       <div className="ex-venue-bias-metrics">
         <div>平均3連単<strong>{formatPayoutYen(segment.averageTrifectaPayoutYen)}</strong></div>
@@ -660,10 +706,6 @@ function TurbulenceSegmentCard({ segment }: { segment: KurariExTurbulenceSegment
   );
 }
 
-function venueBiasSegmentStatusClass(status: KurariExVenueBiasSegment["sampleStatus"]) {
-  return status === "strong" ? "ready" : status === "medium" ? "partial" : "warning";
-}
-
 function VenueBiasSegmentCard({ segment }: { segment: KurariExVenueBiasSegment }) {
   return (
     <article className="ex-venue-bias-card">
@@ -672,9 +714,7 @@ function VenueBiasSegmentCard({ segment }: { segment: KurariExVenueBiasSegment }
           <div className="ex-eyebrow">{segment.venueCode || "VENUE"} / {segment.segmentLabel}</div>
           <h3>{segment.venueName}</h3>
         </div>
-        <span className={`ex-location-status is-${venueBiasSegmentStatusClass(segment.sampleStatus)}`}>
-          {segment.sampleSize.toLocaleString("ja-JP")}R / {segment.sampleStatus}
-        </span>
+        <SampleStatusBadge sampleSize={segment.sampleSize} status={segment.sampleStatus} unit="R" />
       </div>
       <div className="ex-venue-bias-metrics">
         <div>外枠絡み率<strong>{segment.outsideInvolvementRate.toFixed(1)}%</strong></div>
@@ -2606,6 +2646,12 @@ export default function ExDataPage() {
         .ex-location-status.is-pending { color: #667085; background: #edf0f4; }
         .ex-location-status.is-fixed { color: #59449b; background: #eee8ff; }
         .ex-location-status.is-warning { color: #9a3d4f; background: #ffe8ed; }
+        .ex-sample-status-badge { flex: 0 0 auto; display: inline-grid; gap: 2px; min-width: 132px; padding: 7px 10px; border: 1px solid transparent; border-radius: 14px; font-size: 9px; font-weight: 900; line-height: 1.25; text-align: right; }
+        .ex-sample-status-badge b { font-size: 9px; letter-spacing: .07em; }
+        .ex-sample-status-badge span { font-size: 9px; font-weight: 850; }
+        .ex-sample-status-badge.is-strong { color: #1f6a50; border-color: #bfe8d5; background: #e8f9f0; }
+        .ex-sample-status-badge.is-medium { color: #315f91; border-color: #c9ddf5; background: #eef6ff; }
+        .ex-sample-status-badge.is-weak { color: #8a5a0a; border-color: #efd7a2; background: #fff7e8; }
         .ex-location-rows { display: grid; gap: 8px; }
         .ex-location-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-top: 8px; border-top: 1px solid #eef0f5; color: #68758a; font-size: 11px; line-height: 1.5; }
         .ex-location-row strong { color: #35435a; text-align: right; overflow-wrap: anywhere; }
@@ -2713,6 +2759,10 @@ export default function ExDataPage() {
         .ex-health-grid { display: grid; grid-template-columns: repeat(${isMobile ? 2 : 4}, minmax(0,1fr)); gap: 13px; }
         .ex-metric-card { min-width: 0; padding: 20px; border: 1px solid #e5e3f2; border-radius: 22px; background: linear-gradient(150deg,#fff,#f7f4ff 58%,#f2fbff); }
         .ex-metric-card.is-warning { border-color: #f0c9a7; background: #fff9f1; }
+        .ex-metric-card.is-sample-strong { border-color: #bfe8d5; background: linear-gradient(150deg,#fff,#f1fbf6 58%,#edf8ff); }
+        .ex-metric-card.is-sample-medium { border-color: #c9ddf5; background: linear-gradient(150deg,#fff,#f3f8ff 58%,#fffaf0); }
+        .ex-metric-card.is-sample-weak { border-color: #efd7a2; background: #fff9ee; }
+        .ex-metric-card.is-sample-weak .ex-metric-value { color: #80591e; }
         .ex-metric-value { margin: 8px 0 4px; color: #172239; font: 850 ${isMobile ? "25px" : "32px"}/1 ${serif}; overflow-wrap: anywhere; }
         .ex-panel[data-testid="result-trend-lab-roadmap"] .ex-metric-value { font-size: ${isMobile ? "22px" : "26px"}; line-height: 1.08; }
         .ex-muted { color: #8590a3; font-size: 11px; font-weight: 700; line-height: 1.5; }
@@ -2770,6 +2820,7 @@ export default function ExDataPage() {
         .ex-prediction-card .ex-trend-status-pill { padding: 6px 9px; font-size: 9px; }
         .ex-prediction-sample-current { padding: 9px 11px; border: 1px solid #d8e5f5; border-radius: 14px; color: #42607f; background: #f2f7ff; font-size: 11px; font-weight: 800; line-height: 1.55; }
         .ex-prediction-sample-weak { padding: 9px 11px; border-left: 4px solid #d79b31; border-radius: 12px; color: #775017; background: #fff6e5; font-size: 11px; font-weight: 800; line-height: 1.55; }
+        .ex-prediction-sample-weak strong:after { content: " / 参考・主根拠にしない"; color: #9a6a1e; font-weight: 950; }
         .ex-prediction-source-policy { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; padding: 10px 13px; border: 1px solid #dfe8e5; border-radius: 17px; color: #657187; background: rgba(247,251,250,.78); font-size: 10px; font-weight: 850; line-height: 1.55; }
         .ex-prediction-source-policy strong { color: #37614f; font-size: 10px; letter-spacing: .08em; }
         .ex-prediction-source-policy span { color: #748096; }
@@ -3368,13 +3419,10 @@ export default function ExDataPage() {
                   />
                   <MetricCard
                     label="SAMPLE STATUS"
-                    value={trifectaTrend.sampleLabel}
-                    note={trifectaTrend.sampleStatus === "low-sample"
-                      ? "参考のみ"
-                      : trifectaTrend.sampleStatus === "caution"
-                        ? "傾向注意"
-                        : "予想の主根拠ではなく補助"}
+                    value={getResultTrendOverallSampleView(trifectaTrend.sampleStatus).label}
+                    note={getResultTrendOverallSampleView(trifectaTrend.sampleStatus).note}
                     warning={trifectaTrend.sampleStatus !== "usable"}
+                    className={getResultTrendOverallSampleMetricClass(trifectaTrend.sampleStatus)}
                   />
                 </div>
 
@@ -3516,13 +3564,10 @@ export default function ExDataPage() {
                   <MetricCard label="ODDS GAP" value="FUTURE" note="future-accumulation / 最低オッズ未取得" warning />
                   <MetricCard
                     label="SAMPLE STATUS"
-                    value={trifectaTrend.turbulence.sampleLabel}
-                    note={trifectaTrend.turbulence.sampleStatus === "low-sample"
-                      ? "参考のみ"
-                      : trifectaTrend.turbulence.sampleStatus === "caution"
-                        ? "傾向注意"
-                        : "予想の主根拠ではなく補助"}
+                    value={getResultTrendOverallSampleView(trifectaTrend.turbulence.sampleStatus).label}
+                    note={getResultTrendOverallSampleView(trifectaTrend.turbulence.sampleStatus).note}
                     warning={trifectaTrend.turbulence.sampleStatus !== "usable"}
+                    className={getResultTrendOverallSampleMetricClass(trifectaTrend.turbulence.sampleStatus)}
                   />
                 </div>
 
@@ -3736,13 +3781,10 @@ export default function ExDataPage() {
                   />
                   <MetricCard
                     label="SAMPLE STATUS"
-                    value={trifectaTrend.chain.sampleLabel}
-                    note={trifectaTrend.chain.sampleStatus === "low-sample"
-                      ? "参考のみ"
-                      : trifectaTrend.chain.sampleStatus === "caution"
-                        ? "傾向注意"
-                        : "予想の主根拠ではなく補助"}
+                    value={getResultTrendOverallSampleView(trifectaTrend.chain.sampleStatus).label}
+                    note={getResultTrendOverallSampleView(trifectaTrend.chain.sampleStatus).note}
                     warning={trifectaTrend.chain.sampleStatus !== "usable"}
+                    className={getResultTrendOverallSampleMetricClass(trifectaTrend.chain.sampleStatus)}
                   />
                 </div>
 
@@ -3962,9 +4004,10 @@ export default function ExDataPage() {
                   />
                   <MetricCard
                     label="SAMPLE STATUS"
-                    value={trifectaTrend.weather.sampleLabel}
-                    note={trifectaTrend.weather.sampleStatus === "low-sample" ? "参考のみ" : "傾向注意 / 主根拠にしない"}
+                    value={getResultTrendOverallSampleView(trifectaTrend.weather.sampleStatus).label}
+                    note={getResultTrendOverallSampleView(trifectaTrend.weather.sampleStatus).note}
                     warning={trifectaTrend.weather.sampleStatus !== "usable"}
+                    className={getResultTrendOverallSampleMetricClass(trifectaTrend.weather.sampleStatus)}
                   />
                   <MetricCard
                     label="MOST COMMON WIND"
@@ -4174,9 +4217,10 @@ export default function ExDataPage() {
                   />
                   <MetricCard
                     label="SAMPLE STATUS"
-                    value={trifectaTrend.venueBias.sampleLabel}
-                    note="LOW SAMPLEは主根拠にしない"
+                    value={getResultTrendOverallSampleView(trifectaTrend.venueBias.sampleStatus).label}
+                    note={getResultTrendOverallSampleView(trifectaTrend.venueBias.sampleStatus).note}
                     warning={trifectaTrend.venueBias.sampleStatus !== "usable"}
+                    className={getResultTrendOverallSampleMetricClass(trifectaTrend.venueBias.sampleStatus)}
                   />
                   <MetricCard
                     label="VENUE COUNT"
@@ -4460,9 +4504,10 @@ export default function ExDataPage() {
                   />
                   <MetricCard
                     label="SAMPLE STATUS"
-                    value={trifectaTrend.todayFlow.sampleLabel}
-                    note="LOW SAMPLEは断定しない"
+                    value={getResultTrendOverallSampleView(trifectaTrend.todayFlow.sampleStatus).label}
+                    note={getResultTrendOverallSampleView(trifectaTrend.todayFlow.sampleStatus).note}
                     warning={trifectaTrend.todayFlow.sampleStatus !== "usable"}
+                    className={getResultTrendOverallSampleMetricClass(trifectaTrend.todayFlow.sampleStatus)}
                   />
                 </div>
 
