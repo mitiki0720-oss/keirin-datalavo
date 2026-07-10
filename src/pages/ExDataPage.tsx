@@ -370,101 +370,71 @@ function HistoricalTrendSourceSummary({
     );
   }
   return (
-    <div data-testid="result-trend-lab-source-summary">
-      <div className="ex-overview-status">
+    <div className="ex-source-summary-shell" data-testid="result-trend-lab-source-summary">
+      <div className="ex-source-summary-head">
         <span className="ex-trend-status-pill is-ready">60日historical傾向 + 最新current</span>
         <span className={`ex-trend-status-pill is-${historical.status === "implemented" ? "ready" : "partial"}`}>
           historical status: {historical.status}
           {historical.status === "partial" ? "（正常読込）" : ""}
         </span>
-        <span className="ex-trend-status-pill is-ready">
-          統合集計対象: {summary.analysisRaceCount.toLocaleString("ja-JP")}R
-        </span>
         <span className="ex-trend-status-pill is-partial">
           今日の流れ: 最新日current {trend.sourceDate || "unavailable"}のみ
         </span>
       </div>
-      <div className="ex-trend-basis-note" data-testid="result-trend-lab-basis-note">
-        <strong>母数の見方</strong>
-        <div className="ex-trend-basis-row">
-          <span>historical読込 <b>{historical.acceptedRaceCount.toLocaleString("ja-JP")}R</b></span>
-          <span>trend対象 <b>{historical.trendEligibleRaceCount.toLocaleString("ja-JP")}R</b></span>
-          <span>最新current <b>{summary.currentIncludedRaceCount.toLocaleString("ja-JP")}R</b></span>
-          <span>統合集計 <b>{summary.analysisRaceCount.toLocaleString("ja-JP")}R</b></span>
-        </div>
-        <div className="ex-trend-basis-row is-exclusion">
-          <span>trend除外 <b>{historical.nonTrendRaceCount.toLocaleString("ja-JP")}R</b></span>
-          <span>同着 <b>{historical.deadHeatTrendExcludedCount.toLocaleString("ja-JP")}R</b></span>
-          <span>全返還・3連単なし <b>{summary.refundNoTrifectaExcludedCount.toLocaleString("ja-JP")}R</b></span>
-          <span>未確定 <b>{summary.notFinalizedExcludedCount.toLocaleString("ja-JP")}R</b></span>
-        </div>
-        <small>
-          partialは読込失敗ではありません。保存済み{historical.nonTrendRaceCount.toLocaleString("ja-JP")}Rをtrend対象外として保持しています。
-        </small>
-      </div>
-      <div className="ex-health-grid">
+      <div className="ex-source-primary-grid">
         <MetricCard
           label="HISTORICAL RANGE"
           value={`${historical.dateRange.from ?? "--"} 〜 ${historical.dateRange.to ?? "--"}`}
-          note={`${historical.shardCount.toLocaleString("ja-JP")}日 + current`}
+          note={`${historical.shardCount.toLocaleString("ja-JP")}日 historical window`}
+          className="is-source-primary"
         />
         <MetricCard
           label="LOADED SHARDS"
           value={`${historical.loadedShardCount.toLocaleString("ja-JP")} / ${historical.shardCount.toLocaleString("ja-JP")}`}
+          note="daily shard loaded"
           warning={historical.loadedShardCount !== historical.shardCount}
-        />
-        <MetricCard
-          label="HISTORICAL 読込"
-          value={`${historical.acceptedRaceCount.toLocaleString("ja-JP")}R`}
-          note={`accepted / index raceCount ${historical.raceCount.toLocaleString("ja-JP")}R`}
-        />
-        <MetricCard
-          label="REJECTED RACES"
-          value={historical.rejectedRaceCount.toLocaleString("ja-JP")}
-          warning={historical.rejectedRaceCount > 0}
+          className="is-source-primary"
         />
         <MetricCard
           label="HISTORICAL TREND対象"
           value={`${historical.trendEligibleRaceCount.toLocaleString("ja-JP")}R`}
           note="60日historicalの6分析母数"
+          className="is-source-primary"
         />
         <MetricCard
-          label="NON-TREND 除外"
-          value={`${historical.nonTrendRaceCount.toLocaleString("ja-JP")}R`}
-          note={`同着 ${historical.deadHeatTrendExcludedCount}R / 全返還等 ${summary.refundNoTrifectaExcludedCount}R / 未確定 ${summary.notFinalizedExcludedCount}R`}
-          warning={historical.nonTrendRaceCount > 0}
-        />
-        <MetricCard
-          label="DEAD HEAT EXCLUDED"
-          value={historical.deadHeatTrendExcludedCount.toLocaleString("ja-JP")}
-          warning={historical.deadHeatTrendExcludedCount > 0}
-        />
-        <MetricCard
-          label="REFUND / NO TRIFECTA"
-          value={summary.refundNoTrifectaExcludedCount.toLocaleString("ja-JP")}
-          warning={summary.refundNoTrifectaExcludedCount > 0}
-        />
-        <MetricCard
-          label="NOT FINALIZED"
-          value={summary.notFinalizedExcludedCount.toLocaleString("ja-JP")}
-          warning={summary.notFinalizedExcludedCount > 0}
-        />
-        <MetricCard
-          label="SOURCE REJECTED"
-          value={summary.sourceRejectedCount.toLocaleString("ja-JP")}
-          warning={summary.sourceRejectedCount > 0}
-        />
-        <MetricCard
-          label="最新 CURRENT TREND対象"
+          label="CURRENT TREND対象"
           value={`${summary.currentIncludedRaceCount.toLocaleString("ja-JP")} / ${summary.currentRaceCount.toLocaleString("ja-JP")}R`}
-          note={`統合に採用 / current trend除外 ${summary.currentExcludedRaceCount.toLocaleString("ja-JP")}R`}
+          note={`最新current / 除外 ${summary.currentExcludedRaceCount.toLocaleString("ja-JP")}R`}
+          className="is-source-primary"
         />
-        <MetricCard
-          label="RACEKEY DEDUP"
-          value={summary.crossSourceDuplicateCount.toLocaleString("ja-JP")}
-          note="historical優先でcurrent重複を除外"
-          warning={summary.crossSourceDuplicateCount > 0}
-        />
+      </div>
+      <div className="ex-source-secondary-grid" data-testid="result-trend-lab-basis-note">
+        <div className="ex-source-mini-card">
+          <span>historical読込</span>
+          <strong>{historical.acceptedRaceCount.toLocaleString("ja-JP")}R</strong>
+          <small>index raceCount {historical.raceCount.toLocaleString("ja-JP")}R</small>
+        </div>
+        <div className="ex-source-mini-card is-exclusion">
+          <span>trend除外</span>
+          <strong>{historical.nonTrendRaceCount.toLocaleString("ja-JP")}R</strong>
+          <small>同着 {historical.deadHeatTrendExcludedCount.toLocaleString("ja-JP")}R / 全返還等 {summary.refundNoTrifectaExcludedCount.toLocaleString("ja-JP")}R / 未確定 {summary.notFinalizedExcludedCount.toLocaleString("ja-JP")}R</small>
+        </div>
+        <div className="ex-source-mini-card">
+          <span>loader安全確認</span>
+          <strong>rejected {historical.rejectedRaceCount.toLocaleString("ja-JP")}</strong>
+          <small>sourceRejected {summary.sourceRejectedCount.toLocaleString("ja-JP")}</small>
+        </div>
+        <div className="ex-source-mini-card">
+          <span>raceKey dedup</span>
+          <strong>{summary.crossSourceDuplicateCount.toLocaleString("ja-JP")}</strong>
+          <small>historical優先でcurrent重複を除外</small>
+        </div>
+      </div>
+      <div className="ex-source-safety-strip">
+        <strong>source-backed summary</strong>
+        <span>統合集計対象 {summary.analysisRaceCount.toLocaleString("ja-JP")}R</span>
+        <span>partialは読込失敗ではなく、保存済み{historical.nonTrendRaceCount.toLocaleString("ja-JP")}Rをtrend対象外として保持する状態</span>
+        <span>今日の流れは最新日currentのみ</span>
       </div>
     </div>
   );
@@ -2609,8 +2579,8 @@ export default function ExDataPage() {
         .ex-panel, .ex-section, .ex-subsection, .ex-detail, .ex-workspace, .ex-table-wrap { min-width: 0; max-width: 100%; box-sizing: border-box; }
         .ex-subsection, .ex-table-wrap { width: 100%; }
         .ex-main h1, .ex-main h2, .ex-main h3, .ex-main h4, .ex-main p, .ex-main li, .ex-main td, .ex-main th, .ex-main span, .ex-main strong { overflow-wrap: anywhere; }
-        .ex-health-grid, .ex-kpi-grid, .ex-location-grid, .ex-category-grid, .ex-insights, .ex-note-grid, .ex-prediction-summary, .ex-prediction-support-grid, .ex-trend-ranking-grid, .ex-turbulence-category-grid, .ex-chain-type-grid, .ex-chain-examples, .ex-weather-bucket-grid, .ex-weather-venue-grid, .ex-venue-bias-grid, .ex-venue-definition-grid, .ex-today-flow-grid, .ex-today-flow-meter, .ex-coverage-tab-map, .ex-backfill-grid, .ex-definition-grid { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
-        .ex-health-grid > *, .ex-kpi-grid > *, .ex-location-grid > *, .ex-category-grid > *, .ex-insights > *, .ex-note-grid > *, .ex-prediction-summary > *, .ex-prediction-support-grid > *, .ex-trend-ranking-grid > *, .ex-turbulence-category-grid > *, .ex-chain-type-grid > *, .ex-chain-examples > *, .ex-venue-bias-grid > *, .ex-venue-definition-grid > *, .ex-today-flow-grid > *, .ex-today-flow-meter > *, .ex-coverage-tab-map > *, .ex-backfill-grid > *, .ex-definition-grid > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
+        .ex-health-grid, .ex-kpi-grid, .ex-location-grid, .ex-category-grid, .ex-insights, .ex-note-grid, .ex-prediction-summary, .ex-prediction-support-grid, .ex-source-primary-grid, .ex-source-secondary-grid, .ex-trend-ranking-grid, .ex-turbulence-category-grid, .ex-chain-type-grid, .ex-chain-examples, .ex-weather-bucket-grid, .ex-weather-venue-grid, .ex-venue-bias-grid, .ex-venue-definition-grid, .ex-today-flow-grid, .ex-today-flow-meter, .ex-coverage-tab-map, .ex-backfill-grid, .ex-definition-grid { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+        .ex-health-grid > *, .ex-kpi-grid > *, .ex-location-grid > *, .ex-category-grid > *, .ex-insights > *, .ex-note-grid > *, .ex-prediction-summary > *, .ex-prediction-support-grid > *, .ex-source-primary-grid > *, .ex-source-secondary-grid > *, .ex-trend-ranking-grid > *, .ex-turbulence-category-grid > *, .ex-chain-type-grid > *, .ex-chain-examples > *, .ex-venue-bias-grid > *, .ex-venue-definition-grid > *, .ex-today-flow-grid > *, .ex-today-flow-meter > *, .ex-coverage-tab-map > *, .ex-backfill-grid > *, .ex-definition-grid > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
         .ex-main [hidden] { display: none !important; }
         .ex-section-tabs { display: grid; grid-template-columns: repeat(auto-fit,minmax(${isMobile ? "128px" : "150px"},1fr)); gap: 9px; padding: 12px; border: 1px solid rgba(190,194,224,.62); border-radius: 24px; background: rgba(255,255,255,.82); box-shadow: 0 16px 40px rgba(82,74,135,.08); }
         .ex-section-tab { min-width: 0; cursor: pointer; display: grid; gap: 4px; padding: 12px 13px; border: 1px solid #e2e2ed; border-radius: 16px; background: rgba(248,249,253,.9); color: #657187; text-align: left; }
@@ -2620,6 +2590,19 @@ export default function ExDataPage() {
         .ex-section-tab.is-active span { color: #6e5ca8; }
         .ex-section-tab:focus-visible { outline: 3px solid rgba(112,90,179,.24); outline-offset: 2px; }
         .ex-overview-status { display: flex; flex-wrap: wrap; gap: 8px; }
+        .ex-source-summary-shell { display: grid; gap: 12px; }
+        .ex-source-summary-head { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+        .ex-source-primary-grid { display: grid; grid-template-columns: repeat(${isMobile ? 2 : 4}, minmax(0,1fr)); gap: 12px; }
+        .ex-source-secondary-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 4}, minmax(0,1fr)); gap: 9px; }
+        .ex-source-mini-card { min-width: 0; padding: 11px 12px; border: 1px solid #e3e8f1; border-radius: 16px; background: rgba(250,252,255,.86); color: #667187; line-height: 1.45; }
+        .ex-source-mini-card.is-exclusion { border-color: #efd9ad; background: #fff8ea; color: #7d5a1c; }
+        .ex-source-mini-card span { display: block; color: inherit; font-size: 9px; font-weight: 950; letter-spacing: .09em; text-transform: uppercase; }
+        .ex-source-mini-card strong { display: block; margin-top: 4px; color: #2e3b53; font: 850 19px/1 ${serif}; }
+        .ex-source-mini-card small { display: block; margin-top: 3px; color: #7a8497; font-size: 10px; font-weight: 800; overflow-wrap: anywhere; }
+        .ex-source-mini-card.is-exclusion strong { color: #7d5a1c; }
+        .ex-source-mini-card.is-exclusion small { color: #8a6a31; }
+        .ex-source-safety-strip { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 11px; padding: 10px 13px; border: 1px solid #e3e9ef; border-radius: 17px; background: rgba(248,250,252,.82); color: #6f7a8d; font-size: 10px; font-weight: 850; line-height: 1.55; }
+        .ex-source-safety-strip strong { color: #44546d; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
         .ex-trend-basis-note { margin-top: 12px; padding: ${isMobile ? "16px" : "18px 20px"}; border: 1px dashed #cbc7df; border-radius: 20px; color: #657187; background: rgba(255,255,255,.58); }
         .ex-trend-basis-note > strong { display: block; color: #526176; font-size: 12px; }
         .ex-trend-basis-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
@@ -2759,6 +2742,8 @@ export default function ExDataPage() {
         .ex-health-grid { display: grid; grid-template-columns: repeat(${isMobile ? 2 : 4}, minmax(0,1fr)); gap: 13px; }
         .ex-metric-card { min-width: 0; padding: 20px; border: 1px solid #e5e3f2; border-radius: 22px; background: linear-gradient(150deg,#fff,#f7f4ff 58%,#f2fbff); }
         .ex-metric-card.is-warning { border-color: #f0c9a7; background: #fff9f1; }
+        .ex-metric-card.is-source-primary { padding: 18px; border-color: #d9e5f2; background: linear-gradient(150deg,#fff,#f5f9ff 62%,#f3fbf7); }
+        .ex-metric-card.is-source-primary .ex-metric-value { color: #1d304d; font-size: ${isMobile ? "24px" : "29px"}; }
         .ex-metric-card.is-sample-strong { border-color: #bfe8d5; background: linear-gradient(150deg,#fff,#f1fbf6 58%,#edf8ff); }
         .ex-metric-card.is-sample-medium { border-color: #c9ddf5; background: linear-gradient(150deg,#fff,#f3f8ff 58%,#fffaf0); }
         .ex-metric-card.is-sample-weak { border-color: #efd7a2; background: #fff9ee; }
