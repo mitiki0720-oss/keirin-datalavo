@@ -2579,8 +2579,8 @@ export default function ExDataPage() {
         .ex-panel, .ex-section, .ex-subsection, .ex-detail, .ex-workspace, .ex-table-wrap { min-width: 0; max-width: 100%; box-sizing: border-box; }
         .ex-subsection, .ex-table-wrap { width: 100%; }
         .ex-main h1, .ex-main h2, .ex-main h3, .ex-main h4, .ex-main p, .ex-main li, .ex-main td, .ex-main th, .ex-main span, .ex-main strong { overflow-wrap: anywhere; }
-        .ex-health-grid, .ex-kpi-grid, .ex-location-grid, .ex-category-grid, .ex-insights, .ex-note-grid, .ex-prediction-summary, .ex-prediction-support-grid, .ex-source-primary-grid, .ex-source-secondary-grid, .ex-trend-ranking-grid, .ex-turbulence-category-grid, .ex-chain-type-grid, .ex-chain-examples, .ex-weather-bucket-grid, .ex-weather-venue-grid, .ex-venue-bias-grid, .ex-venue-definition-grid, .ex-today-flow-grid, .ex-today-flow-meter, .ex-coverage-tab-map, .ex-backfill-grid, .ex-definition-grid { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
-        .ex-health-grid > *, .ex-kpi-grid > *, .ex-location-grid > *, .ex-category-grid > *, .ex-insights > *, .ex-note-grid > *, .ex-prediction-summary > *, .ex-prediction-support-grid > *, .ex-source-primary-grid > *, .ex-source-secondary-grid > *, .ex-trend-ranking-grid > *, .ex-turbulence-category-grid > *, .ex-chain-type-grid > *, .ex-chain-examples > *, .ex-venue-bias-grid > *, .ex-venue-definition-grid > *, .ex-today-flow-grid > *, .ex-today-flow-meter > *, .ex-coverage-tab-map > *, .ex-backfill-grid > *, .ex-definition-grid > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
+        .ex-health-grid, .ex-kpi-grid, .ex-location-grid, .ex-category-grid, .ex-insights, .ex-note-grid, .ex-summary-primary-grid, .ex-summary-secondary-grid, .ex-prediction-summary, .ex-prediction-support-grid, .ex-source-primary-grid, .ex-source-secondary-grid, .ex-trend-ranking-grid, .ex-turbulence-category-grid, .ex-chain-type-grid, .ex-chain-examples, .ex-weather-bucket-grid, .ex-weather-venue-grid, .ex-venue-bias-grid, .ex-venue-definition-grid, .ex-today-flow-grid, .ex-today-flow-meter, .ex-coverage-tab-map, .ex-backfill-grid, .ex-definition-grid { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+        .ex-health-grid > *, .ex-kpi-grid > *, .ex-location-grid > *, .ex-category-grid > *, .ex-insights > *, .ex-note-grid > *, .ex-summary-primary-grid > *, .ex-summary-secondary-grid > *, .ex-prediction-summary > *, .ex-prediction-support-grid > *, .ex-source-primary-grid > *, .ex-source-secondary-grid > *, .ex-trend-ranking-grid > *, .ex-turbulence-category-grid > *, .ex-chain-type-grid > *, .ex-chain-examples > *, .ex-venue-bias-grid > *, .ex-venue-definition-grid > *, .ex-today-flow-grid > *, .ex-today-flow-meter > *, .ex-coverage-tab-map > *, .ex-backfill-grid > *, .ex-definition-grid > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
         .ex-main [hidden] { display: none !important; }
         .ex-section-tabs { display: grid; grid-template-columns: repeat(auto-fit,minmax(${isMobile ? "128px" : "172px"},1fr)); gap: 10px 11px; padding: 13px; border: 1px solid rgba(190,194,224,.68); border-radius: 25px; background: linear-gradient(135deg,rgba(255,255,255,.92),rgba(247,249,255,.86)); box-shadow: 0 16px 40px rgba(82,74,135,.08); }
         .ex-section-tab { position: relative; min-width: 0; min-height: 64px; cursor: pointer; display: grid; align-content: center; gap: 5px; padding: 13px 14px 13px 16px; border: 1px solid #e1e5ef; border-radius: 17px; background: rgba(249,250,253,.82); color: #6b7487; text-align: left; box-shadow: inset 0 0 0 1px rgba(255,255,255,.55); transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease, color .16s ease; }
@@ -2596,6 +2596,14 @@ export default function ExDataPage() {
         .ex-section-tab.is-active span { color: #61529c; }
         .ex-section-tab:focus-visible { outline: 3px solid rgba(92,134,206,.32); outline-offset: 3px; border-color: #6e8ed4; box-shadow: 0 0 0 6px rgba(92,134,206,.13), 0 12px 26px rgba(61,81,132,.12); }
         .ex-overview-status { display: flex; flex-wrap: wrap; gap: 8px; }
+        .ex-summary-shell { display: grid; gap: 12px; }
+        .ex-summary-primary-grid { display: grid; grid-template-columns: repeat(${isMobile ? 2 : 4}, minmax(0,1fr)); gap: 12px; }
+        .ex-summary-secondary-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(${isMobile ? "190px" : "220px"},1fr)); gap: 9px; }
+        .ex-summary-secondary-grid .ex-metric-card { padding: 14px 15px; border-color: #e3e8f1; background: rgba(250,252,255,.82); box-shadow: none; }
+        .ex-summary-secondary-grid .ex-metric-value { font-size: ${isMobile ? "20px" : "23px"}; color: #435269; }
+        .ex-summary-policy-strip { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 11px; padding: 10px 13px; border: 1px solid #e3e9ef; border-radius: 17px; background: rgba(248,250,252,.82); color: #6f7a8d; font-size: 10px; font-weight: 850; line-height: 1.55; }
+        .ex-summary-policy-strip strong { color: #44546d; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+        .ex-summary-policy-strip span { color: #748096; }
         .ex-source-summary-shell { display: grid; gap: 12px; }
         .ex-source-summary-head { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
         .ex-source-primary-grid { display: grid; grid-template-columns: repeat(${isMobile ? 2 : 4}, minmax(0,1fr)); gap: 12px; }
@@ -3164,7 +3172,8 @@ export default function ExDataPage() {
             title="EX全体サマリー"
             lead="identity・source・Result Trend Lab・既存EX分析の現在地を、保存済み値だけで簡潔に表示します。"
           />
-          <div className="ex-health-grid">
+          <div className="ex-summary-shell">
+          <div className="ex-summary-primary-grid">
             <MetricCard
               label="REGISTRATION NO COVERAGE"
               value={identitySourceStatus === "loading"
@@ -3182,7 +3191,7 @@ export default function ExDataPage() {
               warning={publicExFreshness.status !== "fresh"}
             />
           </div>
-          <div className="ex-health-grid">
+          <div className="ex-summary-secondary-grid">
             <MetricCard
               label="TRIFECTA RANKING"
               value={trifectaTrend?.status === "ready" ? "IMPLEMENTED v1" : trifectaTrendStatus === "error" ? "UNAVAILABLE" : "CHECKING"}
@@ -3215,12 +3224,14 @@ export default function ExDataPage() {
             />
             <MetricCard label="SLACK NOTIFICATION STATE" value="UNAVAILABLE" note="EX公開datasetに専用stateなし" warning />
           </div>
-          <div className="ex-overview-status">
-            <span className="ex-trend-status-pill is-ready">fake completion: なし</span>
-            <span className="ex-trend-status-pill is-ready">fuzzy matching: なし</span>
-            <span className="ex-trend-status-pill is-ready">official result only</span>
-            <span className="ex-trend-status-pill is-caution">LOW SAMPLEは参考のみ</span>
-            <span className="ex-trend-status-pill is-future-accumulation">unknown / unavailableは未実装扱い</span>
+          <div className="ex-summary-policy-strip">
+            <strong>safety policy</strong>
+            <span>fake completion: なし</span>
+            <span>fuzzy matching: なし</span>
+            <span>official result only</span>
+            <span>LOW SAMPLEは参考のみ</span>
+            <span>unknown / unavailableは未実装扱い</span>
+          </div>
           </div>
         </section>
 
@@ -4925,7 +4936,8 @@ export default function ExDataPage() {
             title="自動更新・source現在地"
             lead="today.generated、official entries、starter source、EX history、official resultsの保存済み状態と取得日時を表示します。"
           />
-          <div className="ex-health-grid">
+          <div className="ex-summary-shell">
+          <div className="ex-summary-primary-grid">
             <MetricCard
               label="TODAY.GENERATED"
               value={identitySourceStatus === "loading" ? "…" : formatDate(identitySourceSummary?.todayDate)}
@@ -4950,6 +4962,8 @@ export default function ExDataPage() {
               note={historyIndexSummary?.latestDate ?? "latest 未取得"}
               warning={historyIndexStatus === "error"}
             />
+          </div>
+          <div className="ex-summary-secondary-grid">
             <MetricCard
               label="OFFICIAL RESULTS"
               value={trifectaTrendStatus === "loading" ? "…" : trifectaTrend?.sourceName ?? "unavailable"}
@@ -4970,11 +4984,13 @@ export default function ExDataPage() {
               warning={identitySourceSummary?.status !== "ready"}
             />
           </div>
-          <div className="ex-overview-status">
-            <span className="ex-trend-status-pill is-ready">public/data: read-only</span>
-            <span className="ex-trend-status-pill is-ready">fake completion: なし</span>
-            <span className="ex-trend-status-pill is-ready">fuzzy matching: なし</span>
-            <span className="ex-trend-status-pill is-future-accumulation">専用Slack state: unavailable</span>
+          <div className="ex-summary-policy-strip">
+            <strong>source / freshness</strong>
+            <span>public/data: read-only</span>
+            <span>fake completion: なし</span>
+            <span>fuzzy matching: なし</span>
+            <span>専用Slack state: unavailable</span>
+          </div>
           </div>
         </section>
 
