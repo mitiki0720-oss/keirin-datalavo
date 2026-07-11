@@ -2717,9 +2717,13 @@ export default function ExDataPage() {
         .ex-rider-overview-card-block { display: grid; gap: 5px; padding-top: 11px; border-top: 1px solid #edf0f5; color: #435269; font-size: 11px; line-height: 1.65; }
         .ex-rider-overview-card-block b { color: #758197; font-size: 9px; letter-spacing: .08em; }
         .ex-rider-overview-link { display: inline-flex; width: fit-content; padding: 5px 8px; border-radius: 999px; background: #edf3ff; color: #365f99; font-size: 9px; font-weight: 900; }
-        .ex-condition-tabs { display: flex; gap: 9px; overflow-x: auto; padding-bottom: 3px; }
-        .ex-condition-tab { flex: 0 0 auto; padding: 10px 15px; border: 1px solid #dfe4ee; border-radius: 999px; background: #fff; color: #657187; font-size: 11px; font-weight: 900; cursor: pointer; }
-        .ex-condition-tab.is-active { border-color: #6d58ad; color: #fff; background: linear-gradient(135deg,#705ab3,#4e7ca9); box-shadow: 0 8px 18px rgba(87,82,157,.18); }
+        .ex-condition-tabs { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; max-width: 100%; padding: 8px; border: 1px solid #e1e6ef; border-radius: 18px; background: rgba(250,252,255,.82); box-shadow: inset 0 1px 0 rgba(255,255,255,.75); }
+        .ex-condition-tab { position: relative; min-height: 38px; min-width: 0; cursor: pointer; padding: 9px 13px 9px 15px; border: 1px solid #dfe5ef; border-radius: 13px; background: rgba(255,255,255,.78); color: #67758b; font-size: 10px; font-weight: 900; line-height: 1.25; letter-spacing: .045em; box-shadow: inset 0 0 0 1px rgba(255,255,255,.5); transition: transform .15s ease, border-color .15s ease, background .15s ease, box-shadow .15s ease, color .15s ease; }
+        .ex-condition-tab::before { content: ""; position: absolute; inset: 9px auto 9px 7px; width: 2px; border-radius: 99px; background: rgba(143,151,170,.32); }
+        .ex-condition-tab:hover:not(.is-active) { transform: translateY(-1px); border-color: #cad4e6; color: #4d5b72; background: rgba(255,255,255,.96); box-shadow: 0 9px 18px rgba(53,67,96,.07); }
+        .ex-condition-tab:hover:not(.is-active)::before { background: rgba(102,117,152,.55); }
+        .ex-condition-tab.is-active { border-color: #9c88d0; color: #493787; background: linear-gradient(135deg,#f0eaff,#edf7ff); box-shadow: 0 8px 18px rgba(87,82,157,.12), inset 0 0 0 1px rgba(255,255,255,.7); font-weight: 950; }
+        .ex-condition-tab.is-active::before { background: linear-gradient(180deg,#7a62c4,#4b91a7); box-shadow: 0 0 0 3px rgba(122,98,196,.09); }
         .ex-condition-source { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 13px 15px; border-radius: 16px; background: #f7f9fc; color: #68758a; font-size: 11px; line-height: 1.6; }
         .ex-condition-table-wrap { overflow-x: auto; border: 1px solid var(--ex-table-border); border-radius: 20px; background: rgba(255,255,255,.9); box-shadow: inset 0 1px 0 rgba(255,255,255,.7); }
         .ex-condition-table { width: 100%; min-width: 920px; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; }
@@ -2801,9 +2805,13 @@ export default function ExDataPage() {
         .ex-kpi-grid { display: grid; grid-template-columns: repeat(${isMobile ? 2 : 5}, minmax(0,1fr)); gap: 13px; }
         .ex-workspace { display: grid; grid-template-columns: ${isMobile ? "1fr" : "minmax(300px,.72fr) minmax(0,1.28fr)"}; gap: 22px; align-items: start; }
         .ex-search { width: 100%; box-sizing: border-box; border: 1px solid #dcd9eb; border-radius: 16px; padding: 13px 15px; background: rgba(255,255,255,.9); color: #26354d; font: 700 14px ${sans}; outline: none; }
-        .ex-view-tabs { display: flex; gap: 10px; padding: 8px; width: fit-content; border: 1px solid #dedbea; border-radius: 18px; background: rgba(255,255,255,.72); }
-        .ex-view-tab { cursor: pointer; border: 0; border-radius: 13px; padding: 11px 18px; background: transparent; color: #748096; font: 900 12px ${sans}; letter-spacing: .08em; }
-        .ex-view-tab.is-active { color: #554294; background: linear-gradient(135deg,#eee7ff,#eaf8ff); box-shadow: 0 7px 18px rgba(92,73,150,.12); }
+        .ex-view-tabs { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; width: fit-content; max-width: 100%; padding: 8px; border: 1px solid #e1e6ef; border-radius: 18px; background: rgba(250,252,255,.82); box-shadow: inset 0 1px 0 rgba(255,255,255,.75); }
+        .ex-view-tab { position: relative; min-height: 40px; min-width: 0; cursor: pointer; border: 1px solid #dfe5ef; border-radius: 13px; padding: 10px 15px 10px 17px; background: rgba(255,255,255,.7); color: #6d798d; font: 900 10px/1.25 ${sans}; letter-spacing: .075em; box-shadow: inset 0 0 0 1px rgba(255,255,255,.45); transition: transform .15s ease, border-color .15s ease, background .15s ease, box-shadow .15s ease, color .15s ease; }
+        .ex-view-tab::before { content: ""; position: absolute; inset: 10px auto 10px 8px; width: 2px; border-radius: 99px; background: rgba(143,151,170,.32); }
+        .ex-view-tab:hover:not(.is-active) { transform: translateY(-1px); border-color: #cad4e6; color: #4d5b72; background: rgba(255,255,255,.96); box-shadow: 0 9px 18px rgba(53,67,96,.07); }
+        .ex-view-tab:hover:not(.is-active)::before { background: rgba(102,117,152,.55); }
+        .ex-view-tab.is-active { color: #493787; border-color: #9c88d0; background: linear-gradient(135deg,#f0eaff,#edf7ff); box-shadow: 0 8px 18px rgba(87,82,157,.12), inset 0 0 0 1px rgba(255,255,255,.7); font-weight: 950; }
+        .ex-view-tab.is-active::before { background: linear-gradient(180deg,#7a62c4,#4b91a7); box-shadow: 0 0 0 3px rgba(122,98,196,.09); }
         .ex-venue-list { display: grid; gap: 9px; max-height: ${isMobile ? "none" : "720px"}; overflow-y: ${isMobile ? "visible" : "auto"}; padding-right: 4px; }
         .ex-venue-button { width: 100%; text-align: left; cursor: pointer; border: 1px solid #e2e1ec; border-radius: 18px; padding: 15px; background: rgba(255,255,255,.76); color: #233149; }
         .ex-venue-button:hover, .ex-venue-button.is-active { border-color: #aa9ad9; background: linear-gradient(135deg,#f6f0ff,#eef9ff); box-shadow: 0 10px 24px rgba(102,83,157,.1); }
@@ -3128,7 +3136,7 @@ export default function ExDataPage() {
         .ex-rider-filter-input { min-height: 44px; }
         .ex-rider-filter-clear:not(:disabled), .ex-rider-filter-chip:not(.is-unavailable) { cursor: pointer; }
         .ex-rider-filter-chip { line-height: 1.35; }
-        .ex-rider-filter-chip:focus-visible, .ex-rider-filter-clear:focus-visible, .ex-condition-tab:focus-visible, .ex-view-tab:focus-visible { outline: 3px solid rgba(112,90,179,.24); outline-offset: 2px; }
+        .ex-rider-filter-chip:focus-visible, .ex-rider-filter-clear:focus-visible, .ex-condition-tab:focus-visible, .ex-view-tab:focus-visible { outline: 3px solid rgba(112,90,179,.24); outline-offset: 2px; border-color: #7a62c4; box-shadow: 0 0 0 6px rgba(112,90,179,.1), 0 10px 20px rgba(53,67,96,.08); }
         .ex-rider-overview-table-wrap, .ex-condition-table-wrap { scrollbar-width: thin; scrollbar-color: #b9c2d4 #f3f6fb; }
         .ex-rider-overview-table th, .ex-condition-table th { position: sticky; top: 0; z-index: 1; }
         .ex-rider-overview-table tbody tr:nth-child(even), .ex-condition-table tbody tr:nth-child(even) { background: var(--ex-table-row-zebra); }
@@ -3136,8 +3144,7 @@ export default function ExDataPage() {
         .ex-rider-overview-table td, .ex-condition-table td, .ex-matchup-overview-note, .ex-relationship-note, .ex-relationship-target, .ex-relationship-evidence { overflow-wrap: anywhere; }
         .ex-rider-overview-legend { row-gap: 8px; }
         .ex-condition-source { line-height: 1.65; }
-        .ex-condition-tabs { scroll-snap-type: x proximity; }
-        .ex-condition-tab { scroll-snap-align: start; white-space: nowrap; }
+        .ex-condition-tab, .ex-view-tab { white-space: nowrap; }
         .ex-matchup-overview-summary div { min-width: 0; }
         .ex-matchup-overview-summary strong { overflow-wrap: anywhere; }
         .ex-role-description, .ex-location-policy { line-height: 1.75; }
