@@ -5161,7 +5161,22 @@ export default function ExDataPage() {
             title="出走選手・登録番号 source coverage"
             lead="official entries → 検証済み starter source → today.generated の順で接続します。日付・会場・R・車番・選手名が安全に一致しない場合は推測せず未取得として扱います。"
           />
-          <div className="ex-health-grid">
+          <div className="ex-summary-shell">
+          <div className="ex-summary-primary-grid">
+            <MetricCard
+              label="REGISTRATION NO"
+              value={identitySourceStatus === "loading"
+                ? "…"
+                : `${valueText(identitySourceSummary?.registrationNoCompleteCount)} / ${valueText(identitySourceSummary?.starterCount)}`}
+              note={`未取得 ${valueText(identitySourceSummary?.registrationNoMissingCount, "人")}`}
+              warning={(identitySourceSummary?.registrationNoMissingCount ?? 0) > 0}
+            />
+            <MetricCard label="OFFICIAL" value={valueText(identitySourceSummary?.officialEntriesCount, "人")} note="KEIRIN.JP entries" />
+            <MetricCard label="SOURCE-BACKED ALIAS" value={valueText(identitySourceSummary?.sourceBackedAliasCount, "人")} note="official直接接続とは別集計" />
+            <MetricCard label="ALIAS ADOPTED" value={valueText(identitySourceSummary?.aliasRegistryAdoptedCount, "人")} note="source-backed-alias" />
+          </div>
+
+          <div className="ex-summary-secondary-grid">
             <MetricCard
               label="CONNECTION"
               value={identitySourceStatus === "loading" ? "…" : identitySourceSummary?.status ?? "unavailable"}
@@ -5192,25 +5207,11 @@ export default function ExDataPage() {
               note="history latest"
               warning={historyIndexStatus === "error"}
             />
-            <MetricCard
-              label="REGISTRATION NO"
-              value={identitySourceStatus === "loading"
-                ? "…"
-                : `${valueText(identitySourceSummary?.registrationNoCompleteCount)} / ${valueText(identitySourceSummary?.starterCount)}`}
-              note={`未取得 ${valueText(identitySourceSummary?.registrationNoMissingCount, "人")}`}
-              warning={(identitySourceSummary?.registrationNoMissingCount ?? 0) > 0}
-            />
-          </div>
-
-          <div className="ex-health-grid" style={{ marginTop: 14 }}>
-            <MetricCard label="OFFICIAL" value={valueText(identitySourceSummary?.officialEntriesCount, "人")} note="KEIRIN.JP entries" />
             <MetricCard label="SOURCE-BACKED" value={valueText(identitySourceSummary?.starterSourceCount, "人")} note="validated starter source" />
-            <MetricCard label="SOURCE-BACKED ALIAS" value={valueText(identitySourceSummary?.sourceBackedAliasCount, "人")} note="official直接接続とは別集計" />
             <MetricCard label="TODAY ONLY" value={valueText(identitySourceSummary?.todayGeneratedOnlyCount, "人")} note="registrationNo 未取得" warning={(identitySourceSummary?.todayGeneratedOnlyCount ?? 0) > 0} />
             <MetricCard label="MISMATCH STOPPED" value={valueText(identitySourceSummary?.blockedNameMismatchCount, "人")} note="未解決alias" warning={(identitySourceSummary?.blockedNameMismatchCount ?? 0) > 0} />
             <MetricCard label="ADOPTED MISMATCH" value={valueText(identitySourceSummary?.adoptedMismatchAliasCount, "人")} note="strict条件全PASS" />
             <MetricCard label="ALIAS REGISTERED" value={valueText(identitySourceSummary?.aliasRegistryRegisteredCount, "人")} note="registry照合済み" />
-            <MetricCard label="ALIAS ADOPTED" value={valueText(identitySourceSummary?.aliasRegistryAdoptedCount, "人")} note="source-backed-alias" />
             <MetricCard label="STRICT ELIGIBLE" value={valueText(identitySourceSummary?.strictAdoptionEligibleCount, "人")} note="採用条件通過" />
             <MetricCard label="STRICT NOT ELIGIBLE" value={valueText(identitySourceSummary?.strictAdoptionNotEligibleCount, "人")} note="条件不一致" warning={(identitySourceSummary?.strictAdoptionNotEligibleCount ?? 0) > 0} />
             <MetricCard label="CANDIDATE NOT ADOPTED" value={valueText(identitySourceSummary?.officialCandidateNotAdoptedCount, "人")} note="strict未通過のみ" warning={(identitySourceSummary?.officialCandidateNotAdoptedCount ?? 0) > 0} />
@@ -5218,6 +5219,14 @@ export default function ExDataPage() {
             <MetricCard label="MANUAL OVERRIDE" value={valueText(identitySourceSummary?.manualOverrideCount, "人")} note="official扱い禁止" />
             <MetricCard label="UNKNOWN" value={valueText(identitySourceSummary?.unknownCount, "人")} note="unknownのまま" warning={(identitySourceSummary?.unknownCount ?? 0) > 0} />
             <MetricCard label="UNAVAILABLE" value={valueText(identitySourceSummary?.unavailableCount, "人")} note="推測補完なし" warning={(identitySourceSummary?.unavailableCount ?? 0) > 0} />
+          </div>
+          <div className="ex-summary-policy-strip">
+            <strong>identity policy</strong>
+            <span>source-backed identity only</span>
+            <span>fake completionなし</span>
+            <span>fuzzy matchingなし</span>
+            <span>official candidateは未確定として扱う</span>
+            <span>provenance必須</span>
           </div>
 
           <div className="ex-empty" style={{ marginTop: 14 }}>
@@ -5234,6 +5243,7 @@ export default function ExDataPage() {
             {identitySourceSummary?.sourceErrors.length
               ? ` 未取得source: ${identitySourceSummary.sourceErrors.join(" / ")}。`
               : ""}
+          </div>
           </div>
 
           <div style={{ marginTop: 24 }}>
@@ -5274,9 +5284,14 @@ export default function ExDataPage() {
                 value={valueText(identitySourceSummary?.foreignRiderAliasRegisteredCount, "人")}
                 note="source-backed-manual"
               />
-              <MetricCard label="FAKE COMPLETION" value="なし" note="strict一致したregistry値のみ" />
-              <MetricCard label="FUZZY MATCHING" value="なし" note="部分一致による採用なし" />
               <MetricCard label="REGISTRATION REFLECTION" value={valueText(identitySourceSummary?.aliasRegistryAdoptedCount, "人")} note="source-backed-alias採用済み" />
+            </div>
+            <div className="ex-summary-policy-strip" style={{ marginTop: 12 }}>
+              <strong>mismatch policy</strong>
+              <span>fake completion: なし</span>
+              <span>fuzzy matching: なし</span>
+              <span>strict一致したregistry値のみ</span>
+              <span>official candidateは採用前の監査履歴</span>
             </div>
 
             <div style={{ marginTop: 24 }}>
@@ -5298,8 +5313,13 @@ export default function ExDataPage() {
                   warning={(identitySourceSummary?.strictAdoptionNotEligibleCount ?? 0) > 0}
                 />
                 <MetricCard label="ALIAS ADOPTED" value={valueText(identitySourceSummary?.aliasRegistryAdoptedCount, "人")} note="adoptionStatus: adopted" />
-                <MetricCard label="FAKE COMPLETION" value="なし" note="名前・登録番号の推測なし" />
-                <MetricCard label="FUZZY MATCHING" value="なし" note="完全一致条件のみ" />
+              </div>
+              <div className="ex-summary-policy-strip" style={{ marginTop: 12 }}>
+                <strong>alias adoption policy</strong>
+                <span>fake completion: なし</span>
+                <span>fuzzy matching: なし</span>
+                <span>名前・登録番号の推測なし</span>
+                <span>完全一致条件のみ</span>
               </div>
               <div className="ex-empty" style={{ marginTop: 14 }}>
                 採用source:
