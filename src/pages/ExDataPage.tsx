@@ -2569,7 +2569,28 @@ export default function ExDataPage() {
     <div className="ex-page">
       <SiteHeader activeKey="ex-data" />
       <style>{`
-        .ex-page { width: 100%; max-width: 100%; min-height: 100vh; overflow-x: clip; color: #172239; font-family: ${sans}; background:
+        .ex-page {
+          --ex-status-success-text: #23664c;
+          --ex-status-success-bg: #daf5e8;
+          --ex-status-success-border: #bfe8d5;
+          --ex-status-partial-text: #315f91;
+          --ex-status-partial-bg: #eaf4ff;
+          --ex-status-partial-border: #c9ddf5;
+          --ex-status-caution-text: #80591e;
+          --ex-status-caution-bg: #fff4df;
+          --ex-status-caution-border: #efd7a2;
+          --ex-status-reference-text: #7a5a1d;
+          --ex-status-reference-bg: #fff8e8;
+          --ex-status-reference-border: #ead9b9;
+          --ex-status-unavailable-text: #6a7280;
+          --ex-status-unavailable-bg: #f1f3f6;
+          --ex-status-unavailable-border: #d9dee7;
+          --ex-status-error-text: #8f3146;
+          --ex-status-error-bg: #fff0f3;
+          --ex-status-error-border: #edc6d1;
+          --ex-status-source-text: #657187;
+          --ex-status-source-bg: rgba(248,250,252,.82);
+          width: 100%; max-width: 100%; min-height: 100vh; overflow-x: clip; color: #172239; font-family: ${sans}; background:
           radial-gradient(circle at 7% 4%, rgba(205,190,255,.48), transparent 24%),
           radial-gradient(circle at 91% 12%, rgba(181,224,255,.44), transparent 25%),
           radial-gradient(circle at 52% 80%, rgba(195,245,225,.42), transparent 32%),
@@ -2601,7 +2622,7 @@ export default function ExDataPage() {
         .ex-summary-secondary-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(${isMobile ? "190px" : "220px"},1fr)); gap: 9px; }
         .ex-summary-secondary-grid .ex-metric-card { padding: 14px 15px; border-color: #e3e8f1; background: rgba(250,252,255,.82); box-shadow: none; }
         .ex-summary-secondary-grid .ex-metric-value { font-size: ${isMobile ? "20px" : "23px"}; color: #435269; }
-        .ex-summary-policy-strip { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 11px; padding: 10px 13px; border: 1px solid #e3e9ef; border-radius: 17px; background: rgba(248,250,252,.82); color: #6f7a8d; font-size: 10px; font-weight: 850; line-height: 1.55; }
+        .ex-summary-policy-strip { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 11px; padding: 10px 13px; border: 1px solid #e3e9ef; border-radius: 17px; background: var(--ex-status-source-bg); color: var(--ex-status-source-text); font-size: 10px; font-weight: 850; line-height: 1.55; }
         .ex-summary-policy-strip strong { color: #44546d; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
         .ex-summary-policy-strip span { color: #748096; }
         .ex-source-summary-shell { display: grid; gap: 12px; }
@@ -2615,7 +2636,7 @@ export default function ExDataPage() {
         .ex-source-mini-card small { display: block; margin-top: 3px; color: #7a8497; font-size: 10px; font-weight: 800; overflow-wrap: anywhere; }
         .ex-source-mini-card.is-exclusion strong { color: #7d5a1c; }
         .ex-source-mini-card.is-exclusion small { color: #8a6a31; }
-        .ex-source-safety-strip { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 11px; padding: 10px 13px; border: 1px solid #e3e9ef; border-radius: 17px; background: rgba(248,250,252,.82); color: #6f7a8d; font-size: 10px; font-weight: 850; line-height: 1.55; }
+        .ex-source-safety-strip { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 11px; padding: 10px 13px; border: 1px solid #e3e9ef; border-radius: 17px; background: var(--ex-status-source-bg); color: var(--ex-status-source-text); font-size: 10px; font-weight: 850; line-height: 1.55; }
         .ex-source-safety-strip strong { color: #44546d; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
         .ex-trend-basis-note { margin-top: 12px; padding: ${isMobile ? "16px" : "18px 20px"}; border: 1px dashed #cbc7df; border-radius: 20px; color: #657187; background: rgba(255,255,255,.58); }
         .ex-trend-basis-note > strong { display: block; color: #526176; font-size: 12px; }
@@ -2638,17 +2659,17 @@ export default function ExDataPage() {
         .ex-location-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 13px; }
         .ex-location-head h3 { margin: 0; color: #24324a; font: 800 18px/1.3 ${serif}; }
         .ex-location-status { flex: 0 0 auto; display: inline-flex; padding: 6px 9px; border-radius: 999px; font-size: 9px; font-weight: 950; letter-spacing: .06em; }
-        .ex-location-status.is-ready { color: #1f6a50; background: #dcf7e9; }
-        .ex-location-status.is-partial { color: #8a5a0a; background: #fff0cf; }
-        .ex-location-status.is-pending { color: #667085; background: #edf0f4; }
+        .ex-location-status.is-ready { color: var(--ex-status-success-text); background: var(--ex-status-success-bg); }
+        .ex-location-status.is-partial { color: var(--ex-status-partial-text); background: var(--ex-status-partial-bg); }
+        .ex-location-status.is-pending { color: var(--ex-status-unavailable-text); background: var(--ex-status-unavailable-bg); }
         .ex-location-status.is-fixed { color: #59449b; background: #eee8ff; }
-        .ex-location-status.is-warning { color: #9a3d4f; background: #ffe8ed; }
+        .ex-location-status.is-warning { color: var(--ex-status-caution-text); background: var(--ex-status-caution-bg); }
         .ex-sample-status-badge { flex: 0 0 auto; display: inline-grid; gap: 2px; min-width: 132px; padding: 7px 10px; border: 1px solid transparent; border-radius: 14px; font-size: 9px; font-weight: 900; line-height: 1.25; text-align: right; }
         .ex-sample-status-badge b { font-size: 9px; letter-spacing: .07em; }
         .ex-sample-status-badge span { font-size: 9px; font-weight: 850; }
-        .ex-sample-status-badge.is-strong { color: #1f6a50; border-color: #bfe8d5; background: #e8f9f0; }
-        .ex-sample-status-badge.is-medium { color: #315f91; border-color: #c9ddf5; background: #eef6ff; }
-        .ex-sample-status-badge.is-weak { color: #8a5a0a; border-color: #efd7a2; background: #fff7e8; }
+        .ex-sample-status-badge.is-strong { color: var(--ex-status-success-text); border-color: var(--ex-status-success-border); background: #e8f9f0; }
+        .ex-sample-status-badge.is-medium { color: var(--ex-status-partial-text); border-color: var(--ex-status-partial-border); background: var(--ex-status-partial-bg); }
+        .ex-sample-status-badge.is-weak { color: var(--ex-status-reference-text); border-color: var(--ex-status-reference-border); background: var(--ex-status-reference-bg); }
         .ex-location-rows { display: grid; gap: 8px; }
         .ex-location-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-top: 8px; border-top: 1px solid #eef0f5; color: #68758a; font-size: 11px; line-height: 1.5; }
         .ex-location-row strong { color: #35435a; text-align: right; overflow-wrap: anywhere; }
@@ -2755,7 +2776,7 @@ export default function ExDataPage() {
         .ex-section-title p { margin: 8px 0 0; color: #718096; line-height: 1.7; }
         .ex-health-grid { display: grid; grid-template-columns: repeat(${isMobile ? 2 : 4}, minmax(0,1fr)); gap: 13px; }
         .ex-metric-card { min-width: 0; padding: 20px; border: 1px solid #e5e3f2; border-radius: 22px; background: linear-gradient(150deg,#fff,#f7f4ff 58%,#f2fbff); }
-        .ex-metric-card.is-warning { border-color: #f0c9a7; background: #fff9f1; }
+        .ex-metric-card.is-warning { border-color: var(--ex-status-caution-border); background: #fffaf2; box-shadow: 0 10px 22px rgba(129,91,33,.045); }
         .ex-metric-card.is-source-primary { padding: 18px; border-color: #d9e5f2; background: linear-gradient(150deg,#fff,#f5f9ff 62%,#f3fbf7); }
         .ex-metric-card.is-source-primary .ex-metric-value { color: #1d304d; font-size: ${isMobile ? "24px" : "29px"}; }
         .ex-metric-card.is-sample-strong { border-color: #bfe8d5; background: linear-gradient(150deg,#fff,#f1fbf6 58%,#edf8ff); }
@@ -2783,23 +2804,23 @@ export default function ExDataPage() {
         .ex-detail-head { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
         .ex-detail-head h3 { margin: 5px 0 0; font: 850 ${isMobile ? "32px" : "44px"}/1 ${serif}; }
         .ex-badges { display: flex; flex-wrap: wrap; gap: 8px; }
-        .ex-badge { display: inline-flex; padding: 7px 10px; border-radius: 999px; background: #eee9fb; color: #6653a4; font-size: 10px; font-weight: 900; letter-spacing: .08em; }
-        .ex-badge.is-exact { background: #e7f8f0; color: #276b59; }
+        .ex-badge { display: inline-flex; padding: 7px 10px; border-radius: 999px; border: 1px solid transparent; background: #eee9fb; color: #6653a4; font-size: 10px; font-weight: 900; letter-spacing: .08em; }
+        .ex-badge.is-exact { background: var(--ex-status-success-bg); color: var(--ex-status-success-text); border-color: var(--ex-status-success-border); }
         .ex-quality { display: inline-flex; padding: 6px 9px; border-radius: 999px; font-size: 9px; font-weight: 950; letter-spacing: .08em; }
-        .ex-quality.is-complete { color: #23664c; background: #daf5e8; }
-        .ex-quality.is-sufficient { color: #23664c; background: #daf5e8; }
-        .ex-quality.is-partial { color: #315f91; background: #e1efff; }
-        .ex-quality.is-low-sample { color: #925711; background: #fff0d3; }
-        .ex-quality.is-identity-only { color: #687184; background: #eceef2; }
-        .ex-sample-alert { padding: 18px; border: 1px solid #f0c98e; border-radius: 19px; background: #fff8e9; color: #78501d; line-height: 1.75; }
+        .ex-quality.is-complete { color: var(--ex-status-success-text); background: var(--ex-status-success-bg); }
+        .ex-quality.is-sufficient { color: var(--ex-status-success-text); background: var(--ex-status-success-bg); }
+        .ex-quality.is-partial { color: var(--ex-status-partial-text); background: var(--ex-status-partial-bg); }
+        .ex-quality.is-low-sample { color: var(--ex-status-reference-text); background: var(--ex-status-reference-bg); border: 1px solid var(--ex-status-reference-border); }
+        .ex-quality.is-identity-only { color: var(--ex-status-unavailable-text); background: var(--ex-status-unavailable-bg); border: 1px dashed var(--ex-status-unavailable-border); }
+        .ex-sample-alert { padding: 18px; border: 1px solid var(--ex-status-reference-border); border-radius: 19px; background: var(--ex-status-reference-bg); color: var(--ex-status-reference-text); line-height: 1.75; }
         .ex-sample-alert strong { display: block; margin-bottom: 5px; letter-spacing: .12em; }
         .ex-trend-status-row { display: flex; flex-wrap: wrap; gap: 8px; }
-        .ex-trend-status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 999px; color: #40516c; background: #edf2fa; font-size: 10px; font-weight: 900; }
-        .ex-trend-status-pill.is-ready { color: #23664c; background: #daf5e8; }
-        .ex-trend-status-pill.is-partial { color: #925711; background: #fff0d3; }
-        .ex-trend-status-pill.is-future-accumulation { color: #687184; background: #eceef2; }
-        .ex-trend-status-pill.is-low-sample, .ex-trend-status-pill.is-caution { color: #925711; background: #fff0d3; }
-        .ex-trend-status-pill.is-usable { color: #23664c; background: #daf5e8; }
+        .ex-trend-status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; border: 1px solid transparent; border-radius: 999px; color: #40516c; background: #edf2fa; font-size: 10px; font-weight: 900; }
+        .ex-trend-status-pill.is-ready { color: var(--ex-status-success-text); background: var(--ex-status-success-bg); border-color: var(--ex-status-success-border); }
+        .ex-trend-status-pill.is-partial { color: var(--ex-status-partial-text); background: var(--ex-status-partial-bg); border-color: var(--ex-status-partial-border); }
+        .ex-trend-status-pill.is-future-accumulation { color: var(--ex-status-unavailable-text); background: var(--ex-status-unavailable-bg); border-color: var(--ex-status-unavailable-border); border-style: dashed; }
+        .ex-trend-status-pill.is-low-sample, .ex-trend-status-pill.is-caution { color: var(--ex-status-caution-text); background: var(--ex-status-caution-bg); border-color: var(--ex-status-caution-border); }
+        .ex-trend-status-pill.is-usable { color: var(--ex-status-success-text); background: var(--ex-status-success-bg); border-color: var(--ex-status-success-border); }
         .ex-prediction-summary { display: grid; gap: 12px; }
         .ex-prediction-primary { display: grid; gap: 12px; padding: ${isMobile ? "18px" : "22px"}; border: 1px solid rgba(119,97,183,.34); border-radius: 24px; background: linear-gradient(135deg, rgba(245,240,255,.98), rgba(236,250,255,.94)); box-shadow: 0 18px 36px rgba(88,75,148,.10); }
         .ex-prediction-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -2811,16 +2832,16 @@ export default function ExDataPage() {
         .ex-prediction-signal-note { padding: 9px 11px; border-radius: 14px; color: #50617b; background: rgba(255,255,255,.66); font-size: 11px; font-weight: 750; line-height: 1.55; }
         .ex-prediction-support-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 3}, minmax(0,1fr)); gap: 12px; }
         .ex-prediction-card { display: grid; align-content: start; gap: 10px; padding: 17px; border: 1px solid #e2e5ef; border-radius: 20px; background: rgba(255,255,255,.74); }
-        .ex-prediction-card.is-caution { border-color: #f0d9aa; background: #fffaf0; }
-        .ex-prediction-card.is-sample { border-color: #ead9b9; background: #fffaf2; }
+        .ex-prediction-card.is-caution { border-color: var(--ex-status-caution-border); background: #fffaf0; }
+        .ex-prediction-card.is-sample { border-color: var(--ex-status-reference-border); background: #fffaf2; }
         .ex-prediction-card.is-conflict { border-color: #d8dce9; background: #f8f9fd; }
         .ex-prediction-card-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #34435b; font-size: 11px; font-weight: 950; letter-spacing: .1em; }
         .ex-prediction-card-title small { color: #8b96a8; font-size: 9px; font-weight: 900; letter-spacing: .04em; }
         .ex-prediction-card .ex-trend-status-pill { padding: 6px 9px; font-size: 9px; }
-        .ex-prediction-sample-current { padding: 9px 11px; border: 1px solid #d8e5f5; border-radius: 14px; color: #42607f; background: #f2f7ff; font-size: 11px; font-weight: 800; line-height: 1.55; }
-        .ex-prediction-sample-weak { padding: 9px 11px; border-left: 4px solid #d79b31; border-radius: 12px; color: #775017; background: #fff6e5; font-size: 11px; font-weight: 800; line-height: 1.55; }
+        .ex-prediction-sample-current { padding: 9px 11px; border: 1px solid var(--ex-status-partial-border); border-radius: 14px; color: #42607f; background: var(--ex-status-partial-bg); font-size: 11px; font-weight: 800; line-height: 1.55; }
+        .ex-prediction-sample-weak { padding: 9px 11px; border-left: 4px solid var(--ex-status-reference-border); border-radius: 12px; color: var(--ex-status-reference-text); background: var(--ex-status-reference-bg); font-size: 11px; font-weight: 800; line-height: 1.55; }
         .ex-prediction-sample-weak strong:after { content: " / 参考・主根拠にしない"; color: #9a6a1e; font-weight: 950; }
-        .ex-prediction-source-policy { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; padding: 10px 13px; border: 1px solid #dfe8e5; border-radius: 17px; color: #657187; background: rgba(247,251,250,.78); font-size: 10px; font-weight: 850; line-height: 1.55; }
+        .ex-prediction-source-policy { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; padding: 10px 13px; border: 1px solid #dfe8e5; border-radius: 17px; color: var(--ex-status-source-text); background: rgba(247,251,250,.78); font-size: 10px; font-weight: 850; line-height: 1.55; }
         .ex-prediction-source-policy strong { color: #37614f; font-size: 10px; letter-spacing: .08em; }
         .ex-prediction-source-policy span { color: #748096; }
         .ex-trend-ranking-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 2}, minmax(0,1fr)); gap: 13px; }
@@ -2900,12 +2921,12 @@ export default function ExDataPage() {
         .ex-today-flow-hints { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(150px,100%),1fr)); gap: 9px; }
         .ex-today-flow-hints article { min-width: 0; padding: 14px; border: 1px solid #e0e4ed; border-radius: 16px; background: rgba(255,255,255,.86); }
         .ex-today-flow-hints strong { display: block; margin-top: 5px; color: #5b4794; font: 850 24px/1 ${serif}; }
-        .ex-coverage-status { display: inline-flex; width: fit-content; max-width: 100%; padding: 5px 8px; border-radius: 999px; background: #edf0f4; color: #626d7e; font-size: 8px; font-weight: 950; line-height: 1.35; overflow-wrap: anywhere; }
-        .ex-coverage-status.is-implemented { color: #23664c; background: #daf5e8; }
-        .ex-coverage-status.is-partial { color: #315f91; background: #e1efff; }
-        .ex-coverage-status.is-future-accumulation { color: #6a7280; background: #eceef2; }
-        .ex-coverage-status.is-unavailable { color: #9a3d4f; background: #ffe8ed; }
-        .ex-coverage-status.is-not-published { color: #925711; background: #fff0d3; }
+        .ex-coverage-status { display: inline-flex; width: fit-content; max-width: 100%; padding: 5px 8px; border: 1px solid transparent; border-radius: 999px; background: #edf0f4; color: #626d7e; font-size: 8px; font-weight: 950; line-height: 1.35; overflow-wrap: anywhere; }
+        .ex-coverage-status.is-implemented { color: var(--ex-status-success-text); background: var(--ex-status-success-bg); border-color: var(--ex-status-success-border); }
+        .ex-coverage-status.is-partial { color: var(--ex-status-partial-text); background: var(--ex-status-partial-bg); border-color: var(--ex-status-partial-border); }
+        .ex-coverage-status.is-future-accumulation { color: var(--ex-status-unavailable-text); background: var(--ex-status-unavailable-bg); border-color: var(--ex-status-unavailable-border); border-style: dashed; }
+        .ex-coverage-status.is-unavailable { color: var(--ex-status-error-text); background: var(--ex-status-error-bg); border-color: var(--ex-status-error-border); }
+        .ex-coverage-status.is-not-published { color: var(--ex-status-caution-text); background: var(--ex-status-caution-bg); border-color: var(--ex-status-caution-border); }
         .ex-coverage-matrix { min-width: 1120px; }
         .ex-coverage-matrix td { white-space: normal; min-width: 150px; line-height: 1.65; vertical-align: top; }
         .ex-coverage-matrix td:first-child { min-width: 210px; color: #263650; font-weight: 850; }
@@ -2927,7 +2948,7 @@ export default function ExDataPage() {
         .ex-data-table th, .ex-data-table td { padding: 10px 9px; border-bottom: 1px solid #edf0f4; text-align: left; white-space: nowrap; }
         .ex-data-table th { color: #7765ae; font-size: 10px; letter-spacing: .08em; }
         .ex-table-wrap { max-width: 100%; overflow-x: auto; border: 1px solid #e4e7ee; border-radius: 18px; background: rgba(255,255,255,.7); }
-        .ex-low-sample { display: inline-flex; margin-top: 8px; padding: 4px 7px; border-radius: 999px; background: #fff2dc; color: #985b15; font-size: 9px; font-weight: 900; }
+        .ex-low-sample { display: inline-flex; margin-top: 8px; padding: 4px 7px; border: 1px solid var(--ex-status-reference-border); border-radius: 999px; background: var(--ex-status-reference-bg); color: var(--ex-status-reference-text); font-size: 9px; font-weight: 900; }
         .ex-subsection { display: grid; grid-template-columns: minmax(0,1fr); gap: 13px; padding-top: 4px; }
         .ex-category-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 2}, minmax(0,1fr)); gap: 12px; }
         .ex-category-card { padding: 18px; border: 1px solid #e1e8ee; border-radius: 20px; background: linear-gradient(145deg,#fff,#f5fbf8); }
@@ -2984,14 +3005,14 @@ export default function ExDataPage() {
         .ex-analysis-inventory-meta { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; margin-top: 10px; }
         .ex-analysis-inventory-meta div { padding: 8px 9px; border-radius: 11px; background: #f7f9fc; color: #7b8799; font-size: 9px; line-height: 1.55; overflow-wrap: anywhere; }
         .ex-analysis-inventory-meta b { display: block; margin-bottom: 2px; color: #56657b; }
-        .ex-analysis-inventory-status { flex: 0 0 auto; display: inline-flex; max-width: 170px; padding: 5px 8px; border-radius: 999px; color: #546278; background: #edf0f4; font-size: 8px; font-weight: 950; letter-spacing: .04em; line-height: 1.35; text-align: center; }
-        .ex-analysis-inventory-status.is-existing { color: #23664c; background: #daf5e8; }
-        .ex-analysis-inventory-status.is-extend-existing { color: #315f91; background: #e1efff; }
+        .ex-analysis-inventory-status { flex: 0 0 auto; display: inline-flex; max-width: 170px; padding: 5px 8px; border: 1px solid transparent; border-radius: 999px; color: #546278; background: #edf0f4; font-size: 8px; font-weight: 950; letter-spacing: .04em; line-height: 1.35; text-align: center; }
+        .ex-analysis-inventory-status.is-existing { color: var(--ex-status-success-text); background: var(--ex-status-success-bg); border-color: var(--ex-status-success-border); }
+        .ex-analysis-inventory-status.is-extend-existing { color: var(--ex-status-partial-text); background: var(--ex-status-partial-bg); border-color: var(--ex-status-partial-border); }
         .ex-analysis-inventory-status.is-available-not-rendered { color: #59449b; background: #eee8ff; }
-        .ex-analysis-inventory-status.is-partial { color: #315f91; background: #e7f0fb; }
-        .ex-analysis-inventory-status.is-low-sample { color: #925711; background: #fff0d3; }
-        .ex-analysis-inventory-status.is-future-accumulation { color: #6a7280; background: #eceef2; }
-        .ex-analysis-inventory-status.is-not-generated-fake-prohibited { color: #9a3d4f; background: #ffe8ed; }
+        .ex-analysis-inventory-status.is-partial { color: var(--ex-status-partial-text); background: var(--ex-status-partial-bg); border-color: var(--ex-status-partial-border); }
+        .ex-analysis-inventory-status.is-low-sample { color: var(--ex-status-reference-text); background: var(--ex-status-reference-bg); border-color: var(--ex-status-reference-border); }
+        .ex-analysis-inventory-status.is-future-accumulation { color: var(--ex-status-unavailable-text); background: var(--ex-status-unavailable-bg); border-color: var(--ex-status-unavailable-border); border-style: dashed; }
+        .ex-analysis-inventory-status.is-not-generated-fake-prohibited { color: var(--ex-status-error-text); background: var(--ex-status-error-bg); border-color: var(--ex-status-error-border); }
         .ex-source-capability-summary { display: grid; grid-template-columns: repeat(${isMobile ? 2 : 5},minmax(0,1fr)); gap: 9px; }
         .ex-source-capability-summary article { min-width: 0; padding: 13px; border: 1px solid #e1e5ee; border-radius: 15px; background: rgba(255,255,255,.86); }
         .ex-source-capability-summary span { color: #748097; font-size: 9px; font-weight: 900; letter-spacing: .05em; overflow-wrap: anywhere; }
@@ -3002,11 +3023,11 @@ export default function ExDataPage() {
         .ex-source-capability-head h3 { margin: 0; color: #293851; font: 800 15px/1.4 ${serif}; }
         .ex-source-capability-item p { margin: 0; color: #6a778c; font-size: 10px; line-height: 1.7; }
         .ex-source-capability-keys { color: #8390a3; font-size: 9px; line-height: 1.6; overflow-wrap: anywhere; }
-        .ex-source-capability-status { flex: 0 0 auto; display: inline-flex; padding: 5px 8px; border-radius: 999px; color: #5d687a; background: #edf0f4; font-size: 8px; font-weight: 950; letter-spacing: .04em; }
-        .ex-source-capability-status.is-available { color: #23664c; background: #daf5e8; }
-        .ex-source-capability-status.is-partial { color: #315f91; background: #e1efff; }
-        .ex-source-capability-status.is-unavailable { color: #6a7280; background: #eceef2; }
-        .ex-source-capability-status.is-fake-prohibited { color: #9a3d4f; background: #ffe8ed; }
+        .ex-source-capability-status { flex: 0 0 auto; display: inline-flex; padding: 5px 8px; border: 1px solid transparent; border-radius: 999px; color: #5d687a; background: #edf0f4; font-size: 8px; font-weight: 950; letter-spacing: .04em; }
+        .ex-source-capability-status.is-available { color: var(--ex-status-success-text); background: var(--ex-status-success-bg); border-color: var(--ex-status-success-border); }
+        .ex-source-capability-status.is-partial { color: var(--ex-status-partial-text); background: var(--ex-status-partial-bg); border-color: var(--ex-status-partial-border); }
+        .ex-source-capability-status.is-unavailable { color: var(--ex-status-unavailable-text); background: var(--ex-status-unavailable-bg); border-color: var(--ex-status-unavailable-border); border-style: dashed; }
+        .ex-source-capability-status.is-fake-prohibited { color: var(--ex-status-error-text); background: var(--ex-status-error-bg); border-color: var(--ex-status-error-border); }
         .ex-available-focus-summary { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 15px 17px; border: 1px solid #dfe6ed; border-radius: 17px; background: linear-gradient(135deg,#f5fff9,#f5f9ff); }
         .ex-available-focus-summary strong { color: #245d4c; font: 850 24px/1 ${serif}; }
         .ex-available-focus-summary span { color: #69778c; font-size: 10px; line-height: 1.65; }
@@ -3025,7 +3046,7 @@ export default function ExDataPage() {
         .ex-future-plan-summary span { color: #748097; font-size: 9px; font-weight: 900; letter-spacing: .05em; overflow-wrap: anywhere; }
         .ex-future-plan-summary strong { display: block; margin-top: 5px; color: #263650; font: 850 22px/1 ${serif}; }
         .ex-future-plan-status-summary { display: flex; flex-wrap: wrap; gap: 8px; }
-        .ex-future-plan-status-summary span { padding: 7px 10px; border-radius: 999px; background: #f1f3f7; color: #657187; font-size: 9px; font-weight: 900; }
+        .ex-future-plan-status-summary span { padding: 7px 10px; border: 1px solid var(--ex-status-unavailable-border); border-radius: 999px; background: var(--ex-status-unavailable-bg); color: var(--ex-status-unavailable-text); font-size: 9px; font-weight: 900; }
         .ex-future-plan-group { display: grid; gap: 10px; }
         .ex-future-plan-group-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #e5e8ef; }
         .ex-future-plan-group-head h3 { margin: 0; color: #293851; font: 800 19px/1.3 ${serif}; }
@@ -3036,11 +3057,11 @@ export default function ExDataPage() {
         .ex-future-plan-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
         .ex-future-plan-head > div > span { color: #765fae; font-size: 8px; font-weight: 950; letter-spacing: .1em; }
         .ex-future-plan-head h3 { margin: 3px 0 0; color: #263650; font: 800 16px/1.4 ${serif}; }
-        .ex-future-plan-status { flex: 0 0 auto; display: inline-flex; padding: 5px 8px; border-radius: 999px; background: #edf0f4; color: #687184; font-size: 8px; font-weight: 950; }
-        .ex-future-plan-status.is-partial { color: #315f91; background: #e1efff; }
-        .ex-future-plan-status.is-future-accumulation { color: #6a7280; background: #eceef2; }
-        .ex-future-plan-status.is-unavailable { color: #6a7280; background: #eceef2; }
-        .ex-future-plan-status.is-fake-prohibited { color: #9a3d4f; background: #ffe8ed; }
+        .ex-future-plan-status { flex: 0 0 auto; display: inline-flex; padding: 5px 8px; border: 1px solid transparent; border-radius: 999px; background: #edf0f4; color: #687184; font-size: 8px; font-weight: 950; }
+        .ex-future-plan-status.is-partial { color: var(--ex-status-partial-text); background: var(--ex-status-partial-bg); border-color: var(--ex-status-partial-border); }
+        .ex-future-plan-status.is-future-accumulation { color: var(--ex-status-unavailable-text); background: var(--ex-status-unavailable-bg); border-color: var(--ex-status-unavailable-border); border-style: dashed; }
+        .ex-future-plan-status.is-unavailable { color: var(--ex-status-unavailable-text); background: var(--ex-status-unavailable-bg); border-color: var(--ex-status-unavailable-border); border-style: dashed; }
+        .ex-future-plan-status.is-fake-prohibited { color: var(--ex-status-error-text); background: var(--ex-status-error-bg); border-color: var(--ex-status-error-border); }
         .ex-future-plan-fields { display: grid; gap: 4px; margin-top: 11px; padding: 10px; border-radius: 12px; background: #f7f9fc; color: #647187; font-size: 9px; line-height: 1.6; overflow-wrap: anywhere; }
         .ex-future-plan-fields b, .ex-future-plan-card p b { display: block; margin-bottom: 2px; color: #526176; }
         .ex-future-plan-card p { margin: 9px 0 0; color: #6c788c; font-size: 9px; line-height: 1.7; }
@@ -3049,7 +3070,7 @@ export default function ExDataPage() {
         .ex-source-schema-summary span { color: #748097; font-size: 9px; font-weight: 900; letter-spacing: .05em; overflow-wrap: anywhere; }
         .ex-source-schema-summary strong { display: block; margin-top: 5px; color: #263650; font: 850 22px/1 ${serif}; }
         .ex-source-schema-meta-summary { display: flex; flex-wrap: wrap; gap: 8px; }
-        .ex-source-schema-meta-summary span { padding: 7px 10px; border-radius: 999px; background: #f1f3f7; color: #657187; font-size: 9px; font-weight: 900; }
+        .ex-source-schema-meta-summary span { padding: 7px 10px; border: 1px solid var(--ex-status-unavailable-border); border-radius: 999px; background: var(--ex-status-unavailable-bg); color: var(--ex-status-unavailable-text); font-size: 9px; font-weight: 900; }
         .ex-source-schema-group { display: grid; gap: 10px; }
         .ex-source-schema-group-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #e5e8ef; }
         .ex-source-schema-group-head h3 { margin: 0; color: #293851; font: 800 19px/1.3 ${serif}; }
@@ -3060,11 +3081,11 @@ export default function ExDataPage() {
         .ex-source-schema-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
         .ex-source-schema-head > div > span { color: #4e7890; font-size: 8px; font-weight: 950; letter-spacing: .09em; }
         .ex-source-schema-head h3 { margin: 3px 0 0; color: #263650; font: 800 17px/1.4 ${serif}; }
-        .ex-source-schema-status { flex: 0 0 auto; display: inline-flex; max-width: 145px; padding: 5px 8px; border-radius: 999px; background: #edf0f4; color: #687184; font-size: 8px; font-weight: 950; line-height: 1.35; text-align: center; }
-        .ex-source-schema-status.is-ready-for-script { color: #23664c; background: #daf5e8; }
-        .ex-source-schema-status.is-design-only { color: #315f91; background: #e1efff; }
-        .ex-source-schema-status.is-blocked-by-source { color: #925711; background: #fff0d3; }
-        .ex-source-schema-status.is-fake-prohibited { color: #9a3d4f; background: #ffe8ed; }
+        .ex-source-schema-status { flex: 0 0 auto; display: inline-flex; max-width: 145px; padding: 5px 8px; border: 1px solid transparent; border-radius: 999px; background: #edf0f4; color: #687184; font-size: 8px; font-weight: 950; line-height: 1.35; text-align: center; }
+        .ex-source-schema-status.is-ready-for-script { color: var(--ex-status-success-text); background: var(--ex-status-success-bg); border-color: var(--ex-status-success-border); }
+        .ex-source-schema-status.is-design-only { color: var(--ex-status-partial-text); background: var(--ex-status-partial-bg); border-color: var(--ex-status-partial-border); }
+        .ex-source-schema-status.is-blocked-by-source { color: var(--ex-status-caution-text); background: var(--ex-status-caution-bg); border-color: var(--ex-status-caution-border); }
+        .ex-source-schema-status.is-fake-prohibited { color: var(--ex-status-error-text); background: var(--ex-status-error-bg); border-color: var(--ex-status-error-border); }
         .ex-source-schema-target { display: grid; gap: 4px; margin-top: 11px; padding: 10px; border-radius: 12px; background: #f4f9fb; color: #586b7e; font-size: 9px; line-height: 1.6; }
         .ex-source-schema-target b, .ex-source-schema-columns b, .ex-source-schema-rules b, .ex-source-schema-script b { display: block; color: #496174; }
         .ex-source-schema-columns { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin-top: 9px; }
