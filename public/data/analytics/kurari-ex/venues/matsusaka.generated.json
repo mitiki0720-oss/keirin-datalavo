@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "matsusaka",
   "venueName": "松阪",
-  "updatedAt": "2026-06-18",
+  "updatedAt": "2026-07-12",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-04",
-    "to": "2026-06-17"
+    "to": "2026-07-03"
   },
   "quality": {
-    "seedSources": 12,
-    "parsedDateSources": 12,
+    "seedSources": 15,
+    "parsedDateSources": 15,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 12,
-    "raceCount": 126,
-    "trifectaHits": 33,
-    "trifectaHitRate": 26.2,
-    "exactaHits": 7,
-    "exactaHitRate": 5.6,
+    "sourceCount": 15,
+    "raceCount": 147,
+    "trifectaHits": 40,
+    "trifectaHitRate": 27.2,
+    "exactaHits": 9,
+    "exactaHitRate": 6.1,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 124000,
-    "returnYen": 70150,
-    "recoveryRate": 56.6,
+    "investmentYen": 145000,
+    "returnYen": 82730,
+    "recoveryRate": 57.1,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,63 +38,63 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 12,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 12,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 11,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 8,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 8,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 8,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 7,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 6,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 4,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     }
@@ -125,7 +125,11 @@
       "注意点：8R・9Rのみ結果ファイルの 最終判定 が pending。手動照合ではどちらも予想10点に該当なし。",
       "注意点：結果テキストのWEATHER ACTUALは全レースで「結果確定済み・天気スナップショット未保存」。よって気象差分分析は、結果本文内の実天気・実風が未保存である前提で行う。",
       "6Rは6田中誇士の捲り、7Rは3小林申太の捲り残りが結果に直結。予想文では別線を警戒しているのに、買い目では番手差しや本線側に寄せすぎました。",
-      "3. 別線自力を警戒したら、番手だけでなく自力本人の頭も比較。"
+      "3. 別線自力を警戒したら、番手だけでなく自力本人の頭も比較。",
+      "良かった点／惜しい点：4吉岡の一撃は予想文でも警戒し、買い目にも4頭を入れていた。しかし実着は4-2-1で、2小出が2着、1中野が3着。",
+      "6. 出走表情報の質は良い。次に不足しているのは直前気象と直前欠場・事故リスクの管理",
+      "1荒木は単独気味の1-7ラインだが、得点81.80で格は上。自力不在でも好位を拾えば直線で突っ込める。5古田は地元単騎で、内を拾う展開なら3着穴。6高森・3市川は4車ライン後位から流れ込みを警戒。",
+      "当たった／見えていた点：2番・吉岡竜太の捲り頭、単騎3番・里見恒平の2着差し込み、1番・田中弘章の3着で的中。5分戦細切れで単騎3・4・6を警戒した組み立てが機能した。"
     ],
     "improvements": [
       "3-3. 不的中の構造と修正ルール",

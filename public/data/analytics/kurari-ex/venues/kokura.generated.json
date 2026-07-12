@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "kokura",
   "venueName": "小倉",
-  "updatedAt": "2026-06-21",
+  "updatedAt": "2026-07-12",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-13",
-    "to": "2026-06-20"
+    "to": "2026-06-28"
   },
   "quality": {
-    "seedSources": 9,
-    "parsedDateSources": 9,
+    "seedSources": 11,
+    "parsedDateSources": 11,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 9,
-    "raceCount": 76,
-    "trifectaHits": 16,
-    "trifectaHitRate": 23.9,
-    "exactaHits": 4,
-    "exactaHitRate": 6,
+    "sourceCount": 11,
+    "raceCount": 100,
+    "trifectaHits": 26,
+    "trifectaHitRate": 28.6,
+    "exactaHits": 6,
+    "exactaHitRate": 6.6,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 67000,
-    "returnYen": 35380,
-    "recoveryRate": 52.8,
+    "investmentYen": 80000,
+    "returnYen": 58410,
+    "recoveryRate": 73,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,71 +38,75 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 8,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 8,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 7,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 7,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 6,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 6,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 3,
+      "confidence": "medium",
       "sourceType": "SEED"
     }
   ],
   "seedNotes": {
     "features": [
       "3-1. 全体傾向",
-      "本線：4峯口司がB8・逃げ7で主導権を握る形。番手1工藤文彦は追走力があり、4がペースを作れば4-1、または小倉の番手差し傾向から1-4の逆転まで見る。3岡本翔はB6で捲り4、近況も一般1着があり、4が早駆けなら中団から捲り差しで迫る。"
+      "本線：4峯口司がB8・逃げ7で主導権を握る形。番手1工藤文彦は追走力があり、4がペースを作れば4-1、または小倉の番手差し傾向から1-4の逆転まで見る。3岡本翔はB6で捲り4、近況も一般1着があり、4が早駆けなら中団から捲り差しで迫る。",
+      "押さえ：5堀航輝はB15で主導権候補。番手2長井妙樹は初日特選3着、近況も準決・決勝で3着以内が多く、小倉の番手差し傾向に合う。7田上晃也は初日2着、近況でも1着・1着・3着があり、1近藤誠二を連れて中団捲りなら7-1、1-7の逆転もある。3着は6佐藤のライン3番手も少し押さえる。",
+      "3-1) まず数字で見る今回の特徴",
+      "今回の予想は、的中数は5Rあり「完全に方向が悪い」わけではない。ただし、勝負どころの1R・4R・8R・10R・11R・12Rで、見えていた選手を正しい順番に接続できなかった。次回は「軸選手の評価」よりも「2着・3着の接続」を優先して、10点のうち最低2点は横断決着（別線差し脚＋B残り）に割くこと。これが小倉F1ナイターでの回収率改善ポイント。",
+      "本線：5野口はB19・逃げ8で先行力はこの構成で最上位。今節は6着・4着と勝ち切れていないが、玉野G3で二予2着・準決3着があり、一般戦なら主導権を握る力は十分。番手3稲吉は前日2着で気配上向き、小倉の番手差し傾向から3-5を本線に置く。"
     ],
     "targets": [
       "タグ： 小倉 ミッドナイト ガールズ 単騎戦 主導権 捲り追撃 3着荒れ 穴狙い",
@@ -121,7 +125,8 @@
     "cautions": [
       "押さえ：1右近はS18・B16で前受けから突っ張る可能性があり、4森下の番手差しも警戒。2が後方に置かれると1-4ラインの残りが穴になる。単騎7佐藤は位置取り次第で3着拾い。",
       "木村3の逃げを軸にしすぎ、柏野1の捲り頭を軽視。強先行は2着に残ったが、別線B型の一撃が頭。準決の強先行固定は危険。",
-      "「近況が重い」と見た選手の一変を拾い切れていない ：5Rの山崎翼3、6Rの原6、10Rの中川5など、最終日・一般/決勝で立て直す選手への警戒が不足。"
+      "「近況が重い」と見た選手の一変を拾い切れていない ：5Rの山崎翼3、6Rの原6、10Rの中川5など、最終日・一般/決勝で立て直す選手への警戒が不足。",
+      "押さえ：3柿本はB8で1才迫より先に駆ける可能性があり、番手4石橋は差し込み注意。石橋は平塚予選3着があり、3が駆ければ4-3の穴がある。5那須は単騎だが当所5年で3着5回、脚を溜めて3着に差す保険。"
     ],
     "improvements": [
       "ここでは新規予想は行わず、実際に出した10点買い目と結果の照合、取り逃し要因、次回改善メモを整理する。",
@@ -131,7 +136,11 @@
       "2. 次回予想へ向けた詳細SUMMARY",
       "一方で、特一般・二分戦・地元ラインでは素直なライン決着も残ったため、完全な穴振りではなく、ライン決着1点＋別線番手3着1点のバランスが次回の鍵。",
       "不明／足りない情報：路面状態、KQ predict ZIP名、EX反映の具体的な中身、全人気順オッズ。結果テキストにある着順・決まり手・払戻・1番人気のみで記録。",
-      "次回小倉F2ナイター用ルール"
+      "次回小倉F2ナイター用ルール",
+      "4) 次回の小倉予想に向けた改善ルール",
+      "今回の予想は、的中数は5Rあり「完全に方向が悪い」わけではない。ただし、勝負どころの1R・4R・8R・10R・11R・12Rで、見えていた選手を正しい順番に接続できなかった。次回は「軸選手の評価」よりも「2着・3着の接続」を優先して、10点のうち最低2点は横断決着（別線差し脚＋B残り）に割くこと。これが小倉F1ナイターでの回収率改善ポイント。",
+      "【次回予想に向けた詳しいSUMMARY】",
+      "2) 最大の改善点は、見えていた穴を三連単へ接続すること。11Rは2-1の2車単5,440円を拾えているのに、実際の三連単2-1-4を買えていない。12Rも7-5の九州筋は見えていたが、3着を1林に固定して2トゥルーマン残りを落とした。勝負レースでは、2車単穴を置いたら、その相手の最有力3着を1点だけ三連単化するルールを強めたい。"
     ]
   },
   "predictionGuidance": [

@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "matsudo",
   "venueName": "松戸",
-  "updatedAt": "2026-06-18",
+  "updatedAt": "2026-07-12",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-14",
-    "to": "2026-06-17"
+    "to": "2026-07-03"
   },
   "quality": {
-    "seedSources": 8,
-    "parsedDateSources": 8,
+    "seedSources": 13,
+    "parsedDateSources": 13,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 8,
-    "raceCount": 57,
-    "trifectaHits": 18,
-    "trifectaHitRate": 31.6,
-    "exactaHits": 4,
-    "exactaHitRate": 7,
-    "anyTicketHits": null,
-    "hitRate": null,
-    "investmentYen": 66000,
-    "returnYen": 33260,
-    "recoveryRate": 50.4,
+    "sourceCount": 13,
+    "raceCount": 69,
+    "trifectaHits": 26,
+    "trifectaHitRate": 37.7,
+    "exactaHits": 8,
+    "exactaHitRate": 11.6,
+    "anyTicketHits": 4,
+    "hitRate": 33.3,
+    "investmentYen": 111000,
+    "returnYen": 46240,
+    "recoveryRate": 41.7,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,64 +38,64 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 7,
-      "confidence": "medium",
+      "evidenceCount": 12,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 7,
-      "confidence": "medium",
+      "evidenceCount": 12,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 7,
-      "confidence": "medium",
+      "evidenceCount": 12,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 6,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 7,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 1,
-      "confidence": "low",
+      "evidenceCount": 4,
+      "confidence": "medium",
       "sourceType": "SEED"
     }
   ],
@@ -103,7 +103,12 @@
     "features": [
       "軸は2木村。3大畑を目標にできる番手で、S12と位置取りも強い。近況は大垣で4着・3着・3着、静岡でも3着・4着・3着と安定。3大畑が風を受けて長く踏むと、松戸ミッドの差し傾向もあって2木村の差し切りが本線。",
       "軸は1小菅と2高間。1小菅は競走得点93.79で今節上位、差し12回。7荒川が地元で先行意欲を出せば、松戸ミッドの差し傾向もあって1小菅の番手差しが本線になる。2高間は4稲毛を目標にでき、直近は防府で初日特選1着・準決3着・決勝2着。4稲毛が捲り切れば2高間の差し込みも濃い。",
-      "【最重要の改善ポイント】"
+      "【最重要の改善ポイント】",
+      "気象傾向：序盤〜終盤まで霧雨基調。風は北〜北東・北北東が中心で、おおむね4〜6km/h。",
+      "決まり手傾向（1着）",
+      "【全体Summary｜次回に活かす重要ポイント】",
+      "主シナリオ：5吉野がB19・逃14で先行意欲は一番。番手1小原は差し8・マーク2で、松戸ミッドの差し傾向に合う。5が主導権なら1小原の差しを中心に、5吉野の残りと6岩橋の3着を押さえる。",
+      "1着軸は2大瀬戸と1諸隈。1の先行力は抜けるが、松戸ミッドの差し傾向を踏まえ2の差しを厚め。"
     ],
     "targets": [
       "2車単：2点（穴狙い）",
@@ -122,7 +127,14 @@
     "cautions": [
       "注意：テンプレ表記は「3連単7＋2車単3」だが、今回の添付予想は実買い目どおり 8＋2 で記録。",
       "対抗は4佐々木と2土田。4佐々木は松戸実績が強く、出切れば4-1の押し切りも十分。2土田は逃げ主体で、4佐々木が構える展開なら2-3-5の関東ラインで先にペースを握れる。番手3根本は333mで2着9回、当所5年も2着7回があり、2土田を残して差す形は警戒。",
-      "レース型：TYPE-B・A級一般三分戦番手差し警戒型 ／ 自信度：🔥🔥"
+      "レース型：TYPE-B・A級一般三分戦番手差し警戒型 ／ 自信度：🔥🔥",
+      "何が足りなかった／何が良かった：3本郷の当所相性を結果メモでは警戒していたが、買い目では3-6-7の崩れ形だけ。実戦は3本郷が捲り、4大屋が続き、1菅原が3着。6堀川を利す形に寄せすぎ、3本郷が自分で頭を取る展開を十分評価できなかった。",
+      "対抗は7中田。前回岐阜G3で3着・3着・2着とかなり状態が良く、2立花が前々に踏めば番手から伸びる。5吉武は近況苦しいが、3高原は追走型で3着なら警戒。人気の地元筋だけでなく、7中田の差し込みと5-3の3着ズレを入れる。",
+      "レース型：TYPE-C・S級初特選4分戦主力先行＋単騎警戒型",
+      "三連単1番人気の的中: 0/12（この日は三連単1番人気が全Rで飛び。人気順に寄せるだけでは危険な開催）",
+      "予想レース型: TYPE-C・A級一般4分戦／曽我ライン中心も地元根藤警戒",
+      "3齊藤中心・7長谷川警戒という方向性は悪くなかったが、結果は7長谷川の捲り頭、4入江の単騎捲り2着、3齊藤3着。買い目は7-3-5や4-3系で、7-4-3を持てなかった。単騎4入江を3着・頭穴で見たものの、7長谷川と組み合わせた2着候補にしていなかった。",
+      "注意：新規予想は行わず、添付された予想と結果の写経・整形・照合・分析のみを実施。"
     ],
     "improvements": [
       "反映元：matsudo-prediction.txt / matsudo-result.txt（2026-05-16）",
@@ -131,7 +143,12 @@
       "次回メモ：B主導権候補が明確なガールズは、軸主力の頭だけでなく、B選手頭＋S/地元好位2着＋主力3着を最低1点入れる。",
       "作成目的：開催レポート・全R照合・次回改善サマリを1つのテキストファイルに統合。",
       "【最重要の改善ポイント】",
-      "【次回へ活かす修正】"
+      "【次回へ活かす修正】",
+      "「的中率を少し作れた」一方で、1Rあたり1,000円固定では、低配当救済だけでは収支を戻せない。次回は、2車単救済を入れる時に、同じ1-2着で3着ズレを3連単にも1点入れる必要がある。",
+      "4) 次回に活かす改善ルール",
+      "次回改善：「番手差し＋逃げ残り」を買う時は、3着に単騎・別線の好位勢を1点だけ入れる。低配当2車単だけでは回収できない。",
+      "次回の松戸予想に向けた改善ルール",
+      "この日の最大の反省は、松戸333m×霧雨/北風で“前に出切った選手・Bを取った選手”がかなり強く残ったことを、買い目の頭・2着に十分反映できなかった点。"
     ]
   },
   "predictionGuidance": [

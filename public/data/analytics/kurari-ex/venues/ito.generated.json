@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "ito",
   "venueName": "伊東",
-  "updatedAt": "2026-06-25",
+  "updatedAt": "2026-07-12",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-11",
-    "to": "2026-06-24"
+    "to": "2026-07-11"
   },
   "quality": {
-    "seedSources": 16,
-    "parsedDateSources": 16,
+    "seedSources": 25,
+    "parsedDateSources": 25,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 16,
-    "raceCount": 172,
-    "trifectaHits": 26,
-    "trifectaHitRate": 28.9,
-    "exactaHits": 1,
-    "exactaHitRate": 1.1,
-    "anyTicketHits": 17,
-    "hitRate": 44.7,
-    "investmentYen": 140000,
-    "returnYen": 83660,
-    "recoveryRate": 59.8,
+    "sourceCount": 25,
+    "raceCount": 233,
+    "trifectaHits": 55,
+    "trifectaHitRate": 38.2,
+    "exactaHits": 7,
+    "exactaHitRate": 4.9,
+    "anyTicketHits": 55,
+    "hitRate": 55.6,
+    "investmentYen": 209400,
+    "returnYen": 153560,
+    "recoveryRate": 73.3,
     "kimarite": {
       "escape": 2,
       "makuri": 2,
@@ -38,64 +38,64 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 16,
+      "evidenceCount": 25,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 16,
+      "evidenceCount": 25,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 16,
+      "evidenceCount": 25,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 12,
+      "evidenceCount": 18,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 8,
-      "confidence": "medium",
+      "evidenceCount": 17,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 8,
-      "confidence": "medium",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "THIRD_PLACE_SPREAD",
-      "label": "3着候補を分散",
-      "evidenceCount": 8,
-      "confidence": "medium",
+      "evidenceCount": 17,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 7,
-      "confidence": "medium",
+      "evidenceCount": 16,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "THIRD_PLACE_SPREAD",
+      "label": "3着候補を分散",
+      "evidenceCount": 16,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 3,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     }
   ],
@@ -104,7 +104,10 @@
       "自信度の理由：4高野の機動力が一枚上。4-2の本線は維持しつつ、雨風と伊東ナイターの三着ズレ傾向を踏まえて別線へ広げる。",
       "KEIRIN.JP「月刊競輪WEB｜バンクの特徴」",
       "4) 詳細summary｜次回予想へ引き継ぐポイント",
-      "最大のポイントは、 北北東23〜25km/h級の強風でもB選手が11/12Rで車券内に残った こと。"
+      "最大のポイントは、 北北東23〜25km/h級の強風でもB選手が11/12Rで車券内に残った こと。",
+      "決まり手傾向：差5R／捲2R",
+      "主シナリオ：5橋本陸がB12の先行力を活かして主導権。1山口龍也は近況の差し脚が良く、伊東ナイターの「番手差し＋3着別線混入」傾向から1-5を軸にする。",
+      "2橋本はB9で捲り4本。佐藤を射程に置ければ頭まで。5藤根も捲りがあり、踏み合いなら浮上する。ナイターの同ラインワンツー傾向を重視しつつ、別線頭を2車単で保護する。"
     ],
     "targets": [
       "取り逃しパターン：3着違い（1-2着一致）（近い買い目：3-7-6／3-7-1）",
@@ -130,7 +133,9 @@
       "5梶原の先行と7川越の中団捲りを中心視。3内田の差し、2内山の番手差し、単騎1大森の浮上を警戒。",
       "5土田ラインを本線としつつ、6小出の積極策を利す3堂村の差し、7白井ラインの浮上を警戒。",
       "別線は5高橋-2三ッ井-7荻野。5高橋が中団から先捲りなら、2三ッ井の差し切りが怖い。6赤井は単騎だがS16で位置取りの巧さがあり、前団の踏み合いなら3着穴で注意。",
-      "相手は7山田だが、2-7は二車。1小田、3山本の先行争いがあるため、2真鍋が捲りに回ると7山田が離れるリスクもある。そこで番手7山田だけでなく、3-5-4の関東ラインから5土屋の差し込みを強めに見る。"
+      "相手は7山田だが、2-7は二車。1小田、3山本の先行争いがあるため、2真鍋が捲りに回ると7山田が離れるリスクもある。そこで番手7山田だけでなく、3-5-4の関東ラインから5土屋の差し込みを強めに見る。",
+      "レース型：TYPE-C・三分戦番手差し警戒型",
+      "注意: 今回の実買い目は従来の10点ではなく、各R「14点／1点100円」構成。集計も1Rあたり1,400円で実施。"
     ],
     "improvements": [
       "このレポート内では、新規の買い目提案は行いません。次回へ活かすための振り返りルールのみ整理します。",
@@ -154,7 +159,7 @@
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
     "先行軸だけで固定せず、番手差しの逆目を残す",
     "本線が崩れた場合の別線頭と別線3着を保護する",
-    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
-    "先行争いがある場合は別線の捲り筋を残す"
+    "先行争いがある場合は別線の捲り筋を残す",
+    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す"
   ]
 }

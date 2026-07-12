@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "kochi",
   "venueName": "高知",
-  "updatedAt": "2026-06-21",
+  "updatedAt": "2026-07-12",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-04",
-    "to": "2026-06-20"
+    "to": "2026-07-01"
   },
   "quality": {
-    "seedSources": 10,
-    "parsedDateSources": 10,
+    "seedSources": 13,
+    "parsedDateSources": 13,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 10,
-    "raceCount": 77,
-    "trifectaHits": 23,
-    "trifectaHitRate": 29.9,
+    "sourceCount": 13,
+    "raceCount": 101,
+    "trifectaHits": 37,
+    "trifectaHitRate": 36.6,
     "exactaHits": 5,
-    "exactaHitRate": 6.5,
+    "exactaHitRate": 5.6,
     "anyTicketHits": 5,
     "hitRate": 55.6,
-    "investmentYen": 77000,
-    "returnYen": 29260,
-    "recoveryRate": 38,
+    "investmentYen": 113000,
+    "returnYen": 50840,
+    "recoveryRate": 45,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,57 +38,64 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 10,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 10,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 10,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 12,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 8,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 5,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 5,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 4,
+      "evidenceCount": 7,
       "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "LINE_COHESION",
+      "label": "同ライン決着を評価",
+      "evidenceCount": 1,
+      "confidence": "low",
       "sourceType": "SEED"
     }
   ],
@@ -99,7 +106,13 @@
       "実測コンディション傾向：予想時は北寄り4km/h想定が中心だったが、実測は2〜3km/h中心で、風の負荷は想定より軽め。",
       "3) 今回の重要Summary：次に活かすポイント",
       "天候傾向 晴れ。実風は南東〜東 2〜3km/h中心",
-      "決まり手傾向 捲5R・差4R・逃0R"
+      "決まり手傾向 捲5R・差4R・逃0R",
+      "【級班別の傾向】",
+      "【当日の気象・展開傾向】",
+      "高知500mの番手差し傾向を意識した予想は全体として方向性が合っていた。",
+      "3. 6/30は途中から霧雨・くもりが入り、実際の風も予想時の想定より弱い場面があった。高知500mの差し傾向に加えて、湿った走路では「番手差し」だけでなく「3番手突き抜け」「別線差しの2着」が増えた。",
+      "⑦内山慧大は初日特選4着でもB15で先行力があり、ここは3車ラインを背負える。番手④吉松直人は初日特選2着、函館では初特1着・準決1着と差し脚が好調。高知500mの差し傾向も踏まえて④の番手差しを軸にする。",
+      "①池野健太は初日4着でもS1の自力で、B5ながら捲り4・差し4まで使える総合力がある。番手は地元④田尾駿介、3番手も地元⑦佐々木則幸。高知500mの差し傾向、④の当所5年49走10勝・2着13回を考えると、④の番手差しを軸にする。"
     ],
     "targets": [
       "※ 結果ファイル上で一部 最終判定: pending がありましたが、予想買い目との照合により当レポート側で「的中／不的中」を確定しています。",
@@ -117,7 +130,14 @@
     ],
     "cautions": [
       "決まり手：ク（1着=ク） / 組み合わせ差し替え（別線・位置取りズレ） / 失格発生（出目歪み注意）",
-      "記録上の注意：今回の実際の買い目構成は、全Rとも 3連単8点＋2車単2点＝10点 。マスターテンプレの例示（3連単7点＋2車単3点）へ改変せず、実データを優先して保存。"
+      "記録上の注意：今回の実際の買い目構成は、全Rとも 3連単8点＋2車単2点＝10点 。マスターテンプレの例示（3連単7点＋2車単3点）へ改変せず、実データを優先して保存。",
+      "地元番手や格上番手を信頼しすぎ、追走失敗・失格・ライン分断のリスクを薄く見た。",
+      "地元番手が飛んだ11R、失格した10Rのように、地元軸の固定は事故リスクもある。地元番手本線でも、ライン3番手・別線追込を保険に入れる。",
+      "タイプ：TYPE-C｜⑦藤原と③中川の自力比較、単騎⑤原田の差し込み警戒",
+      "タイプ：TYPE-B｜②林の自力上位と地元⑤谷口、⑦長松の初日特選1着を警戒",
+      "タイプ：TYPE-C｜⑤山田の若手機動力と①高橋番手、③福島の四国番手差し警戒",
+      "6. 危険パターン：A級・S級一般で人気本線が重馬場に沈むと、大穴が出やすい。一般戦は信頼度を1段下げ、単騎・別線の2着評価を厚くする。",
+      "TYPE-B｜⑦野村の先行を使う④藤原中心、②遠藤と⑥山崎の別線も警戒"
     ],
     "improvements": [
       "B選手は7R中6Rで車券内に残った。西〜西北西の弱風帯（結果テキスト表記3km/h）では、B選手の残りを過度に軽視しないことが次回分析の確認ポイント。",
@@ -128,7 +148,10 @@
       "反映メモ：このレポートは開催単位の結果整理用。分析キャンバス①②への直接編集は行っていない。",
       "次回から、2車単穴を入れる時は、その組み合わせに対して「最も自然な3着」を1点だけ3連単へ昇格する。特にガールズ決勝・A級決勝のように上位候補が絞れるレースでは必須。",
       "次回は、ライン3番手が差し・マーク型で、前2人が踏み合いや牽制をする展開なら、3番手頭を1点だけ救済する。",
-      "5. 次回予想へ向けた改善ルール"
+      "5. 次回予想へ向けた改善ルール",
+      "【次回への改善方針】",
+      "【次回の買い目ルール案】",
+      "【次回の重点チェック】"
     ]
   },
   "predictionGuidance": [

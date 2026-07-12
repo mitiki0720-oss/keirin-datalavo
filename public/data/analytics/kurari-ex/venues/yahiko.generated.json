@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "yahiko",
   "venueName": "弥彦",
-  "updatedAt": "2026-06-25",
+  "updatedAt": "2026-07-12",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-04",
-    "to": "2026-06-24"
+    "to": "2026-07-09"
   },
   "quality": {
-    "seedSources": 18,
-    "parsedDateSources": 18,
+    "seedSources": 24,
+    "parsedDateSources": 24,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 18,
-    "raceCount": 167,
-    "trifectaHits": 45,
-    "trifectaHitRate": 28.5,
-    "exactaHits": 11,
-    "exactaHitRate": 7,
-    "anyTicketHits": 27,
-    "hitRate": 40.3,
-    "investmentYen": 166000,
-    "returnYen": 96990,
-    "recoveryRate": 58.4,
+    "sourceCount": 24,
+    "raceCount": 216,
+    "trifectaHits": 71,
+    "trifectaHitRate": 34.3,
+    "exactaHits": 15,
+    "exactaHitRate": 7.2,
+    "anyTicketHits": 51,
+    "hitRate": 44,
+    "investmentYen": 204800,
+    "returnYen": 150930,
+    "recoveryRate": 73.7,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,63 +38,63 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 18,
+      "evidenceCount": 24,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 18,
+      "evidenceCount": 24,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 16,
-      "confidence": "high",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "WIND_SENSITIVE",
-      "label": "風条件を確認",
-      "evidenceCount": 13,
+      "evidenceCount": 22,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 12,
+      "evidenceCount": 18,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "WIND_SENSITIVE",
+      "label": "風条件を確認",
+      "evidenceCount": 18,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 11,
+      "evidenceCount": 17,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 15,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 15,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 3,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     }
@@ -105,7 +105,12 @@
       "【決まり手・展開傾向メモ】",
       "修正ポイント：4車ラインの先頭4瀧本が残らない分岐では、1-3の差し連動と5前川の3着をセットで保護する。",
       "修正ポイント：番手差しを狙う時、同ライン3番手の4平田まで2着・3着へ上げる。3-4-5を最低1点検討。",
-      "修正ポイント：6-3を2車単で買うなら、6-3-4のライン直列3連単も必ず入れる。"
+      "修正ポイント：6-3を2車単で買うなら、6-3-4のライン直列3連単も必ず入れる。",
+      "2. 開催全体summary｜次回予想に残すポイント",
+      "1加賀美差し、4阿部2着、5宮下3着を line03 で的中。展開は宮下先行から番手・3番手の差し込みで、弥彦の直線差し傾向を正しく拾えた。低配当なので本線圧縮対象。",
+      "本線：渡邉が何でもありの運びで、番手の田中が近況も安定。弥彦の差し傾向を考えると、6が動いて1が抜ける形を本線に置く。",
+      "2. 重点summary：次回予想に活かすポイント",
+      "弥彦ミッド最終日は、Bを取った選手が1R・2R・4R・5R・6R・7R・8R・9Rで車券内。つまり B選手は差されても2・3着に残る という前日からの傾向が継続。"
     ],
     "targets": [
       "【予想10点の内訳（実買い目写経）】",
@@ -154,8 +159,8 @@
     "級班とレース種別を分けて傾向を評価する",
     "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
     "踏み合い時は単騎の差し込みを3着候補に加える",
-    "風向と風速を確認し、先行残りと差し届きを固定評価しない",
     "本線が崩れた場合の別線頭と別線3着を保護する",
+    "風向と風速を確認し、先行残りと差し届きを固定評価しない",
     "先行軸だけで固定せず、番手差しの逆目を残す",
     "先行争いがある場合は別線の捲り筋を残す",
     "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す"

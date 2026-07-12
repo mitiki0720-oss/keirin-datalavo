@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "tamano",
   "venueName": "玉野",
-  "updatedAt": "2026-06-18",
+  "updatedAt": "2026-07-12",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-25",
-    "to": "2026-06-14"
+    "to": "2026-07-09"
   },
   "quality": {
-    "seedSources": 7,
-    "parsedDateSources": 7,
+    "seedSources": 13,
+    "parsedDateSources": 13,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 7,
-    "raceCount": 69,
-    "trifectaHits": 17,
-    "trifectaHitRate": 24.6,
-    "exactaHits": 4,
-    "exactaHitRate": 5.8,
+    "sourceCount": 13,
+    "raceCount": 85,
+    "trifectaHits": 35,
+    "trifectaHitRate": 41.2,
+    "exactaHits": 10,
+    "exactaHitRate": 11.8,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 69000,
-    "returnYen": 51730,
-    "recoveryRate": 75,
+    "investmentYen": 109600,
+    "returnYen": 77210,
+    "recoveryRate": 70.4,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,63 +38,63 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 7,
-      "confidence": "medium",
+      "evidenceCount": 13,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 7,
-      "confidence": "medium",
+      "evidenceCount": 13,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 6,
-      "confidence": "medium",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "MAKURI_ALERT",
-      "label": "捲り展開を警戒",
-      "evidenceCount": 5,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 4,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
-      "tag": "LINE_COHESION",
-      "label": "同ライン決着を評価",
-      "evidenceCount": 4,
-      "confidence": "medium",
+      "tag": "MAKURI_ALERT",
+      "label": "捲り展開を警戒",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 4,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 4,
+      "evidenceCount": 10,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "LINE_COHESION",
+      "label": "同ライン決着を評価",
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     }
@@ -106,7 +106,13 @@
       "[ ] 故障・落車を含むレースは通常傾向から分離したか。",
       "先行競合型は「番手頭」だけでなく「自力型の差し頭＋番手追走＋競合相手のB残り」を保護する。5番故障の影響は通常傾向から分離する。",
       "6Rは1番・藤原憲征が欠車。予想時の5分戦から構造が変わっているため、通常傾向へ強く一般化しない。",
-      "2026-06-13：6Rの欠車は通常傾向から分離して扱う。"
+      "2026-06-13：6Rの欠車は通常傾向から分離して扱う。",
+      "決まり手傾向：ガールズは捲り・逃げ、A級は捲りと番手差しが中心。ミッドでも風速3〜4km/hでは主導権ラインが残る一方、別線捲り頭も強く出た。",
+      "3. B選手の残り方は概ね読めていた。1R〜5RではB選手が車券内に残っており、ミッド玉野の短直線・先行残り傾向と整合した。",
+      "地元1田中がB13で、直近は静岡で予選1着・準決2着・決勝2着、名古屋でも連続2着と状態はかなり良い。1-2-5の3車で主導権を取れれば、ミッド玉野の先行残り傾向にも合う。",
+      "【実際の玉野6/30結果から見える傾向】",
+      "🔁＝玉野の差し傾向から2川島の差し切り救済。",
+      "🔁＝玉野の差し傾向から2工藤の差し切りを救済。"
     ],
     "targets": [
       "2車単：2点（穴狙い）",
@@ -117,9 +123,18 @@
       "4. ガールズの追走候補抽出が固定的。 1Rは1吉村・2川原、3Rは2平子の浮上を十分に買い目へ反映できなかった。固定ラインなし戦では、周回位置・S・直後位置を別枠で見る。",
       "6Rは欠車後の再編で地元3車ラインが機能。欠車・故障・落車の有無を締切前に再確認し、並びと買い目を再計算する運用が必要。",
       "10R：9久田-3木村ライン重視が失敗。8大石ラインの5坂口-1西村-4池田ズブズブを作れず。",
-      "5. 勝負レース🔥は、軸の強さだけでなく、逆目・3番手・別線3着が買い目内にあるかで判定する。"
+      "5. 勝負レース🔥は、軸の強さだけでなく、逆目・3番手・別線3着が買い目内にあるかで判定する。",
+      "注意：結果ファイル上で5R〜7Rがpending表示だったため、着順・払戻・実買い目を手照合して的中判定を補正",
+      "3. ガールズ2Rで3加藤の頭評価が弱かった 。展開予想では3加藤の好調を認識していたが、買い目では3-1-5まで伸ばせなかった。5長澤の3着外差しも不足。",
+      "2車単（穴狙い2点）09/10"
     ],
-    "cautions": [],
+    "cautions": [
+      "注意：結果ファイル上で5R〜7Rがpending表示だったため、着順・払戻・実買い目を手照合して的中判定を補正",
+      "注意: この参考値は、番号だけを照合したものであり、競輪予想の実力評価には使わないこと。",
+      "注意：結果ファイルの最終判定は全R pending 表示のため、予想買い目と結果キーから手照合して集計。",
+      "注意：結果ファイルの【source】欄は全Rで official source: 未取得 / source取得日時: 未取得。素材にない公式sourceは補完していない。",
+      "🔍＝5利川の先行残り、3小林の3着混入を警戒。"
+    ],
     "improvements": [
       "4) 詳細summary｜次の予想へ残す改善点",
       "4-3) 次回に使うチェックリスト",
@@ -128,17 +143,21 @@
       "4. ガールズの追走候補抽出が固定的。 1Rは1吉村・2川原、3Rは2平子の浮上を十分に買い目へ反映できなかった。固定ラインなし戦では、周回位置・S・直後位置を別枠で見る。",
       "全体収益はプラスだが、回収28,440円のうち 23,450円（82.5%）が4Rへ集中 。的中率改善と回収率の再現性は分けて評価する。",
       "このレポートでは新規予想は行わず、予想と結果の突合・反省・次回改善メモのみを記録する。",
-      "3-4) 次回に使う修正ルール"
+      "3-4) 次回に使う修正ルール",
+      "次回予想へ残すチェックリスト",
+      "4) 次回へ向けた具体的な修正方針",
+      "5) 反映用ログ",
+      "次回に向けては『2車単で買う逆目は3連単にも1点接続』『仮並びは2着候補を広げる』『別線先行型は3着残りまで確認』を固定ルールにする。"
     ]
   },
   "predictionGuidance": [
     "級班とレース種別を分けて傾向を評価する",
     "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
-    "先行争いがある場合は別線の捲り筋を残す",
     "先行軸だけで固定せず、番手差しの逆目を残す",
-    "ラインの長さと追走力を確認し、同ライン決着を評価する",
+    "先行争いがある場合は別線の捲り筋を残す",
     "本線が崩れた場合の別線頭と別線3着を保護する",
-    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す"
+    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
+    "ラインの長さと追走力を確認し、同ライン決着を評価する"
   ]
 }

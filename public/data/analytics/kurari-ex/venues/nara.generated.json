@@ -2,78 +2,78 @@
   "schemaVersion": 1,
   "venueKey": "nara",
   "venueName": "奈良",
-  "updatedAt": "2026-06-18",
+  "updatedAt": "2026-07-12",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-01",
-    "to": "2026-06-15"
+    "to": "2026-07-03"
   },
   "quality": {
-    "seedSources": 15,
-    "parsedDateSources": 15,
+    "seedSources": 18,
+    "parsedDateSources": 18,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 15,
+    "sourceCount": 18,
     "raceCount": 133,
-    "trifectaHits": 35,
-    "trifectaHitRate": 28.7,
-    "exactaHits": 9,
-    "exactaHitRate": 7.4,
+    "trifectaHits": 47,
+    "trifectaHitRate": 38.5,
+    "exactaHits": 10,
+    "exactaHitRate": 8.2,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 133000,
-    "returnYen": 86940,
-    "recoveryRate": 65.4,
+    "investmentYen": 154000,
+    "returnYen": 106260,
+    "recoveryRate": 69,
     "kimarite": {
-      "escape": null,
-      "makuri": null,
-      "sashi": null
+      "escape": 4,
+      "makuri": 7,
+      "sashi": 10
     }
   },
   "seedInsights": [
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 15,
+      "evidenceCount": 18,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 15,
+      "evidenceCount": 18,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 15,
+      "evidenceCount": 18,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 15,
+      "evidenceCount": 18,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 14,
+      "evidenceCount": 17,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 13,
+      "evidenceCount": 16,
       "confidence": "high",
       "sourceType": "SEED"
     },
@@ -87,21 +87,22 @@
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 4,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 4,
+      "confidence": "medium",
       "sourceType": "SEED"
     }
   ],
   "seedNotes": {
     "features": [
-      "2-1. 最重要ポイント：B選手の残りをさらに強く扱う"
+      "2-1. 最重要ポイント：B選手の残りをさらに強く扱う",
+      "4. A級決勝7Rでは、人気本線4-7-2だけに寄せず、3-6ラインの捲り決着を本線06に残せた。これが今回の最大の回収ポイント。"
     ],
     "targets": [
       "2車単：2点（穴狙い）",
@@ -127,7 +128,8 @@
       "3. B選手は全Rで車券内。 11R中11RでB選手が1〜3着に残った。6/13に続き、奈良デイでは前で踏んだ選手を完全に切る設計は危険。",
       "番手離れリスクがある時は、勝ちライン頭＋相手ライン番手・先頭の2着3着戻しを確認。",
       "注意：同名ファイルのマウントが過去開催へ切り替わる挙動があったため、06/15の予想・結果として確認できたファイル検索チャンクを優先して作成。",
-      "5. 出走表・結果側の選手名差異に注意。 前半Rで予想側と結果側に車番名の差異が見られるため、開催レポートでは車番照合を優先し、選手名は結果テキスト準拠で残す。"
+      "5. 出走表・結果側の選手名差異に注意。 前半Rで予想側と結果側に車番名の差異が見られるため、開催レポートでは車番照合を優先し、選手名は結果テキスト準拠で残す。",
+      "展開予想では3高本の総合力を最上位に置いた点が正解。2車ラインが多く隊列が崩れやすい中、7堺の差し込み警戒も3着で機能した。"
     ],
     "improvements": [
       "次回は可能なら、レース映像メモまたは「初手／打鐘／最終ホーム／最終バック」の簡易隊列を追加する。",

@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "kurume",
   "venueName": "久留米",
-  "updatedAt": "2026-06-25",
+  "updatedAt": "2026-07-12",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-01",
-    "to": "2026-06-24"
+    "to": "2026-07-09"
   },
   "quality": {
-    "seedSources": 11,
-    "parsedDateSources": 11,
+    "seedSources": 14,
+    "parsedDateSources": 14,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 11,
-    "raceCount": 116,
-    "trifectaHits": 25,
-    "trifectaHitRate": 21.6,
-    "exactaHits": 22,
-    "exactaHitRate": 21.2,
+    "sourceCount": 14,
+    "raceCount": 149,
+    "trifectaHits": 44,
+    "trifectaHitRate": 29.5,
+    "exactaHits": 26,
+    "exactaHitRate": 19,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 116000,
-    "returnYen": 79820,
-    "recoveryRate": 68.8,
+    "investmentYen": 162200,
+    "returnYen": 112730,
+    "recoveryRate": 69.5,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -36,57 +36,64 @@
   },
   "seedInsights": [
     {
-      "tag": "TIME_SLOT_BIAS",
-      "label": "時間帯差を確認",
-      "evidenceCount": 11,
-      "confidence": "high",
-      "sourceType": "SEED"
-    },
-    {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 11,
+      "evidenceCount": 14,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 10,
+      "evidenceCount": 13,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "TIME_SLOT_BIAS",
+      "label": "時間帯差を確認",
+      "evidenceCount": 12,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
+      "evidenceCount": 4,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "THIRD_PLACE_SPREAD",
+      "label": "3着候補を分散",
       "evidenceCount": 1,
       "confidence": "low",
       "sourceType": "SEED"
@@ -94,7 +101,12 @@
   ],
   "seedNotes": {
     "features": [
-      "久留米ナイターの雨では、逃げが完全に不利というより「頭は差されるが2〜3着に残る」傾向が強い。B選手の3着固定を増やす。"
+      "久留米ナイターの雨では、逃げが完全に不利というより「頭は差されるが2〜3着に残る」傾向が強い。B選手の3着固定を増やす。",
+      "5大畑がB7で主導権候補。5-1-3は3車で、番手1櫻井は差し脚と追走力があり、久留米の番手差し傾向にも合う。大畑がペースを握れば1櫻井の差し、5大畑の残り、3田村の3着が自然な本線。",
+      "1梶原はB16、逃げ9・捲り5で自力上位。1-7-4は地元福岡を含む3車ラインで、番手7神開は差し4、競走得点88.93。久留米ナイターの同ライン1-2傾向を考えると、7神開の番手差しと1梶原の押し切りが中心。",
+      "本線：2分戦で、長いラインは3猪野-6千澤-4三木-2石川。3猪野が主導権を握れば、久留米の番手差し傾向から6千澤の差し切りと、4三木の3番手突っ込みを重視。",
+      "本線：1横溝は地元の新人で、初日2着。1-4-6の3車で主導権を取りやすく、4加藤は初日1着、近況も小松島で3着・2着・2着と安定。久留米の番手差し傾向から1-4だけでなく4-1も厚め。",
+      "本線：1菅田がB10で主導権候補。1-4-3の3車で出切れば、久留米の番手差し傾向から4櫻井の差し切りを中心に見る。4櫻井はA1で得点も上位、当所5年も6走3勝で久留米適性あり。"
     ],
     "targets": [
       "⚠️ このレポートは 予想は行いません （外部で確定した買い目＋結果の整理のみ）。",
@@ -111,20 +123,23 @@
       "4）次回の買い目ルール提案"
     ],
     "cautions": [
-      "レースタイプ：混戦・崩れ警戒型（TYPE-D）"
+      "レースタイプ：混戦・崩れ警戒型（TYPE-D）",
+      "pending結果は必ず払戻表と買い目を手動照合する。9R〜11Rの的中が埋もれるため、自動判定だけでは危険。",
+      "ただし5半田は初日特選1着、準決2着で、総合力では最上位級。5-3-6の九州別線も3車あり、3前田は今節1着・2着、6古川も1着・1着でかなり状態が良い。2福島は単騎でもS級戦を走っていた格があり、3着だけでなく2着まで差し込み警戒。"
     ],
     "improvements": [
       "総括・次回に向けた改善summary",
       "4）次回の買い目ルール提案",
       "5）次回の久留米ナイターで重視すること",
       "※ここでは新規予想は行わず、予想10点と実結果を照合し、次回予想に活かすための反省点をまとめます。",
-      "出走表の選手属性が添付ファイルに不足していたため、府県・年齢・期・登録番号を完全記録できなかった。次回は出走表詳細CSV/HTMLまたは公式出走表の貼付が必要。"
+      "出走表の選手属性が添付ファイルに不足していたため、府県・年齢・期・登録番号を完全記録できなかった。次回は出走表詳細CSV/HTMLまたは公式出走表の貼付が必要。",
+      "※ここでは新規予想は行わず、予想時の出走表・実結果・的中/不的中・展開差分・次回修正点を記録します。"
     ]
   },
   "predictionGuidance": [
-    "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
     "級班とレース種別を分けて傾向を評価する",
+    "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
     "先行軸だけで固定せず、番手差しの逆目を残す",
     "先行争いがある場合は別線の捲り筋を残す",
     "本線が崩れた場合の別線頭と別線3着を保護する",

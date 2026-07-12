@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "matsuyama",
   "venueName": "松山",
-  "updatedAt": "2026-06-21",
+  "updatedAt": "2026-07-12",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-01",
-    "to": "2026-06-21"
+    "to": "2026-07-11"
   },
   "quality": {
-    "seedSources": 15,
-    "parsedDateSources": 15,
+    "seedSources": 16,
+    "parsedDateSources": 16,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 15,
+    "sourceCount": 16,
     "raceCount": 124,
-    "trifectaHits": 11,
-    "trifectaHitRate": 10,
+    "trifectaHits": 17,
+    "trifectaHitRate": 15.5,
     "exactaHits": 6,
     "exactaHitRate": 6,
     "anyTicketHits": 13,
     "hitRate": 15.1,
-    "investmentYen": 110000,
-    "returnYen": 58200,
-    "recoveryRate": 52.9,
+    "investmentYen": 125400,
+    "returnYen": 66610,
+    "recoveryRate": 53.1,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,70 +38,71 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 15,
+      "evidenceCount": 16,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 15,
+      "evidenceCount": 16,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 14,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 13,
+      "evidenceCount": 14,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 10,
+      "evidenceCount": 11,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 8,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 7,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 6,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     }
   ],
   "seedNotes": {
     "features": [
-      "今回の最大ポイントは、 強風日の読み方自体はかなり良かったが、3着固定と決勝の自力決着の拾い方が足りなかった こと。南西〜西南西の9〜11km/h級の風が続き、逃げ先行が苦しい条件という判断は正しく、5Rではその読みが 関口5頭＋楠本ライン後ろ2-7 の9,430円的中につながった。"
+      "今回の最大ポイントは、 強風日の読み方自体はかなり良かったが、3着固定と決勝の自力決着の拾い方が足りなかった こと。南西〜西南西の9〜11km/h級の風が続き、逃げ先行が苦しい条件という判断は正しく、5Rではその読みが 関口5頭＋楠本ライン後ろ2-7 の9,430円的中につながった。",
+      "【総括：次の松山予想へ活かすポイント】"
     ],
     "targets": [
       "6R・7Rは結果ファイル上の最終判定が pending でしたが、結果組み合わせと買い目を手動照合し、レポート上では不的中として集計しています。",
@@ -130,7 +131,10 @@
       "次回改善：強風×一般戦で単騎差しを評価する読みは継続。2車単は「差し脚上位同士」の裏表を1点だけでも補完。",
       "2. 全体Summary：次回予想に使う結論",
       "一方で、3R・4Rはかなり惜しい外し方。3Rは 5-1-4 / 5-1-3 を持ちながら、ライン3番手の7を置けず 5-1-7 を逃した。4Rも 4-1-5 / 4-3-1 まで読んでいながら、別線番手3大林の3着を 4-1-3 に置けなかった。ここは次回、 本線の1・2着が読めた時ほど3着をライン内3番手と別線番手に振る 必要がある。",
-      "次回への改善 ：強風一般戦で単騎差しを買う場合、差し脚上位の単騎を2着固定まで厚くし、逃げ残りは3着側へ下げる。"
+      "次回への改善 ：強風一般戦で単騎差しを買う場合、差し脚上位の単騎を2着固定まで厚くし、逃げ残りは3着側へ下げる。",
+      "次回は、人気ラインが明確なレースでは点数圧縮、軸不明・チャレンジ戦・別線自力が複数あるレースでは『低評価ラインの番手頭』を1点だけ入れるメリハリが必要。",
+      "【次回修正点まとめ】",
+      "A級特予選で3車ライン先行＋別線実力者の組み合わせは、番手差し頭と別線2着をセットで買うのが有効。今回のように2-5-4を入れられたのは次回も継続。"
     ]
   },
   "predictionGuidance": [

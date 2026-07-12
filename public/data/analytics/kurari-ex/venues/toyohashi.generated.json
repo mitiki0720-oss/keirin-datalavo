@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "toyohashi",
   "venueName": "豊橋",
-  "updatedAt": "2026-06-13",
+  "updatedAt": "2026-07-12",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-06-03",
-    "to": "2026-06-05"
+    "to": "2026-07-07"
   },
   "quality": {
-    "seedSources": 3,
-    "parsedDateSources": 3,
+    "seedSources": 9,
+    "parsedDateSources": 9,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 3,
-    "raceCount": 21,
-    "trifectaHits": 6,
-    "trifectaHitRate": 28.6,
-    "exactaHits": 0,
-    "exactaHitRate": 0,
+    "sourceCount": 9,
+    "raceCount": 54,
+    "trifectaHits": 21,
+    "trifectaHitRate": 38.9,
+    "exactaHits": 1,
+    "exactaHitRate": 2.4,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 21000,
-    "returnYen": 8320,
-    "recoveryRate": 39.6,
+    "investmentYen": 92400,
+    "returnYen": 70930,
+    "recoveryRate": 76.8,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,62 +38,77 @@
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 3,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 3,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 3,
+      "evidenceCount": 9,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "LINE_COHESION",
+      "label": "同ライン決着を評価",
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 1,
-      "confidence": "low",
+      "evidenceCount": 5,
+      "confidence": "medium",
       "sourceType": "SEED"
     }
   ],
   "seedNotes": {
-    "features": [],
+    "features": [
+      "3) 開催全体summary：次回に活かす重要ポイント",
+      "【決まり手傾向】",
+      "点数判断：標準14点。3分戦＋単騎5あり。豊橋の差し傾向と風を考え、番手7・6と単騎5を残す。",
+      "点数判断：標準14点。5木村中心の勝負レースだが、差し傾向・風・別線好調組を考え、1恩田逆転と3神田穴を明確に残す。",
+      "点数判断：標準14点。3分戦＋単騎あり、豊橋の差し傾向を重視して番手差しと3着ズレを補強。",
+      "1幸田は今節苦戦しているが、B8で先行争いに参加できる。1が先に踏むと6長井の番手差し穴。豊橋の差し傾向と東南東11km/hを考えると、自力押し切りより番手・3番手の伸びを重視する。",
+      "豊橋は差し傾向が強く、1笠松は地元愛知で近況も良い。5浅井が早めに踏めば1笠松の差し切りは必要。九州は7原口がB8で主導権候補、3井上は初日1着があり、7が駆けると3-4まで強い。"
+    ],
     "targets": [
       "今回の実買い目フォーマットは、各Rとも 3連単8点＋2車単2点＝10点 。テンプレート上の「3連単7点＋2車単3点」と異なるため、実際に提示された10点を優先して記録。",
       "結果ファイルの自動判定はpendingだが、結果1-2-4は買い目10点に含まれない。手動照合で不的中。B選手2は2着に残った。",
@@ -103,16 +118,38 @@
       "R 確定着順 買い目との照合 最終判定",
       "予想フォーマットは、各Rとも 3連単8点＋2車単2点＝合計10点 。テンプレート標準（3連単7点＋2車単3点）との差異を保持し、実際の提示買い目をそのまま記録した。",
       "7R A級決勝 5-6-3 90,070円 差 不的中（手動照合） 結果は5-6-3。5頭を1着に置いた買い目がなく、90,070円の高配当決着を拾えず。",
-      "2車単：2点（穴狙い）"
+      "2車単：2点（穴狙い）",
+      "※ここでは新規予想は行わず、実際に提示された買い目・確定結果・払戻を写して照合する。",
+      "※添付の買い目は各Rとも「3連単8点＋2車単2点＝10点」。テンプレ上の3連単7＋2車単3とは差があるため、実際に貼られた10点を優先して記録。",
+      "3. 単騎・負けライン番手の評価は言語ではできていたが、買い目への落とし込みが甘かった。2Rの5志水、4Rの4平、7Rの5矢部のように、細切れ戦ではライン外や別線番手が高配当の核になった。"
     ],
     "cautions": [
       "自信度（予想テキスト記載）：🔥（注意付き）",
       "0) 監査上の注意",
       "予想時自信度：🔥（注意付き）",
-      "レースタイプ：本線表裏・南関3車警戒型"
+      "レースタイプ：本線表裏・南関3車警戒型",
+      "四分戦＋単騎ありは、単騎を3着だけでなく頭候補にも1点だけ置く。特に特選・風あり・落車リスクの高い細切れ戦で重要。",
+      "自信度：🔥（注意付き）",
+      "レースタイプ：新人自力中心・単騎穴警戒型",
+      "B選手の車券内残りは5/7R。完全に消す判断は危険。",
+      "3Rの単騎2平、5Rの3小川、7Rの4藤井など、警戒対象自体はメモに存在していた。",
+      "「警戒していた選手が来たのに外れた」レースは、評価位置の問題。次回は“3着保護選手の2着化/頭化”を検討する。",
+      "レース型：三分戦＋単騎差し込み警戒型",
+      "レース型：若手先行＋別線3車警戒型"
     ],
     "improvements": [
-      "2026-06-03：7Rの自動判定pendingを手動照合し、不的中として開催サマリへ反映"
+      "2026-06-03：7Rの自動判定pendingを手動照合し、不的中として開催サマリへ反映",
+      "【次回の豊橋モーニング向け改善ルール】",
+      "次回への修正：先行力最上位がBを取る想定なら、番手差しだけでなく『先行頭＋別線自力2着＋別線番手/追走3着』を1点だけでも保険に入れる。特に4-3人気線を評価していたなら、7-4-3/7-3-4型を検討。",
+      "次回への修正：四分戦で1着候補を1に置くなら、相手は自ライン番手だけでなく『他ラインの番手追走』を2着候補に入れる。単騎7を3着保護するなら、1-5-7のような番手横断型を追加候補へ。",
+      "※このチャットでは新規予想は行わず、実際に出した10点予想と確定結果の照合・反省・次回改善だけを記録する。",
+      "次回は「番手差し」だけでなく、「3番手差し」「単騎差し」「別線番手差し」を頭候補に最低1点ずつ織り込む。",
+      "「警戒していた選手が来たのに外れた」レースは、評価位置の問題。次回は“3着保護選手の2着化/頭化”を検討する。",
+      "ここでは新規予想は行わず、実際に出した10点予想と確定結果の照合、外れ方、足りなかった点、次回に活かす修正点だけを記録する。",
+      "3) 開催全体summary：次回に活かす重要ポイント",
+      "次回は「3着保護に入れた選手が2着に上がる」想定を、2車単穴か3連単1点で必ず作る。",
+      "【全体summary：足りなかった所・次回へ】",
+      "5) 次回修正：強本線が安い時は、2車単を同じ本線の保険にせず、三連単で拾えない崩れ筋専用に回す。"
     ]
   },
   "predictionGuidance": [
@@ -123,6 +160,6 @@
     "踏み合い時は単騎の差し込みを3着候補に加える",
     "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
-    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す"
+    "ラインの長さと追走力を確認し、同ライン決着を評価する"
   ]
 }

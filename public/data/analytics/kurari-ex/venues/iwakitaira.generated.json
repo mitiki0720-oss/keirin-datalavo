@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "iwakitaira",
   "venueName": "いわき平",
-  "updatedAt": "2026-06-13",
+  "updatedAt": "2026-07-12",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-10",
-    "to": "2026-06-10"
+    "to": "2026-07-11"
   },
   "quality": {
-    "seedSources": 6,
-    "parsedDateSources": 6,
+    "seedSources": 8,
+    "parsedDateSources": 8,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 6,
+    "sourceCount": 8,
     "raceCount": 51,
-    "trifectaHits": 18,
-    "trifectaHitRate": 35.3,
-    "exactaHits": 4,
-    "exactaHitRate": 7.8,
+    "trifectaHits": 26,
+    "trifectaHitRate": 51,
+    "exactaHits": 5,
+    "exactaHitRate": 9.8,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 61400,
+    "investmentYen": 75400,
     "returnYen": 43720,
-    "recoveryRate": 71.2,
+    "recoveryRate": 58,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,64 +38,73 @@
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 6,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 6,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 6,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 6,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 6,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 5,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 5,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 4,
+      "evidenceCount": 6,
       "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "LINE_COHESION",
+      "label": "同ライン決着を評価",
+      "evidenceCount": 2,
+      "confidence": "low",
       "sourceType": "SEED"
     }
   ],
   "seedNotes": {
     "features": [
       "3-4) 展開読みの修正ポイント",
-      "2) 開催全体の傾向"
+      "2) 開催全体の傾向",
+      "1－2の同ライン決着を主軸とし、いわき平の差し傾向から2－1も厚く採用。",
+      "初日1着の新人3は別線捲りの中心で、4が追走。7も初日1着だが、2・3との先行争いが長引くと5まで含めて消耗する。弱風のため2の逃げ残りを重視しつつ、霧雨と差し傾向から1の逆転を厚くする。"
     ],
     "targets": [
       "並び：単騎（2-4は同県で位置取り連携意識、3は地元で好位追走狙い）",
@@ -118,7 +127,12 @@
       "3-5) 入力データ上の不足・注意点",
       "1RはB2番が2着、2RはB1番が2着。どちらも別線頭を警戒していたのに、B選手の2着残りを買い目へ接続できませんでした。",
       "4Rは7頭を警戒しながら7-3へ寄せ、実際の7-1-3を逃しました。",
-      "別線1番の浮上は警戒できていたが、実際は1-6-5。4車ライン最後尾6番の2着浮上、B5番の3着残りを拾えなかった。落車2番の影響は分離しつつ、長いラインの深い位置まで確認する。"
+      "別線1番の浮上は警戒できていたが、実際は1-6-5。4車ライン最後尾6番の2着浮上、B5番の3着残りを拾えなかった。落車2番の影響は分離しつつ、長いラインの深い位置まで確認する。",
+      "本文で警戒した選手を「どの1・2着ペアの3着に置くか」の最終監査が必要。",
+      "注意：結果テキスト上で公式結果sourceは未取得。fake補完禁止のため未取得のまま記録。",
+      "番手2真船はA級では能力上位だが、前走が5月18日で間隔が空いている点は注意。追走できれば1-2が中心だが、長い直線で2が差す逆目と、復帰初戦で末を欠く形の両方を押さえる。",
+      "予想本文で警戒した選手は、どの1・2着ペアの3着に置くかを最後に棚卸しする。",
+      "4-2-3-5の関東4車が主導権を取りやすい。4が先行し、差し脚のある2が絶好の番手。3・5まで長いラインだが、いわき平EXは同ラインスリー率18.5％に対し別線3着混入率33.3％で、3着固定は危険。"
     ],
     "improvements": [
       "3) 詳細summary｜次回へ残す検証",

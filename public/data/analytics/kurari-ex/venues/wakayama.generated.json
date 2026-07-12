@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "wakayama",
   "venueName": "和歌山",
-  "updatedAt": "2026-06-25",
+  "updatedAt": "2026-07-12",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-17",
-    "to": "2026-06-24"
+    "to": "2026-07-07"
   },
   "quality": {
-    "seedSources": 9,
-    "parsedDateSources": 9,
+    "seedSources": 13,
+    "parsedDateSources": 13,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 9,
-    "raceCount": 90,
-    "trifectaHits": 21,
-    "trifectaHitRate": 23.3,
+    "sourceCount": 13,
+    "raceCount": 126,
+    "trifectaHits": 39,
+    "trifectaHitRate": 31,
     "exactaHits": 6,
-    "exactaHitRate": 6.7,
+    "exactaHitRate": 4.8,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 90000,
-    "returnYen": 44530,
-    "recoveryRate": 49.5,
+    "investmentYen": 152400,
+    "returnYen": 70660,
+    "recoveryRate": 46.4,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,63 +38,63 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 13,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 13,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 13,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 8,
-      "confidence": "medium",
+      "evidenceCount": 12,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 6,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 6,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 6,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 4,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 3,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     }
@@ -103,7 +103,8 @@
     "features": [
       "最大の特徴は、B（バック）を取った選手が9/12で車券内に残ったこと。",
       "もう一つの大きな特徴は、三連単1番人気が全12Rで飛んだこと。",
-      "決まり手・展開の全体傾向"
+      "決まり手・展開の全体傾向",
+      "ラインの軸は7佐藤-3久島。7佐藤は予選2着、準決7着でも自力脚はあり、3久島は競走得点106.12で差し11回。和歌山の差し傾向を考えると、7が中団から先捲りなら3久島の差し切りを厚く見る。"
     ],
     "targets": [
       "2車単：2点（穴狙い）",
@@ -125,7 +126,13 @@
       "3の捲り警戒はできていたが、3頭を買う時の相手を4に寄せすぎた。実際はBを取った7が2着に残り、1が3着。別線捲りが決まっても、先行本線の前残りを2着に残す3-7-1型が不足。",
       "注意：登録番号は、今回確認したレース出走表一覧（Kドリームス／WINTICKET出場者一覧）では全員分を一括取得できなかったため「不明」として項目を保持した。",
       "レースタイプ：地元本命・別線番手差し警戒型",
-      "レースタイプ：九州本線・単騎差し込み警戒型"
+      "レースタイプ：九州本線・単騎差し込み警戒型",
+      "2. 3R・6R・7R・12Rの外れは、穴の“方向性”は触れていたのに、2着3着の接続が足りなかった。特に3Rは6橋本、6Rは2坂本、12Rは3松崎を警戒していながら、実際の相手構成まで組めていない。",
+      "3. 1着決まり手は差6本・捲6本で、逃げ1着はゼロ。B選手は9/12Rで車券内に残ったが、B選手が1着になるより、番手差し・捲り・差し込みの形が中心だった。つまり「B選手を車券内に残す」は正解でも、「逃げ切り頭」へ寄せすぎるのは危険。",
+      "良かった点：7保田を中心視したが、別線6橋本の先行・捲りリスク自体は展開予想で触れていた。",
+      "3出澤は3番手で点数は下がるが、1-7が決まる流れの3着候補。6明田は単騎でA級好走後の昇級絡み、強い根拠にはしないが3着薄めなら警戒。",
+      "4野田の単騎捲り差しは救済で読めていたが、2着6明田を全く拾えていなかった。実際は4-6-2で43,470円。6は単騎薄め警戒対象だったが、買い目には入っていない。",
+      "注意：この12Rブロックは、予想ファイル上で本文が『和歌山 11R S級予選』の重複になっている。実際の12RはS級初特選のため、予想時出走表・買い目に不整合あり。"
     ],
     "improvements": [
       "3) 開催全体 Summary：何が足りなかったか／次回に活かすこと",
@@ -133,7 +140,13 @@
       "【次回の和歌山F1デイでの改善チェック】",
       "つまり「軸選定は完全に外れていないR」が複数ある。次回は、1着候補を増やすより、 1-2着が見えた組み合わせに対して、3着候補を対称に接続するルール を強くする方が的中率に直結する。",
       "1-4. 次回の具体ルール",
-      "次回修正：先行一車気味で番手差しを狙う時は、ライン3番手固定だけでなく、別線先頭・イン待ちの3着を入れる型は継続。"
+      "次回修正：先行一車気味で番手差しを狙う時は、ライン3番手固定だけでなく、別線先頭・イン待ちの3着を入れる型は継続。",
+      "1. 的中率は7/12R＝58.3%で、前日の反省だった「本線筋・B選手残り・番手差し保護」はかなり改善した。",
+      "【次回に向けた改善ルール】",
+      "【振り返り・次回に活かすメモ】",
+      "【全体summary：次回予想へ活かす要点】",
+      "5) 次回の修正ルール",
+      "最重要修正：レース番号と出走表の突合チェックを生成前に必ず実施する。12Rだけ出走表・発走時刻・級班が11Rのまま重複しているため、今後は『R番号・レース名・出走表7名・発走時刻』の4点一致を確認してから買い目確定する。"
     ]
   },
   "predictionGuidance": [

@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "hakodate",
   "venueName": "函館",
-  "updatedAt": "2026-06-23",
+  "updatedAt": "2026-07-12",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-01",
-    "to": "2026-06-22"
+    "to": "2026-07-10"
   },
   "quality": {
-    "seedSources": 23,
-    "parsedDateSources": 23,
+    "seedSources": 29,
+    "parsedDateSources": 29,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 23,
-    "raceCount": 265,
-    "trifectaHits": 26,
-    "trifectaHitRate": 18.4,
+    "sourceCount": 29,
+    "raceCount": 310,
+    "trifectaHits": 44,
+    "trifectaHitRate": 23.7,
     "exactaHits": 5,
     "exactaHitRate": 3.9,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 253000,
-    "returnYen": 173130,
-    "recoveryRate": 68.4,
+    "investmentYen": 324400,
+    "returnYen": 209300,
+    "recoveryRate": 64.5,
     "kimarite": {
       "escape": 3,
       "makuri": 6,
@@ -38,69 +38,77 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 23,
+      "evidenceCount": 29,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 23,
+      "evidenceCount": 29,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 21,
+      "evidenceCount": 27,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 15,
+      "evidenceCount": 21,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 12,
+      "evidenceCount": 18,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 6,
-      "confidence": "medium",
+      "evidenceCount": 12,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 6,
-      "confidence": "medium",
+      "evidenceCount": 12,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 5,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 1,
+      "evidenceCount": 2,
       "confidence": "low",
       "sourceType": "SEED"
     }
   ],
   "seedNotes": {
-    "features": [],
+    "features": [
+      "次回は、ミッドナイト初日では本線を厚くしながらも、1点だけ「本線頭＋別線2着＋本線3番手」「番手逆転＋別線三着穴」を組み込むこと。特選は単騎選手を頭・2着に置く保険を増やすこと。この2点が改善ポイントです。",
+      "函館は差し傾向でも、先行Bを3着から全消ししないルールは継続。",
+      "本線：4稲留がB11で主導権候補。番手2好永は差し4・マーク3で、近況も久留米予選1着・特選1着があり、函館の差し傾向にも合う。2好永の番手差しを中心に、7坂本の3番手突っ込みまで厚く見る。",
+      "本線：5布居、6田村、7佐々木の自力型が並ぶ細切れ寄り。力なら5布居を使える3筒井が差し9で最上位。函館の差し傾向から3筒井の抜け出しを本線にする。",
+      "本線：7齋藤はB10で主導権を取れる構成。後ろは4福田-2大塚の神奈川3車で、番手4福田はS1の差し脚があり、函館の差し傾向にも合う。霧雨＋軽い風なら、7の先行を4が差す形を本線にする。",
+      "本線：6村瀬が2日目一般1着で上向き。6-5-3の3車ラインを作れるのが大きく、番手5筒井は差し9・得点90.16で特選なら中心。函館の差し傾向から5筒井の番手差しを軸にする。",
+      "本線：7今村は今節5着・7着と数字は重いが、前橋では予選1着・準決2着・決勝3着があり、一般戦なら立て直し可能。番手2池田は小田原予選1着、玉野G3でも2着2本・3着があり差し脚は上位。函館の差し傾向を踏まえ、7今村を使う2池田を中心に見る。"
+    ],
     "targets": [
       "⚠️ このレポートは「予想プロジェクトで実際に出した買い目」と「結果テキスト」を、テンプレに沿って 写経＋整形 したものです。",
       "2車単：2点（穴狙い）",
@@ -117,14 +125,29 @@
     ],
     "cautions": [
       "入力テキストの注意事項",
-      "予想時点の風メモ：東38km/h ※強い海風。2車ライン中心で、番手弱化時の別線差し込みを警戒。"
+      "予想時点の風メモ：東38km/h ※強い海風。2車ライン中心で、番手弱化時の別線差し込みを警戒。",
+      "注意：登録番号は補完済みだが、級班は出走表原文を優先。プロフィール更新日の差で級班表記が異なる場合があるため、レポートでは原文級班を保持。",
+      "予想時点の風メモ：東23km/h・くもり ※強めの海風。4分戦で単騎差し・番手差しを警戒。",
+      "不的中。展開内で警戒した選手は一部絡んだが、順序・接続先・3着保護の組み合わせが不足。",
+      "函館競輪 F1 A級初日特選 四分戦 単騎2車 坂本紘規 山田敦也 内山雅貴 江守昇 船瀬単騎 佐藤竜太単騎 荒れ警戒",
+      "押さえ：7依田-3櫻井-4岡田の関東3車はラインの長さが魅力。7依田が先に駆けると3櫻井の差し、4岡田の3番手突っ込み。1大石はS1で近況大宮予選1着もあり、単純な別線扱いは危険。1-6の近畿筋も頭まで押さえる。",
+      "対抗：2角田は初日3着で、直前のA級では連勝力がかなり高い。2-5の東日本2車は短いが、2が逃げれば5岡田の番手差しも魅力。1原田翔真は1-4-6の3車で、4元砂の番手差し・6佐藤の3番手流れ込みまで警戒。",
+      "本線：2木村はB19で先行力が抜けている。準決7着から一般回りだが、初日は予選1着で脚は出ている。函館は差し優位でも、強風時に先行全消しは危険なので、2木村の主導権から7伊藤の差し・2木村の残りを軸にする。",
+      "対抗：3坂本は初日予選1着、平塚でも予選1着・準決2着があり、3番手でも突き抜け注意。単騎勢は2江守が得点92.66で格上、4岡田も今節2着・3着で調子良い。単騎が多いので3着固定は危険、1安部・2江守・4岡田・7秋葉を散らす。"
     ],
     "improvements": [
       "結果テキストが接続待ちのため、結果は未反映。",
       "3) 次回へ残す重点メモ",
       "【簡易分析メモ（次回改善用）】",
       "重要な次回改善メモ",
-      "【次回に向けた改善ルール】"
+      "【次回に向けた改善ルール】",
+      "新しい予想や買い目の追加は行わず、結果に基づく反省・次回改善メモのみ記載。",
+      "次回に向けた改善ルール",
+      "【展開検証・次回メモ】",
+      "次回への修正方針",
+      "【レース別summary・次回への示唆】",
+      "4瀧川は2日目一般1着で修正済み。B15で先行力があり、1松山は初日予選1着の差し脚がある。4が主導権なら1松山の番手差しが本線。",
+      "1R・2R・5R・7Rは、展開予想で想定していた「番手差し／本線直列／別線番手差し」がそのまま車券に反映できた。"
     ]
   },
   "predictionGuidance": [

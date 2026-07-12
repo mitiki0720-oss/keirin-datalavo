@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "keiokaku",
   "venueName": "京王閣",
-  "updatedAt": "2026-06-25",
+  "updatedAt": "2026-07-12",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-03",
-    "to": "2026-06-24"
+    "to": "2026-07-06"
   },
   "quality": {
-    "seedSources": 18,
-    "parsedDateSources": 18,
+    "seedSources": 22,
+    "parsedDateSources": 22,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 18,
+    "sourceCount": 22,
     "raceCount": 132,
-    "trifectaHits": 50,
-    "trifectaHitRate": 41.3,
-    "exactaHits": 5,
-    "exactaHitRate": 4.1,
+    "trifectaHits": 65,
+    "trifectaHitRate": 53.7,
+    "exactaHits": 6,
+    "exactaHitRate": 5,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 166000,
-    "returnYen": 108540,
-    "recoveryRate": 65.4,
+    "investmentYen": 206400,
+    "returnYen": 186820,
+    "recoveryRate": 90.5,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,63 +38,63 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 18,
+      "evidenceCount": 22,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 18,
+      "evidenceCount": 22,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 15,
+      "evidenceCount": 19,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 15,
+      "evidenceCount": 17,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 12,
+      "evidenceCount": 16,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 11,
-      "confidence": "high",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "THIRD_PLACE_SPREAD",
-      "label": "3着候補を分散",
-      "evidenceCount": 10,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 13,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "THIRD_PLACE_SPREAD",
+      "label": "3着候補を分散",
+      "evidenceCount": 13,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 5,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     }
@@ -103,7 +103,14 @@
     "features": [
       "4. 差し軸の判断は開催傾向と整合。 1着決まり手は差し6R、捲り3R、逃げ2R。差しが 54.5% を占めた。京王閣ナイターで「先行車を消す」のではなく、「先行ラインを残しつつ番手差しを上位へ置く」方針は維持する。",
       "気象傾向へ反映する前に、7R以降の実風・天候の基準時刻を再確認する。",
-      "予想文の中では多くの候補を拾えているため、次回は候補追加よりも、 候補同士をどう10点内で接続するか が改善ポイントになる。"
+      "予想文の中では多くの候補を拾えているため、次回は候補追加よりも、 候補同士をどう10点内で接続するか が改善ポイントになる。",
+      "ただし天候・風向・風速・気温・降水値は結果欄の値を転記し、分析では「霧雨・北寄り風」という傾向として扱いました。",
+      "一番大きな反省は、霧雨・差し傾向を意識しすぎたことです。",
+      "次回の京王閣で特に見るべきポイントは、B上位選手の3着内残りです。",
+      "今回の最大の特徴は、14点化により的中率は大きく上がった一方、低配当レースでは1,400円投資を回収しきれなかった点。",
+      "3山本-1佐藤は神奈川2車。3山本は初日3着だが、1佐藤は初日1着で番手差しが鋭い。京王閣の差し傾向を考えると、3山本が先に動いて1佐藤が抜ける形は十分。",
+      "総合summary：次の予想に活かすポイント",
+      "3. 6Rは6伊藤之人の頭、2川村、4中野良という高配当決着。新人・先行人気側が飛んだ時の「追込み同士の突き抜け」を14点内に入れられていたかが検証ポイント。"
     ],
     "targets": [
       "予想メモ（原文要約）：南南西15km/hの強風で先行は踏まされやすく差し寄り。主導権は6か3、番手差しの2を軸に、自在1の突っ込みと7の直線差しで3着ズレ狙い。",
@@ -155,7 +162,7 @@
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
     "先行争いがある場合は別線の捲り筋を残す",
     "先行軸だけで固定せず、番手差しの逆目を残す",
-    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
-    "本線が崩れた場合の別線頭と別線3着を保護する"
+    "本線が崩れた場合の別線頭と別線3着を保護する",
+    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す"
   ]
 }
