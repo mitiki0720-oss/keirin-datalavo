@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "matsuyama",
   "venueName": "松山",
-  "updatedAt": "2026-07-12",
+  "updatedAt": "2026-07-14",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-01",
-    "to": "2026-07-11"
+    "to": "2026-07-13"
   },
   "quality": {
-    "seedSources": 16,
-    "parsedDateSources": 16,
+    "seedSources": 18,
+    "parsedDateSources": 18,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 16,
+    "sourceCount": 18,
     "raceCount": 124,
-    "trifectaHits": 17,
-    "trifectaHitRate": 15.5,
-    "exactaHits": 6,
-    "exactaHitRate": 6,
+    "trifectaHits": 24,
+    "trifectaHitRate": 21.8,
+    "exactaHits": 7,
+    "exactaHitRate": 7,
     "anyTicketHits": 13,
     "hitRate": 15.1,
-    "investmentYen": 125400,
-    "returnYen": 66610,
-    "recoveryRate": 53.1,
+    "investmentYen": 142200,
+    "returnYen": 78520,
+    "recoveryRate": 55.2,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,63 +38,63 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 16,
+      "evidenceCount": 18,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 16,
+      "evidenceCount": 18,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 15,
+      "evidenceCount": 17,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 14,
+      "evidenceCount": 16,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 11,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 10,
+      "evidenceCount": 12,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 8,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 7,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     }
@@ -102,7 +102,8 @@
   "seedNotes": {
     "features": [
       "今回の最大ポイントは、 強風日の読み方自体はかなり良かったが、3着固定と決勝の自力決着の拾い方が足りなかった こと。南西〜西南西の9〜11km/h級の風が続き、逃げ先行が苦しい条件という判断は正しく、5Rではその読みが 関口5頭＋楠本ライン後ろ2-7 の9,430円的中につながった。",
-      "【総括：次の松山予想へ活かすポイント】"
+      "【総括：次の松山予想へ活かすポイント】",
+      "野村と川越、新垣の3人が主導権を争う。後半ナイターの差し傾向と小玉の近況を重視し、野村を利す小玉から入る。川越の番手はS級実績を持つ齊藤で、混戦ならこちらの差しも十分。新垣が駆け切れば中村の番手差し。林は小玉ライン3番手として3着保護の軸。"
     ],
     "targets": [
       "6R・7Rは結果ファイル上の最終判定が pending でしたが、結果組み合わせと買い目を手動照合し、レポート上では不的中として集計しています。",
@@ -120,7 +121,8 @@
     ],
     "cautions": [
       "買い目照合上の注意",
-      "注意：開催テンプレ標準の「3連単7＋2車単3」とは点数配分が異なるため、買い目は原文どおり記録。"
+      "注意：開催テンプレ標準の「3連単7＋2車単3」とは点数配分が異なるため、買い目は原文どおり記録。",
+      "織茂が前受けから主導権を狙い、小泉が番手で援護。森もバック本数15で早めに踏むため、織茂との踏み合いなら安本の差し込みが浮上する。松山は高速400mだが、北西5km/hの風がバック側へ入りやすく、先行の頭固定は危険。前半ナイターはB選手が車券内に残りやすいため2・5を中心に、3着は安本と長崎まで広げる。"
     ],
     "improvements": [
       "4R Ａ級 男子新人アドバンス一般 1-6-4 × × 1,000円 0円 捲／ク 1渡邉の修正が効いてB捲り。6山下も絡んだが、1-6の順序を厚く持てず。",
