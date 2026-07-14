@@ -646,7 +646,7 @@ export type PredictionVenueMasterDigest = {
   matchedCategoryLabel?: string;
   matchedCategoryStats?: string[];
   thirdPlaceInsurance?: string[];
-  tenPointRules?: string[];
+  ticketDesignRules?: string[];
   windRules?: string[];
   cautions?: string[];
   source: "bank-master" | "missing";
@@ -2664,7 +2664,7 @@ const parsePredictionVenueMasterGptMaterial = (
     splitModeRules: pick([/分戦/u], 4),
     matchedCategoryStats: pick([/時間帯|グレード|カテゴリ|編成/u], 4),
     thirdPlaceInsurance: pick([/3着|三着|保険/u], 4),
-    tenPointRules: pick([/10点|フォーマット|反映/u], 4),
+    ticketDesignRules: pick([/点数|フォーマット|反映|買い目/u], 4),
     windRules: pick([/風/u], 4),
     cautions: pick([/警戒|注意/u], 4),
     source: "bank-master",
@@ -2696,8 +2696,8 @@ const parsePredictionVenueMasterDigest = (
     splitModeRules: pickPredictionVenueLines(document.sections, ["ライン", "分戦", "傾向まとめ"], [/2分戦|3分戦|4分戦|分戦|万車券/u], 6),
     matchedCategoryLabel: matchedCategory.label,
     matchedCategoryStats: matchedCategory.lines,
-    thirdPlaceInsurance: pickPredictionVenueLines(document.sections, ["3着保険", "傾向まとめ", "10点"], [/3着|保険|優先順位|三着/u], 5),
-    tenPointRules: pickPredictionVenueLines(document.sections, ["10点", "落とし込み", "フォーマット"], [/10点|3連単|2車単|本線|押さえ|厚め|反映/u], 6),
+    thirdPlaceInsurance: pickPredictionVenueLines(document.sections, ["3着保険", "傾向まとめ", "点数"], [/3着|保険|優先順位|三着/u], 5),
+    ticketDesignRules: pickPredictionVenueLines(document.sections, ["点数", "落とし込み", "フォーマット"], [/点数|14点|18点|20点|3連単|2車単|本線|押さえ|厚め|反映/u], 6),
     windRules: pickPredictionVenueLines(document.sections, ["風のクセ", "風速帯", "風"], [/風|向かい風|追い風|横風|風速/u], 6),
     cautions: pickPredictionVenueLines(document.sections, ["運用チェックリスト", "注意", "警戒"], [/注意|警戒|チェック|確認|除外|未作成/u], 5),
     source: "bank-master",
@@ -2711,7 +2711,7 @@ const parsePredictionVenueMasterDigest = (
     ...(digest.splitModeRules ?? []),
     ...(digest.matchedCategoryStats ?? []),
     ...(digest.thirdPlaceInsurance ?? []),
-    ...(digest.tenPointRules ?? []),
+    ...(digest.ticketDesignRules ?? []),
     ...(digest.windRules ?? []),
     ...(digest.cautions ?? []),
   ].some(Boolean);
@@ -3958,7 +3958,7 @@ const buildPredictionVenueSummaryExportLines = ({
     appendPredictionVenueExportList(lines, "カテゴリ別傾向", masterDigest.matchedCategoryStats, "未取得", 6);
     appendPredictionVenueExportList(lines, "風条件の注意", masterDigest.windRules, "未取得", 5);
     appendPredictionVenueExportList(lines, "3着保険の優先順位", masterDigest.thirdPlaceInsurance, "未取得", 5);
-    appendPredictionVenueExportList(lines, "10点予想への反映", masterDigest.tenPointRules, "未取得", 6);
+    appendPredictionVenueExportList(lines, "買い目設計への反映", masterDigest.ticketDesignRules, "未取得", 6);
     appendPredictionVenueExportList(lines, "データ上の注意", masterDigest.cautions, "未取得", 4);
   } else {
     lines.push("会場別マスター分析は未作成です。");
@@ -9800,24 +9800,26 @@ if (current.weatherActual) return;
     selectedWeather,
   ]);
 
-  // Warn when the extracted bet set is incomplete (expected: 3連単×8 + 2車単×2 = 10)
+  // Warn only for clearly undersized saved bet sets. The current rule is variable:
+  // 14〜20 points, standard 3連単18 points, and 2車単 is exception-only.
   useEffect(() => {
     if (selectedPredictionTickets.length === 0) return;
-const trifectaCount = selectedPredictionTickets.filter((t) => t.betType === "3連単").length;
-const exactaCount = selectedPredictionTickets.filter((t) => t.betType === "2車単").length;
-if (
-  ENABLE_PREDICTION_DEBUG_LOGS &&
-  (selectedPredictionTickets.length < 10 || trifectaCount < 8 || exactaCount < 2)
-) {
-  console.warn("[PredictionBetParser] incomplete bet set", {
-    venue: selectedVenue?.venue,
-    raceNo: selectedRace?.raceNo,
-    trifectaCount,
-    exactaCount,
-    total: selectedPredictionTickets.length,
-    sourcePreview: resolvedPredictionSourceText.slice(0, 800),
-  });
-}
+    const trifectaCount = selectedPredictionTickets.filter((t) => t.betType === "3連単").length;
+    const exactaCount = selectedPredictionTickets.filter((t) => t.betType === "2車単").length;
+    if (
+      ENABLE_PREDICTION_DEBUG_LOGS &&
+      selectedPredictionTickets.length < 14
+    ) {
+      console.warn("[PredictionBetParser] incomplete bet set", {
+        venue: selectedVenue?.venue,
+        raceNo: selectedRace?.raceNo,
+        trifectaCount,
+        exactaCount,
+        total: selectedPredictionTickets.length,
+        expected: "14〜20点可変 / 基本3連単18点 / 2車単は20倍以上の穴頭のみ例外",
+        sourcePreview: resolvedPredictionSourceText.slice(0, 800),
+      });
+    }
   }, [resolvedPredictionSourceText, selectedPredictionTickets, selectedRace?.raceNo, selectedVenue?.venue]);
 
   useEffect(() => {
@@ -10884,8 +10886,14 @@ if (
       "【共通ルール】",
       "- 月次振り返り: 反映済み / 可変点数ルール v2026-07",
       "- 1点100円固定",
-      "- 10〜18点可変",
-      "- 標準14点",
+      "- 14〜20点可変",
+      "- 標準18点",
+      "- 原則3連単のみ",
+      "- 安め本線は最大4点まで",
+      "- 中心は50〜199倍",
+      "- 200〜999倍を大穴枠として入れる",
+      "- 1000倍超えは1〜3点まで",
+      "- 2車単は原則なし。20倍以上の穴頭だけ例外採用可",
       "- ticketMode / recommendedPoints / investmentYen / reasonTags を使う",
       "====================",
       "",

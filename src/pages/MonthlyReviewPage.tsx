@@ -21,8 +21,8 @@ const fallbackDigest: MonthlyReviewDigest = {
   targetHitRate2tan: "未取得",
   targetRecoveryRate: "未取得",
   targetThirdOnlyMiss: "未取得",
-  fixedFormat: "基本14点 / 10〜18点可変 / 1点100円固定",
-  mission: "低配当の的中を維持しながら、中穴用の買い目枠を明示的に作る",
+  fixedFormat: "基本18点 / 14〜20点可変 / 原則3連単のみ / 1点100円固定",
+  mission: "的中率の最大化ではなく、払戻単価と回収率を改善する",
   rawText: "",
 };
 
@@ -34,17 +34,17 @@ const metricCards = (digest: MonthlyReviewDigest) => [
 ];
 
 const playbookItems = [
-  { title: "STANDARD 14", body: "3連単12点 + 2車単2点。本線4、3着保護4、番手差し・逆目2、中穴3着・別線絡み2。" },
-  { title: "VALUE 16", body: "3連単14点 + 2車単2点。3着保護5点、中穴・別線絡み3点へ広げる。" },
-  { title: "VOLATILE 18", body: "3連単16点 + 2車単2点。逆目3点、中穴3点、万車候補1点まで明示する。" },
+  { title: "FIRM 14", body: "堅そうなレース。安め本線4点、中穴8点、大穴2点。超大穴と2車単は原則入れない。" },
+  { title: "STANDARD 18", body: "基本形。安め本線4点、中穴8点、大穴4点、超大穴2点。中心は3連単50〜199倍。" },
+  { title: "VOLATILE 20", body: "荒れ含みレース。安め3点、中穴8点、大穴6点、超大穴3点まで。根拠が明確な時だけ。" },
 ];
 
 const raceTypeItems = [
-  { title: "HIT_RATE_10_12", body: "堅い・安い・本線決着濃厚。🔥🔥🔥かつ💎なしを目安に10〜12点。" },
-  { title: "STANDARD_14", body: "基本形。🔥🔥かつ🛡️あり。判断に迷う場合も14点を採用する。" },
-  { title: "VALUE_16", body: "3,000〜15,000円帯を狙える。🔥🔥かつ💎ありを目安に16点。" },
-  { title: "VOLATILE_18", body: "別線頭・番手抜け・単騎3着まである。💎💎と⚡を根拠に18点。" },
-  { title: "SKIP_OR_MINIMUM_10", body: "展開根拠や印が薄い。買わない、または最小10点に留める。" },
+  { title: "FIRM_14", body: "🔥🔥🔥かつ💎なし。安め4 + 中穴8 + 大穴2。堅いレースで18点買いすぎない。" },
+  { title: "STANDARD_18", body: "🔥🔥かつ💎あり。安め4 + 中穴8 + 大穴4 + 超大穴2の基本形。" },
+  { title: "VALUE_18", body: "🔥かつ💎💎。50〜199倍を主戦場にして、中穴枠を厚く使う。" },
+  { title: "VOLATILE_18_20", body: "🔥 / 💎 / ⚡あり。200〜999倍を混ぜ、1000倍超えは1〜3点だけ。" },
+  { title: "CAUTIOUS_14_16", body: "🔥なし / ⚡⚡。穴狙いでも慎重に14〜16点へ抑える。" },
 ];
 
 export default function MonthlyReviewPage() {
@@ -136,9 +136,10 @@ export default function MonthlyReviewPage() {
                 {status === "ready" ? "月次振り返り: 反映済み" : status === "loading" ? "月次振り返り: 読み込み中" : "月次振り返り: 未登録"}
               </span>
               <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#f4f1ff", color: "#6b57a8", border: "1px solid #ddd3f0", fontSize: "11px", fontWeight: 900 }}>可変点数ルール v2026-07</span>
-              <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#eef6ff", color: "#285e91", border: "1px solid #cfe3fb", fontSize: "11px", fontWeight: 900 }}>基本14点 / 10〜18点可変</span>
+              <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#eef6ff", color: "#285e91", border: "1px solid #cfe3fb", fontSize: "11px", fontWeight: 900 }}>基本18点 / 14〜20点可変</span>
               <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#f0fdf4", color: "#167047", border: "1px solid #bbf7d0", fontSize: "11px", fontWeight: 900 }}>1点100円固定</span>
-              <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#fff7ed", color: "#9a4f12", border: "1px solid #fed7aa", fontSize: "11px", fontWeight: 900 }}>10点固定から可変点数へ更新済み</span>
+              <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#fff7ed", color: "#9a4f12", border: "1px solid #fed7aa", fontSize: "11px", fontWeight: 900 }}>3連単配当寄せへ更新済み</span>
+              <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#fef2f2", color: "#b42318", border: "1px solid #fecaca", fontSize: "11px", fontWeight: 900 }}>2車単は原則なし</span>
               <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#ecfdf5", color: "#047857", border: "1px solid #a7f3d0", fontSize: "11px", fontWeight: 900 }}>GPT素材へ反映済み</span>
             </div>
           </div>
@@ -176,7 +177,7 @@ export default function MonthlyReviewPage() {
           <div style={{ ...cardStyle, borderRadius: "22px", padding: "20px" }}>
             <div style={{ fontSize: "10px", fontWeight: 950, letterSpacing: "0.16em", color: "#6577c8", marginBottom: "10px" }}>TARGET KPI</div>
             <div style={{ fontSize: "15px", color: "#344358", lineHeight: 1.8, fontWeight: 850 }}>
-              いずれか {digest.targetHitRateAny || "40%以上"} / 3連単 {digest.targetHitRate3tan || "32%以上"} / 2車単 {digest.targetHitRate2tan || "10%以上"} / 回収率 {digest.targetRecoveryRate || "75%以上"}
+              いずれか {digest.targetHitRateAny || "25〜32%でもOK"} / 3連単 {digest.targetHitRate3tan || "22〜28%でもOK"} / 回収率 {digest.targetRecoveryRate || "80%以上"} / 5,000円以上的中率を重視
             </div>
           </div>
         </section>
@@ -185,9 +186,9 @@ export default function MonthlyReviewPage() {
           <div style={{ display: "flex", alignItems: "end", justifyContent: "space-between", gap: "16px", flexWrap: "wrap", marginBottom: "18px" }}>
             <div>
               <div style={{ fontSize: "10px", fontWeight: 950, letterSpacing: "0.16em", color: "#6577c8", marginBottom: "8px" }}>VARIABLE TICKET PLAYBOOK</div>
-              <h2 style={{ margin: 0, fontSize: isMobile ? "24px" : "32px", lineHeight: 1.18, color: "#071120" }}>14点・16点・18点の役割分担</h2>
+              <h2 style={{ margin: 0, fontSize: isMobile ? "24px" : "32px", lineHeight: 1.18, color: "#071120" }}>14点・18点・20点の役割分担</h2>
             </div>
-            <span style={{ borderRadius: "9999px", padding: "9px 12px", border: "1px solid #d7e7f8", background: "#f4fbff", color: "#285e91", fontSize: "11px", fontWeight: 900 }}>標準: 3連単12点 + 2車単2点</span>
+            <span style={{ borderRadius: "9999px", padding: "9px 12px", border: "1px solid #d7e7f8", background: "#f4fbff", color: "#285e91", fontSize: "11px", fontWeight: 900 }}>標準: 3連単18点 / 2車単原則なし</span>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))", gap: "12px" }}>
             {playbookItems.map((item) => (
