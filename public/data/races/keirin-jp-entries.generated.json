@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-18T09:16:15.057Z",
+  "generatedAt": "2026-07-18T09:34:00.227Z",
   "source": {
     "provider": "KEIRIN.JP",
     "listType": "JSJ048",
@@ -4841,7 +4841,7 @@
       "venueName": "西武園競輪場",
       "grade": "F2",
       "raceName": "競輪投票サービスＢｅｔｉｍｏ杯",
-      "selectedRaceNumber": "8",
+      "selectedRaceNumber": "9",
       "races": [
         {
           "raceNumber": 1,
@@ -16838,7 +16838,7 @@
       "venueName": "高知競輪場",
       "grade": "G2",
       "raceName": "サマーナイトフェスティバル",
-      "selectedRaceNumber": "8",
+      "selectedRaceNumber": "9",
       "races": [
         {
           "raceNumber": 1,
@@ -18782,8 +18782,8 @@
         {
           "raceNumber": 8,
           "entryStatus": "available",
-          "operationStatus": "scheduled",
-          "raceEnded": false,
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
           "lastUpdateTime": "2026/07/18 07:00 更新",
@@ -18797,63 +18797,17 @@
           "official": {
             "bKeirinjyoCd": "74",
             "yudoSensyuName": "今村 麟太郎",
-            "yosoinMei": "福ちゃん出版社",
+            "yosoinMei": "",
             "raceResult1CarNo": "9",
             "raceResult2CarNo": "3",
             "backCount1CarNo": "3",
             "backCount2CarNo": "6,9"
           },
-          "lineup": "3 7 1 5 8 2 6 9 4",
+          "lineup": "",
           "officialLineup": {
-            "lineup": "3 7 1 5 8 2 6 9 4",
-            "positions": [
-              {
-                "position": 1,
-                "carNo": "3",
-                "className": "base_color_3"
-              },
-              {
-                "position": 2,
-                "carNo": "7",
-                "className": "base_color_7"
-              },
-              {
-                "position": 4,
-                "carNo": "1",
-                "className": "base_color_1"
-              },
-              {
-                "position": 5,
-                "carNo": "5",
-                "className": "base_color_5"
-              },
-              {
-                "position": 7,
-                "carNo": "8",
-                "className": "base_color_8"
-              },
-              {
-                "position": 8,
-                "carNo": "2",
-                "className": "base_color_2"
-              },
-              {
-                "position": 10,
-                "carNo": "6",
-                "className": "base_color_6"
-              },
-              {
-                "position": 11,
-                "carNo": "9",
-                "className": "base_color_9"
-              },
-              {
-                "position": 12,
-                "carNo": "4",
-                "className": "base_color_4"
-              }
-            ],
-            "source": "KEIRIN.JP:JSJ005:narabiyoso"
+            "lineup": "",
+            "positions": [],
+            "source": ""
           },
           "entries": [
             {
@@ -18866,7 +18820,7 @@
               "style": "両",
               "graduationTerm": "99",
               "age": 35,
-              "predictionMark": "×",
+              "predictionMark": "",
               "score": 112.11,
               "stats": {
                 "escapeCount": 0,
@@ -18892,7 +18846,7 @@
               "style": "追",
               "graduationTerm": "86",
               "age": 47,
-              "predictionMark": "注",
+              "predictionMark": "",
               "score": 109.31,
               "stats": {
                 "escapeCount": 0,
@@ -18918,7 +18872,7 @@
               "style": "逃",
               "graduationTerm": "107",
               "age": 32,
-              "predictionMark": "◎",
+              "predictionMark": "",
               "score": 114.37,
               "stats": {
                 "escapeCount": 5,
@@ -19022,7 +18976,7 @@
               "style": "両",
               "graduationTerm": "88",
               "age": 43,
-              "predictionMark": "○",
+              "predictionMark": "",
               "score": 109.57,
               "stats": {
                 "escapeCount": 0,
@@ -19074,7 +19028,7 @@
               "style": "両",
               "graduationTerm": "115",
               "age": 30,
-              "predictionMark": "△",
+              "predictionMark": "",
               "score": 114.38,
               "stats": {
                 "escapeCount": 3,
@@ -19096,8 +19050,10 @@
             "hasEntries": true,
             "hasRegistrationNumbers": true,
             "hasNames": true,
-            "hasLineup": true,
-            "warnings": []
+            "hasLineup": false,
+            "warnings": [
+              "official lineup missing"
+            ]
           }
         },
         {
@@ -20390,7 +20346,7 @@
       "missingRaceCount": 0,
       "errorCount": 0,
       "totalEntryCount": 108,
-      "lineupRaceCount": 5
+      "lineupRaceCount": 4
     }
   ],
   "venueCount": 8,
@@ -20399,6 +20355,6 @@
   "missingRaceCount": 0,
   "errorCount": 0,
   "totalEntryCount": 604,
-  "lineupRaceCount": 27,
+  "lineupRaceCount": 26,
   "preservedCompleteRaceCount": 0
 }
