@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "seibuen",
   "venueName": "西武園",
-  "updatedAt": "2026-06-13",
+  "updatedAt": "2026-07-19",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-01",
-    "to": "2026-05-03"
+    "to": "2026-07-18"
   },
   "quality": {
-    "seedSources": 3,
-    "parsedDateSources": 3,
+    "seedSources": 6,
+    "parsedDateSources": 6,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 3,
-    "raceCount": 21,
+    "sourceCount": 6,
+    "raceCount": 32,
     "trifectaHits": 4,
     "trifectaHitRate": 28.6,
     "exactaHits": 0,
     "exactaHitRate": 0,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 21000,
-    "returnYen": 11730,
-    "recoveryRate": 55.9,
+    "investmentYen": 80500,
+    "returnYen": 42990,
+    "recoveryRate": 53.4,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,55 +38,101 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 3,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 3,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 3,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 5,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 1,
-      "confidence": "low",
+      "evidenceCount": 4,
+      "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 1,
-      "confidence": "low",
+      "evidenceCount": 4,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "LINE_COHESION",
+      "label": "同ライン決着を評価",
+      "evidenceCount": 3,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "OTHER_LINE_ALERT",
+      "label": "別線の浮上を警戒",
+      "evidenceCount": 3,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "THIRD_PLACE_SPREAD",
+      "label": "3着候補を分散",
+      "evidenceCount": 3,
+      "confidence": "medium",
       "sourceType": "SEED"
     }
   ],
   "seedNotes": {
-    "features": [],
+    "features": [
+      "伊藤がB15で先制し、競走得点99点台の今野が番手から差すのが中心。立花まで付く中四国3車はラインの厚みもある。上川―山口は捲り差し、上野―神開は位置取りからの一発を狙う。ナイター後半は差しが強まる傾向のため、伊藤の頭固定には寄せすぎない。"
+    ],
     "targets": [
       "R 結果(3連単) 最終判定(結果ファイル) 照合(買い目10点) 払戻 1番人気(3連単) SB(B)着順",
       "照合判定（買い目10点 ↔ 結果）：miss",
-      "照合判定（買い目10点 ↔ 結果）：hit(3連単)"
+      "照合判定（買い目10点 ↔ 結果）：hit(3連単)",
+      "結果ファイルの「最終判定」は全R pending だったため、18点の買い目と3連単結果を独立照合して的中／不的中を確定。",
+      "【予想買い目・3連単18点（原文）】",
+      "3連単（穴狙い3点）",
+      "新しい予想や買い目の追加は行わず、実際の予想と結果を整理・分析。",
+      "【予想買い目・3連単18点】",
+      "新しい買い目は作成せず、実際の予想・結果・展開差分のみを分析。"
     ],
-    "cautions": [],
-    "improvements": []
+    "cautions": [
+      "4車ラインの2山下がBを取り2着には残ったが、番手7櫻井は5着。単騎3鈴木が捲って1着、ライン3番手の4榊枝が3着に入った。展開文では3の単騎捲りを警戒できていたものの、3頭の買い目を3-7-2、3-1-5、3-5-1に限定し、実際の『3頭＋B選手2残り＋4車ライン内の4』を組めていなかった。",
+      "久米がB10の機動力で主導権を握る中心。岩元は近況のレース内容が良く、久米を追う形からの捲り返しまで警戒。吉村は好位からの伸びがあり、石井は先行策なら残り目。短走路で久米の先行残りを評価しながら、単騎戦らしく2・3着の入替えを重視する。",
+      "中島がB14の先行で地元3車ラインを生かす。國廣は番手から差しを狙い、細沼は3番手残り。眞砂―岡田は中団からの捲りで対抗し、岡田の差し抜けも要警戒。鈴木―寺林は位置取りが鍵。弱風の短走路で中島ラインを優先しつつ、眞砂ラインの捲りを厚く残す。",
+      "楽天Kドリームスおよび競輪ネット＠なびには施行者発表との照合を求める注意書きがあるため、",
+      "B20の大本が主導権を握る構成。櫻井は競走得点最上位で番手から差す形を本線にする。南まで付く3車ラインは残り目も評価する一方、細田の中団捲りと単騎鈴木の位置取りには警戒。晴れ・南南東5km/hで、先行を全消しにはしない。",
+      "地元長川がB9の主導権を取り、堀―三木の3車ラインで押し切りを狙う。対抗はB10の中込で、榊枝までの北日本ライン。鈴木は捲り10勝で単騎でも怖く、5km/hの風は軽いが、短い直線での早め捲りには注意する。",
+      "注意：全Rの基準時刻が現在値21:30のため、当該R発走時の公式気象ではない。",
+      "7大本の先行を2鈴木が援護する神奈川ラインが本線。単騎3村上は短直線でも中団を取れれば捲り差しがあり、6-1の先行抵抗で踏み合いになる形を警戒する。",
+      "自力の6が主導権候補だが、得点上位の1と単騎7の差し脚が脅威。西武園の短直線でも6が駆け切れなければ5の番手差し、踏み合いなら7・2の直線強襲を警戒する。"
+    ],
+    "improvements": [
+      "6) 出走表と結果素材で年齢差異あり：1R古閑良介 予想51歳／結果53歳、7R國廣哲治 予想50歳／結果51歳。次回はプロフィール基準日を統一する。",
+      "【次回の共通修正ルール】",
+      "【次回に向けた共通修正ルール】",
+      "即席・異地区混成の長大ラインは、車番順ではなく個々の追走力とタテ脚を評価する。番手4の追走信頼度が低い場合は、1頭から2・3へ飛ばす1-2-3型を保護する。また結果ファイルの投資1,900円は予想ファイルの18点・1,800円と不一致なので、次回は購入ログと予想点数を発走前後に照合する。",
+      "【次回修正ルール】",
+      "最終日は通算能力より開催内の着順・上がり・主導権実績を強く反映する。6-1を買うなら3着候補を3・2だけに固定せず単騎差し込み候補5もクロスする。候補選手を各シナリオへ接続できているか表で確認する。"
+    ]
   },
   "predictionGuidance": [
     "級班とレース種別を分けて傾向を評価する",
@@ -94,6 +140,8 @@
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
     "踏み合い時は単騎の差し込みを3着候補に加える",
     "先行軸だけで固定せず、番手差しの逆目を残す",
-    "先行争いがある場合は別線の捲り筋を残す"
+    "先行争いがある場合は別線の捲り筋を残す",
+    "ラインの長さと追走力を確認し、同ライン決着を評価する",
+    "本線が崩れた場合の別線頭と別線3着を保護する"
   ]
 }

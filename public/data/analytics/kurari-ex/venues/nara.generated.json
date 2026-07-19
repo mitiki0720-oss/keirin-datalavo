@@ -2,99 +2,99 @@
   "schemaVersion": 1,
   "venueKey": "nara",
   "venueName": "奈良",
-  "updatedAt": "2026-07-12",
+  "updatedAt": "2026-07-19",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-01",
-    "to": "2026-07-03"
+    "to": "2026-07-18"
   },
   "quality": {
-    "seedSources": 18,
-    "parsedDateSources": 18,
+    "seedSources": 21,
+    "parsedDateSources": 21,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 18,
+    "sourceCount": 21,
     "raceCount": 133,
-    "trifectaHits": 47,
-    "trifectaHitRate": 38.5,
+    "trifectaHits": 65,
+    "trifectaHitRate": 53.3,
     "exactaHits": 10,
     "exactaHitRate": 8.2,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 154000,
-    "returnYen": 106260,
-    "recoveryRate": 69,
+    "investmentYen": 202800,
+    "returnYen": 138470,
+    "recoveryRate": 68.3,
     "kimarite": {
-      "escape": 4,
-      "makuri": 7,
-      "sashi": 10
+      "escape": 13,
+      "makuri": 17,
+      "sashi": 18
     }
   },
   "seedInsights": [
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 18,
+      "evidenceCount": 21,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 18,
+      "evidenceCount": 21,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 18,
+      "evidenceCount": 21,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 18,
+      "evidenceCount": 21,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 17,
+      "evidenceCount": 20,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 16,
+      "evidenceCount": 19,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 13,
+      "evidenceCount": 16,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 7,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 4,
+      "evidenceCount": 5,
       "confidence": "medium",
       "sourceType": "SEED"
     }
@@ -102,7 +102,8 @@
   "seedNotes": {
     "features": [
       "2-1. 最重要ポイント：B選手の残りをさらに強く扱う",
-      "4. A級決勝7Rでは、人気本線4-7-2だけに寄せず、3-6ラインの捲り決着を本線06に残せた。これが今回の最大の回収ポイント。"
+      "4. A級決勝7Rでは、人気本線4-7-2だけに寄せず、3-6ラインの捲り決着を本線06に残せた。これが今回の最大の回収ポイント。",
+      "展開予想：B本数上位の3中田が主導権を取りやすく、番手1福島の差しと3番手6武田が軸。2曽我は自力で早めに巻き返せれば4小原との九州決着まである。5小林-7佐野の近畿勢は先行力があり、踏み合いなら浮上。単騎不在の3分戦で、ミッド後半の捲り傾向も2・5の頭まで反映する。"
     ],
     "targets": [
       "2車単：2点（穴狙い）",
@@ -129,7 +130,8 @@
       "番手離れリスクがある時は、勝ちライン頭＋相手ライン番手・先頭の2着3着戻しを確認。",
       "注意：同名ファイルのマウントが過去開催へ切り替わる挙動があったため、06/15の予想・結果として確認できたファイル検索チャンクを優先して作成。",
       "5. 出走表・結果側の選手名差異に注意。 前半Rで予想側と結果側に車番名の差異が見られるため、開催レポートでは車番照合を優先し、選手名は結果テキスト準拠で残す。",
-      "展開予想では3高本の総合力を最上位に置いた点が正解。2車ラインが多く隊列が崩れやすい中、7堺の差し込み警戒も3着で機能した。"
+      "展開予想では3高本の総合力を最上位に置いた点が正解。2車ラインが多く隊列が崩れやすい中、7堺の差し込み警戒も3着で機能した。",
+      "展開予想：近藤は直近で予選・準決を連勝しており、好位からの捲りか早めの主導権で中心。水本が番手で続く岡山ラインを最重視する。久保田は落車明けだが129期の先行力があり、加藤の番手差しを警戒。単騎吉田は近況の安定感があり、短直線でも前団直後なら3着候補。弱風でも4分戦のため3着を固定しない。"
     ],
     "improvements": [
       "次回は可能なら、レース映像メモまたは「初手／打鐘／最終ホーム／最終バック」の簡易隊列を追加する。",

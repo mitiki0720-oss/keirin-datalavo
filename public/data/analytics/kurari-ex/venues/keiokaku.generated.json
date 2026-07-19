@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "keiokaku",
   "venueName": "京王閣",
-  "updatedAt": "2026-07-14",
+  "updatedAt": "2026-07-19",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-03",
-    "to": "2026-07-13"
+    "to": "2026-07-19"
   },
   "quality": {
-    "seedSources": 23,
-    "parsedDateSources": 23,
+    "seedSources": 26,
+    "parsedDateSources": 26,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 23,
-    "raceCount": 132,
-    "trifectaHits": 70,
-    "trifectaHitRate": 57.9,
+    "sourceCount": 26,
+    "raceCount": 150,
+    "trifectaHits": 77,
+    "trifectaHitRate": 59.2,
     "exactaHits": 6,
-    "exactaHitRate": 5,
+    "exactaHitRate": 4.6,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 219000,
-    "returnYen": 203420,
-    "recoveryRate": 92.9,
+    "investmentYen": 253200,
+    "returnYen": 259260,
+    "recoveryRate": 102.4,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -36,66 +36,66 @@
   },
   "seedInsights": [
     {
-      "tag": "CLASS_CONTEXT",
-      "label": "級班条件を分離",
-      "evidenceCount": 23,
+      "tag": "TIME_SLOT_BIAS",
+      "label": "時間帯差を確認",
+      "evidenceCount": 26,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
-      "tag": "TIME_SLOT_BIAS",
-      "label": "時間帯差を確認",
-      "evidenceCount": 23,
+      "tag": "CLASS_CONTEXT",
+      "label": "級班条件を分離",
+      "evidenceCount": 25,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 20,
+      "evidenceCount": 23,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 18,
+      "evidenceCount": 21,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 17,
+      "evidenceCount": 20,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 16,
+      "evidenceCount": 19,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 14,
+      "evidenceCount": 17,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 14,
+      "evidenceCount": 17,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 7,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     }
   ],
@@ -158,8 +158,8 @@
     ]
   },
   "predictionGuidance": [
-    "級班とレース種別を分けて傾向を評価する",
     "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+    "級班とレース種別を分けて傾向を評価する",
     "踏み合い時は単騎の差し込みを3着候補に加える",
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
     "先行争いがある場合は別線の捲り筋を残す",

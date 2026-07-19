@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "kochi",
   "venueName": "高知",
-  "updatedAt": "2026-07-12",
+  "updatedAt": "2026-07-19",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-04",
-    "to": "2026-07-01"
+    "to": "2026-07-19"
   },
   "quality": {
-    "seedSources": 13,
-    "parsedDateSources": 13,
+    "seedSources": 16,
+    "parsedDateSources": 16,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 13,
-    "raceCount": 101,
-    "trifectaHits": 37,
-    "trifectaHitRate": 36.6,
+    "sourceCount": 16,
+    "raceCount": 113,
+    "trifectaHits": 44,
+    "trifectaHitRate": 38.9,
     "exactaHits": 5,
     "exactaHitRate": 5.6,
     "anyTicketHits": 5,
     "hitRate": 55.6,
-    "investmentYen": 113000,
-    "returnYen": 50840,
-    "recoveryRate": 45,
+    "investmentYen": 138200,
+    "returnYen": 61440,
+    "recoveryRate": 44.5,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,64 +38,64 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 13,
+      "evidenceCount": 16,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 13,
+      "evidenceCount": 16,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 13,
+      "evidenceCount": 16,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 12,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 11,
+      "evidenceCount": 14,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 8,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 8,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 7,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 1,
-      "confidence": "low",
+      "evidenceCount": 4,
+      "confidence": "medium",
       "sourceType": "SEED"
     }
   ],
@@ -137,7 +137,10 @@
       "タイプ：TYPE-B｜②林の自力上位と地元⑤谷口、⑦長松の初日特選1着を警戒",
       "タイプ：TYPE-C｜⑤山田の若手機動力と①高橋番手、③福島の四国番手差し警戒",
       "6. 危険パターン：A級・S級一般で人気本線が重馬場に沈むと、大穴が出やすい。一般戦は信頼度を1段下げ、単騎・別線の2着評価を厚くする。",
-      "TYPE-B｜⑦野村の先行を使う④藤原中心、②遠藤と⑥山崎の別線も警戒"
+      "TYPE-B｜⑦野村の先行を使う④藤原中心、②遠藤と⑥山崎の別線も警戒",
+      "注意: fake補完禁止ルールにより、素材にない公式URL・公式取得時刻は補完しない。",
+      "山崎と森田の先行争いに、石塚の捲りが重なる3分戦。山崎が先手なら荒井の差し、森田なら武藤の番手差しが有力。石塚は捲り11回の脚があり、岡崎との近畿ラインでの逆転を警戒する。弱風でも主導権争いは激しく、3着は各ラインの3番手と別線番手を分散する。",
+      "郡司が前受けから深谷を使うか、自ら捲るかの自在戦。嘉永―阿部、佐々木―坂井も自力でぶつかり、山口は単騎の一発を狙う。脇本勇希が先に動けば南の差しも十分。細切れ5分戦で隊列固定は危険だが、弱風の500mで番手・追込みの直線勝負を厚く見る。"
     ],
     "improvements": [
       "B選手は7R中6Rで車券内に残った。西〜西北西の弱風帯（結果テキスト表記3km/h）では、B選手の残りを過度に軽視しないことが次回分析の確認ポイント。",

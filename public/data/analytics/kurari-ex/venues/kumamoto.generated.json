@@ -2,22 +2,22 @@
   "schemaVersion": 1,
   "venueKey": "kumamoto",
   "venueName": "熊本",
-  "updatedAt": "2026-07-14",
+  "updatedAt": "2026-07-19",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-07",
-    "to": "2026-07-13"
+    "to": "2026-07-15"
   },
   "quality": {
-    "seedSources": 10,
-    "parsedDateSources": 10,
+    "seedSources": 12,
+    "parsedDateSources": 12,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 10,
+    "sourceCount": 12,
     "raceCount": 96,
     "trifectaHits": 21,
     "trifectaHitRate": 21.9,
@@ -25,9 +25,9 @@
     "exactaHitRate": 3.1,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 96400,
-    "returnYen": 36110,
-    "recoveryRate": 37.5,
+    "investmentYen": 118800,
+    "returnYen": 39800,
+    "recoveryRate": 33.5,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,64 +38,64 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 10,
+      "evidenceCount": 12,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 10,
+      "evidenceCount": 12,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 7,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 4,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 4,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 4,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 4,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 4,
+      "confidence": "medium",
       "sourceType": "SEED"
     }
   ],
@@ -122,7 +122,13 @@
     "cautions": [
       "「本文で警戒した穴」を買い目に落とし切れていない ：1Rの6石田は予想文で3着穴と見ていたのに、買い目には入らず1-2-6を取り逃した。",
       "次回改善：4車ラインで自力型が3番手にいる特殊並びは、その選手が機能しないリスクも高い。1-2本線なら単騎3・7の3着を1点ずつ混ぜる。",
-      "注意: 公式source情報は添付素材に未記載のため、推測でURLや取得元を補完していない。"
+      "注意: 公式source情報は添付素材に未記載のため、推測でURLや取得元を補完していない。",
+      "楠本が9Bの先行力で主導権を取り、原が番手から抜け出す形が基礎。ただし山村は差し9勝の自在型で、小塚を連れて中団を取れれば直線勝負に持ち込める。佐藤は単騎だが得点最上位で、踏み合い時の差し込みを警戒。西南西4km/hで先行消しはせず、差し頭を厚く残す。",
+      "近畿5-2-3を本線視したが、井坂5が大きく崩れて近畿軸が不発。実際は古川1が逃げ、番手岡田6が差し切り、単騎前川7が3着。予想でも1-6の広島ラインは穴に置いていたが、6-1の逆順と前川7の3着まで広げられなかった。単騎差し込みと薄目番手差しへの警戒不足。",
+      "佐藤、邊見、牧田の自力型がそろい、主導権争いは激しい。邊見は18Bで先行力が最上位、番手大越の差しを中心に置く。地元佐藤―飯田は初日内容が良く、飯田の番手差し・佐藤残りは本線級。踏み合い時には関根の捲り追込み、地元3番手吉成の混入を警戒する。",
+      "【集計上の注意】",
+      "主導権はバック回数の多い3増成が有力。5沢田は番手から直線で差し切る形を本線に置く。熊本400mの長い直線に南西風7km/hが加わるため、先行3の粘りと5の差しを両方押さえる。7石貞は3番手からの伸びで有力。4米倉の先行が早いなら1青木の番手差しまで警戒し、単騎2橋本は3着穴で拾う。",
+      "注意: 結果ファイル投資欄は 1,900円。予想ファイル投資額と不一致。"
     ],
     "improvements": [
       "ここでは新規予想は行わず、事実整理・的中照合・次回改善メモのみを記録します。",
@@ -133,7 +139,10 @@
       "次回改善：ガールズで1-2の軸が強い時は、3着穴を散らしても最安定の3番は最低1点だけ残す。低配当を嫌いすぎて本線3着を消すのは禁止。",
       "払戻反映：390円",
       "【総合summary：次の予想へ残す修正ルール】",
-      "【次回の買い目改善テンプレ】"
+      "【次回の買い目改善テンプレ】",
+      "【次回の共通修正ルール】",
+      "払戻反映: 0円",
+      "1. 高風速の前残り・逃げ切り補正が弱かった。結果の実風は1R〜4Rが南西9km/h、5R〜7Rが南西8km/h。予想では「長い直線＋風で番手差し」を重く見たが、実際は1R米倉、4R児玉、5R佐藤が逃げ・先行から結果を作った。風が強い時でも、隊列が決まれば自力型の押し切り・残りを消しすぎない修正が必要。"
     ]
   },
   "predictionGuidance": [

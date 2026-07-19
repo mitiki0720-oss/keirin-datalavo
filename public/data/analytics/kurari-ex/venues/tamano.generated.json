@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "tamano",
   "venueName": "玉野",
-  "updatedAt": "2026-07-12",
+  "updatedAt": "2026-07-19",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-25",
-    "to": "2026-07-09"
+    "to": "2026-07-16"
   },
   "quality": {
-    "seedSources": 13,
-    "parsedDateSources": 13,
+    "seedSources": 16,
+    "parsedDateSources": 16,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 13,
+    "sourceCount": 16,
     "raceCount": 85,
-    "trifectaHits": 35,
-    "trifectaHitRate": 41.2,
-    "exactaHits": 10,
-    "exactaHitRate": 11.8,
+    "trifectaHits": 49,
+    "trifectaHitRate": 57.6,
+    "exactaHits": 11,
+    "exactaHitRate": 12.9,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 109600,
-    "returnYen": 77210,
-    "recoveryRate": 70.4,
+    "investmentYen": 130000,
+    "returnYen": 100400,
+    "recoveryRate": 77.2,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,64 +38,64 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 13,
+      "evidenceCount": 16,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 13,
+      "evidenceCount": 16,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 11,
+      "evidenceCount": 14,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 10,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 10,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 10,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 10,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 12,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 7,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     }
   ],
@@ -133,7 +133,12 @@
       "注意: この参考値は、番号だけを照合したものであり、競輪予想の実力評価には使わないこと。",
       "注意：結果ファイルの最終判定は全R pending 表示のため、予想買い目と結果キーから手照合して集計。",
       "注意：結果ファイルの【source】欄は全Rで official source: 未取得 / source取得日時: 未取得。素材にない公式sourceは補完していない。",
-      "🔍＝5利川の先行残り、3小林の3着混入を警戒。"
+      "🔍＝5利川の先行残り、3小林の3着混入を警戒。",
+      "主導権はB11の1菊池、B8の2川野、自在性のある3宗崎で争う。軸は直近3走すべて2着で、川野の番手を得た4西田の差し。3宗崎が好位を取れれば7吉岡との四国決着も十分ある。6豊田は単騎で、混戦の3着差し込みまで警戒。4分戦で隊列が短く、玉野デイの差し傾向を優先しつつ、風は南西8km/hで強い逃げ固定にはしない。",
+      "B13の4齋藤が先行主体で、番手7稲村の差しを中心視する。3三ッ井は関東3番手の伸びで本線の3着役。地元の1松下もB7から主導権を取れれば5清水、6米原まで残れる。2片折は単騎で位置取りが読みにくく、差し込みだけを薄く警戒する。晴れ30℃、南西8km/hで海風の影響はあるが、約2.2m/sのため先行全消しにはせず、同ライン1-2と別線3着を併用する。",
+      "B10の7長野と単騎4山中、3大高、1片桐の自力戦で流れが読みにくい初日特選。7が主導権なら得点最上位の2森安が番手差し、5小林が3番手。4山中は直近の優勝戦線での内容が良く、単騎の捲り差しを厚く警戒する。3大高―6高橋は別線の連動候補、1片桐も好位なら差し込める。4分戦以上で3着が散りやすく、晴れ30℃・南西8km/hの風を踏まえ、同一ライン固定を避けて分",
+      "落車・分断のリスクがあるS級選抜では、同ライン2車だけでなく「差し頭＋別線自力残り＋同ライン3番手」の交差を追加。3を頭に置くなら3-2-7を1本入れる。",
+      "主導権はB12の5、または単騎3・6の早仕掛け。5の番手2は直近1着があり、番手差しの軸に向く。1-4-7は4の差しと7の3番手伸び、得点106点の3は単騎捲りで最警戒。南西風8km/hで後方一気の外捲りは楽ではないが、玉野デイS級は差し・捲り優勢。直近2着続きの4を軽視せず、人気だけで5-2へ固定せずに3の頭まで買う。"
     ],
     "improvements": [
       "4) 詳細summary｜次の予想へ残す改善点",

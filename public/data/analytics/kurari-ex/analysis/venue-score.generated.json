@@ -1,37 +1,37 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-14T07:47:38.324Z",
+  "generatedAt": "2026-07-19T23:10:34.829Z",
   "source": "kurari-ex-analysis-v1",
   "sourceType": "SEED_ANALYSIS",
   "period": {
     "from": "2026-05-01",
-    "to": "2026-07-13"
+    "to": "2026-07-19"
   },
   "sourceStatus": {
-    "inputFileCount": 1624,
-    "predictionFileCount": 542,
-    "resultFileCount": 542,
-    "summaryFileCount": 540,
-    "completeTripletCount": 540,
+    "inputFileCount": 1762,
+    "predictionFileCount": 588,
+    "resultFileCount": 588,
+    "summaryFileCount": 586,
+    "completeTripletCount": 586,
     "warningCount": 4
   },
   "globalKpi": {
     "sourceType": "SEED",
-    "sourceCount": 540,
-    "raceCount": 4283,
-    "trifectaHits": 1404,
-    "trifectaHitRate": 35.8,
-    "exactaHits": 331,
-    "exactaHitRate": 9,
-    "anyTicketHits": 195,
-    "hitRate": 54.5,
-    "investmentYen": 4804400,
-    "returnYen": 3330570,
-    "recoveryRate": 69.3,
+    "sourceCount": 586,
+    "raceCount": 4499,
+    "trifectaHits": 1533,
+    "trifectaHitRate": 37.9,
+    "exactaHits": 334,
+    "exactaHitRate": 8.9,
+    "anyTicketHits": 204,
+    "hitRate": 55.3,
+    "investmentYen": 5367600,
+    "returnYen": 3729670,
+    "recoveryRate": 69.5,
     "kimarite": {
-      "escape": 9,
-      "makuri": 15,
-      "sashi": 19
+      "escape": 18,
+      "makuri": 27,
+      "sashi": 32
     }
   },
   "inclusionPolicy": {
@@ -48,30 +48,30 @@
       "venueName": "京王閣",
       "period": {
         "from": "2026-05-03",
-        "to": "2026-07-13"
+        "to": "2026-07-19"
       },
       "sourceType": "SEED",
       "quality": {
-        "seedSources": 23,
-        "parsedDateSources": 23,
+        "seedSources": 26,
+        "parsedDateSources": 26,
         "exactRaceCount": 0,
         "status": "seed"
       },
-      "score": 94,
+      "score": 100,
       "rankHint": "A",
       "riskLevel": "positive",
       "kpi": {
-        "sourceCount": 23,
-        "raceCount": 132,
-        "trifectaHits": 70,
-        "trifectaHitRate": 57.9,
+        "sourceCount": 26,
+        "raceCount": 150,
+        "trifectaHits": 77,
+        "trifectaHitRate": 59.2,
         "exactaHits": 6,
-        "exactaHitRate": 5,
+        "exactaHitRate": 4.6,
         "anyTicketHits": null,
         "hitRate": null,
-        "investmentYen": 219000,
-        "returnYen": 203420,
-        "recoveryRate": 92.9,
+        "investmentYen": 253200,
+        "returnYen": 259260,
+        "recoveryRate": 102.4,
         "kimarite": {
           "escape": null,
           "makuri": null,
@@ -80,51 +80,51 @@
       },
       "topInsights": [
         {
-          "tag": "CLASS_CONTEXT",
-          "label": "級班条件を分離",
-          "evidenceCount": 23,
+          "tag": "TIME_SLOT_BIAS",
+          "label": "時間帯差を確認",
+          "evidenceCount": 26,
           "confidence": "high"
         },
         {
-          "tag": "TIME_SLOT_BIAS",
-          "label": "時間帯差を確認",
-          "evidenceCount": 23,
+          "tag": "CLASS_CONTEXT",
+          "label": "級班条件を分離",
+          "evidenceCount": 25,
           "confidence": "high"
         },
         {
           "tag": "SOLO_RIDER_ALERT",
           "label": "単騎の差し込みを警戒",
-          "evidenceCount": 20,
+          "evidenceCount": 23,
           "confidence": "high"
         },
         {
           "tag": "WIND_SENSITIVE",
           "label": "風条件を確認",
-          "evidenceCount": 18,
+          "evidenceCount": 21,
           "confidence": "high"
         },
         {
           "tag": "MAKURI_ALERT",
           "label": "捲り展開を警戒",
-          "evidenceCount": 17,
+          "evidenceCount": 20,
           "confidence": "high"
         },
         {
           "tag": "BANTE_SASHI_ALERT",
           "label": "番手差しを警戒",
-          "evidenceCount": 16,
+          "evidenceCount": 19,
           "confidence": "high"
         }
       ],
       "guidance": [
         {
           "priority": 1,
-          "text": "級班とレース種別を分けて傾向を評価する",
+          "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
           "sourceType": "predictionGuidance"
         },
         {
           "priority": 2,
-          "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+          "text": "級班とレース種別を分けて傾向を評価する",
           "sourceType": "predictionGuidance"
         },
         {
@@ -278,6 +278,240 @@
     },
     {
       "rank": 3,
+      "venueKey": "utsunomiya",
+      "venueName": "宇都宮",
+      "period": {
+        "from": "2026-05-08",
+        "to": "2026-07-15"
+      },
+      "sourceType": "SEED",
+      "quality": {
+        "seedSources": 22,
+        "parsedDateSources": 22,
+        "exactRaceCount": 0,
+        "status": "seed"
+      },
+      "score": 93,
+      "rankHint": "A",
+      "riskLevel": "positive",
+      "kpi": {
+        "sourceCount": 22,
+        "raceCount": 228,
+        "trifectaHits": 41,
+        "trifectaHitRate": 23.3,
+        "exactaHits": 11,
+        "exactaHitRate": 6.7,
+        "anyTicketHits": null,
+        "hitRate": null,
+        "investmentYen": 164000,
+        "returnYen": 194060,
+        "recoveryRate": 118.3,
+        "kimarite": {
+          "escape": null,
+          "makuri": null,
+          "sashi": null
+        }
+      },
+      "topInsights": [
+        {
+          "tag": "CLASS_CONTEXT",
+          "label": "級班条件を分離",
+          "evidenceCount": 22,
+          "confidence": "high"
+        },
+        {
+          "tag": "TIME_SLOT_BIAS",
+          "label": "時間帯差を確認",
+          "evidenceCount": 22,
+          "confidence": "high"
+        },
+        {
+          "tag": "WIND_SENSITIVE",
+          "label": "風条件を確認",
+          "evidenceCount": 22,
+          "confidence": "high"
+        },
+        {
+          "tag": "SOLO_RIDER_ALERT",
+          "label": "単騎の差し込みを警戒",
+          "evidenceCount": 19,
+          "confidence": "high"
+        },
+        {
+          "tag": "BANTE_SASHI_ALERT",
+          "label": "番手差しを警戒",
+          "evidenceCount": 15,
+          "confidence": "high"
+        },
+        {
+          "tag": "MAKURI_ALERT",
+          "label": "捲り展開を警戒",
+          "evidenceCount": 12,
+          "confidence": "high"
+        }
+      ],
+      "guidance": [
+        {
+          "priority": 1,
+          "text": "級班とレース種別を分けて傾向を評価する",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 2,
+          "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 3,
+          "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 4,
+          "text": "踏み合い時は単騎の差し込みを3着候補に加える",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 5,
+          "text": "先行軸だけで固定せず、番手差しの逆目を残す",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 6,
+          "text": "タグ： 男子新人アドバンス 単騎戦想定 位置取り勝負 捲り差し 踏み直し 地元注意 三着荒れ 中穴",
+          "sourceType": "seedNotes"
+        },
+        {
+          "priority": 7,
+          "text": "タグ： ガールズ決勝 強風 位置取り勝負 捲り差し 先仕掛け注意 三着荒れ 中穴 大穴",
+          "sourceType": "seedNotes"
+        },
+        {
+          "priority": 8,
+          "text": "タグ： S級一般 二分戦 差し有利 番手差し 中団捲り 岡山勢警戒 相手ズレ 中穴 大穴",
+          "sourceType": "seedNotes"
+        }
+      ]
+    },
+    {
+      "rank": 4,
+      "venueKey": "hiroshima",
+      "venueName": "広島",
+      "period": {
+        "from": "2026-05-06",
+        "to": "2026-07-15"
+      },
+      "sourceType": "SEED",
+      "quality": {
+        "seedSources": 17,
+        "parsedDateSources": 17,
+        "exactRaceCount": 0,
+        "status": "seed"
+      },
+      "score": 91,
+      "rankHint": "A",
+      "riskLevel": "positive",
+      "kpi": {
+        "sourceCount": 17,
+        "raceCount": 97,
+        "trifectaHits": 41,
+        "trifectaHitRate": 42.3,
+        "exactaHits": 11,
+        "exactaHitRate": 11.3,
+        "anyTicketHits": null,
+        "hitRate": null,
+        "investmentYen": 113200,
+        "returnYen": 108890,
+        "recoveryRate": 96.2,
+        "kimarite": {
+          "escape": null,
+          "makuri": null,
+          "sashi": null
+        }
+      },
+      "topInsights": [
+        {
+          "tag": "CLASS_CONTEXT",
+          "label": "級班条件を分離",
+          "evidenceCount": 17,
+          "confidence": "high"
+        },
+        {
+          "tag": "TIME_SLOT_BIAS",
+          "label": "時間帯差を確認",
+          "evidenceCount": 17,
+          "confidence": "high"
+        },
+        {
+          "tag": "WIND_SENSITIVE",
+          "label": "風条件を確認",
+          "evidenceCount": 16,
+          "confidence": "high"
+        },
+        {
+          "tag": "BANTE_SASHI_ALERT",
+          "label": "番手差しを警戒",
+          "evidenceCount": 14,
+          "confidence": "high"
+        },
+        {
+          "tag": "MAKURI_ALERT",
+          "label": "捲り展開を警戒",
+          "evidenceCount": 14,
+          "confidence": "high"
+        },
+        {
+          "tag": "SOLO_RIDER_ALERT",
+          "label": "単騎の差し込みを警戒",
+          "evidenceCount": 13,
+          "confidence": "high"
+        }
+      ],
+      "guidance": [
+        {
+          "priority": 1,
+          "text": "級班とレース種別を分けて傾向を評価する",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 2,
+          "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 3,
+          "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 4,
+          "text": "先行軸だけで固定せず、番手差しの逆目を残す",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 5,
+          "text": "先行争いがある場合は別線の捲り筋を残す",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 6,
+          "text": "4Rの5福田、6Rの1平石など、文章上の警戒はできていた。問題は買い目への接続不足。",
+          "sourceType": "seedNotes"
+        },
+        {
+          "priority": 7,
+          "text": "2R｜○ 的中｜2車単｜600円｜2-1-4｜3久保田落車明けを警戒して、1小出・5細田を軸分散した点は良かったが、実際は3久保田が欠場。結果は1小出の逃げ…",
+          "sourceType": "seedNotes"
+        },
+        {
+          "priority": 8,
+          "text": "ただし、2岡崎はB21で先行意欲が強く、直近京王閣では準決1着。1中川が初日の悪さを引きずると、2岡崎が先行して4齋藤を連れ込む形が十分ある。3花田もB9で単純な3番手評価にはできず、3-7の別線捲りまで保護する。4分戦以上で3着だけ抜け注意の条件なので、3着は2・7・4・6へ広げる。",
+          "sourceType": "seedNotes"
+        }
+      ]
+    },
+    {
+      "rank": 5,
       "venueKey": "ogaki",
       "venueName": "大垣",
       "period": {
@@ -394,124 +628,7 @@
       ]
     },
     {
-      "rank": 4,
-      "venueKey": "utsunomiya",
-      "venueName": "宇都宮",
-      "period": {
-        "from": "2026-05-08",
-        "to": "2026-07-13"
-      },
-      "sourceType": "SEED",
-      "quality": {
-        "seedSources": 20,
-        "parsedDateSources": 20,
-        "exactRaceCount": 0,
-        "status": "seed"
-      },
-      "score": 89,
-      "rankHint": "A",
-      "riskLevel": "positive",
-      "kpi": {
-        "sourceCount": 20,
-        "raceCount": 204,
-        "trifectaHits": 33,
-        "trifectaHitRate": 21.7,
-        "exactaHits": 9,
-        "exactaHitRate": 5.9,
-        "anyTicketHits": null,
-        "hitRate": null,
-        "investmentYen": 145400,
-        "returnYen": 146730,
-        "recoveryRate": 100.9,
-        "kimarite": {
-          "escape": null,
-          "makuri": null,
-          "sashi": null
-        }
-      },
-      "topInsights": [
-        {
-          "tag": "CLASS_CONTEXT",
-          "label": "級班条件を分離",
-          "evidenceCount": 20,
-          "confidence": "high"
-        },
-        {
-          "tag": "TIME_SLOT_BIAS",
-          "label": "時間帯差を確認",
-          "evidenceCount": 20,
-          "confidence": "high"
-        },
-        {
-          "tag": "WIND_SENSITIVE",
-          "label": "風条件を確認",
-          "evidenceCount": 20,
-          "confidence": "high"
-        },
-        {
-          "tag": "SOLO_RIDER_ALERT",
-          "label": "単騎の差し込みを警戒",
-          "evidenceCount": 17,
-          "confidence": "high"
-        },
-        {
-          "tag": "BANTE_SASHI_ALERT",
-          "label": "番手差しを警戒",
-          "evidenceCount": 13,
-          "confidence": "high"
-        },
-        {
-          "tag": "MAKURI_ALERT",
-          "label": "捲り展開を警戒",
-          "evidenceCount": 10,
-          "confidence": "high"
-        }
-      ],
-      "guidance": [
-        {
-          "priority": 1,
-          "text": "級班とレース種別を分けて傾向を評価する",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 2,
-          "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 3,
-          "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 4,
-          "text": "踏み合い時は単騎の差し込みを3着候補に加える",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 5,
-          "text": "先行軸だけで固定せず、番手差しの逆目を残す",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 6,
-          "text": "タグ： 男子新人アドバンス 単騎戦想定 位置取り勝負 捲り差し 踏み直し 地元注意 三着荒れ 中穴",
-          "sourceType": "seedNotes"
-        },
-        {
-          "priority": 7,
-          "text": "タグ： ガールズ決勝 強風 位置取り勝負 捲り差し 先仕掛け注意 三着荒れ 中穴 大穴",
-          "sourceType": "seedNotes"
-        },
-        {
-          "priority": 8,
-          "text": "タグ： S級一般 二分戦 差し有利 番手差し 中団捲り 岡山勢警戒 相手ズレ 中穴 大穴",
-          "sourceType": "seedNotes"
-        }
-      ]
-    },
-    {
-      "rank": 5,
+      "rank": 6,
       "venueKey": "ito",
       "venueName": "伊東",
       "period": {
@@ -628,193 +745,76 @@
       ]
     },
     {
-      "rank": 6,
-      "venueKey": "sasebo",
-      "venueName": "佐世保",
-      "period": {
-        "from": "2026-06-28",
-        "to": "2026-07-13"
-      },
-      "sourceType": "SEED",
-      "quality": {
-        "seedSources": 7,
-        "parsedDateSources": 7,
-        "exactRaceCount": 0,
-        "status": "seed"
-      },
-      "score": 85,
-      "rankHint": "A",
-      "riskLevel": "positive",
-      "kpi": {
-        "sourceCount": 7,
-        "raceCount": 54,
-        "trifectaHits": 29,
-        "trifectaHitRate": 53.7,
-        "exactaHits": 3,
-        "exactaHitRate": 5.6,
-        "anyTicketHits": 3,
-        "hitRate": 42.9,
-        "investmentYen": 42000,
-        "returnYen": 69370,
-        "recoveryRate": 165.2,
-        "kimarite": {
-          "escape": null,
-          "makuri": null,
-          "sashi": null
-        }
-      },
-      "topInsights": [
-        {
-          "tag": "BANTE_SASHI_ALERT",
-          "label": "番手差しを警戒",
-          "evidenceCount": 7,
-          "confidence": "medium"
-        },
-        {
-          "tag": "CLASS_CONTEXT",
-          "label": "級班条件を分離",
-          "evidenceCount": 7,
-          "confidence": "medium"
-        },
-        {
-          "tag": "MAKURI_ALERT",
-          "label": "捲り展開を警戒",
-          "evidenceCount": 7,
-          "confidence": "medium"
-        },
-        {
-          "tag": "OTHER_LINE_ALERT",
-          "label": "別線の浮上を警戒",
-          "evidenceCount": 7,
-          "confidence": "medium"
-        },
-        {
-          "tag": "SOLO_RIDER_ALERT",
-          "label": "単騎の差し込みを警戒",
-          "evidenceCount": 7,
-          "confidence": "medium"
-        },
-        {
-          "tag": "THIRD_PLACE_SPREAD",
-          "label": "3着候補を分散",
-          "evidenceCount": 7,
-          "confidence": "medium"
-        }
-      ],
-      "guidance": [
-        {
-          "priority": 1,
-          "text": "先行軸だけで固定せず、番手差しの逆目を残す",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 2,
-          "text": "級班とレース種別を分けて傾向を評価する",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 3,
-          "text": "先行争いがある場合は別線の捲り筋を残す",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 4,
-          "text": "本線が崩れた場合の別線頭と別線3着を保護する",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 5,
-          "text": "踏み合い時は単騎の差し込みを3着候補に加える",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 6,
-          "text": "3番手突き抜け頭の評価不足。 4Rは吉成を3着保護には使ったが、4-2-3の頭まで想定できていなかった。新人先行が人気を背負う時の3番手差しは、穴頭として要注意。",
-          "sourceType": "seedNotes"
-        },
-        {
-          "priority": 7,
-          "text": "長いラインの先頭不発リスク。 7Rは九州4車を信頼しすぎて、佐藤が車券外へ沈むパターンを薄く見た。地元番手だけ残るケースの3連単構成が不足。",
-          "sourceType": "seedNotes"
-        },
-        {
-          "priority": 8,
-          "text": "注意：今回の予想テキストは、各Rとも 3連単8点＋2車単2点＝10点 の構成。テンプレの「3連単7＋2車単3」へは変換せず、原文優先で記録した。",
-          "sourceType": "seedNotes"
-        }
-      ]
-    },
-    {
       "rank": 7,
       "venueKey": "nara",
       "venueName": "奈良",
       "period": {
         "from": "2026-05-01",
-        "to": "2026-07-03"
+        "to": "2026-07-18"
       },
       "sourceType": "SEED",
       "quality": {
-        "seedSources": 18,
-        "parsedDateSources": 18,
+        "seedSources": 21,
+        "parsedDateSources": 21,
         "exactRaceCount": 0,
         "status": "seed"
       },
-      "score": 85,
+      "score": 88,
       "rankHint": "A",
       "riskLevel": "positive",
       "kpi": {
-        "sourceCount": 18,
+        "sourceCount": 21,
         "raceCount": 133,
-        "trifectaHits": 47,
-        "trifectaHitRate": 38.5,
+        "trifectaHits": 65,
+        "trifectaHitRate": 53.3,
         "exactaHits": 10,
         "exactaHitRate": 8.2,
         "anyTicketHits": null,
         "hitRate": null,
-        "investmentYen": 154000,
-        "returnYen": 106260,
-        "recoveryRate": 69,
+        "investmentYen": 202800,
+        "returnYen": 138470,
+        "recoveryRate": 68.3,
         "kimarite": {
-          "escape": 4,
-          "makuri": 7,
-          "sashi": 10
+          "escape": 13,
+          "makuri": 17,
+          "sashi": 18
         }
       },
       "topInsights": [
         {
           "tag": "CLASS_CONTEXT",
           "label": "級班条件を分離",
-          "evidenceCount": 18,
+          "evidenceCount": 21,
           "confidence": "high"
         },
         {
           "tag": "MAKURI_ALERT",
           "label": "捲り展開を警戒",
-          "evidenceCount": 18,
+          "evidenceCount": 21,
           "confidence": "high"
         },
         {
           "tag": "SOLO_RIDER_ALERT",
           "label": "単騎の差し込みを警戒",
-          "evidenceCount": 18,
+          "evidenceCount": 21,
           "confidence": "high"
         },
         {
           "tag": "TIME_SLOT_BIAS",
           "label": "時間帯差を確認",
-          "evidenceCount": 18,
+          "evidenceCount": 21,
           "confidence": "high"
         },
         {
           "tag": "THIRD_PLACE_SPREAD",
           "label": "3着候補を分散",
-          "evidenceCount": 17,
+          "evidenceCount": 20,
           "confidence": "high"
         },
         {
           "tag": "BANTE_SASHI_ALERT",
           "label": "番手差しを警戒",
-          "evidenceCount": 16,
+          "evidenceCount": 19,
           "confidence": "high"
         }
       ],
@@ -863,6 +863,357 @@
     },
     {
       "rank": 8,
+      "venueKey": "yahiko",
+      "venueName": "弥彦",
+      "period": {
+        "from": "2026-05-04",
+        "to": "2026-07-19"
+      },
+      "sourceType": "SEED",
+      "quality": {
+        "seedSources": 27,
+        "parsedDateSources": 27,
+        "exactRaceCount": 0,
+        "status": "seed"
+      },
+      "score": 88,
+      "rankHint": "A",
+      "riskLevel": "positive",
+      "kpi": {
+        "sourceCount": 27,
+        "raceCount": 238,
+        "trifectaHits": 86,
+        "trifectaHitRate": 37.6,
+        "exactaHits": 15,
+        "exactaHitRate": 6.6,
+        "anyTicketHits": 60,
+        "hitRate": 47.2,
+        "investmentYen": 246200,
+        "returnYen": 191780,
+        "recoveryRate": 77.9,
+        "kimarite": {
+          "escape": null,
+          "makuri": null,
+          "sashi": null
+        }
+      },
+      "topInsights": [
+        {
+          "tag": "CLASS_CONTEXT",
+          "label": "級班条件を分離",
+          "evidenceCount": 27,
+          "confidence": "high"
+        },
+        {
+          "tag": "TIME_SLOT_BIAS",
+          "label": "時間帯差を確認",
+          "evidenceCount": 27,
+          "confidence": "high"
+        },
+        {
+          "tag": "SOLO_RIDER_ALERT",
+          "label": "単騎の差し込みを警戒",
+          "evidenceCount": 25,
+          "confidence": "high"
+        },
+        {
+          "tag": "OTHER_LINE_ALERT",
+          "label": "別線の浮上を警戒",
+          "evidenceCount": 21,
+          "confidence": "high"
+        },
+        {
+          "tag": "WIND_SENSITIVE",
+          "label": "風条件を確認",
+          "evidenceCount": 21,
+          "confidence": "high"
+        },
+        {
+          "tag": "BANTE_SASHI_ALERT",
+          "label": "番手差しを警戒",
+          "evidenceCount": 20,
+          "confidence": "high"
+        }
+      ],
+      "guidance": [
+        {
+          "priority": 1,
+          "text": "級班とレース種別を分けて傾向を評価する",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 2,
+          "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 3,
+          "text": "踏み合い時は単騎の差し込みを3着候補に加える",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 4,
+          "text": "本線が崩れた場合の別線頭と別線3着を保護する",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 5,
+          "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 6,
+          "text": "予想側タグ： 弥彦 デイ A級一般 霧雨 北西微風 細切れ 本線安すぎ注意 単騎7 捲り差し4 3着荒れ 穴狙い",
+          "sourceType": "seedNotes"
+        },
+        {
+          "priority": 7,
+          "text": "レースタイプ：TYPE-C｜二分戦・番手差し警戒",
+          "sourceType": "seedNotes"
+        },
+        {
+          "priority": 8,
+          "text": "レースタイプ：TYPE-C｜先行型対決・単騎差し込み警戒",
+          "sourceType": "seedNotes"
+        }
+      ]
+    },
+    {
+      "rank": 9,
+      "venueKey": "tamano",
+      "venueName": "玉野",
+      "period": {
+        "from": "2026-05-25",
+        "to": "2026-07-16"
+      },
+      "sourceType": "SEED",
+      "quality": {
+        "seedSources": 16,
+        "parsedDateSources": 16,
+        "exactRaceCount": 0,
+        "status": "seed"
+      },
+      "score": 85,
+      "rankHint": "A",
+      "riskLevel": "positive",
+      "kpi": {
+        "sourceCount": 16,
+        "raceCount": 85,
+        "trifectaHits": 49,
+        "trifectaHitRate": 57.6,
+        "exactaHits": 11,
+        "exactaHitRate": 12.9,
+        "anyTicketHits": null,
+        "hitRate": null,
+        "investmentYen": 130000,
+        "returnYen": 100400,
+        "recoveryRate": 77.2,
+        "kimarite": {
+          "escape": null,
+          "makuri": null,
+          "sashi": null
+        }
+      },
+      "topInsights": [
+        {
+          "tag": "CLASS_CONTEXT",
+          "label": "級班条件を分離",
+          "evidenceCount": 16,
+          "confidence": "high"
+        },
+        {
+          "tag": "TIME_SLOT_BIAS",
+          "label": "時間帯差を確認",
+          "evidenceCount": 16,
+          "confidence": "high"
+        },
+        {
+          "tag": "WIND_SENSITIVE",
+          "label": "風条件を確認",
+          "evidenceCount": 14,
+          "confidence": "high"
+        },
+        {
+          "tag": "BANTE_SASHI_ALERT",
+          "label": "番手差しを警戒",
+          "evidenceCount": 13,
+          "confidence": "high"
+        },
+        {
+          "tag": "MAKURI_ALERT",
+          "label": "捲り展開を警戒",
+          "evidenceCount": 13,
+          "confidence": "high"
+        },
+        {
+          "tag": "OTHER_LINE_ALERT",
+          "label": "別線の浮上を警戒",
+          "evidenceCount": 13,
+          "confidence": "high"
+        }
+      ],
+      "guidance": [
+        {
+          "priority": 1,
+          "text": "級班とレース種別を分けて傾向を評価する",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 2,
+          "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 3,
+          "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 4,
+          "text": "先行軸だけで固定せず、番手差しの逆目を残す",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 5,
+          "text": "先行争いがある場合は別線の捲り筋を残す",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 6,
+          "text": "注意：結果ファイル上で5R〜7Rがpending表示だったため、着順・払戻・実買い目を手照合して的中判定を補正",
+          "sourceType": "seedNotes"
+        },
+        {
+          "priority": 7,
+          "text": "注意: この参考値は、番号だけを照合したものであり、競輪予想の実力評価には使わないこと。",
+          "sourceType": "seedNotes"
+        },
+        {
+          "priority": 8,
+          "text": "注意：結果ファイルの最終判定は全R pending 表示のため、予想買い目と結果キーから手照合して集計。",
+          "sourceType": "seedNotes"
+        }
+      ]
+    },
+    {
+      "rank": 10,
+      "venueKey": "sasebo",
+      "venueName": "佐世保",
+      "period": {
+        "from": "2026-06-28",
+        "to": "2026-07-15"
+      },
+      "sourceType": "SEED",
+      "quality": {
+        "seedSources": 9,
+        "parsedDateSources": 9,
+        "exactRaceCount": 0,
+        "status": "seed"
+      },
+      "score": 85,
+      "rankHint": "A",
+      "riskLevel": "positive",
+      "kpi": {
+        "sourceCount": 9,
+        "raceCount": 66,
+        "trifectaHits": 38,
+        "trifectaHitRate": 57.6,
+        "exactaHits": 3,
+        "exactaHitRate": 5.6,
+        "anyTicketHits": 3,
+        "hitRate": 42.9,
+        "investmentYen": 65400,
+        "returnYen": 72390,
+        "recoveryRate": 110.7,
+        "kimarite": {
+          "escape": null,
+          "makuri": null,
+          "sashi": null
+        }
+      },
+      "topInsights": [
+        {
+          "tag": "BANTE_SASHI_ALERT",
+          "label": "番手差しを警戒",
+          "evidenceCount": 9,
+          "confidence": "medium"
+        },
+        {
+          "tag": "CLASS_CONTEXT",
+          "label": "級班条件を分離",
+          "evidenceCount": 9,
+          "confidence": "medium"
+        },
+        {
+          "tag": "MAKURI_ALERT",
+          "label": "捲り展開を警戒",
+          "evidenceCount": 9,
+          "confidence": "medium"
+        },
+        {
+          "tag": "OTHER_LINE_ALERT",
+          "label": "別線の浮上を警戒",
+          "evidenceCount": 9,
+          "confidence": "medium"
+        },
+        {
+          "tag": "SOLO_RIDER_ALERT",
+          "label": "単騎の差し込みを警戒",
+          "evidenceCount": 9,
+          "confidence": "medium"
+        },
+        {
+          "tag": "THIRD_PLACE_SPREAD",
+          "label": "3着候補を分散",
+          "evidenceCount": 9,
+          "confidence": "medium"
+        }
+      ],
+      "guidance": [
+        {
+          "priority": 1,
+          "text": "先行軸だけで固定せず、番手差しの逆目を残す",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 2,
+          "text": "級班とレース種別を分けて傾向を評価する",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 3,
+          "text": "先行争いがある場合は別線の捲り筋を残す",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 4,
+          "text": "本線が崩れた場合の別線頭と別線3着を保護する",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 5,
+          "text": "踏み合い時は単騎の差し込みを3着候補に加える",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 6,
+          "text": "3番手突き抜け頭の評価不足。 4Rは吉成を3着保護には使ったが、4-2-3の頭まで想定できていなかった。新人先行が人気を背負う時の3番手差しは、穴頭として要注意。",
+          "sourceType": "seedNotes"
+        },
+        {
+          "priority": 7,
+          "text": "長いラインの先頭不発リスク。 7Rは九州4車を信頼しすぎて、佐藤が車券外へ沈むパターンを薄く見た。地元番手だけ残るケースの3連単構成が不足。",
+          "sourceType": "seedNotes"
+        },
+        {
+          "priority": 8,
+          "text": "注意：今回の予想テキストは、各Rとも 3連単8点＋2車単2点＝10点 の構成。テンプレの「3連単7＋2車単3」へは変換せず、原文優先で記録した。",
+          "sourceType": "seedNotes"
+        }
+      ]
+    },
+    {
+      "rank": 11,
       "venueKey": "hiratsuka",
       "venueName": "平塚",
       "period": {
@@ -979,7 +1330,7 @@
       ]
     },
     {
-      "rank": 9,
+      "rank": 12,
       "venueKey": "beppu",
       "venueName": "別府",
       "period": {
@@ -1096,35 +1447,35 @@
       ]
     },
     {
-      "rank": 10,
-      "venueKey": "yahiko",
-      "venueName": "弥彦",
+      "rank": 13,
+      "venueKey": "kishiwada",
+      "venueName": "岸和田",
       "period": {
         "from": "2026-05-04",
-        "to": "2026-07-09"
+        "to": "2026-07-15"
       },
       "sourceType": "SEED",
       "quality": {
-        "seedSources": 24,
-        "parsedDateSources": 24,
+        "seedSources": 22,
+        "parsedDateSources": 22,
         "exactRaceCount": 0,
         "status": "seed"
       },
-      "score": 85,
+      "score": 82,
       "rankHint": "A",
-      "riskLevel": "positive",
+      "riskLevel": "caution",
       "kpi": {
-        "sourceCount": 24,
-        "raceCount": 216,
-        "trifectaHits": 71,
-        "trifectaHitRate": 34.3,
-        "exactaHits": 15,
-        "exactaHitRate": 7.2,
-        "anyTicketHits": 51,
-        "hitRate": 44,
-        "investmentYen": 204800,
-        "returnYen": 150930,
-        "recoveryRate": 73.7,
+        "sourceCount": 22,
+        "raceCount": 127,
+        "trifectaHits": 48,
+        "trifectaHitRate": 37.8,
+        "exactaHits": 11,
+        "exactaHitRate": 8.7,
+        "anyTicketHits": null,
+        "hitRate": null,
+        "investmentYen": 197000,
+        "returnYen": 105240,
+        "recoveryRate": 53.4,
         "kimarite": {
           "escape": null,
           "makuri": null,
@@ -1133,61 +1484,61 @@
       },
       "topInsights": [
         {
-          "tag": "CLASS_CONTEXT",
-          "label": "級班条件を分離",
-          "evidenceCount": 24,
-          "confidence": "high"
-        },
-        {
           "tag": "TIME_SLOT_BIAS",
           "label": "時間帯差を確認",
-          "evidenceCount": 24,
-          "confidence": "high"
-        },
-        {
-          "tag": "SOLO_RIDER_ALERT",
-          "label": "単騎の差し込みを警戒",
           "evidenceCount": 22,
-          "confidence": "high"
-        },
-        {
-          "tag": "OTHER_LINE_ALERT",
-          "label": "別線の浮上を警戒",
-          "evidenceCount": 18,
-          "confidence": "high"
-        },
-        {
-          "tag": "WIND_SENSITIVE",
-          "label": "風条件を確認",
-          "evidenceCount": 18,
           "confidence": "high"
         },
         {
           "tag": "BANTE_SASHI_ALERT",
           "label": "番手差しを警戒",
-          "evidenceCount": 17,
+          "evidenceCount": 20,
+          "confidence": "high"
+        },
+        {
+          "tag": "CLASS_CONTEXT",
+          "label": "級班条件を分離",
+          "evidenceCount": 19,
+          "confidence": "high"
+        },
+        {
+          "tag": "MAKURI_ALERT",
+          "label": "捲り展開を警戒",
+          "evidenceCount": 19,
+          "confidence": "high"
+        },
+        {
+          "tag": "WIND_SENSITIVE",
+          "label": "風条件を確認",
+          "evidenceCount": 19,
+          "confidence": "high"
+        },
+        {
+          "tag": "SOLO_RIDER_ALERT",
+          "label": "単騎の差し込みを警戒",
+          "evidenceCount": 18,
           "confidence": "high"
         }
       ],
       "guidance": [
         {
           "priority": 1,
-          "text": "級班とレース種別を分けて傾向を評価する",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 2,
           "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
           "sourceType": "predictionGuidance"
         },
         {
+          "priority": 2,
+          "text": "先行軸だけで固定せず、番手差しの逆目を残す",
+          "sourceType": "predictionGuidance"
+        },
+        {
           "priority": 3,
-          "text": "踏み合い時は単騎の差し込みを3着候補に加える",
+          "text": "級班とレース種別を分けて傾向を評価する",
           "sourceType": "predictionGuidance"
         },
         {
           "priority": 4,
-          "text": "本線が崩れた場合の別線頭と別線3着を保護する",
+          "text": "先行争いがある場合は別線の捲り筋を残す",
           "sourceType": "predictionGuidance"
         },
         {
@@ -1197,33 +1548,33 @@
         },
         {
           "priority": 6,
-          "text": "予想側タグ： 弥彦 デイ A級一般 霧雨 北西微風 細切れ 本線安すぎ注意 単騎7 捲り差し4 3着荒れ 穴狙い",
+          "text": "5. 超大穴の3番手差しは10点では拾いにくいが、8Rの6渡邉豪大のようなケースは“荒れ警戒メモ”として残す価値がある。 全買い目に入れる必要はないが、G1で3ラインすべてが動く時は、3番手の連対も観察対象。",
           "sourceType": "seedNotes"
         },
         {
           "priority": 7,
-          "text": "レースタイプ：TYPE-C｜二分戦・番手差し警戒",
+          "text": "取り逃しパターン：3車ラインの3番手が1着まで届く超大穴。10点で完全カバーは難しいが、G1の消耗戦で3番手差しが連対する警戒が足りなかった。1南と9柏野は候補にいたが、6を軸に置く発想がなかった。",
           "sourceType": "seedNotes"
         },
         {
           "priority": 8,
-          "text": "レースタイプ：TYPE-C｜先行型対決・単騎差し込み警戒",
+          "text": "足りなかった点：3車ラインの3番手が1着まで届く超大穴。10点で完全カバーは難しいが、G1の消耗戦で3番手差しが連対する警戒が足りなかった。1南と9柏野は候補にいたが、6を軸に置く発想がなかった。",
           "sourceType": "seedNotes"
         }
       ]
     },
     {
-      "rank": 11,
+      "rank": 14,
       "venueKey": "gifu",
       "venueName": "岐阜",
       "period": {
         "from": "2026-05-05",
-        "to": "2026-07-13"
+        "to": "2026-07-19"
       },
       "sourceType": "SEED",
       "quality": {
-        "seedSources": 27,
-        "parsedDateSources": 27,
+        "seedSources": 29,
+        "parsedDateSources": 29,
         "exactRaceCount": 0,
         "status": "seed"
       },
@@ -1231,58 +1582,58 @@
       "rankHint": "A",
       "riskLevel": "caution",
       "kpi": {
-        "sourceCount": 27,
+        "sourceCount": 29,
         "raceCount": 134,
-        "trifectaHits": 56,
-        "trifectaHitRate": 45.9,
+        "trifectaHits": 61,
+        "trifectaHitRate": 50,
         "exactaHits": 16,
         "exactaHitRate": 13.1,
         "anyTicketHits": 4,
         "hitRate": null,
-        "investmentYen": 149600,
-        "returnYen": 76940,
-        "recoveryRate": 51.4,
+        "investmentYen": 153200,
+        "returnYen": 77430,
+        "recoveryRate": 50.5,
         "kimarite": {
           "escape": null,
-          "makuri": null,
-          "sashi": null
+          "makuri": 2,
+          "sashi": 5
         }
       },
       "topInsights": [
         {
           "tag": "CLASS_CONTEXT",
           "label": "級班条件を分離",
-          "evidenceCount": 27,
+          "evidenceCount": 29,
           "confidence": "high"
         },
         {
           "tag": "TIME_SLOT_BIAS",
           "label": "時間帯差を確認",
-          "evidenceCount": 27,
+          "evidenceCount": 29,
           "confidence": "high"
         },
         {
           "tag": "WIND_SENSITIVE",
           "label": "風条件を確認",
-          "evidenceCount": 27,
+          "evidenceCount": 29,
           "confidence": "high"
         },
         {
           "tag": "SOLO_RIDER_ALERT",
           "label": "単騎の差し込みを警戒",
-          "evidenceCount": 18,
+          "evidenceCount": 20,
           "confidence": "high"
         },
         {
           "tag": "BANTE_SASHI_ALERT",
           "label": "番手差しを警戒",
-          "evidenceCount": 16,
+          "evidenceCount": 18,
           "confidence": "high"
         },
         {
           "tag": "MAKURI_ALERT",
           "label": "捲り展開を警戒",
-          "evidenceCount": 16,
+          "evidenceCount": 18,
           "confidence": "high"
         }
       ],
@@ -1330,241 +1681,7 @@
       ]
     },
     {
-      "rank": 12,
-      "venueKey": "tamano",
-      "venueName": "玉野",
-      "period": {
-        "from": "2026-05-25",
-        "to": "2026-07-09"
-      },
-      "sourceType": "SEED",
-      "quality": {
-        "seedSources": 13,
-        "parsedDateSources": 13,
-        "exactRaceCount": 0,
-        "status": "seed"
-      },
-      "score": 82,
-      "rankHint": "A",
-      "riskLevel": "positive",
-      "kpi": {
-        "sourceCount": 13,
-        "raceCount": 85,
-        "trifectaHits": 35,
-        "trifectaHitRate": 41.2,
-        "exactaHits": 10,
-        "exactaHitRate": 11.8,
-        "anyTicketHits": null,
-        "hitRate": null,
-        "investmentYen": 109600,
-        "returnYen": 77210,
-        "recoveryRate": 70.4,
-        "kimarite": {
-          "escape": null,
-          "makuri": null,
-          "sashi": null
-        }
-      },
-      "topInsights": [
-        {
-          "tag": "CLASS_CONTEXT",
-          "label": "級班条件を分離",
-          "evidenceCount": 13,
-          "confidence": "high"
-        },
-        {
-          "tag": "TIME_SLOT_BIAS",
-          "label": "時間帯差を確認",
-          "evidenceCount": 13,
-          "confidence": "high"
-        },
-        {
-          "tag": "WIND_SENSITIVE",
-          "label": "風条件を確認",
-          "evidenceCount": 11,
-          "confidence": "high"
-        },
-        {
-          "tag": "BANTE_SASHI_ALERT",
-          "label": "番手差しを警戒",
-          "evidenceCount": 10,
-          "confidence": "high"
-        },
-        {
-          "tag": "MAKURI_ALERT",
-          "label": "捲り展開を警戒",
-          "evidenceCount": 10,
-          "confidence": "high"
-        },
-        {
-          "tag": "OTHER_LINE_ALERT",
-          "label": "別線の浮上を警戒",
-          "evidenceCount": 10,
-          "confidence": "high"
-        }
-      ],
-      "guidance": [
-        {
-          "priority": 1,
-          "text": "級班とレース種別を分けて傾向を評価する",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 2,
-          "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 3,
-          "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 4,
-          "text": "先行軸だけで固定せず、番手差しの逆目を残す",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 5,
-          "text": "先行争いがある場合は別線の捲り筋を残す",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 6,
-          "text": "注意：結果ファイル上で5R〜7Rがpending表示だったため、着順・払戻・実買い目を手照合して的中判定を補正",
-          "sourceType": "seedNotes"
-        },
-        {
-          "priority": 7,
-          "text": "注意: この参考値は、番号だけを照合したものであり、競輪予想の実力評価には使わないこと。",
-          "sourceType": "seedNotes"
-        },
-        {
-          "priority": 8,
-          "text": "注意：結果ファイルの最終判定は全R pending 表示のため、予想買い目と結果キーから手照合して集計。",
-          "sourceType": "seedNotes"
-        }
-      ]
-    },
-    {
-      "rank": 13,
-      "venueKey": "hiroshima",
-      "venueName": "広島",
-      "period": {
-        "from": "2026-05-06",
-        "to": "2026-07-13"
-      },
-      "sourceType": "SEED",
-      "quality": {
-        "seedSources": 15,
-        "parsedDateSources": 15,
-        "exactRaceCount": 0,
-        "status": "seed"
-      },
-      "score": 82,
-      "rankHint": "A",
-      "riskLevel": "positive",
-      "kpi": {
-        "sourceCount": 15,
-        "raceCount": 97,
-        "trifectaHits": 33,
-        "trifectaHitRate": 34,
-        "exactaHits": 11,
-        "exactaHitRate": 11.3,
-        "anyTicketHits": null,
-        "hitRate": null,
-        "investmentYen": 109600,
-        "returnYen": 85070,
-        "recoveryRate": 77.6,
-        "kimarite": {
-          "escape": null,
-          "makuri": null,
-          "sashi": null
-        }
-      },
-      "topInsights": [
-        {
-          "tag": "CLASS_CONTEXT",
-          "label": "級班条件を分離",
-          "evidenceCount": 15,
-          "confidence": "high"
-        },
-        {
-          "tag": "TIME_SLOT_BIAS",
-          "label": "時間帯差を確認",
-          "evidenceCount": 15,
-          "confidence": "high"
-        },
-        {
-          "tag": "WIND_SENSITIVE",
-          "label": "風条件を確認",
-          "evidenceCount": 14,
-          "confidence": "high"
-        },
-        {
-          "tag": "BANTE_SASHI_ALERT",
-          "label": "番手差しを警戒",
-          "evidenceCount": 12,
-          "confidence": "high"
-        },
-        {
-          "tag": "MAKURI_ALERT",
-          "label": "捲り展開を警戒",
-          "evidenceCount": 12,
-          "confidence": "high"
-        },
-        {
-          "tag": "SOLO_RIDER_ALERT",
-          "label": "単騎の差し込みを警戒",
-          "evidenceCount": 11,
-          "confidence": "high"
-        }
-      ],
-      "guidance": [
-        {
-          "priority": 1,
-          "text": "級班とレース種別を分けて傾向を評価する",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 2,
-          "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 3,
-          "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 4,
-          "text": "先行軸だけで固定せず、番手差しの逆目を残す",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 5,
-          "text": "先行争いがある場合は別線の捲り筋を残す",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 6,
-          "text": "4Rの5福田、6Rの1平石など、文章上の警戒はできていた。問題は買い目への接続不足。",
-          "sourceType": "seedNotes"
-        },
-        {
-          "priority": 7,
-          "text": "2R｜○ 的中｜2車単｜600円｜2-1-4｜3久保田落車明けを警戒して、1小出・5細田を軸分散した点は良かったが、実際は3久保田が欠場。結果は1小出の逃げ…",
-          "sourceType": "seedNotes"
-        },
-        {
-          "priority": 8,
-          "text": "ただし、2岡崎はB21で先行意欲が強く、直近京王閣では準決1着。1中川が初日の悪さを引きずると、2岡崎が先行して4齋藤を連れ込む形が十分ある。3花田もB9で単純な3番手評価にはできず、3-7の別線捲りまで保護する。4分戦以上で3着だけ抜け注意の条件なので、3着は2・7・4・6へ広げる。",
-          "sourceType": "seedNotes"
-        }
-      ]
-    },
-    {
-      "rank": 14,
+      "rank": 15,
       "venueKey": "komatsushima",
       "venueName": "小松島",
       "period": {
@@ -1681,7 +1798,7 @@
       ]
     },
     {
-      "rank": 15,
+      "rank": 16,
       "venueKey": "maebashi",
       "venueName": "前橋",
       "period": {
@@ -1798,7 +1915,124 @@
       ]
     },
     {
-      "rank": 16,
+      "rank": 17,
+      "venueKey": "toyohashi",
+      "venueName": "豊橋",
+      "period": {
+        "from": "2026-06-03",
+        "to": "2026-07-19"
+      },
+      "sourceType": "SEED",
+      "quality": {
+        "seedSources": 10,
+        "parsedDateSources": 10,
+        "exactRaceCount": 0,
+        "status": "seed"
+      },
+      "score": 82,
+      "rankHint": "A",
+      "riskLevel": "positive",
+      "kpi": {
+        "sourceCount": 10,
+        "raceCount": 54,
+        "trifectaHits": 21,
+        "trifectaHitRate": 38.9,
+        "exactaHits": 1,
+        "exactaHitRate": 2.4,
+        "anyTicketHits": null,
+        "hitRate": null,
+        "investmentYen": 108600,
+        "returnYen": 75300,
+        "recoveryRate": 69.3,
+        "kimarite": {
+          "escape": null,
+          "makuri": null,
+          "sashi": null
+        }
+      },
+      "topInsights": [
+        {
+          "tag": "BANTE_SASHI_ALERT",
+          "label": "番手差しを警戒",
+          "evidenceCount": 10,
+          "confidence": "high"
+        },
+        {
+          "tag": "CLASS_CONTEXT",
+          "label": "級班条件を分離",
+          "evidenceCount": 10,
+          "confidence": "high"
+        },
+        {
+          "tag": "MAKURI_ALERT",
+          "label": "捲り展開を警戒",
+          "evidenceCount": 10,
+          "confidence": "high"
+        },
+        {
+          "tag": "OTHER_LINE_ALERT",
+          "label": "別線の浮上を警戒",
+          "evidenceCount": 10,
+          "confidence": "high"
+        },
+        {
+          "tag": "SOLO_RIDER_ALERT",
+          "label": "単騎の差し込みを警戒",
+          "evidenceCount": 10,
+          "confidence": "high"
+        },
+        {
+          "tag": "TIME_SLOT_BIAS",
+          "label": "時間帯差を確認",
+          "evidenceCount": 10,
+          "confidence": "high"
+        }
+      ],
+      "guidance": [
+        {
+          "priority": 1,
+          "text": "先行軸だけで固定せず、番手差しの逆目を残す",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 2,
+          "text": "級班とレース種別を分けて傾向を評価する",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 3,
+          "text": "先行争いがある場合は別線の捲り筋を残す",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 4,
+          "text": "本線が崩れた場合の別線頭と別線3着を保護する",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 5,
+          "text": "踏み合い時は単騎の差し込みを3着候補に加える",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 6,
+          "text": "自信度（予想テキスト記載）：🔥（注意付き）",
+          "sourceType": "seedNotes"
+        },
+        {
+          "priority": 7,
+          "text": "0) 監査上の注意",
+          "sourceType": "seedNotes"
+        },
+        {
+          "priority": 8,
+          "text": "予想時自信度：🔥（注意付き）",
+          "sourceType": "seedNotes"
+        }
+      ]
+    },
+    {
+      "rank": 18,
       "venueKey": "hofu",
       "venueName": "防府",
       "period": {
@@ -1915,124 +2149,7 @@
       ]
     },
     {
-      "rank": 17,
-      "venueKey": "kishiwada",
-      "venueName": "岸和田",
-      "period": {
-        "from": "2026-05-04",
-        "to": "2026-07-13"
-      },
-      "sourceType": "SEED",
-      "quality": {
-        "seedSources": 20,
-        "parsedDateSources": 20,
-        "exactRaceCount": 0,
-        "status": "seed"
-      },
-      "score": 79,
-      "rankHint": "B",
-      "riskLevel": "caution",
-      "kpi": {
-        "sourceCount": 20,
-        "raceCount": 127,
-        "trifectaHits": 38,
-        "trifectaHitRate": 29.9,
-        "exactaHits": 11,
-        "exactaHitRate": 8.7,
-        "anyTicketHits": null,
-        "hitRate": null,
-        "investmentYen": 163800,
-        "returnYen": 89400,
-        "recoveryRate": 54.6,
-        "kimarite": {
-          "escape": null,
-          "makuri": null,
-          "sashi": null
-        }
-      },
-      "topInsights": [
-        {
-          "tag": "TIME_SLOT_BIAS",
-          "label": "時間帯差を確認",
-          "evidenceCount": 20,
-          "confidence": "high"
-        },
-        {
-          "tag": "BANTE_SASHI_ALERT",
-          "label": "番手差しを警戒",
-          "evidenceCount": 18,
-          "confidence": "high"
-        },
-        {
-          "tag": "CLASS_CONTEXT",
-          "label": "級班条件を分離",
-          "evidenceCount": 17,
-          "confidence": "high"
-        },
-        {
-          "tag": "MAKURI_ALERT",
-          "label": "捲り展開を警戒",
-          "evidenceCount": 17,
-          "confidence": "high"
-        },
-        {
-          "tag": "WIND_SENSITIVE",
-          "label": "風条件を確認",
-          "evidenceCount": 17,
-          "confidence": "high"
-        },
-        {
-          "tag": "SOLO_RIDER_ALERT",
-          "label": "単騎の差し込みを警戒",
-          "evidenceCount": 16,
-          "confidence": "high"
-        }
-      ],
-      "guidance": [
-        {
-          "priority": 1,
-          "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 2,
-          "text": "先行軸だけで固定せず、番手差しの逆目を残す",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 3,
-          "text": "級班とレース種別を分けて傾向を評価する",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 4,
-          "text": "先行争いがある場合は別線の捲り筋を残す",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 5,
-          "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 6,
-          "text": "5. 超大穴の3番手差しは10点では拾いにくいが、8Rの6渡邉豪大のようなケースは“荒れ警戒メモ”として残す価値がある。 全買い目に入れる必要はないが、G1で3ラインすべてが動く時は、3番手の連対も観察対象。",
-          "sourceType": "seedNotes"
-        },
-        {
-          "priority": 7,
-          "text": "取り逃しパターン：3車ラインの3番手が1着まで届く超大穴。10点で完全カバーは難しいが、G1の消耗戦で3番手差しが連対する警戒が足りなかった。1南と9柏野は候補にいたが、6を軸に置く発想がなかった。",
-          "sourceType": "seedNotes"
-        },
-        {
-          "priority": 8,
-          "text": "足りなかった点：3車ラインの3番手が1着まで届く超大穴。10点で完全カバーは難しいが、G1の消耗戦で3番手差しが連対する警戒が足りなかった。1南と9柏野は候補にいたが、6を軸に置く発想がなかった。",
-          "sourceType": "seedNotes"
-        }
-      ]
-    },
-    {
-      "rank": 18,
+      "rank": 19,
       "venueKey": "odawara",
       "venueName": "小田原",
       "period": {
@@ -2149,7 +2266,7 @@
       ]
     },
     {
-      "rank": 19,
+      "rank": 20,
       "venueKey": "omiya",
       "venueName": "大宮",
       "period": {
@@ -2266,7 +2383,7 @@
       ]
     },
     {
-      "rank": 20,
+      "rank": 21,
       "venueKey": "kurume",
       "venueName": "久留米",
       "period": {
@@ -2383,7 +2500,124 @@
       ]
     },
     {
-      "rank": 21,
+      "rank": 22,
+      "venueKey": "matsusaka",
+      "venueName": "松阪",
+      "period": {
+        "from": "2026-05-04",
+        "to": "2026-07-18"
+      },
+      "sourceType": "SEED",
+      "quality": {
+        "seedSources": 18,
+        "parsedDateSources": 18,
+        "exactRaceCount": 0,
+        "status": "seed"
+      },
+      "score": 78,
+      "rankHint": "B",
+      "riskLevel": "watch",
+      "kpi": {
+        "sourceCount": 18,
+        "raceCount": 183,
+        "trifectaHits": 43,
+        "trifectaHitRate": 27,
+        "exactaHits": 9,
+        "exactaHitRate": 5.7,
+        "anyTicketHits": null,
+        "hitRate": null,
+        "investmentYen": 210000,
+        "returnYen": 137120,
+        "recoveryRate": 65.3,
+        "kimarite": {
+          "escape": null,
+          "makuri": null,
+          "sashi": null
+        }
+      },
+      "topInsights": [
+        {
+          "tag": "CLASS_CONTEXT",
+          "label": "級班条件を分離",
+          "evidenceCount": 18,
+          "confidence": "high"
+        },
+        {
+          "tag": "TIME_SLOT_BIAS",
+          "label": "時間帯差を確認",
+          "evidenceCount": 18,
+          "confidence": "high"
+        },
+        {
+          "tag": "WIND_SENSITIVE",
+          "label": "風条件を確認",
+          "evidenceCount": 16,
+          "confidence": "high"
+        },
+        {
+          "tag": "BANTE_SASHI_ALERT",
+          "label": "番手差しを警戒",
+          "evidenceCount": 14,
+          "confidence": "high"
+        },
+        {
+          "tag": "MAKURI_ALERT",
+          "label": "捲り展開を警戒",
+          "evidenceCount": 14,
+          "confidence": "high"
+        },
+        {
+          "tag": "SOLO_RIDER_ALERT",
+          "label": "単騎の差し込みを警戒",
+          "evidenceCount": 14,
+          "confidence": "high"
+        }
+      ],
+      "guidance": [
+        {
+          "priority": 1,
+          "text": "級班とレース種別を分けて傾向を評価する",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 2,
+          "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 3,
+          "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 4,
+          "text": "先行軸だけで固定せず、番手差しの逆目を残す",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 5,
+          "text": "先行争いがある場合は別線の捲り筋を残す",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 6,
+          "text": "11R：2番・嶋津拓弥と単騎3番・渡邉豪大を個別に警戒したが、同時浮上の 2-3-7 を作れなかった。",
+          "sourceType": "seedNotes"
+        },
+        {
+          "priority": 7,
+          "text": "レースタイプ：TYPE-C：差し本線・単騎警戒型",
+          "sourceType": "seedNotes"
+        },
+        {
+          "priority": 8,
+          "text": "レースタイプ：TYPE-A：強軸中心・別線番手差し警戒型",
+          "sourceType": "seedNotes"
+        }
+      ]
+    },
+    {
+      "rank": 23,
       "venueKey": "kokura",
       "venueName": "小倉",
       "period": {
@@ -2500,17 +2734,17 @@
       ]
     },
     {
-      "rank": 22,
+      "rank": 24,
       "venueKey": "toride",
       "venueName": "取手",
       "period": {
         "from": "2026-05-01",
-        "to": "2026-07-08"
+        "to": "2026-07-17"
       },
       "sourceType": "SEED",
       "quality": {
-        "seedSources": 15,
-        "parsedDateSources": 15,
+        "seedSources": 18,
+        "parsedDateSources": 18,
         "exactRaceCount": 0,
         "status": "seed"
       },
@@ -2518,17 +2752,17 @@
       "rankHint": "B",
       "riskLevel": "caution",
       "kpi": {
-        "sourceCount": 15,
-        "raceCount": 152,
-        "trifectaHits": 49,
-        "trifectaHitRate": 32.2,
+        "sourceCount": 18,
+        "raceCount": 173,
+        "trifectaHits": 59,
+        "trifectaHitRate": 34.1,
         "exactaHits": 6,
-        "exactaHitRate": 3.9,
+        "exactaHitRate": 3.5,
         "anyTicketHits": null,
         "hitRate": null,
-        "investmentYen": 165200,
-        "returnYen": 98420,
-        "recoveryRate": 59.6,
+        "investmentYen": 192200,
+        "returnYen": 110960,
+        "recoveryRate": 57.7,
         "kimarite": {
           "escape": null,
           "makuri": null,
@@ -2539,37 +2773,37 @@
         {
           "tag": "CLASS_CONTEXT",
           "label": "級班条件を分離",
-          "evidenceCount": 15,
+          "evidenceCount": 18,
           "confidence": "high"
         },
         {
           "tag": "TIME_SLOT_BIAS",
           "label": "時間帯差を確認",
-          "evidenceCount": 15,
+          "evidenceCount": 18,
           "confidence": "high"
         },
         {
           "tag": "WIND_SENSITIVE",
           "label": "風条件を確認",
-          "evidenceCount": 15,
+          "evidenceCount": 18,
           "confidence": "high"
         },
         {
           "tag": "SOLO_RIDER_ALERT",
           "label": "単騎の差し込みを警戒",
-          "evidenceCount": 13,
+          "evidenceCount": 16,
           "confidence": "high"
         },
         {
           "tag": "THIRD_PLACE_SPREAD",
           "label": "3着候補を分散",
-          "evidenceCount": 13,
+          "evidenceCount": 16,
           "confidence": "high"
         },
         {
           "tag": "BANTE_SASHI_ALERT",
           "label": "番手差しを警戒",
-          "evidenceCount": 12,
+          "evidenceCount": 15,
           "confidence": "high"
         }
       ],
@@ -2617,17 +2851,17 @@
       ]
     },
     {
-      "rank": 23,
+      "rank": 25,
       "venueKey": "hakodate",
       "venueName": "函館",
       "period": {
         "from": "2026-05-01",
-        "to": "2026-07-10"
+        "to": "2026-07-16"
       },
       "sourceType": "SEED",
       "quality": {
-        "seedSources": 29,
-        "parsedDateSources": 29,
+        "seedSources": 32,
+        "parsedDateSources": 32,
         "exactRaceCount": 0,
         "status": "seed"
       },
@@ -2635,17 +2869,17 @@
       "rankHint": "B",
       "riskLevel": "caution",
       "kpi": {
-        "sourceCount": 29,
-        "raceCount": 310,
+        "sourceCount": 32,
+        "raceCount": 346,
         "trifectaHits": 44,
         "trifectaHitRate": 23.7,
         "exactaHits": 5,
         "exactaHitRate": 3.9,
         "anyTicketHits": null,
         "hitRate": null,
-        "investmentYen": 324400,
-        "returnYen": 209300,
-        "recoveryRate": 64.5,
+        "investmentYen": 389200,
+        "returnYen": 226780,
+        "recoveryRate": 58.3,
         "kimarite": {
           "escape": 3,
           "makuri": 6,
@@ -2656,37 +2890,37 @@
         {
           "tag": "CLASS_CONTEXT",
           "label": "級班条件を分離",
-          "evidenceCount": 29,
+          "evidenceCount": 32,
           "confidence": "high"
         },
         {
           "tag": "TIME_SLOT_BIAS",
           "label": "時間帯差を確認",
-          "evidenceCount": 29,
+          "evidenceCount": 32,
           "confidence": "high"
         },
         {
           "tag": "WIND_SENSITIVE",
           "label": "風条件を確認",
-          "evidenceCount": 27,
+          "evidenceCount": 30,
           "confidence": "high"
         },
         {
           "tag": "SOLO_RIDER_ALERT",
           "label": "単騎の差し込みを警戒",
-          "evidenceCount": 21,
+          "evidenceCount": 24,
           "confidence": "high"
         },
         {
           "tag": "THIRD_PLACE_SPREAD",
           "label": "3着候補を分散",
-          "evidenceCount": 18,
+          "evidenceCount": 21,
           "confidence": "high"
         },
         {
           "tag": "BANTE_SASHI_ALERT",
           "label": "番手差しを警戒",
-          "evidenceCount": 12,
+          "evidenceCount": 15,
           "confidence": "high"
         }
       ],
@@ -2734,7 +2968,124 @@
       ]
     },
     {
-      "rank": 24,
+      "rank": 26,
+      "venueKey": "kochi",
+      "venueName": "高知",
+      "period": {
+        "from": "2026-05-04",
+        "to": "2026-07-19"
+      },
+      "sourceType": "SEED",
+      "quality": {
+        "seedSources": 16,
+        "parsedDateSources": 16,
+        "exactRaceCount": 0,
+        "status": "seed"
+      },
+      "score": 73,
+      "rankHint": "B",
+      "riskLevel": "high-risk",
+      "kpi": {
+        "sourceCount": 16,
+        "raceCount": 113,
+        "trifectaHits": 44,
+        "trifectaHitRate": 38.9,
+        "exactaHits": 5,
+        "exactaHitRate": 5.6,
+        "anyTicketHits": 5,
+        "hitRate": 55.6,
+        "investmentYen": 138200,
+        "returnYen": 61440,
+        "recoveryRate": 44.5,
+        "kimarite": {
+          "escape": null,
+          "makuri": null,
+          "sashi": null
+        }
+      },
+      "topInsights": [
+        {
+          "tag": "CLASS_CONTEXT",
+          "label": "級班条件を分離",
+          "evidenceCount": 16,
+          "confidence": "high"
+        },
+        {
+          "tag": "SOLO_RIDER_ALERT",
+          "label": "単騎の差し込みを警戒",
+          "evidenceCount": 16,
+          "confidence": "high"
+        },
+        {
+          "tag": "TIME_SLOT_BIAS",
+          "label": "時間帯差を確認",
+          "evidenceCount": 16,
+          "confidence": "high"
+        },
+        {
+          "tag": "WIND_SENSITIVE",
+          "label": "風条件を確認",
+          "evidenceCount": 15,
+          "confidence": "high"
+        },
+        {
+          "tag": "THIRD_PLACE_SPREAD",
+          "label": "3着候補を分散",
+          "evidenceCount": 14,
+          "confidence": "high"
+        },
+        {
+          "tag": "MAKURI_ALERT",
+          "label": "捲り展開を警戒",
+          "evidenceCount": 11,
+          "confidence": "high"
+        }
+      ],
+      "guidance": [
+        {
+          "priority": 1,
+          "text": "級班とレース種別を分けて傾向を評価する",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 2,
+          "text": "踏み合い時は単騎の差し込みを3着候補に加える",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 3,
+          "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 4,
+          "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 5,
+          "text": "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 6,
+          "text": "決まり手：ク（1着=ク） / 組み合わせ差し替え（別線・位置取りズレ） / 失格発生（出目歪み注意）",
+          "sourceType": "seedNotes"
+        },
+        {
+          "priority": 7,
+          "text": "記録上の注意：今回の実際の買い目構成は、全Rとも 3連単8点＋2車単2点＝10点 。マスターテンプレの例示（3連単7点＋2車単3点）へ改変せず、実データを優先して保存。",
+          "sourceType": "seedNotes"
+        },
+        {
+          "priority": 8,
+          "text": "地元番手や格上番手を信頼しすぎ、追走失敗・失格・ライン分断のリスクを薄く見た。",
+          "sourceType": "seedNotes"
+        }
+      ]
+    },
+    {
+      "rank": 27,
       "venueKey": "takeo",
       "venueName": "武雄",
       "period": {
@@ -2851,35 +3202,35 @@
       ]
     },
     {
-      "rank": 25,
-      "venueKey": "toyohashi",
-      "venueName": "豊橋",
+      "rank": 28,
+      "venueKey": "matsudo",
+      "venueName": "松戸",
       "period": {
-        "from": "2026-06-03",
-        "to": "2026-07-07"
+        "from": "2026-05-14",
+        "to": "2026-07-19"
       },
       "sourceType": "SEED",
       "quality": {
-        "seedSources": 9,
-        "parsedDateSources": 9,
+        "seedSources": 14,
+        "parsedDateSources": 14,
         "exactRaceCount": 0,
         "status": "seed"
       },
-      "score": 73,
+      "score": 71,
       "rankHint": "B",
-      "riskLevel": "positive",
+      "riskLevel": "high-risk",
       "kpi": {
-        "sourceCount": 9,
-        "raceCount": 54,
-        "trifectaHits": 21,
-        "trifectaHitRate": 38.9,
-        "exactaHits": 1,
-        "exactaHitRate": 2.4,
-        "anyTicketHits": null,
-        "hitRate": null,
-        "investmentYen": 92400,
-        "returnYen": 70930,
-        "recoveryRate": 76.8,
+        "sourceCount": 14,
+        "raceCount": 69,
+        "trifectaHits": 26,
+        "trifectaHitRate": 37.7,
+        "exactaHits": 8,
+        "exactaHitRate": 11.6,
+        "anyTicketHits": 4,
+        "hitRate": 33.3,
+        "investmentYen": 123700,
+        "returnYen": 48410,
+        "recoveryRate": 39.1,
         "kimarite": {
           "escape": null,
           "makuri": null,
@@ -2888,157 +3239,40 @@
       },
       "topInsights": [
         {
-          "tag": "BANTE_SASHI_ALERT",
-          "label": "番手差しを警戒",
-          "evidenceCount": 9,
-          "confidence": "medium"
-        },
-        {
           "tag": "CLASS_CONTEXT",
           "label": "級班条件を分離",
-          "evidenceCount": 9,
-          "confidence": "medium"
-        },
-        {
-          "tag": "MAKURI_ALERT",
-          "label": "捲り展開を警戒",
-          "evidenceCount": 9,
-          "confidence": "medium"
-        },
-        {
-          "tag": "OTHER_LINE_ALERT",
-          "label": "別線の浮上を警戒",
-          "evidenceCount": 9,
-          "confidence": "medium"
+          "evidenceCount": 13,
+          "confidence": "high"
         },
         {
           "tag": "SOLO_RIDER_ALERT",
           "label": "単騎の差し込みを警戒",
-          "evidenceCount": 9,
-          "confidence": "medium"
-        },
-        {
-          "tag": "TIME_SLOT_BIAS",
-          "label": "時間帯差を確認",
-          "evidenceCount": 9,
-          "confidence": "medium"
-        }
-      ],
-      "guidance": [
-        {
-          "priority": 1,
-          "text": "先行軸だけで固定せず、番手差しの逆目を残す",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 2,
-          "text": "級班とレース種別を分けて傾向を評価する",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 3,
-          "text": "先行争いがある場合は別線の捲り筋を残す",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 4,
-          "text": "本線が崩れた場合の別線頭と別線3着を保護する",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 5,
-          "text": "踏み合い時は単騎の差し込みを3着候補に加える",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 6,
-          "text": "自信度（予想テキスト記載）：🔥（注意付き）",
-          "sourceType": "seedNotes"
-        },
-        {
-          "priority": 7,
-          "text": "0) 監査上の注意",
-          "sourceType": "seedNotes"
-        },
-        {
-          "priority": 8,
-          "text": "予想時自信度：🔥（注意付き）",
-          "sourceType": "seedNotes"
-        }
-      ]
-    },
-    {
-      "rank": 26,
-      "venueKey": "matsusaka",
-      "venueName": "松阪",
-      "period": {
-        "from": "2026-05-04",
-        "to": "2026-07-03"
-      },
-      "sourceType": "SEED",
-      "quality": {
-        "seedSources": 15,
-        "parsedDateSources": 15,
-        "exactRaceCount": 0,
-        "status": "seed"
-      },
-      "score": 72,
-      "rankHint": "B",
-      "riskLevel": "caution",
-      "kpi": {
-        "sourceCount": 15,
-        "raceCount": 147,
-        "trifectaHits": 40,
-        "trifectaHitRate": 27.2,
-        "exactaHits": 9,
-        "exactaHitRate": 6.1,
-        "anyTicketHits": null,
-        "hitRate": null,
-        "investmentYen": 145000,
-        "returnYen": 82730,
-        "recoveryRate": 57.1,
-        "kimarite": {
-          "escape": null,
-          "makuri": null,
-          "sashi": null
-        }
-      },
-      "topInsights": [
-        {
-          "tag": "CLASS_CONTEXT",
-          "label": "級班条件を分離",
-          "evidenceCount": 15,
+          "evidenceCount": 13,
           "confidence": "high"
         },
         {
           "tag": "TIME_SLOT_BIAS",
           "label": "時間帯差を確認",
-          "evidenceCount": 15,
+          "evidenceCount": 13,
           "confidence": "high"
         },
         {
           "tag": "WIND_SENSITIVE",
           "label": "風条件を確認",
-          "evidenceCount": 13,
+          "evidenceCount": 10,
           "confidence": "high"
         },
         {
           "tag": "BANTE_SASHI_ALERT",
           "label": "番手差しを警戒",
-          "evidenceCount": 11,
-          "confidence": "high"
+          "evidenceCount": 9,
+          "confidence": "medium"
         },
         {
           "tag": "MAKURI_ALERT",
           "label": "捲り展開を警戒",
-          "evidenceCount": 11,
-          "confidence": "high"
-        },
-        {
-          "tag": "SOLO_RIDER_ALERT",
-          "label": "単騎の差し込みを警戒",
-          "evidenceCount": 11,
-          "confidence": "high"
+          "evidenceCount": 9,
+          "confidence": "medium"
         }
       ],
       "guidance": [
@@ -3049,17 +3283,134 @@
         },
         {
           "priority": 2,
-          "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+          "text": "踏み合い時は単騎の差し込みを3着候補に加える",
           "sourceType": "predictionGuidance"
         },
         {
           "priority": 3,
-          "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+          "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
           "sourceType": "predictionGuidance"
         },
         {
           "priority": 4,
+          "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 5,
           "text": "先行軸だけで固定せず、番手差しの逆目を残す",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 6,
+          "text": "注意：テンプレ表記は「3連単7＋2車単3」だが、今回の添付予想は実買い目どおり 8＋2 で記録。",
+          "sourceType": "seedNotes"
+        },
+        {
+          "priority": 7,
+          "text": "対抗は4佐々木と2土田。4佐々木は松戸実績が強く、出切れば4-1の押し切りも十分。2土田は逃げ主体で、4佐々木が構える展開なら2-3-5の関東ラインで先にペースを握れる。番手3根本は333mで2着9回、当所5年も2着7回があり、2土田を残して差す形は警戒。",
+          "sourceType": "seedNotes"
+        },
+        {
+          "priority": 8,
+          "text": "レース型：TYPE-B・A級一般三分戦番手差し警戒型 ／ 自信度：🔥🔥",
+          "sourceType": "seedNotes"
+        }
+      ]
+    },
+    {
+      "rank": 29,
+      "venueKey": "iwakitaira",
+      "venueName": "いわき平",
+      "period": {
+        "from": "2026-05-10",
+        "to": "2026-07-18"
+      },
+      "sourceType": "SEED",
+      "quality": {
+        "seedSources": 12,
+        "parsedDateSources": 12,
+        "exactRaceCount": 0,
+        "status": "seed"
+      },
+      "score": 70,
+      "rankHint": "B",
+      "riskLevel": "caution",
+      "kpi": {
+        "sourceCount": 12,
+        "raceCount": 51,
+        "trifectaHits": 42,
+        "trifectaHitRate": 82.4,
+        "exactaHits": 6,
+        "exactaHitRate": 11.8,
+        "anyTicketHits": null,
+        "hitRate": null,
+        "investmentYen": 96600,
+        "returnYen": 44860,
+        "recoveryRate": 46.4,
+        "kimarite": {
+          "escape": null,
+          "makuri": null,
+          "sashi": null
+        }
+      },
+      "topInsights": [
+        {
+          "tag": "BANTE_SASHI_ALERT",
+          "label": "番手差しを警戒",
+          "evidenceCount": 12,
+          "confidence": "high"
+        },
+        {
+          "tag": "CLASS_CONTEXT",
+          "label": "級班条件を分離",
+          "evidenceCount": 12,
+          "confidence": "high"
+        },
+        {
+          "tag": "SOLO_RIDER_ALERT",
+          "label": "単騎の差し込みを警戒",
+          "evidenceCount": 12,
+          "confidence": "high"
+        },
+        {
+          "tag": "TIME_SLOT_BIAS",
+          "label": "時間帯差を確認",
+          "evidenceCount": 12,
+          "confidence": "high"
+        },
+        {
+          "tag": "MAKURI_ALERT",
+          "label": "捲り展開を警戒",
+          "evidenceCount": 11,
+          "confidence": "high"
+        },
+        {
+          "tag": "THIRD_PLACE_SPREAD",
+          "label": "3着候補を分散",
+          "evidenceCount": 11,
+          "confidence": "high"
+        }
+      ],
+      "guidance": [
+        {
+          "priority": 1,
+          "text": "先行軸だけで固定せず、番手差しの逆目を残す",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 2,
+          "text": "級班とレース種別を分けて傾向を評価する",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 3,
+          "text": "踏み合い時は単騎の差し込みを3着候補に加える",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 4,
+          "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
           "sourceType": "predictionGuidance"
         },
         {
@@ -3069,23 +3420,23 @@
         },
         {
           "priority": 6,
-          "text": "11R：2番・嶋津拓弥と単騎3番・渡邉豪大を個別に警戒したが、同時浮上の 2-3-7 を作れなかった。",
+          "text": "いわき平 ミッドナイト A級準決 三分戦 3車ライン有利 番手差し カマシ警戒 3着ズレ 南西風 バック追い風 ホーム向かい風",
           "sourceType": "seedNotes"
         },
         {
           "priority": 7,
-          "text": "レースタイプ：TYPE-C：差し本線・単騎警戒型",
+          "text": "0) 記録上の注意",
           "sourceType": "seedNotes"
         },
         {
           "priority": 8,
-          "text": "レースタイプ：TYPE-A：強軸中心・別線番手差し警戒型",
+          "text": "10Rでは15ラインの別線崩しを警戒していたのに、4-1-5のような『本命頭＋別線ライン流入』が未収録でした。",
           "sourceType": "seedNotes"
         }
       ]
     },
     {
-      "rank": 27,
+      "rank": 30,
       "venueKey": "toyama",
       "venueName": "富山",
       "period": {
@@ -3202,35 +3553,35 @@
       ]
     },
     {
-      "rank": 28,
-      "venueKey": "kochi",
-      "venueName": "高知",
+      "rank": 31,
+      "venueKey": "shizuoka",
+      "venueName": "静岡",
       "period": {
-        "from": "2026-05-04",
-        "to": "2026-07-01"
+        "from": "2026-05-24",
+        "to": "2026-07-19"
       },
       "sourceType": "SEED",
       "quality": {
-        "seedSources": 13,
-        "parsedDateSources": 13,
+        "seedSources": 11,
+        "parsedDateSources": 11,
         "exactRaceCount": 0,
         "status": "seed"
       },
-      "score": 68,
+      "score": 69,
       "rankHint": "B",
       "riskLevel": "caution",
       "kpi": {
-        "sourceCount": 13,
-        "raceCount": 101,
-        "trifectaHits": 37,
-        "trifectaHitRate": 36.6,
-        "exactaHits": 5,
-        "exactaHitRate": 5.6,
-        "anyTicketHits": 5,
-        "hitRate": 55.6,
-        "investmentYen": 113000,
-        "returnYen": 50840,
-        "recoveryRate": 45,
+        "sourceCount": 11,
+        "raceCount": 100,
+        "trifectaHits": 24,
+        "trifectaHitRate": 27.3,
+        "exactaHits": 12,
+        "exactaHitRate": 18.5,
+        "anyTicketHits": null,
+        "hitRate": null,
+        "investmentYen": 99400,
+        "returnYen": 56290,
+        "recoveryRate": 56.6,
         "kimarite": {
           "escape": null,
           "makuri": null,
@@ -3239,87 +3590,87 @@
       },
       "topInsights": [
         {
+          "tag": "BANTE_SASHI_ALERT",
+          "label": "番手差しを警戒",
+          "evidenceCount": 11,
+          "confidence": "high"
+        },
+        {
           "tag": "CLASS_CONTEXT",
           "label": "級班条件を分離",
-          "evidenceCount": 13,
-          "confidence": "high"
-        },
-        {
-          "tag": "SOLO_RIDER_ALERT",
-          "label": "単騎の差し込みを警戒",
-          "evidenceCount": 13,
-          "confidence": "high"
-        },
-        {
-          "tag": "TIME_SLOT_BIAS",
-          "label": "時間帯差を確認",
-          "evidenceCount": 13,
-          "confidence": "high"
-        },
-        {
-          "tag": "WIND_SENSITIVE",
-          "label": "風条件を確認",
-          "evidenceCount": 12,
-          "confidence": "high"
-        },
-        {
-          "tag": "THIRD_PLACE_SPREAD",
-          "label": "3着候補を分散",
           "evidenceCount": 11,
           "confidence": "high"
         },
         {
           "tag": "MAKURI_ALERT",
           "label": "捲り展開を警戒",
-          "evidenceCount": 8,
-          "confidence": "medium"
+          "evidenceCount": 11,
+          "confidence": "high"
+        },
+        {
+          "tag": "SOLO_RIDER_ALERT",
+          "label": "単騎の差し込みを警戒",
+          "evidenceCount": 11,
+          "confidence": "high"
+        },
+        {
+          "tag": "TIME_SLOT_BIAS",
+          "label": "時間帯差を確認",
+          "evidenceCount": 11,
+          "confidence": "high"
+        },
+        {
+          "tag": "WIND_SENSITIVE",
+          "label": "風条件を確認",
+          "evidenceCount": 11,
+          "confidence": "high"
         }
       ],
       "guidance": [
         {
           "priority": 1,
-          "text": "級班とレース種別を分けて傾向を評価する",
+          "text": "先行軸だけで固定せず、番手差しの逆目を残す",
           "sourceType": "predictionGuidance"
         },
         {
           "priority": 2,
-          "text": "踏み合い時は単騎の差し込みを3着候補に加える",
+          "text": "級班とレース種別を分けて傾向を評価する",
           "sourceType": "predictionGuidance"
         },
         {
           "priority": 3,
-          "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+          "text": "先行争いがある場合は別線の捲り筋を残す",
           "sourceType": "predictionGuidance"
         },
         {
           "priority": 4,
-          "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+          "text": "踏み合い時は単騎の差し込みを3着候補に加える",
           "sourceType": "predictionGuidance"
         },
         {
           "priority": 5,
-          "text": "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
+          "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
           "sourceType": "predictionGuidance"
         },
         {
           "priority": 6,
-          "text": "決まり手：ク（1着=ク） / 組み合わせ差し替え（別線・位置取りズレ） / 失格発生（出目歪み注意）",
+          "text": "予想タグ： 静岡競輪 F2 チャレンジ予選 三分戦 番手差し 早め捲り 風影響 荒れ注意",
           "sourceType": "seedNotes"
         },
         {
           "priority": 7,
-          "text": "記録上の注意：今回の実際の買い目構成は、全Rとも 3連単8点＋2車単2点＝10点 。マスターテンプレの例示（3連単7点＋2車単3点）へ改変せず、実データを優先して保存。",
+          "text": "単騎6吉田の頭浮上は展開文と買い目06＝6-4-2で警戒できていたが、追走を4松本に固定し過ぎた。結果は6-2-3。単騎頭シナリオでは「有力ライン番手・別線番手」を2・3着へ置く交差構造が必要。",
           "sourceType": "seedNotes"
         },
         {
           "priority": 8,
-          "text": "地元番手や格上番手を信頼しすぎ、追走失敗・失格・ライン分断のリスクを薄く見た。",
+          "text": "B取得選手は 7R / 11R（63.6%） で車券内に残った。東〜南東の風が7〜11km/hあっても、先行全消しは危険。番手差しだけでなく、逃げ残り・三番手流れ込みを同時に管理すべきだった。",
           "sourceType": "seedNotes"
         }
       ]
     },
     {
-      "rank": 29,
+      "rank": 32,
       "venueKey": "matsuyama",
       "venueName": "松山",
       "period": {
@@ -3436,124 +3787,7 @@
       ]
     },
     {
-      "rank": 30,
-      "venueKey": "matsudo",
-      "venueName": "松戸",
-      "period": {
-        "from": "2026-05-14",
-        "to": "2026-07-03"
-      },
-      "sourceType": "SEED",
-      "quality": {
-        "seedSources": 13,
-        "parsedDateSources": 13,
-        "exactRaceCount": 0,
-        "status": "seed"
-      },
-      "score": 67,
-      "rankHint": "C",
-      "riskLevel": "high-risk",
-      "kpi": {
-        "sourceCount": 13,
-        "raceCount": 69,
-        "trifectaHits": 26,
-        "trifectaHitRate": 37.7,
-        "exactaHits": 8,
-        "exactaHitRate": 11.6,
-        "anyTicketHits": 4,
-        "hitRate": 33.3,
-        "investmentYen": 111000,
-        "returnYen": 46240,
-        "recoveryRate": 41.7,
-        "kimarite": {
-          "escape": null,
-          "makuri": null,
-          "sashi": null
-        }
-      },
-      "topInsights": [
-        {
-          "tag": "CLASS_CONTEXT",
-          "label": "級班条件を分離",
-          "evidenceCount": 12,
-          "confidence": "high"
-        },
-        {
-          "tag": "SOLO_RIDER_ALERT",
-          "label": "単騎の差し込みを警戒",
-          "evidenceCount": 12,
-          "confidence": "high"
-        },
-        {
-          "tag": "TIME_SLOT_BIAS",
-          "label": "時間帯差を確認",
-          "evidenceCount": 12,
-          "confidence": "high"
-        },
-        {
-          "tag": "WIND_SENSITIVE",
-          "label": "風条件を確認",
-          "evidenceCount": 9,
-          "confidence": "medium"
-        },
-        {
-          "tag": "BANTE_SASHI_ALERT",
-          "label": "番手差しを警戒",
-          "evidenceCount": 8,
-          "confidence": "medium"
-        },
-        {
-          "tag": "MAKURI_ALERT",
-          "label": "捲り展開を警戒",
-          "evidenceCount": 8,
-          "confidence": "medium"
-        }
-      ],
-      "guidance": [
-        {
-          "priority": 1,
-          "text": "級班とレース種別を分けて傾向を評価する",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 2,
-          "text": "踏み合い時は単騎の差し込みを3着候補に加える",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 3,
-          "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 4,
-          "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 5,
-          "text": "先行軸だけで固定せず、番手差しの逆目を残す",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 6,
-          "text": "注意：テンプレ表記は「3連単7＋2車単3」だが、今回の添付予想は実買い目どおり 8＋2 で記録。",
-          "sourceType": "seedNotes"
-        },
-        {
-          "priority": 7,
-          "text": "対抗は4佐々木と2土田。4佐々木は松戸実績が強く、出切れば4-1の押し切りも十分。2土田は逃げ主体で、4佐々木が構える展開なら2-3-5の関東ラインで先にペースを握れる。番手3根本は333mで2着9回、当所5年も2着7回があり、2土田を残して差す形は警戒。",
-          "sourceType": "seedNotes"
-        },
-        {
-          "priority": 8,
-          "text": "レース型：TYPE-B・A級一般三分戦番手差し警戒型 ／ 自信度：🔥🔥",
-          "sourceType": "seedNotes"
-        }
-      ]
-    },
-    {
-      "rank": 31,
+      "rank": 33,
       "venueKey": "wakayama",
       "venueName": "和歌山",
       "period": {
@@ -3670,124 +3904,7 @@
       ]
     },
     {
-      "rank": 32,
-      "venueKey": "iwakitaira",
-      "venueName": "いわき平",
-      "period": {
-        "from": "2026-05-10",
-        "to": "2026-07-12"
-      },
-      "sourceType": "SEED",
-      "quality": {
-        "seedSources": 9,
-        "parsedDateSources": 9,
-        "exactRaceCount": 0,
-        "status": "seed"
-      },
-      "score": 66,
-      "rankHint": "C",
-      "riskLevel": "caution",
-      "kpi": {
-        "sourceCount": 9,
-        "raceCount": 51,
-        "trifectaHits": 32,
-        "trifectaHitRate": 62.7,
-        "exactaHits": 6,
-        "exactaHitRate": 11.8,
-        "anyTicketHits": null,
-        "hitRate": null,
-        "investmentYen": 76800,
-        "returnYen": 43720,
-        "recoveryRate": 56.9,
-        "kimarite": {
-          "escape": null,
-          "makuri": null,
-          "sashi": null
-        }
-      },
-      "topInsights": [
-        {
-          "tag": "BANTE_SASHI_ALERT",
-          "label": "番手差しを警戒",
-          "evidenceCount": 9,
-          "confidence": "medium"
-        },
-        {
-          "tag": "CLASS_CONTEXT",
-          "label": "級班条件を分離",
-          "evidenceCount": 9,
-          "confidence": "medium"
-        },
-        {
-          "tag": "SOLO_RIDER_ALERT",
-          "label": "単騎の差し込みを警戒",
-          "evidenceCount": 9,
-          "confidence": "medium"
-        },
-        {
-          "tag": "THIRD_PLACE_SPREAD",
-          "label": "3着候補を分散",
-          "evidenceCount": 9,
-          "confidence": "medium"
-        },
-        {
-          "tag": "TIME_SLOT_BIAS",
-          "label": "時間帯差を確認",
-          "evidenceCount": 9,
-          "confidence": "medium"
-        },
-        {
-          "tag": "MAKURI_ALERT",
-          "label": "捲り展開を警戒",
-          "evidenceCount": 8,
-          "confidence": "medium"
-        }
-      ],
-      "guidance": [
-        {
-          "priority": 1,
-          "text": "先行軸だけで固定せず、番手差しの逆目を残す",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 2,
-          "text": "級班とレース種別を分けて傾向を評価する",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 3,
-          "text": "踏み合い時は単騎の差し込みを3着候補に加える",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 4,
-          "text": "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 5,
-          "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 6,
-          "text": "いわき平 ミッドナイト A級準決 三分戦 3車ライン有利 番手差し カマシ警戒 3着ズレ 南西風 バック追い風 ホーム向かい風",
-          "sourceType": "seedNotes"
-        },
-        {
-          "priority": 7,
-          "text": "0) 記録上の注意",
-          "sourceType": "seedNotes"
-        },
-        {
-          "priority": 8,
-          "text": "10Rでは15ラインの別線崩しを警戒していたのに、4-1-5のような『本命頭＋別線ライン流入』が未収録でした。",
-          "sourceType": "seedNotes"
-        }
-      ]
-    },
-    {
-      "rank": 33,
+      "rank": 34,
       "venueKey": "nagoya",
       "venueName": "名古屋",
       "period": {
@@ -3904,35 +4021,35 @@
       ]
     },
     {
-      "rank": 34,
+      "rank": 35,
       "venueKey": "seibuen",
       "venueName": "西武園",
       "period": {
         "from": "2026-05-01",
-        "to": "2026-05-03"
+        "to": "2026-07-18"
       },
       "sourceType": "SEED",
       "quality": {
-        "seedSources": 3,
-        "parsedDateSources": 3,
+        "seedSources": 6,
+        "parsedDateSources": 6,
         "exactRaceCount": 0,
         "status": "seed"
       },
-      "score": 55,
+      "score": 61,
       "rankHint": "C",
       "riskLevel": "sample-short",
       "kpi": {
-        "sourceCount": 3,
-        "raceCount": 21,
+        "sourceCount": 6,
+        "raceCount": 32,
         "trifectaHits": 4,
         "trifectaHitRate": 28.6,
         "exactaHits": 0,
         "exactaHitRate": 0,
         "anyTicketHits": null,
         "hitRate": null,
-        "investmentYen": 21000,
-        "returnYen": 11730,
-        "recoveryRate": 55.9,
+        "investmentYen": 80500,
+        "returnYen": 42990,
+        "recoveryRate": 53.4,
         "kimarite": {
           "escape": null,
           "makuri": null,
@@ -3943,38 +4060,38 @@
         {
           "tag": "CLASS_CONTEXT",
           "label": "級班条件を分離",
-          "evidenceCount": 3,
+          "evidenceCount": 6,
           "confidence": "medium"
         },
         {
           "tag": "TIME_SLOT_BIAS",
           "label": "時間帯差を確認",
-          "evidenceCount": 3,
+          "evidenceCount": 6,
           "confidence": "medium"
         },
         {
           "tag": "WIND_SENSITIVE",
           "label": "風条件を確認",
-          "evidenceCount": 3,
+          "evidenceCount": 6,
           "confidence": "medium"
         },
         {
           "tag": "SOLO_RIDER_ALERT",
           "label": "単騎の差し込みを警戒",
-          "evidenceCount": 2,
-          "confidence": "low"
+          "evidenceCount": 5,
+          "confidence": "medium"
         },
         {
           "tag": "BANTE_SASHI_ALERT",
           "label": "番手差しを警戒",
-          "evidenceCount": 1,
-          "confidence": "low"
+          "evidenceCount": 4,
+          "confidence": "medium"
         },
         {
           "tag": "MAKURI_ALERT",
           "label": "捲り展開を警戒",
-          "evidenceCount": 1,
-          "confidence": "low"
+          "evidenceCount": 4,
+          "confidence": "medium"
         }
       ],
       "guidance": [
@@ -4002,29 +4119,44 @@
           "priority": 5,
           "text": "先行軸だけで固定せず、番手差しの逆目を残す",
           "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 6,
+          "text": "4車ラインの2山下がBを取り2着には残ったが、番手7櫻井は5着。単騎3鈴木が捲って1着、ライン3番手の4榊枝が3着に入った。展開文では3の単騎捲りを警戒できていたものの、3頭の買い目を3-7-2、3-1-5、3-5-1に限定し、実際の『3頭＋B選手2残り＋4車ライン内の4』を組めていなかった。",
+          "sourceType": "seedNotes"
+        },
+        {
+          "priority": 7,
+          "text": "久米がB10の機動力で主導権を握る中心。岩元は近況のレース内容が良く、久米を追う形からの捲り返しまで警戒。吉村は好位からの伸びがあり、石井は先行策なら残り目。短走路で久米の先行残りを評価しながら、単騎戦らしく2・3着の入替えを重視する。",
+          "sourceType": "seedNotes"
+        },
+        {
+          "priority": 8,
+          "text": "中島がB14の先行で地元3車ラインを生かす。國廣は番手から差しを狙い、細沼は3番手残り。眞砂―岡田は中団からの捲りで対抗し、岡田の差し抜けも要警戒。鈴木―寺林は位置取りが鍵。弱風の短走路で中島ラインを優先しつつ、眞砂ラインの捲りを厚く残す。",
+          "sourceType": "seedNotes"
         }
       ]
     },
     {
-      "rank": 35,
+      "rank": 36,
       "venueKey": "kumamoto",
       "venueName": "熊本",
       "period": {
         "from": "2026-05-07",
-        "to": "2026-07-13"
+        "to": "2026-07-15"
       },
       "sourceType": "SEED",
       "quality": {
-        "seedSources": 10,
-        "parsedDateSources": 10,
+        "seedSources": 12,
+        "parsedDateSources": 12,
         "exactRaceCount": 0,
         "status": "seed"
       },
-      "score": 54,
+      "score": 50,
       "rankHint": "D",
       "riskLevel": "high-risk",
       "kpi": {
-        "sourceCount": 10,
+        "sourceCount": 12,
         "raceCount": 96,
         "trifectaHits": 21,
         "trifectaHitRate": 21.9,
@@ -4032,9 +4164,9 @@
         "exactaHitRate": 3.1,
         "anyTicketHits": null,
         "hitRate": null,
-        "investmentYen": 96400,
-        "returnYen": 36110,
-        "recoveryRate": 37.5,
+        "investmentYen": 118800,
+        "returnYen": 39800,
+        "recoveryRate": 33.5,
         "kimarite": {
           "escape": null,
           "makuri": null,
@@ -4045,37 +4177,37 @@
         {
           "tag": "CLASS_CONTEXT",
           "label": "級班条件を分離",
-          "evidenceCount": 10,
+          "evidenceCount": 12,
           "confidence": "high"
         },
         {
           "tag": "TIME_SLOT_BIAS",
           "label": "時間帯差を確認",
-          "evidenceCount": 10,
+          "evidenceCount": 12,
           "confidence": "high"
         },
         {
           "tag": "WIND_SENSITIVE",
           "label": "風条件を確認",
-          "evidenceCount": 9,
-          "confidence": "medium"
+          "evidenceCount": 11,
+          "confidence": "high"
         },
         {
           "tag": "SOLO_RIDER_ALERT",
           "label": "単騎の差し込みを警戒",
-          "evidenceCount": 7,
+          "evidenceCount": 9,
           "confidence": "medium"
         },
         {
           "tag": "BANTE_SASHI_ALERT",
           "label": "番手差しを警戒",
-          "evidenceCount": 4,
+          "evidenceCount": 6,
           "confidence": "medium"
         },
         {
           "tag": "MAKURI_ALERT",
           "label": "捲り展開を警戒",
-          "evidenceCount": 4,
+          "evidenceCount": 6,
           "confidence": "medium"
         }
       ],
@@ -4118,123 +4250,6 @@
         {
           "priority": 8,
           "text": "注意: 公式source情報は添付素材に未記載のため、推測でURLや取得元を補完していない。",
-          "sourceType": "seedNotes"
-        }
-      ]
-    },
-    {
-      "rank": 36,
-      "venueKey": "shizuoka",
-      "venueName": "静岡",
-      "period": {
-        "from": "2026-05-24",
-        "to": "2026-06-12"
-      },
-      "sourceType": "SEED",
-      "quality": {
-        "seedSources": 9,
-        "parsedDateSources": 9,
-        "exactRaceCount": 0,
-        "status": "seed"
-      },
-      "score": 54,
-      "rankHint": "D",
-      "riskLevel": "caution",
-      "kpi": {
-        "sourceCount": 9,
-        "raceCount": 76,
-        "trifectaHits": 19,
-        "trifectaHitRate": 25,
-        "exactaHits": 12,
-        "exactaHitRate": 18.5,
-        "anyTicketHits": null,
-        "hitRate": null,
-        "investmentYen": 76000,
-        "returnYen": 37420,
-        "recoveryRate": 49.2,
-        "kimarite": {
-          "escape": null,
-          "makuri": null,
-          "sashi": null
-        }
-      },
-      "topInsights": [
-        {
-          "tag": "BANTE_SASHI_ALERT",
-          "label": "番手差しを警戒",
-          "evidenceCount": 9,
-          "confidence": "medium"
-        },
-        {
-          "tag": "CLASS_CONTEXT",
-          "label": "級班条件を分離",
-          "evidenceCount": 9,
-          "confidence": "medium"
-        },
-        {
-          "tag": "MAKURI_ALERT",
-          "label": "捲り展開を警戒",
-          "evidenceCount": 9,
-          "confidence": "medium"
-        },
-        {
-          "tag": "SOLO_RIDER_ALERT",
-          "label": "単騎の差し込みを警戒",
-          "evidenceCount": 9,
-          "confidence": "medium"
-        },
-        {
-          "tag": "THIRD_PLACE_SPREAD",
-          "label": "3着候補を分散",
-          "evidenceCount": 9,
-          "confidence": "medium"
-        },
-        {
-          "tag": "TIME_SLOT_BIAS",
-          "label": "時間帯差を確認",
-          "evidenceCount": 9,
-          "confidence": "medium"
-        }
-      ],
-      "guidance": [
-        {
-          "priority": 1,
-          "text": "先行軸だけで固定せず、番手差しの逆目を残す",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 2,
-          "text": "級班とレース種別を分けて傾向を評価する",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 3,
-          "text": "先行争いがある場合は別線の捲り筋を残す",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 4,
-          "text": "踏み合い時は単騎の差し込みを3着候補に加える",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 5,
-          "text": "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 6,
-          "text": "予想タグ： 静岡競輪 F2 チャレンジ予選 三分戦 番手差し 早め捲り 風影響 荒れ注意",
-          "sourceType": "seedNotes"
-        },
-        {
-          "priority": 7,
-          "text": "単騎6吉田の頭浮上は展開文と買い目06＝6-4-2で警戒できていたが、追走を4松本に固定し過ぎた。結果は6-2-3。単騎頭シナリオでは「有力ライン番手・別線番手」を2・3着へ置く交差構造が必要。",
-          "sourceType": "seedNotes"
-        },
-        {
-          "priority": 8,
-          "text": "B取得選手は 7R / 11R（63.6%） で車券内に残った。東〜南東の風が7〜11km/hあっても、先行全消しは危険。番手差しだけでなく、逃げ残り・三番手流れ込みを同時に管理すべきだった。",
           "sourceType": "seedNotes"
         }
       ]

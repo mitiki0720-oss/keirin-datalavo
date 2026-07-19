@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "iwakitaira",
   "venueName": "いわき平",
-  "updatedAt": "2026-07-14",
+  "updatedAt": "2026-07-19",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-10",
-    "to": "2026-07-12"
+    "to": "2026-07-18"
   },
   "quality": {
-    "seedSources": 9,
-    "parsedDateSources": 9,
+    "seedSources": 12,
+    "parsedDateSources": 12,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 9,
+    "sourceCount": 12,
     "raceCount": 51,
-    "trifectaHits": 32,
-    "trifectaHitRate": 62.7,
+    "trifectaHits": 42,
+    "trifectaHitRate": 82.4,
     "exactaHits": 6,
     "exactaHitRate": 11.8,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 76800,
-    "returnYen": 43720,
-    "recoveryRate": 56.9,
+    "investmentYen": 96600,
+    "returnYen": 44860,
+    "recoveryRate": 46.4,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,64 +38,64 @@
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 12,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 12,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 9,
-      "confidence": "medium",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "THIRD_PLACE_SPREAD",
-      "label": "3着候補を分散",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 12,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 12,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 8,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "THIRD_PLACE_SPREAD",
+      "label": "3着候補を分散",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 8,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 7,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 4,
+      "confidence": "medium",
       "sourceType": "SEED"
     }
   ],
@@ -104,7 +104,8 @@
       "3-4) 展開読みの修正ポイント",
       "2) 開催全体の傾向",
       "1－2の同ライン決着を主軸とし、いわき平の差し傾向から2－1も厚く採用。",
-      "初日1着の新人3は別線捲りの中心で、4が追走。7も初日1着だが、2・3との先行争いが長引くと5まで含めて消耗する。弱風のため2の逃げ残りを重視しつつ、霧雨と差し傾向から1の逆転を厚くする。"
+      "初日1着の新人3は別線捲りの中心で、4が追走。7も初日1着だが、2・3との先行争いが長引くと5まで含めて消耗する。弱風のため2の逃げ残りを重視しつつ、霧雨と差し傾向から1の逆転を厚くする。",
+      "1の先行力を基本に7の番手残りを厚め。ただし4-2は番手差し向きの会場傾向に合い、同格で厚く扱う。九州5-3も捲り一発を評価。3着は各ラインの後位と単騎6を保護し、2・3の逆転差しを押さえた。"
     ],
     "targets": [
       "並び：単騎（2-4は同県で位置取り連携意識、3は地元で好位追走狙い）",
@@ -142,16 +143,17 @@
       "3-4) 展開読みの修正ポイント",
       "12R：予想02）3連単7-1-4は結果と一致。ただし結果側はpending、払戻未反映。",
       "3) 詳細summary｜次回へ役立てる検証",
-      "4R・8R・12Rは予想テキストとの一致券が結果側hitへ反映されていない。"
+      "4R・8R・12Rは予想テキストとの一致券が結果側hitへ反映されていない。",
+      "予想ファイル上に2Rの予想ブロックが確認できないため、買い目照合は不可。結果は1寺師-2徳吉-5田川で九州ライン完全決着、3連単450円。予想素材がないため的中/不的中は未照合扱い。次回は全R予想ブロックの欠落チェックを先に行う。"
     ]
   },
   "predictionGuidance": [
     "先行軸だけで固定せず、番手差しの逆目を残す",
     "級班とレース種別を分けて傾向を評価する",
     "踏み合い時は単騎の差し込みを3着候補に加える",
-    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
     "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
     "先行争いがある場合は別線の捲り筋を残す",
+    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
     "本線が崩れた場合の別線頭と別線3着を保護する"
   ]
