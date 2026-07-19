@@ -723,17 +723,35 @@ async function loadThroughActualLoader(validator, index, shards) {
   }
 }
 
+function findConfirmedScalarResultRace(shards) {
+  return [...shards.values()]
+    .flatMap((shard) => shard.races ?? [])
+    .find((race) => (
+      race?.status === "confirmed"
+      && race.deadHeat?.detected !== true
+      && Number.isInteger(race.result?.firstCarNo)
+      && Number(race.result.firstCarNo) > 0
+      && Number.isInteger(race.result?.secondCarNo)
+      && Number(race.result.secondCarNo) > 0
+      && Number.isInteger(race.result?.thirdCarNo)
+      && Number(race.result.thirdCarNo) > 0
+    ));
+}
+
 async function runNegativeControls(validator, index, shards) {
   const firstShard = structuredClone(shards.values().next().value);
   const firstRace = firstShard?.races?.[0];
   if (!firstRace) return {};
+  const confirmedScalarResultRace = findConfirmedScalarResultRace(shards);
 
   const dateMismatch = structuredClone(firstShard);
   dateMismatch.races[0].date = "2000-01-01";
   const sourceDateMismatch = structuredClone(firstRace);
   sourceDateMismatch.source.sourceDate = "2000-01-01";
-  const missingResult = structuredClone(firstRace);
-  missingResult.result.firstCarNo = null;
+  const missingResult = confirmedScalarResultRace
+    ? structuredClone(confirmedScalarResultRace)
+    : null;
+  if (missingResult) missingResult.result.firstCarNo = null;
   const missingProvenance = structuredClone(firstRace);
   delete missingProvenance.provenance.payout;
   const namespaceMismatch = structuredClone(index);
@@ -776,6 +794,8 @@ async function runNegativeControls(validator, index, shards) {
       validator.validateKurariExHistoricalResultRace(sourceDateMismatch).issues
         .some((issue) => issue.reason === "source-date-race-date-mismatch"),
     confirmedMissingResultRejected:
+      Boolean(missingResult)
+      &&
       validator.validateKurariExHistoricalResultRace(missingResult).issues
         .some((issue) => issue.reason === "confirmed-firstCarNo-missing"),
     missingProvenanceRejected:
