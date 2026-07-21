@@ -8,9 +8,39 @@ import {
 } from "./keirin-daily-predictions-common.mjs";
 import { serializeJson } from "./kurari-ex-history-common.mjs";
 
+const JST_OPERATION_DATE_FORMATTER = new Intl.DateTimeFormat("sv-SE", {
+  timeZone: "Asia/Tokyo",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  hour12: false,
+});
+
+function getJstOperationalDate(base = new Date()) {
+  const parts = JST_OPERATION_DATE_FORMATTER.formatToParts(base);
+  const get = (type) => parts.find((part) => part.type === type)?.value ?? "00";
+  const isoDate = `${get("year")}-${get("month")}-${get("day")}`;
+  if (Number(get("hour")) >= 6) return isoDate;
+
+  const date = new Date(`${isoDate}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - 1);
+  return date.toISOString().slice(0, 10);
+}
+
+function keepTodayDedupeKeys(keys, activeDate) {
+  if (!activeDate) return [];
+  return [...new Set(
+    (Array.isArray(keys) ? keys : [])
+      .map((key) => String(key ?? "").trim())
+      .filter((key) => key.startsWith(`${activeDate}:`)),
+  )];
+}
+
 export async function rebuildSavedPredictions() {
   const entries = await readDailyPredictionFiles();
-  const retained = entries.slice(-14);
+  const activeDate = getJstOperationalDate();
+  const retained = entries.filter(({ payload }) => payload.date === activeDate);
   const recordList = retained
     .flatMap(({ payload }) => (payload.items ?? []).map(
       (item) => toLegacyPredictionRecord(item, payload.generatedAt),
@@ -35,14 +65,13 @@ export async function rebuildSavedPredictions() {
     source: "keirin-daily-predictions-rebuild",
     records,
     recordList,
-    notifiedSlackResultKeys: Array.isArray(previous.notifiedSlackResultKeys)
-      ? previous.notifiedSlackResultKeys
-      : [],
+    notifiedSlackResultKeys: keepTodayDedupeKeys(previous.notifiedSlackResultKeys, activeDate),
     slackResultNotifiedAt: previous.slackResultNotifiedAt ?? null,
   };
   const changed = await writeIfChanged(savedPredictionsPath, serializeJson(payload));
   return {
     changed,
+    activeDate,
     dayCount: retained.length,
     predictionCount: recordList.length,
     from: retained[0]?.payload.date ?? null,

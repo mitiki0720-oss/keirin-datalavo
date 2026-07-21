@@ -456,6 +456,15 @@ function buildDedupeKey(result) {
   ].join(":");
 }
 
+function keepTodayDedupeKeys(keys, todayDate) {
+  if (!todayDate) return [];
+  return Array.from(new Set(
+    (Array.isArray(keys) ? keys : [])
+      .map((key) => String(key ?? "").trim())
+      .filter((key) => key.startsWith(`${todayDate}:`)),
+  ));
+}
+
 async function loadJson(filePath, fallback) {
   try {
     const raw = await fs.readFile(filePath, "utf-8");
@@ -463,6 +472,20 @@ async function loadJson(filePath, fallback) {
   } catch {
     return fallback;
   }
+}
+
+async function writePayloadWithNotifiedKeys(predictionsPayload, resultKeys, hitKeys) {
+  await fs.writeFile(
+    PREDICTIONS_FILE,
+    `${JSON.stringify({
+      ...predictionsPayload,
+      notifiedSlackResultKeys: resultKeys,
+      ...(Array.isArray(predictionsPayload?.notifiedSlackHitKeys)
+        ? { notifiedSlackHitKeys: hitKeys }
+        : {}),
+    }, null, 2)}\n`,
+    "utf-8",
+  );
 }
 
 function buildSlackMessage(result) {
@@ -587,16 +610,20 @@ async function main() {
   const predictionsPayload = await loadJson(PREDICTIONS_FILE, {});
   const todayFeed = await loadJson(TODAY_RACES_FILE, null);
   const todayDate = todayFeed?.date ?? "";
+  const retainedNotifiedSlackResultKeys = keepTodayDedupeKeys(
+    predictionsPayload?.notifiedSlackResultKeys,
+    todayDate,
+  );
+  const retainedNotifiedSlackHitKeys = keepTodayDedupeKeys(
+    predictionsPayload?.notifiedSlackHitKeys,
+    todayDate,
+  );
 
   const slots = findSlotRecords(predictionsPayload);
   const raceIndex = buildRaceIndex(todayFeed);
   const notifiedKeys = new Set([
-    ...(Array.isArray(predictionsPayload?.notifiedSlackResultKeys)
-      ? predictionsPayload.notifiedSlackResultKeys
-      : []),
-    ...(Array.isArray(predictionsPayload?.notifiedSlackHitKeys)
-      ? predictionsPayload.notifiedSlackHitKeys
-      : []),
+    ...retainedNotifiedSlackResultKeys,
+    ...retainedNotifiedSlackHitKeys,
   ]);
   const stats = {
     predictionRecordCount: slots.length,
@@ -678,24 +705,53 @@ async function main() {
   console.log(`${LOG_PREFIX} notified hit: ${stats.notifiedHit}`);
   console.log(`${LOG_PREFIX} notified miss: ${stats.notifiedMiss}`);
 
+  const shouldPruneStoredKeys =
+    retainedNotifiedSlackResultKeys.length !== (
+      Array.isArray(predictionsPayload?.notifiedSlackResultKeys)
+        ? predictionsPayload.notifiedSlackResultKeys.length
+        : 0
+    )
+    || retainedNotifiedSlackHitKeys.length !== (
+      Array.isArray(predictionsPayload?.notifiedSlackHitKeys)
+        ? predictionsPayload.notifiedSlackHitKeys.length
+        : 0
+    );
+
   if (results.length === 0) {
+    if (shouldPruneStoredKeys && !DRY_RUN) {
+      await writePayloadWithNotifiedKeys(
+        predictionsPayload,
+        retainedNotifiedSlackResultKeys,
+        retainedNotifiedSlackHitKeys,
+      );
+      console.log(`${LOG_PREFIX} Pruned notified result keys to today-only.`);
+    }
     console.log(`${LOG_PREFIX} No new settled prediction results.`);
     return;
   }
 
   await postToSlack(results);
 
-  if (DRY_RUN || !SLACK_WEBHOOK_URL) return;
+  if (DRY_RUN || !SLACK_WEBHOOK_URL) {
+    if (shouldPruneStoredKeys && !DRY_RUN) {
+      await writePayloadWithNotifiedKeys(
+        predictionsPayload,
+        retainedNotifiedSlackResultKeys,
+        retainedNotifiedSlackHitKeys,
+      );
+      console.log(`${LOG_PREFIX} Pruned notified result keys to today-only.`);
+    }
+    return;
+  }
 
   const nextPayload = {
     ...predictionsPayload,
-    notifiedSlackResultKeys: Array.from(
-      new Set([
-        ...(Array.isArray(predictionsPayload?.notifiedSlackResultKeys)
-          ? predictionsPayload.notifiedSlackResultKeys
-          : []),
+    notifiedSlackResultKeys: keepTodayDedupeKeys(
+      [
+        ...retainedNotifiedSlackResultKeys,
         ...results.map((result) => result.dedupeKey),
-      ]),
+      ],
+      todayDate,
     ).slice(-1000),
     slackResultNotifiedAt: new Date().toISOString(),
   };
