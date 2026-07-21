@@ -387,9 +387,18 @@ function getReviewLocalKeepFromDate() {
   return shiftReviewIsoDateByDays(getJstOperationalDate(), -1);
 }
 
+function getReviewPredictionKeepDate() {
+  return getJstOperationalDate();
+}
+
 function shouldKeepRecentReviewDate(date?: string) {
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return true;
   return date >= getReviewLocalKeepFromDate();
+}
+
+function shouldKeepTodayPredictionDate(date?: string) {
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  return date === getReviewPredictionKeepDate();
 }
 
 function prunePredictionSlotsMap(map: Record<string, PredictionSlotRecord>) {
@@ -401,7 +410,7 @@ function prunePredictionSlotsMap(map: Record<string, PredictionSlotRecord>) {
       return accumulator;
     }
 
-    if (!shouldKeepRecentReviewDate(value.date)) {
+    if (!shouldKeepTodayPredictionDate(value.date)) {
       changed = true;
       return accumulator;
     }
@@ -422,7 +431,7 @@ function prunePredictionResultsMap(map: Record<string, PredictionResultRecord>) 
       return accumulator;
     }
 
-    if (!shouldKeepRecentReviewDate(value.date)) {
+    if (!shouldKeepTodayPredictionDate(value.date)) {
       changed = true;
       return accumulator;
     }
@@ -2993,7 +3002,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                       {isTodaySelected ? "TODAY MODE" : isYesterdaySelected ? "YESTERDAY MODE" : "FILE MODE"}
                     </span>
                     <span style={{ borderRadius: "999px", border: `1px solid ${heroTone.border}`, background: heroTone.chip, color: heroTone.text, padding: "8px 12px", fontSize: "11px", fontWeight: 900, letterSpacing: "0.12em" }}>
-                      {isTodaySelected ? "LOCAL STORAGE + TODAY FEED + REVIEW FILES" : isYesterdaySelected ? "LOCAL STORAGE + SNAPSHOT + REVIEW FILES" : "INDEX JSON + TXT + SUMMARY"}
+                      {isTodaySelected ? "LOCAL STORAGE + TODAY FEED + REVIEW FILES" : isYesterdaySelected ? "REVIEW FILES + SUMMARY" : "INDEX JSON + TXT + SUMMARY"}
                     </span>
                   </div>
                 </div>
@@ -3002,7 +3011,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                   <StatCard label="OPERATION DAY" value={formatDateShort(selectedDate)} sub={isTodaySelected ? "本日のレビュー対象日" : isYesterdaySelected ? "昨日のレビュー対象日" : "表示中の保存レビュー日付"} />
                   <StatCard label="TARGETS" value={isLocalReviewSelected ? `${todaySummary.venueCount}会場 / ${todaySummary.raceCount}R` : `${reviewFileSummary.venueCount}会場`} sub={isTodaySelected ? "予想素材・当日フィード・保存ファイルから構成" : isYesterdaySelected ? "昨日の予想素材・スナップショット・保存ファイルから構成" : "index.json に登録された会場ファイルを表示"} />
                   <StatCard label="FILE STATUS" value={isLocalReviewSelected ? `${todaySummary.hitCount}的中 / ${todaySummary.settledCount}照合` : `${reviewFileSummary.loadedTextCount}件読込`} sub={isLocalReviewSelected ? `レポート一時保存 ${reportRecords.length}件` : `登録ファイル ${reviewFileSummary.fileCount}件`} />
-                  <StatCard label="MODE" value={isLocalReviewSelected ? "MERGED SOURCES" : "TXT / FETCH"} sub={isTodaySelected ? "localStorage・today.generated.json・review TXTを統合" : isYesterdaySelected ? "localStorage・snapshot・review TXTを統合" : "過去レビューは localStorage に保存しません"} />
+                  <StatCard label="MODE" value={isLocalReviewSelected ? "MERGED SOURCES" : "TXT / FETCH"} sub={isTodaySelected ? "localStorage・today.generated.json・review TXTを統合" : isYesterdaySelected ? "review TXT・summaryを参照" : "過去レビューは localStorage に保存しません"} />
                 </div>
               </div>
 
@@ -3719,7 +3728,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
         </section>
 
         <div style={{ fontSize: "12px", lineHeight: 1.8, color: "#6d7687", textAlign: "center" }}>
-          {isTodaySelected ? "過去レビューはTXT/Markdownで別保存してください。このページは当日作業用です。" : isYesterdaySelected ? "昨日レビューは localStorage と snapshot を使う朝用作業枠です。" : "この日付はファイル保存レビューです。過去レビューは public/data/reviews 配下のTXTを参照します。"}
+          {isTodaySelected ? "過去レビューはTXT/Markdownで別保存してください。このページは当日作業用です。" : isYesterdaySelected ? "昨日レビューは review / summary / archive 側を参照します。localStorageは当日作業用です。" : "この日付はファイル保存レビューです。過去レビューは public/data/reviews 配下のTXTを参照します。"}
         </div>
 
       </main>

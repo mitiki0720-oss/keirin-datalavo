@@ -198,12 +198,12 @@ export const getJstOperationalDate = (base: Date = new Date()) => {
 };
 
 export const getPredictionReviewKeepFromDate = () => {
-  return shiftIsoDateByDays(getJstOperationalDate(), -1);
+  return getJstOperationalDate();
 };
 
 export const shouldKeepPredictionReviewDate = (date?: string) => {
-  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return true;
-  return date >= getPredictionReviewKeepFromDate();
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  return date === getPredictionReviewKeepFromDate();
 };
 
 export const DASHBOARD_JST_DATE_FORMATTER = new Intl.DateTimeFormat("ja-JP", {
@@ -1247,6 +1247,28 @@ export const saveStoredPredictionResults = (map: PredictionResultMap): boolean =
   }
 };
 
+const pruneStoredHitNotificationKeys = (notifications: HitNotificationRecord[]) => {
+  if (typeof window === "undefined") return;
+
+  try {
+    const raw = window.localStorage.getItem(HIT_NOTIFICATION_NOTIFIED_KEYS_STORAGE_KEY);
+    if (!raw) return;
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return;
+
+    const activeKeySet = new Set(notifications.map((item) => item.raceKey));
+    const normalized = parsed.filter((item: unknown): item is string => typeof item === "string");
+    const keys = Array.from(new Set(normalized.filter((key) => activeKeySet.has(key))));
+
+    if (keys.length !== normalized.length) {
+      window.localStorage.setItem(HIT_NOTIFICATION_NOTIFIED_KEYS_STORAGE_KEY, JSON.stringify(keys));
+    }
+  } catch {
+    // localStorage key pruning is non-fatal
+  }
+};
+
 export const loadHitNotifications = (): HitNotificationRecord[] => {
   if (typeof window === "undefined") return [];
 
@@ -1282,6 +1304,8 @@ export const loadHitNotifications = (): HitNotificationRecord[] => {
       }
     }
 
+    pruneStoredHitNotificationKeys(records);
+
     return records;
   } catch {
     return [];
@@ -1293,6 +1317,7 @@ export const saveHitNotifications = (items: HitNotificationRecord[]) => {
   const records = items.filter((item) => shouldKeepPredictionReviewDate(item.date)).slice(0, 200);
   try {
     window.localStorage.setItem(HIT_NOTIFICATION_STORAGE_KEY, JSON.stringify(records));
+    pruneStoredHitNotificationKeys(records);
   } catch (error) {
     console.warn("[HitNotificationStorage] save failed", error);
   }
