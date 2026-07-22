@@ -22,6 +22,9 @@ $LockAcquired = $false
 $RepoWriteLockAcquired = $false
 $RepoWriteLockToken = ""
 $ProcessingHashes = @{}
+$DownloadFilePattern = '^(?:keirin-predictions-.+|keirin-johnson-predictions\.generated(?: \(\d+\))?|keirin-johnson-from-browser-\d{4}-\d{2}-\d{2}(?: \(\d+\))?)\.json$'
+$TargetPredictionJson = "public/data/predictions/saved-predictions.generated.json"
+$MaxPushAttempts = 3
 
 @($Inbox, $Processed, $Rejected, $Logs, $AutomationLocksRoot) | ForEach-Object {
   New-Item -ItemType Directory -Force -Path $_ | Out-Null
@@ -70,7 +73,8 @@ function Save-ProcessedHash {
   param(
     [string]$Hash,
     [string]$Filename,
-    [string]$Date
+    [string]$Date,
+    [string]$Signature
   )
   $cutoff = (Get-Date).ToUniversalTime().AddDays(-90)
   $items = @(
@@ -89,6 +93,7 @@ function Save-ProcessedHash {
   $items += [PSCustomObject]@{
     hash = $Hash
     filename = $Filename
+    signature = $Signature
     processedAt = (Get-Date).ToUniversalTime().ToString("o")
     date = $Date
   }
@@ -100,18 +105,31 @@ function Save-ProcessedHash {
 }
 
 function Test-ProcessedHash {
-  param([string]$Hash)
+  param(
+    [string]$Hash,
+    [string]$Signature
+  )
   $cutoff = (Get-Date).ToUniversalTime().AddDays(-90)
   return [bool](
     Read-ProcessedHashes |
       Where-Object {
         $processedAt = [DateTimeOffset]::MinValue
-        $_.hash -eq $Hash -and
+        (($_.hash -eq $Hash) -or ($Signature -and $_.signature -eq $Signature)) -and
         [DateTimeOffset]::TryParse([string]$_.processedAt, [ref]$processedAt) -and
         $processedAt.UtcDateTime -ge $cutoff
       } |
       Select-Object -First 1
   )
+}
+
+function Get-FileSignature {
+  param([System.IO.FileInfo]$File)
+  return "$($File.FullName)|$($File.LastWriteTimeUtc.Ticks)|$($File.Length)"
+}
+
+function Get-KeirinPredictionDownloadFiles {
+  Get-ChildItem -LiteralPath $Downloads -Filter "*.json" -File |
+    Where-Object { $_.Name -match $DownloadFilePattern }
 }
 
 function Acquire-WatcherLock {
@@ -257,6 +275,115 @@ function Invoke-Node {
   }
 }
 
+function Invoke-Git {
+  param(
+    [string[]]$Arguments,
+    [string]$WorkingDirectory = $ProjectRoot
+  )
+  Push-Location $WorkingDirectory
+  try {
+    & git @Arguments
+    if ($LASTEXITCODE -ne 0) {
+      throw "git command failed ($LASTEXITCODE): git $($Arguments -join ' ')"
+    }
+  } finally {
+    Pop-Location
+  }
+}
+
+function Invoke-NodeInDirectory {
+  param(
+    [string]$WorkingDirectory,
+    [string[]]$Arguments
+  )
+  Push-Location $WorkingDirectory
+  try {
+    Invoke-Node -Arguments $Arguments
+  } finally {
+    Pop-Location
+  }
+}
+
+function Get-CheckedPredictionDate {
+  param([string]$JsonPath)
+  $output = & node "scripts/check-keirin-prediction-json.mjs" "--file" $JsonPath "--print-date" 2>&1
+  if ($LASTEXITCODE -ne 0) {
+    throw "prediction JSON check failed: $($output -join "`n")"
+  }
+  $dateLine = @($output | Where-Object { $_ -match '^date: \d{4}-\d{2}-\d{2}$' } | Select-Object -Last 1)
+  if (-not $dateLine) {
+    throw "prediction JSON checker did not report date"
+  }
+  return ([string]$dateLine).Substring(6).Trim()
+}
+
+function Invoke-TempWorktreePredictionPush {
+  param(
+    [string]$InboxFile,
+    [string]$Date
+  )
+
+  for ($attempt = 1; $attempt -le $MaxPushAttempts; $attempt += 1) {
+    $worktreeRoot = Join-Path $env:TEMP ("keirin-prediction-push-{0}-{1}" -f $Date, ([Guid]::NewGuid().ToString("N")))
+    Write-WatcherLog "push attempt $attempt/$MaxPushAttempts using temp worktree: $worktreeRoot"
+
+    try {
+      Invoke-Git -Arguments @("fetch", "origin", "main")
+      Invoke-Git -Arguments @("worktree", "add", "--detach", $worktreeRoot, "origin/main")
+
+      $targetFile = Join-Path $worktreeRoot $TargetPredictionJson
+      Invoke-NodeInDirectory -WorkingDirectory $worktreeRoot -Arguments @("scripts/check-keirin-prediction-json.mjs", "--file", $InboxFile, "--date", $Date)
+      Invoke-NodeInDirectory -WorkingDirectory $worktreeRoot -Arguments @("scripts/import-keirin-daily-predictions.mjs", "--file", $InboxFile)
+      Invoke-NodeInDirectory -WorkingDirectory $worktreeRoot -Arguments @("scripts/rebuild-keirin-saved-predictions.mjs")
+      Invoke-NodeInDirectory -WorkingDirectory $worktreeRoot -Arguments @("scripts/check-keirin-prediction-json.mjs", "--file", $targetFile, "--date", $Date)
+
+      Invoke-Git -WorkingDirectory $worktreeRoot -Arguments @("add", "--", $TargetPredictionJson)
+      $staged = @(git -C $worktreeRoot diff --cached --name-only)
+      if ($staged.Count -eq 0) {
+        Write-WatcherLog "no target JSON changes"
+        return
+      }
+      if ($staged.Count -ne 1 -or [string]$staged[0] -ne $TargetPredictionJson) {
+        throw "unexpected staged files: $($staged -join ', ')"
+      }
+      Invoke-Git -WorkingDirectory $worktreeRoot -Arguments @("diff", "--check", "--cached")
+      Invoke-Git -WorkingDirectory $worktreeRoot -Arguments @("commit", "-m", "Update keirin Johnson predictions for $Date")
+      Push-Location $worktreeRoot
+      try {
+        $pushOutput = & git push origin HEAD:main 2>&1
+        if ($LASTEXITCODE -ne 0) {
+          throw "git push failed ($LASTEXITCODE): $($pushOutput -join "`n")"
+        }
+      } finally {
+        Pop-Location
+      }
+      Write-WatcherLog "push completed: $Date"
+      return
+    } catch {
+      $message = $_.Exception.Message
+      Write-WatcherLog "push attempt failed: $message"
+      if ($message -notmatch "remote rejected|non-fast-forward|cannot lock ref|fetch first|stale info") {
+        throw
+      }
+      if ($attempt -eq $MaxPushAttempts) {
+        throw "push failed after $MaxPushAttempts attempts: $message"
+      }
+      Write-WatcherLog "retrying from fresh origin/main worktree"
+    } finally {
+      try {
+        git worktree remove --force $worktreeRoot 2>$null | Out-Null
+      } catch {
+        Remove-Item -LiteralPath $worktreeRoot -Recurse -Force -ErrorAction SilentlyContinue
+      }
+      try {
+        git worktree prune 2>$null | Out-Null
+      } catch {
+        # best effort cleanup
+      }
+    }
+  }
+}
+
 function Process-PredictionExport {
   param([string]$SourcePath)
   if (-not (Test-Path -LiteralPath $SourcePath)) {
@@ -264,9 +391,11 @@ function Process-PredictionExport {
     return
   }
   Wait-FileReady -Path $SourcePath
+  $sourceItem = Get-Item -LiteralPath $SourcePath
+  $signature = Get-FileSignature -File $sourceItem
   $name = Split-Path -Leaf $SourcePath
   $hash = (Get-FileHash -LiteralPath $SourcePath -Algorithm SHA256).Hash.ToLowerInvariant()
-  if ($ProcessingHashes.ContainsKey($hash) -or (Test-ProcessedHash -Hash $hash)) {
+  if ($ProcessingHashes.ContainsKey($hash) -or (Test-ProcessedHash -Hash $hash -Signature $signature)) {
     Write-WatcherLog "duplicate skipped: $name"
     return
   }
@@ -275,55 +404,37 @@ function Process-PredictionExport {
   Write-WatcherLog "detected: $SourcePath"
   try {
     Copy-Item -LiteralPath $SourcePath -Destination $inboxFile -Force
-    $payload = Get-Content -LiteralPath $inboxFile -Raw -Encoding UTF8 | ConvertFrom-Json
-    $date = [string]$payload.date
-    if ($date -notmatch '^\d{4}-\d{2}-\d{2}$') {
-      throw "invalid export date"
-    }
-    $importArgs = @("scripts/import-keirin-daily-predictions.mjs", "--file", $inboxFile)
-    if ($DryRun) { $importArgs += "--dry-run" }
-    if (-not $DryRun) { Acquire-RepoWriteLock }
     Push-Location $ProjectRoot
     try {
-      Invoke-Node -Arguments $importArgs
-      if (-not $DryRun) {
-        Invoke-Node -Arguments @("scripts/rebuild-keirin-saved-predictions.mjs")
-        Invoke-Node -Arguments @("scripts/check-keirin-daily-predictions.mjs")
-        $historyFile = Join-Path $ProjectRoot "public\data\analytics\kurari-ex\history\daily\$($date.Substring(0,7))\$date.generated.json"
-        if (Test-Path -LiteralPath $historyFile) {
-          Invoke-Node -Arguments @(
-            "scripts/run-kurari-ex-nightly-update.mjs",
-            "--date=$date",
-            "--allow-enrichment-upgrade"
-          )
-        } else {
-          Write-WatcherLog "enrichment skipped: FACTS missing for $date"
-        }
-        $today = Get-Content -LiteralPath (Join-Path $ProjectRoot "public\data\races\today.generated.json") -Raw -Encoding UTF8 | ConvertFrom-Json
-        if ([string]$today.date -eq $date) {
-          Invoke-Node -Arguments @("scripts/audit-keirin-saved-predictions-coverage.mjs")
-        }
-        if (-not $NoGit) {
-          $gitPaths = @(
-            "public/data/predictions/daily/"
-            "public/data/predictions/saved-predictions.generated.json"
-            "public/data/analytics/kurari-ex/history/"
-            "public/data/analytics/kurari-ex/exact/"
-          )
-          $changed = git status --short -- $gitPaths
-          if ($changed) {
-            git add -- $gitPaths
-            git commit --only -m "Import keirin predictions $date" -- $gitPaths
-            git pull --rebase --autostash origin main
-            git push origin main
-          } else {
-            Write-WatcherLog "no public data changes"
-          }
-        }
-      }
+      $date = Get-CheckedPredictionDate -JsonPath $inboxFile
     } finally {
       Pop-Location
-      Release-RepoWriteLock
+    }
+    if ($DryRun) {
+      Push-Location $ProjectRoot
+      try {
+        Invoke-Node -Arguments @("scripts/import-keirin-daily-predictions.mjs", "--file", $inboxFile, "--dry-run")
+      } finally {
+        Pop-Location
+      }
+    } elseif ($NoGit) {
+      Acquire-RepoWriteLock
+      Push-Location $ProjectRoot
+      try {
+        Invoke-Node -Arguments @("scripts/import-keirin-daily-predictions.mjs", "--file", $inboxFile)
+        Invoke-Node -Arguments @("scripts/rebuild-keirin-saved-predictions.mjs")
+        Invoke-Node -Arguments @("scripts/check-keirin-daily-predictions.mjs")
+      } finally {
+        Pop-Location
+        Release-RepoWriteLock
+      }
+    } else {
+      Acquire-RepoWriteLock
+      try {
+        Invoke-TempWorktreePredictionPush -InboxFile $inboxFile -Date $date
+      } finally {
+        Release-RepoWriteLock
+      }
     }
     if (-not $DryRun) {
       if (Test-Path -LiteralPath $inboxFile) {
@@ -332,7 +443,7 @@ function Process-PredictionExport {
         Write-WatcherLog "duplicate skipped: $name"
         return
       }
-      Save-ProcessedHash -Hash $hash -Filename $name -Date $date
+      Save-ProcessedHash -Hash $hash -Filename $name -Date $date -Signature $signature
     }
     Write-WatcherLog "processed: $name"
   } catch {
@@ -359,7 +470,7 @@ try {
   }
 
   if ($Once) {
-    $latest = Get-ChildItem -LiteralPath $Downloads -Filter "keirin-predictions-*.json" -File |
+    $latest = Get-KeirinPredictionDownloadFiles |
       Sort-Object LastWriteTimeUtc -Descending |
       Select-Object -First 1
     if (-not $latest) {
@@ -369,11 +480,14 @@ try {
     exit 0
   }
 
-  Write-WatcherLog "watching: $Downloads\keirin-predictions-*.json"
+  Write-WatcherLog "watching: $Downloads\keirin prediction JSON exports"
   $seen = @{}
+  Get-KeirinPredictionDownloadFiles | ForEach-Object {
+    $seen[$_.FullName] = Get-FileSignature -File $_
+  }
   while ($true) {
-    Get-ChildItem -LiteralPath $Downloads -Filter "keirin-predictions-*.json" -File | ForEach-Object {
-      $signature = "$($_.Length):$($_.LastWriteTimeUtc.Ticks)"
+    Get-KeirinPredictionDownloadFiles | ForEach-Object {
+      $signature = Get-FileSignature -File $_
       if ($seen[$_.FullName] -ne $signature) {
         $seen[$_.FullName] = $signature
         try {
