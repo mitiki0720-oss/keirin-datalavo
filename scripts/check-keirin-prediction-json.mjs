@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-const MOJIBAKE_PATTERN = /荳|縺|譁|莠/u;
+const MOJIBAKE_PATTERN = /\u8373|\u7E3A|\u8B41|\u83A0|\u95D5\uFF73|\u90B5\uFF7A|\u96B4\uFF0D\u95D4\uF8F0/u;
 const CONFLICT_MARKER_PATTERN = /<<<<<<<|=======|>>>>>>>/u;
 
 const JST_OPERATION_DATE_FORMATTER = new Intl.DateTimeFormat("sv-SE", {
@@ -55,6 +55,14 @@ function recordsFromPayload(payload) {
   return [];
 }
 
+function recordsSourceFromPayload(payload) {
+  if (Array.isArray(payload?.records)) return "records";
+  if (payload?.records && typeof payload.records === "object") return "records-object";
+  if (Array.isArray(payload?.recordList)) return "recordList";
+  if (Array.isArray(payload?.items)) return "items";
+  return "none";
+}
+
 function getRecordDate(record, fallbackDate) {
   return String(record?.date ?? fallbackDate ?? "").trim();
 }
@@ -90,13 +98,14 @@ async function checkFile(file, options) {
   const raw = await readFile(file, "utf8");
   const payload = parseJsonText(raw, file);
   const records = recordsFromPayload(payload);
+  const recordSource = recordsSourceFromPayload(payload);
   if (!Array.isArray(records)) throw new Error(`${file}: records must be an array`);
   if (records.length === 0) throw new Error(`${file}: records must not be empty`);
 
   const expectedDate = options.date || getJstOperationalDate();
-  const invalidDates = records
-    .map((record) => getRecordDate(record, payload?.date))
-    .filter((date) => date !== expectedDate);
+  const dates = records.map((record) => getRecordDate(record, payload?.date));
+  const uniqueDates = [...new Set(dates)].sort();
+  const invalidDates = dates.filter((date) => date !== expectedDate);
   if (invalidDates.length > 0) {
     throw new Error(`${file}: records must be JST operation date only (${expectedDate})`);
   }
@@ -110,7 +119,9 @@ async function checkFile(file, options) {
   return {
     file,
     expectedDate,
+    recordSource,
     recordCount: records.length,
+    dates: uniqueDates,
     firstPredictionText,
   };
 }
@@ -128,7 +139,8 @@ async function main() {
   console.log("[keirin prediction json check]");
   console.log(`file: ${result.file}`);
   console.log(`date: ${result.expectedDate}`);
-  console.log(`records: ${result.recordCount}`);
+  console.log(`${result.recordSource}: ${result.recordCount}`);
+  console.log(`dates: ${result.dates.join(", ")}`);
   console.log(`first predictionText: ${result.firstPredictionText || "(empty)"}`);
   if (args.includes("--print-date")) console.log(result.expectedDate);
 }

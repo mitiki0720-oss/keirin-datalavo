@@ -1,5 +1,6 @@
 param(
   [string]$FilePath = "",
+  [switch]$ImportLatest,
   [switch]$Once,
   [switch]$NoGit,
   [switch]$DryRun
@@ -22,7 +23,7 @@ $LockAcquired = $false
 $RepoWriteLockAcquired = $false
 $RepoWriteLockToken = ""
 $ProcessingHashes = @{}
-$DownloadFilePattern = '^(?:keirin-predictions-.+|keirin-johnson-predictions\.generated(?: \(\d+\))?|keirin-johnson-from-browser-\d{4}-\d{2}-\d{2}(?: \(\d+\))?)\.json$'
+$DownloadFilePattern = '^(?:keirin-predictions-.+(?: \(\d+\))?|keirin-johnson-predictions\.generated(?: \(\d+\))?|keirin-johnson-from-browser-\d{4}-\d{2}-\d{2}(?: \(\d+\))?)\.json$'
 $TargetPredictionJson = "public/data/predictions/saved-predictions.generated.json"
 $MaxPushAttempts = 3
 
@@ -130,6 +131,11 @@ function Get-FileSignature {
 function Get-KeirinPredictionDownloadFiles {
   Get-ChildItem -LiteralPath $Downloads -Filter "*.json" -File |
     Where-Object { $_.Name -match $DownloadFilePattern }
+}
+
+function Format-DownloadFileLog {
+  param([System.IO.FileInfo]$File)
+  return "$($File.Name) / lastWriteUtc=$($File.LastWriteTimeUtc.ToString("o")) / length=$($File.Length)"
 }
 
 function Acquire-WatcherLock {
@@ -308,7 +314,13 @@ function Get-CheckedPredictionDate {
   param([string]$JsonPath)
   $output = & node "scripts/check-keirin-prediction-json.mjs" "--file" $JsonPath "--print-date" 2>&1
   if ($LASTEXITCODE -ne 0) {
+    Write-WatcherLog "checker rejected: $($output -join " / ")"
     throw "prediction JSON check failed: $($output -join "`n")"
+  }
+  $output | ForEach-Object {
+    if ($_ -match "^(records|items|dates|first predictionText):") {
+      Write-WatcherLog "checker: $_"
+    }
   }
   $dateLine = @($output | Where-Object { $_ -match '^date: \d{4}-\d{2}-\d{2}$' } | Select-Object -Last 1)
   if (-not $dateLine) {
@@ -396,7 +408,7 @@ function Process-PredictionExport {
   $name = Split-Path -Leaf $SourcePath
   $hash = (Get-FileHash -LiteralPath $SourcePath -Algorithm SHA256).Hash.ToLowerInvariant()
   if ($ProcessingHashes.ContainsKey($hash) -or (Test-ProcessedHash -Hash $hash -Signature $signature)) {
-    Write-WatcherLog "duplicate skipped: $name"
+    Write-WatcherLog "duplicate skipped by hash/signature: $name / signature=$signature"
     return
   }
   $ProcessingHashes[$hash] = $true
@@ -464,29 +476,46 @@ if (-not (Acquire-WatcherLock)) {
 }
 
 try {
+  Write-WatcherLog "keirin prediction watcher started"
+  Write-WatcherLog "download directory: $Downloads"
+  Write-WatcherLog "download file pattern: $DownloadFilePattern"
+  Write-WatcherLog "startup baseline utc: $((Get-Date).ToUniversalTime().ToString("o"))"
+
   if ($FilePath) {
     Process-PredictionExport -SourcePath (Resolve-Path -LiteralPath $FilePath)
     exit 0
   }
 
-  if ($Once) {
+  if ($Once -or $ImportLatest) {
+    Write-WatcherLog "import latest mode: enabled"
     $latest = Get-KeirinPredictionDownloadFiles |
       Sort-Object LastWriteTimeUtc -Descending |
       Select-Object -First 1
     if (-not $latest) {
+      Write-WatcherLog "candidate files: 0"
       throw "no keirin prediction export found in $Downloads"
     }
+    Write-WatcherLog "candidate selected: $(Format-DownloadFileLog -File $latest)"
     Process-PredictionExport -SourcePath $latest.FullName
     exit 0
   }
 
   Write-WatcherLog "watching: $Downloads\keirin prediction JSON exports"
   $seen = @{}
-  Get-KeirinPredictionDownloadFiles | ForEach-Object {
+  $lastCandidateZeroLog = [DateTime]::MinValue
+  $baselineFiles = @(Get-KeirinPredictionDownloadFiles)
+  Write-WatcherLog "baseline candidate files: $($baselineFiles.Count)"
+  $baselineFiles | ForEach-Object {
+    Write-WatcherLog "baseline excluded until changed: $(Format-DownloadFileLog -File $_)"
     $seen[$_.FullName] = Get-FileSignature -File $_
   }
   while ($true) {
-    Get-KeirinPredictionDownloadFiles | ForEach-Object {
+    $candidates = @(Get-KeirinPredictionDownloadFiles)
+    if ($candidates.Count -eq 0 -and ((Get-Date).ToUniversalTime() - $lastCandidateZeroLog).TotalMinutes -ge 5) {
+      Write-WatcherLog "candidate files: 0"
+      $lastCandidateZeroLog = (Get-Date).ToUniversalTime()
+    }
+    $candidates | ForEach-Object {
       $signature = Get-FileSignature -File $_
       if ($seen[$_.FullName] -ne $signature) {
         $seen[$_.FullName] = $signature
