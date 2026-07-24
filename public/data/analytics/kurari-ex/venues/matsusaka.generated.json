@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "matsusaka",
   "venueName": "松阪",
-  "updatedAt": "2026-07-19",
+  "updatedAt": "2026-07-24",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-04",
-    "to": "2026-07-18"
+    "to": "2026-07-23"
   },
   "quality": {
-    "seedSources": 18,
-    "parsedDateSources": 18,
+    "seedSources": 21,
+    "parsedDateSources": 21,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 18,
-    "raceCount": 183,
-    "trifectaHits": 43,
-    "trifectaHitRate": 27,
+    "sourceCount": 21,
+    "raceCount": 216,
+    "trifectaHits": 49,
+    "trifectaHitRate": 28.8,
     "exactaHits": 9,
-    "exactaHitRate": 5.7,
+    "exactaHitRate": 5.3,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 210000,
-    "returnYen": 137120,
-    "recoveryRate": 65.3,
+    "investmentYen": 234300,
+    "returnYen": 171230,
+    "recoveryRate": 73.1,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,64 +38,64 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 18,
+      "evidenceCount": 21,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 18,
+      "evidenceCount": 21,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 16,
+      "evidenceCount": 19,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 14,
+      "evidenceCount": 17,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 14,
+      "evidenceCount": 17,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 14,
+      "evidenceCount": 17,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 13,
+      "evidenceCount": 16,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 12,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 12,
+      "confidence": "high",
       "sourceType": "SEED"
     }
   ],
@@ -104,7 +104,11 @@
       "区分 対象 的中 的中率 回収の特徴",
       "B19の4溝口が地元で主導権を握る。得点上位の1伊藤は番手差し、7表は3番手から直線で伸びる。2助川は捲りで抵抗でき、5金子の差し込みもある。6後藤-3辰己は別線の仕掛けを残すが、松阪デイは先行選手の消耗後に番手と3番手が伸びる傾向。北風は軽く、4の先行残りと1の差しを対称に扱う。",
       "大谷が先行で主導権を狙い、山田は番手差し、太田は3番手の伸び。助川―金子は助川の機動力と金子の差し脚で対抗し、舘は単騎の捲り・差し候補。松阪デイの差し傾向と南南東風13km/hを踏まえ、先行残りも消さない。人気の中部直列だけに寄せず、関東と単騎7を3着へ広げる。",
-      "吉田が自力で主導権、岸澤は競走得点100点台の番手差し、丸山は3番手。福元は捲り7回で対抗し、笹倉―松尾が続く。野村は単騎の差し込み候補。松阪デイの差し傾向と南南東風13km/hを踏まえ、岸澤の差しを厚めにしつつ、吉田の残りを保護。別線番手2・3と単騎6を3着まで広げる。"
+      "吉田が自力で主導権、岸澤は競走得点100点台の番手差し、丸山は3番手。福元は捲り7回で対抗し、笹倉―松尾が続く。野村は単騎の差し込み候補。松阪デイの差し傾向と南南東風13km/hを踏まえ、岸澤の差しを厚めにしつつ、吉田の残りを保護。別線番手2・3と単騎6を3着まで広げる。",
+      "5伊藤京介の能力上位は正しく、結果は5-2-7で的中。ただし本来の厚め5-7-2ではなく、3番手2が2着へ上がるズブズブ。ライン内で番手7より3番手2が先着した点がポイント。",
+      "7南儀が豊富なB数で主導権を狙い、地元地区の3西浦が番手から差す形を厚く見る。1山中も自力で応戦し、得点最上位の4高橋が直線で抜け出す。2-6の北日本、単騎5尾崎も展開がもつれれば差し込み圏。晴れ・南風10km/hの終盤戦は、ナイター傾向どおり番手差しと別線3着を重視する。",
+      "4松本と6関谷が主導権を争い、4の番手を回る得点上位2大薗と、6を目標にする3藤縄の直線勝負が中心。松阪の差し傾向から2・3の頭を重視する。5伊藤は近況が弱く、北日本ラインは押さえ評価。快晴・東南東約2.8m/sで、先行を全消しせず4・6の残りも組み込む。",
+      "明確な先行役はB10の4小川。7斯波が番手で、南関東3車が主導権を握る。松阪の差し傾向から7の番手差しを中心視するが、初日4着の4も残す。地元1勝谷は初日の消耗が不安。単騎3小峰は両ラインを追って直線へ入れば連対可能。"
     ],
     "targets": [
       "注：予想10点は添付原文どおり 3連単8点＋2車単2点＝計10点 で転記（本チャット側で買い目の増減・再構成はしていません）。",

@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "iwakitaira",
   "venueName": "いわき平",
-  "updatedAt": "2026-07-19",
+  "updatedAt": "2026-07-24",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-10",
-    "to": "2026-07-18"
+    "to": "2026-07-24"
   },
   "quality": {
-    "seedSources": 12,
-    "parsedDateSources": 12,
+    "seedSources": 15,
+    "parsedDateSources": 15,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 12,
+    "sourceCount": 15,
     "raceCount": 51,
-    "trifectaHits": 42,
-    "trifectaHitRate": 82.4,
+    "trifectaHits": 51,
+    "trifectaHitRate": 100,
     "exactaHits": 6,
     "exactaHitRate": 11.8,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 96600,
-    "returnYen": 44860,
-    "recoveryRate": 46.4,
+    "investmentYen": 102000,
+    "returnYen": 49970,
+    "recoveryRate": 49,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,63 +38,63 @@
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 12,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 12,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 12,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 12,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 11,
+      "evidenceCount": 14,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 11,
+      "evidenceCount": 14,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 11,
+      "evidenceCount": 14,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 10,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 4,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     }
@@ -105,7 +105,8 @@
       "2) 開催全体の傾向",
       "1－2の同ライン決着を主軸とし、いわき平の差し傾向から2－1も厚く採用。",
       "初日1着の新人3は別線捲りの中心で、4が追走。7も初日1着だが、2・3との先行争いが長引くと5まで含めて消耗する。弱風のため2の逃げ残りを重視しつつ、霧雨と差し傾向から1の逆転を厚くする。",
-      "1の先行力を基本に7の番手残りを厚め。ただし4-2は番手差し向きの会場傾向に合い、同格で厚く扱う。九州5-3も捲り一発を評価。3着は各ラインの後位と単騎6を保護し、2・3の逆転差しを押さえた。"
+      "1の先行力を基本に7の番手残りを厚め。ただし4-2は番手差し向きの会場傾向に合い、同格で厚く扱う。九州5-3も捲り一発を評価。3着は各ラインの後位と単騎6を保護し、2・3の逆転差しを押さえた。",
+      "1-2を中心とする強ライン型。いわき平の差し傾向から2の逆転を厚くし、別線4・5と追込み6を3着保護へ加えた。"
     ],
     "targets": [
       "並び：単騎（2-4は同県で位置取り連携意識、3は地元で好位追走狙い）",
@@ -144,7 +145,10 @@
       "12R：予想02）3連単7-1-4は結果と一致。ただし結果側はpending、払戻未反映。",
       "3) 詳細summary｜次回へ役立てる検証",
       "4R・8R・12Rは予想テキストとの一致券が結果側hitへ反映されていない。",
-      "予想ファイル上に2Rの予想ブロックが確認できないため、買い目照合は不可。結果は1寺師-2徳吉-5田川で九州ライン完全決着、3連単450円。予想素材がないため的中/不的中は未照合扱い。次回は全R予想ブロックの欠落チェックを先に行う。"
+      "予想ファイル上に2Rの予想ブロックが確認できないため、買い目照合は不可。結果は1寺師-2徳吉-5田川で九州ライン完全決着、3連単450円。予想素材がないため的中/不的中は未照合扱い。次回は全R予想ブロックの欠落チェックを先に行う。",
+      "踏み合い想定から単騎1を厚くした判断は次回も使える成功パターン。",
+      "的中。4藤岡の先行力を軸に、1邊見の位置取り・差し脚を相手に置けており、06）4-1-2で3連単一致。ただし厚めは5差しや1-4を重視しており、実際は4が逃げ切り。5水野は6着で番手評価が過剰だった。次回は4-1型を本線寄りへ上げる。",
+      "2-1を中心に、3の捲りを対抗評価。別線3着混入率を反映し、4だけでなく5・6・7へ3着候補を分散した。"
     ]
   },
   "predictionGuidance": [

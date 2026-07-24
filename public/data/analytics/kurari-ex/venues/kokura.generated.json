@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "kokura",
   "venueName": "小倉",
-  "updatedAt": "2026-07-12",
+  "updatedAt": "2026-07-24",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-13",
-    "to": "2026-06-28"
+    "to": "2026-07-24"
   },
   "quality": {
-    "seedSources": 11,
-    "parsedDateSources": 11,
+    "seedSources": 12,
+    "parsedDateSources": 12,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 11,
-    "raceCount": 100,
-    "trifectaHits": 26,
-    "trifectaHitRate": 28.6,
+    "sourceCount": 12,
+    "raceCount": 111,
+    "trifectaHits": 30,
+    "trifectaHitRate": 29.4,
     "exactaHits": 6,
-    "exactaHitRate": 6.6,
+    "exactaHitRate": 5.9,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 80000,
-    "returnYen": 58410,
-    "recoveryRate": 73,
+    "investmentYen": 100100,
+    "returnYen": 75480,
+    "recoveryRate": 75.4,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,63 +38,63 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 11,
+      "evidenceCount": 12,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 11,
+      "evidenceCount": 12,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 10,
+      "evidenceCount": 11,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 10,
+      "evidenceCount": 11,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 8,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 8,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 3,
+      "evidenceCount": 4,
       "confidence": "medium",
       "sourceType": "SEED"
     }
@@ -126,7 +126,10 @@
       "押さえ：1右近はS18・B16で前受けから突っ張る可能性があり、4森下の番手差しも警戒。2が後方に置かれると1-4ラインの残りが穴になる。単騎7佐藤は位置取り次第で3着拾い。",
       "木村3の逃げを軸にしすぎ、柏野1の捲り頭を軽視。強先行は2着に残ったが、別線B型の一撃が頭。準決の強先行固定は危険。",
       "「近況が重い」と見た選手の一変を拾い切れていない ：5Rの山崎翼3、6Rの原6、10Rの中川5など、最終日・一般/決勝で立て直す選手への警戒が不足。",
-      "押さえ：3柿本はB8で1才迫より先に駆ける可能性があり、番手4石橋は差し込み注意。石橋は平塚予選3着があり、3が駆ければ4-3の穴がある。5那須は単騎だが当所5年で3着5回、脚を溜めて3着に差す保険。"
+      "押さえ：3柿本はB8で1才迫より先に駆ける可能性があり、番手4石橋は差し込み注意。石橋は平塚予選3着があり、3が駆ければ4-3の穴がある。5那須は単騎だが当所5年で3着5回、脚を溜めて3着に差す保険。",
+      "注意：結果テキストの全着順側は登録番号が未取得のため、出走表の登録番号は予想時出走表を正として掲載。",
+      "結果テキスト上で3R〜11Rの最終判定が pending のため、自動判定だけに頼ると実際の的中を落とすリスクがあった。今回のように照合キーで再確認する運用は継続必須。",
+      "得点82.48の7山元が総合力でリードし、番手1北村との中部ワンツーが本線。2財満は129期の新鋭で、早めに先行して7を後方へ置ければ押し切りまである。7が捲り切れば1の差し、2がペースをつかめば4松丸の番手差しを警戒する。"
     ],
     "improvements": [
       "ここでは新規予想は行わず、実際に出した10点買い目と結果の照合、取り逃し要因、次回改善メモを整理する。",
