@@ -24,6 +24,10 @@ const SITE_URL = "https://mitiki0720-oss.github.io/keirin-datalavo/#mobile-dashb
 const DRY_RUN = process.argv.includes("--dry-run");
 const SELF_TEST_PAYOUT_PARSER = process.argv.includes("--self-test-payout-parser");
 const LOG_PREFIX = "[notify-slack-results]";
+const MAX_BLOCKS_PER_MESSAGE = 45;
+const MAX_HITS_PER_CHUNK = 12;
+const MAX_SECTION_TEXT_LENGTH = 2800;
+const MAX_FALLBACK_TEXT_LENGTH = 35000;
 
 function normalizeText(value) {
   return String(value ?? "")
@@ -146,6 +150,20 @@ function formatPlainYen(value) {
 function formatRate(value) {
   if (typeof value !== "number" || !Number.isFinite(value)) return "--";
   return `${value.toFixed(1)}%`;
+}
+
+function truncateText(value, maxLength = MAX_SECTION_TEXT_LENGTH) {
+  const text = String(value ?? "");
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, Math.max(0, maxLength - 1))}…`;
+}
+
+function chunkArray(values, chunkSize) {
+  const chunks = [];
+  for (let index = 0; index < values.length; index += chunkSize) {
+    chunks.push(values.slice(index, index + chunkSize));
+  }
+  return chunks;
 }
 
 function findSlotRecords(payload) {
@@ -480,9 +498,7 @@ async function writePayloadWithNotifiedKeys(predictionsPayload, resultKeys, hitK
     `${JSON.stringify({
       ...predictionsPayload,
       notifiedSlackResultKeys: resultKeys,
-      ...(Array.isArray(predictionsPayload?.notifiedSlackHitKeys)
-        ? { notifiedSlackHitKeys: hitKeys }
-        : {}),
+      notifiedSlackHitKeys: hitKeys,
     }, null, 2)}\n`,
     "utf-8",
   );
@@ -511,7 +527,7 @@ function buildSlackMessage(result) {
   ].join("\n");
 }
 
-async function postToSlack(results) {
+async function postToSlackLegacy(results) {
   if (results.length === 0) {
     console.log(`${LOG_PREFIX} No new settled prediction results.`);
     return;
@@ -575,6 +591,229 @@ async function postToSlack(results) {
   }
 
   console.log(`${LOG_PREFIX} Sent ${results.length} result(s) to Slack.`);
+}
+
+function buildSlackBlockPayload(hitResults, meta) {
+  const title = `KURARI keirin hits ${meta.chunkIndex}/${meta.chunkCount}`;
+  const summary = `hit ${meta.hitCount} / chunk ${hitResults.length}`;
+  const blocks = [
+    {
+      type: "header",
+      text: {
+        type: "plain_text",
+        text: truncateText(title, 150),
+        emoji: true,
+      },
+    },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: truncateText(`*Today's hit results*\n${summary}`),
+      },
+    },
+    ...hitResults.map((result) => ({
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: truncateText(buildSlackHitMessage(result)),
+      },
+    })),
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `<${SITE_URL}|Open KURARI DATA LAVO mobile dashboard>`,
+      },
+    },
+  ];
+
+  if (blocks.length > MAX_BLOCKS_PER_MESSAGE) {
+    throw new Error(`Slack payload block count exceeds limit: ${blocks.length}`);
+  }
+
+  return {
+    text: truncateText(`${title}: ${summary}`, MAX_FALLBACK_TEXT_LENGTH),
+    blocks,
+  };
+}
+
+function buildSlackPlainTextPayload(hitResults, meta) {
+  return {
+    text: truncateText([
+      `KURARI keirin hits ${meta.chunkIndex}/${meta.chunkCount}`,
+      `hit ${meta.hitCount} / chunk ${hitResults.length}`,
+      ...hitResults.map(buildSlackHitMessage),
+      SITE_URL,
+    ].join("\n\n---\n\n"), MAX_FALLBACK_TEXT_LENGTH),
+  };
+}
+
+function buildSlackHitMessage(result) {
+  return [
+    `*HIT* ${result.venue} ${result.raceNo}R`,
+    `result: ${result.resultOrder}`,
+    `ticket: ${result.betType} ${result.combination}`,
+    `payout: ${formatPlainYen(result.payout)}`,
+    `investment: ${formatPlainYen(result.investment)}`,
+    `profit: ${formatYen(result.profitLoss)}`,
+    `roi: ${formatRate(result.roi)}`,
+  ].join("\n");
+}
+
+async function sendSlackPayload(payload) {
+  const response = await fetch(SLACK_WEBHOOK_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+    },
+    body: JSON.stringify(payload),
+  });
+  const responseBody = response.ok ? "" : await response.text();
+  return {
+    ok: response.ok,
+    status: response.status,
+    body: responseBody,
+  };
+}
+
+function logSlackFailure({ payloadType, chunkIndex, itemCount, blockCount, textLength, status, body }) {
+  console.warn(`${LOG_PREFIX} Slack webhook warning`, {
+    payloadType,
+    chunkIndex,
+    itemCount,
+    blockCount,
+    textLength,
+    status,
+    body,
+  });
+}
+
+async function sendSlackPayloadWithFallback(payload, hitResults, meta) {
+  const blockCount = Array.isArray(payload.blocks) ? payload.blocks.length : 0;
+  let first;
+  try {
+    first = await sendSlackPayload(payload);
+  } catch (error) {
+    first = {
+      ok: false,
+      status: "network-error",
+      body: error instanceof Error ? error.message : String(error),
+    };
+  }
+  if (first.ok) return true;
+
+  logSlackFailure({
+    payloadType: "blocks",
+    chunkIndex: meta.chunkIndex,
+    itemCount: hitResults.length,
+    blockCount,
+    textLength: payload.text.length,
+    status: first.status,
+    body: first.body,
+  });
+
+  const fallbackPayload = buildSlackPlainTextPayload(hitResults, meta);
+  let fallback;
+  try {
+    fallback = await sendSlackPayload(fallbackPayload);
+  } catch (error) {
+    fallback = {
+      ok: false,
+      status: "network-error",
+      body: error instanceof Error ? error.message : String(error),
+    };
+  }
+  if (fallback.ok) {
+    console.warn(`${LOG_PREFIX} Slack plain text fallback succeeded`, {
+      chunkIndex: meta.chunkIndex,
+      itemCount: hitResults.length,
+      textLength: fallbackPayload.text.length,
+    });
+    return true;
+  }
+
+  logSlackFailure({
+    payloadType: "plain_text_fallback",
+    chunkIndex: meta.chunkIndex,
+    itemCount: hitResults.length,
+    blockCount: 0,
+    textLength: fallbackPayload.text.length,
+    status: fallback.status,
+    body: fallback.body,
+  });
+  return false;
+}
+
+async function postToSlack(results) {
+  const emptyResult = { successfulHitKeys: [], failedHitKeys: [], failureCount: 0 };
+  const hitResults = results.filter((result) => result.status === "hit");
+  const chunks = chunkArray(hitResults, MAX_HITS_PER_CHUNK);
+
+  if (DRY_RUN) {
+    console.log(`${LOG_PREFIX} dry-run slack chunks`, {
+      chunkCount: chunks.length,
+      hitCount: hitResults.length,
+      maxHitsPerChunk: MAX_HITS_PER_CHUNK,
+      maxBlocksPerMessage: MAX_BLOCKS_PER_MESSAGE,
+    });
+    chunks.forEach((chunk, index) => {
+      const payload = buildSlackBlockPayload(chunk, {
+        chunkIndex: index + 1,
+        chunkCount: chunks.length,
+        hitCount: hitResults.length,
+      });
+      console.log(`${LOG_PREFIX} dry-run slack chunk`, {
+        chunkIndex: index + 1,
+        itemCount: chunk.length,
+        blockCount: payload.blocks.length,
+        textLength: payload.text.length,
+      });
+    });
+    return emptyResult;
+  }
+
+  if (hitResults.length === 0) {
+    console.log(`${LOG_PREFIX} No new hit prediction results to send to Slack.`);
+    return emptyResult;
+  }
+
+  if (!SLACK_WEBHOOK_URL) {
+    console.warn(`${LOG_PREFIX} SLACK_WEBHOOK_URL is missing; skip hit send`);
+    return {
+      successfulHitKeys: [],
+      failedHitKeys: hitResults.map((result) => result.dedupeKey),
+      failureCount: chunks.length,
+    };
+  }
+
+  const successfulHitKeys = [];
+  const failedHitKeys = [];
+  let failureCount = 0;
+
+  for (const [index, chunk] of chunks.entries()) {
+    const meta = {
+      chunkIndex: index + 1,
+      chunkCount: chunks.length,
+      hitCount: hitResults.length,
+    };
+    const payload = buildSlackBlockPayload(chunk, meta);
+    const sent = await sendSlackPayloadWithFallback(payload, chunk, meta);
+    if (sent) {
+      successfulHitKeys.push(...chunk.map((result) => result.dedupeKey));
+    } else {
+      failureCount += 1;
+      failedHitKeys.push(...chunk.map((result) => result.dedupeKey));
+    }
+  }
+
+  console.log(`${LOG_PREFIX} Slack hit notify result`, {
+    chunkCount: chunks.length,
+    successfulHitCount: successfulHitKeys.length,
+    failedHitCount: failedHitKeys.length,
+    failureCount,
+  });
+  return { successfulHitKeys, failedHitKeys, failureCount };
 }
 
 function runPayoutParserSelfTest() {
@@ -705,6 +944,13 @@ async function main() {
   console.log(`${LOG_PREFIX} notified hit: ${stats.notifiedHit}`);
   console.log(`${LOG_PREFIX} notified miss: ${stats.notifiedMiss}`);
 
+  const hitResults = results.filter((result) => result.status === "hit");
+  const missResults = results.filter((result) => result.status === "miss");
+  console.log(`${LOG_PREFIX} slack send target hit only`, {
+    hitCount: hitResults.length,
+    missProcessedOnlyCount: missResults.length,
+  });
+
   const shouldPruneStoredKeys =
     retainedNotifiedSlackResultKeys.length !== (
       Array.isArray(predictionsPayload?.notifiedSlackResultKeys)
@@ -717,48 +963,53 @@ async function main() {
         : 0
     );
 
-  if (results.length === 0) {
-    if (shouldPruneStoredKeys && !DRY_RUN) {
-      await writePayloadWithNotifiedKeys(
-        predictionsPayload,
-        retainedNotifiedSlackResultKeys,
-        retainedNotifiedSlackHitKeys,
-      );
-      console.log(`${LOG_PREFIX} Pruned notified result keys to today-only.`);
-    }
-    console.log(`${LOG_PREFIX} No new settled prediction results.`);
+  const slackResult = await postToSlack(hitResults);
+  const successfulHitKeySet = new Set(slackResult.successfulHitKeys);
+  const processedResultKeys = [
+    ...missResults.map((result) => result.dedupeKey),
+    ...hitResults
+      .filter((result) => successfulHitKeySet.has(result.dedupeKey))
+      .map((result) => result.dedupeKey),
+  ];
+
+  console.log(`${LOG_PREFIX} processed key plan`, {
+    processedResultKeyCount: processedResultKeys.length,
+    successfulHitKeyCount: slackResult.successfulHitKeys.length,
+    failedHitKeyCount: slackResult.failedHitKeys.length,
+    dryRun: DRY_RUN,
+  });
+
+  if (DRY_RUN) {
+    console.log(`${LOG_PREFIX} dry-run: skip notified key write`);
     return;
   }
 
-  await postToSlack(results);
+  const nextResultKeys = keepTodayDedupeKeys(
+    [
+      ...retainedNotifiedSlackResultKeys,
+      ...processedResultKeys,
+    ],
+    todayDate,
+  );
+  const nextHitKeys = keepTodayDedupeKeys(
+    [
+      ...retainedNotifiedSlackHitKeys,
+      ...slackResult.successfulHitKeys,
+    ],
+    todayDate,
+  );
 
-  if (DRY_RUN || !SLACK_WEBHOOK_URL) {
-    if (shouldPruneStoredKeys && !DRY_RUN) {
-      await writePayloadWithNotifiedKeys(
-        predictionsPayload,
-        retainedNotifiedSlackResultKeys,
-        retainedNotifiedSlackHitKeys,
-      );
-      console.log(`${LOG_PREFIX} Pruned notified result keys to today-only.`);
-    }
-    return;
+  if (shouldPruneStoredKeys || processedResultKeys.length > 0 || slackResult.successfulHitKeys.length > 0) {
+    await writePayloadWithNotifiedKeys(predictionsPayload, nextResultKeys, nextHitKeys);
+    console.log(`${LOG_PREFIX} Updated notified keys`, {
+      resultKeyCount: nextResultKeys.length,
+      hitKeyCount: nextHitKeys.length,
+      processedResultKeyCount: processedResultKeys.length,
+      failedHitKeyCount: slackResult.failedHitKeys.length,
+    });
+  } else {
+    console.log(`${LOG_PREFIX} No notified key update needed.`);
   }
-
-  const nextPayload = {
-    ...predictionsPayload,
-    notifiedSlackResultKeys: keepTodayDedupeKeys(
-      [
-        ...retainedNotifiedSlackResultKeys,
-        ...results.map((result) => result.dedupeKey),
-      ],
-      todayDate,
-    ).slice(-1000),
-    slackResultNotifiedAt: new Date().toISOString(),
-  };
-
-  await fs.writeFile(PREDICTIONS_FILE, `${JSON.stringify(nextPayload, null, 2)}\n`, "utf-8");
-
-  console.log(`${LOG_PREFIX} Updated notified result keys: ${results.length}`);
 }
 
 main().catch((error) => {
