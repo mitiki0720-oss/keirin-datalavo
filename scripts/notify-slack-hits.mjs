@@ -474,6 +474,24 @@ function buildDedupeKey(result) {
   ].join(":");
 }
 
+function buildResultDedupeKey(result) {
+  return buildDedupeKey(result);
+}
+
+function buildHitDedupeKey(result) {
+  return [
+    result.date,
+    normalizeVenueName(result.venue),
+    result.raceNo,
+    normalizeRaceId(result.raceId),
+    "hit",
+    normalizeBetTypeLabel(result.betType),
+    normalizePredictionCombination(result.combination),
+    normalizeText(result.resultOrder),
+    "v3",
+  ].join(":");
+}
+
 function keepTodayDedupeKeys(keys, todayDate) {
   if (!todayDate) return [];
   return Array.from(new Set(
@@ -782,7 +800,7 @@ async function postToSlack(results) {
     console.warn(`${LOG_PREFIX} SLACK_WEBHOOK_URL is missing; skip hit send`);
     return {
       successfulHitKeys: [],
-      failedHitKeys: hitResults.map((result) => result.dedupeKey),
+      failedHitKeys: hitResults.map((result) => result.hitKey),
       failureCount: chunks.length,
     };
   }
@@ -800,10 +818,10 @@ async function postToSlack(results) {
     const payload = buildSlackBlockPayload(chunk, meta);
     const sent = await sendSlackPayloadWithFallback(payload, chunk, meta);
     if (sent) {
-      successfulHitKeys.push(...chunk.map((result) => result.dedupeKey));
+      successfulHitKeys.push(...chunk.map((result) => result.hitKey));
     } else {
       failureCount += 1;
-      failedHitKeys.push(...chunk.map((result) => result.dedupeKey));
+      failedHitKeys.push(...chunk.map((result) => result.hitKey));
     }
   }
 
@@ -860,20 +878,20 @@ async function main() {
 
   const slots = findSlotRecords(predictionsPayload);
   const raceIndex = buildRaceIndex(todayFeed);
-  const notifiedKeys = new Set([
-    ...retainedNotifiedSlackResultKeys,
-    ...retainedNotifiedSlackHitKeys,
-  ]);
+  const notifiedResultKeys = new Set(retainedNotifiedSlackResultKeys);
+  const notifiedHitKeys = new Set(retainedNotifiedSlackHitKeys);
   const stats = {
     predictionRecordCount: slots.length,
     todayVenueCount: todayFeed?.venues?.length ?? 0,
     raceIndexCount: raceIndex.size,
-    hasNotifiedKeys: notifiedKeys.size > 0,
+    hasNotifiedKeys: notifiedResultKeys.size > 0 || notifiedHitKeys.size > 0,
     skippedOldPredictions: 0,
     unmatchedTodayPredictions: 0,
     matchedPredictions: 0,
     pendingResults: 0,
     alreadyNotified: 0,
+    skippedAlreadyNotifiedHits: 0,
+    skippedAlreadyProcessedResults: 0,
     notifiedHit: 0,
     notifiedMiss: 0,
     noTicketPredictions: 0,
@@ -915,15 +933,28 @@ async function main() {
       continue;
     }
 
-    const dedupeKey = buildDedupeKey(result);
-    if (notifiedKeys.has(dedupeKey)) {
+    const legacyKey = buildDedupeKey(result);
+    const resultKey = buildResultDedupeKey(result);
+    const hitKey = result.status === "hit" ? buildHitDedupeKey(result) : "";
+    const alreadyHitNotified =
+      result.status === "hit"
+      && (
+        notifiedHitKeys.has(hitKey)
+        || notifiedHitKeys.has(legacyKey)
+        || notifiedResultKeys.has(legacyKey)
+      );
+    const alreadyResultProcessed = result.status !== "hit" && notifiedResultKeys.has(resultKey);
+
+    if (alreadyHitNotified || alreadyResultProcessed) {
       stats.alreadyNotified += 1;
+      if (alreadyHitNotified) stats.skippedAlreadyNotifiedHits += 1;
+      if (alreadyResultProcessed) stats.skippedAlreadyProcessedResults += 1;
       continue;
     }
 
     if (result.status === "hit") stats.notifiedHit += 1;
     if (result.status === "miss") stats.notifiedMiss += 1;
-    results.push({ ...result, dedupeKey });
+    results.push({ ...result, dedupeKey: resultKey, resultKey, hitKey, legacyKey });
   }
 
   console.log(`${LOG_PREFIX} loaded`, {
@@ -941,13 +972,18 @@ async function main() {
   console.log(`${LOG_PREFIX} no-ticket predictions: ${stats.noTicketPredictions}`);
   console.log(`${LOG_PREFIX} pending results: ${stats.pendingResults}`);
   console.log(`${LOG_PREFIX} already notified: ${stats.alreadyNotified}`);
+  console.log(`${LOG_PREFIX} skipped already-notified hits: ${stats.skippedAlreadyNotifiedHits}`);
+  console.log(`${LOG_PREFIX} skipped already-processed results: ${stats.skippedAlreadyProcessedResults}`);
   console.log(`${LOG_PREFIX} notified hit: ${stats.notifiedHit}`);
   console.log(`${LOG_PREFIX} notified miss: ${stats.notifiedMiss}`);
 
   const hitResults = results.filter((result) => result.status === "hit");
   const missResults = results.filter((result) => result.status === "miss");
   console.log(`${LOG_PREFIX} slack send target hit only`, {
-    hitCount: hitResults.length,
+    hitNotificationTargetCount: hitResults.length,
+    newHitNotificationCount: hitResults.length,
+    skippedAlreadyNotifiedHits: stats.skippedAlreadyNotifiedHits,
+    missCount: missResults.length,
     missProcessedOnlyCount: missResults.length,
   });
 
@@ -966,10 +1002,10 @@ async function main() {
   const slackResult = await postToSlack(hitResults);
   const successfulHitKeySet = new Set(slackResult.successfulHitKeys);
   const processedResultKeys = [
-    ...missResults.map((result) => result.dedupeKey),
+    ...missResults.map((result) => result.resultKey),
     ...hitResults
-      .filter((result) => successfulHitKeySet.has(result.dedupeKey))
-      .map((result) => result.dedupeKey),
+      .filter((result) => successfulHitKeySet.has(result.hitKey))
+      .map((result) => result.resultKey),
   ];
 
   console.log(`${LOG_PREFIX} processed key plan`, {
