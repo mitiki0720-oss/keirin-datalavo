@@ -72,6 +72,21 @@ export function normalizeRegistrationNo(value) {
   return /^\d{6}$/u.test(digits) ? digits : null;
 }
 
+export function extractStarterNameRegistrationNo(value) {
+  const text = String(value ?? "").normalize("NFKC");
+  const match = text.match(/(?:^|[\/\s])\u767b\u9332\u756a\u53f7\s*([0-9]{5,6})(?=$|[\/\s])/u);
+  if (!match) return null;
+  const digits = match[1].padStart(6, "0");
+  return normalizeRegistrationNo(digits);
+}
+
+export function stripStarterNameRegistrationNo(value) {
+  return String(value ?? "")
+    .normalize("NFKC")
+    .split(/\/\u767b\u9332\u756a\u53f7\s*[0-9]{5,6}(?=$|\/|\s)/u)[0]
+    .trim();
+}
+
 async function loadOfficialRiderSupplement() {
   try {
     const payload = JSON.parse(await readFile(officialRiderSupplementPath, "utf8"));
@@ -265,6 +280,7 @@ export function resolveRiderIdentity(starter, sources, race = null) {
     const card = sources.cardsByRegistrationNo.get(directRegistrationNo) ?? null;
     const recordedStatus = [
       "registration-no",
+      "parsed-registration-no",
       "unique-player-card-name",
       "manual-override",
     ].includes(starter?.identityStatus)

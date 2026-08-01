@@ -36,6 +36,9 @@ type PredictionGptRiderLike = {
   registration?: unknown;
   registrationNumber?: unknown;
   registrationId?: unknown;
+  registrationNoSource?: unknown;
+  registrationNoStatus?: unknown;
+  registrationNoTrustStatus?: unknown;
   prefecture?: unknown;
   age?: unknown;
   term?: unknown;
@@ -45,6 +48,7 @@ type PredictionGptRiderLike = {
 
 export type PredictionRegistrationNoSource =
   | "entry"
+  | "keirin-jp-entries"
   | "kurari-ex-rider-exact"
   | "kurari-ex-rider-identity"
   | "material-registered-player-card"
@@ -53,6 +57,7 @@ export type PredictionRegistrationNoSource =
 
 export type PredictionRegistrationNoTrustStatus =
   | "explicit-entry-registration"
+  | "official-entry-match"
   | "safe-identity-match"
   | "safe-material-match"
   | "unavailable"
@@ -133,10 +138,18 @@ const resolveRegistrationNo = (
 } => {
   const explicit = explicitRegistrationNo(rider);
   if (explicit !== "null") {
+    const explicitSource = contractValue(rider.registrationNoSource);
+    const explicitStatus = contractValue(
+      rider.registrationNoStatus ?? rider.registrationNoTrustStatus,
+    );
     return {
       registrationNo: explicit,
-      source: "entry",
-      status: "explicit-entry-registration",
+      source: explicitSource === "keirin-jp-entries"
+        ? "keirin-jp-entries"
+        : "entry",
+      status: explicitStatus === "official-entry-match"
+        ? "official-entry-match"
+        : "explicit-entry-registration",
     };
   }
 

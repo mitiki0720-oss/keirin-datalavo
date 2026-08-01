@@ -531,6 +531,9 @@ export type PredictionRiderItem = {
   registration?: string | number;
   registrationNumber?: string | number;
   registrationId?: string | number;
+  registrationNoSource?: string;
+  registrationNoStatus?: string;
+  registrationNoTrustStatus?: string;
   playerId?: string | number;
   racerId?: string | number;
   athleteId?: string | number;
@@ -984,6 +987,7 @@ export const LOCAL_PREDICTION_TODAY_DATA_URL = toPublicPath("/scripts/debug/toda
 export const PREDICTION_TODAY_DATA_URL_CANDIDATES = import.meta.env.DEV
   ? [LOCAL_PREDICTION_TODAY_DATA_URL, PREDICTION_TODAY_DATA_URL]
   : [PREDICTION_TODAY_DATA_URL];
+export const PREDICTION_KEIRIN_JP_ENTRIES_DATA_URL = toPublicPath("/data/races/keirin-jp-entries.generated.json");
 export const UPCOMING_SCHEDULE_DATA_URL = toPublicPath("/data/races/upcoming-schedule.generated.json");
 export const DAILY_PREDICTION_INDEX_URL = toPublicPath("/data/predictions/daily/index.generated.json");
 export const PREDICTION_VENUE_BANK_INDEX_URL = toPublicPath("/data/venues/banks/index.json");
@@ -2296,6 +2300,121 @@ export const normalizePredictionVenueAlias = (value?: string | null) => {
   const normalized = normalizePredictionVenueName(value);
   if (["伊東温泉", "ito-onsen", "itoonsen", "ito"].includes(normalized)) return "伊東";
   return normalized;
+};
+
+type KeirinJpEntriesFeed = {
+  date?: string;
+  venues?: Array<{
+    date?: string;
+    venueCode?: string | number;
+    venueName?: string;
+    races?: Array<{
+      raceNumber?: string | number;
+      entries?: Array<{
+        carNo?: string | number;
+        registrationNo?: string | number;
+        name?: string;
+        prefecture?: string;
+        graduationTerm?: string | number;
+        raceClass?: string;
+      }>;
+    }>;
+  }>;
+};
+
+type KeirinJpEntryRegistrationCandidate = {
+  registrationNo: string;
+  name?: string;
+  prefecture?: string;
+  term?: string | number;
+  className?: string;
+};
+
+const normalizePredictionRegistrationNo = (value: unknown) => {
+  const digits = String(value ?? "").normalize("NFKC").replace(/\D/gu, "");
+  return /^\d{5,6}$/u.test(digits) ? digits.padStart(6, "0") : "";
+};
+
+const buildKeirinJpEntryRegistrationLookup = (feed?: KeirinJpEntriesFeed | null) => {
+  const lookup = new Map<string, KeirinJpEntryRegistrationCandidate | null>();
+  const add = (key: string, candidate: KeirinJpEntryRegistrationCandidate) => {
+    if (!key || !candidate.registrationNo) return;
+    const current = lookup.get(key);
+    if (current === null) return;
+    if (current && current.registrationNo !== candidate.registrationNo) {
+      lookup.set(key, null);
+      return;
+    }
+    lookup.set(key, candidate);
+  };
+
+  for (const venue of feed?.venues ?? []) {
+    const date = String(venue.date ?? feed?.date ?? "").trim();
+    const venueCode = String(venue.venueCode ?? "").trim();
+    const venueNameKey = normalizePredictionVenueName(venue.venueName);
+    for (const race of venue.races ?? []) {
+      const raceNo = Number(race.raceNumber);
+      if (!date || !Number.isFinite(raceNo)) continue;
+      for (const entry of race.entries ?? []) {
+        const carNo = String(entry.carNo ?? "").trim();
+        const registrationNo = normalizePredictionRegistrationNo(entry.registrationNo);
+        if (!carNo || !registrationNo) continue;
+        const candidate = {
+          registrationNo,
+          name: entry.name,
+          prefecture: entry.prefecture,
+          term: entry.graduationTerm,
+          className: entry.raceClass,
+        };
+        if (venueCode) add([date, "code", venueCode, raceNo, carNo].join("|"), candidate);
+        if (venueNameKey) add([date, "venue", venueNameKey, raceNo, carNo].join("|"), candidate);
+      }
+    }
+  }
+
+  return lookup;
+};
+
+const enrichPredictionFeedWithKeirinJpEntries = (
+  feed: PredictionTodayFeed,
+  entriesFeed?: KeirinJpEntriesFeed | null,
+): PredictionTodayFeed => {
+  const lookup = buildKeirinJpEntryRegistrationLookup(entriesFeed);
+  if (lookup.size === 0) return feed;
+
+  let changed = false;
+  const venues = (feed.venues ?? []).map((venue) => {
+    const venueCode = String(venue.venueCode ?? "").trim();
+    const venueNameKey = normalizePredictionVenueName(venue.venue);
+    const races = (venue.races ?? []).map((race) => {
+      const riders = (race.riders ?? []).map((rider) => {
+        if (normalizePredictionRegistrationNo(getPredictionRiderRegistrationNo(rider))) return rider;
+        const carNo = String(rider.carNo ?? "").trim();
+        const raceNo = Number(race.raceNo);
+        if (!carNo || !Number.isFinite(raceNo)) return rider;
+        const codeKey = [feed.date, "code", venueCode, raceNo, carNo].join("|");
+        const venueKey = [feed.date, "venue", venueNameKey, raceNo, carNo].join("|");
+        const candidate = venueCode && lookup.has(codeKey)
+          ? lookup.get(codeKey)
+          : venueNameKey && lookup.has(venueKey)
+            ? lookup.get(venueKey)
+            : undefined;
+        if (!candidate?.registrationNo) return rider;
+        changed = true;
+        return {
+          ...rider,
+          registrationNo: candidate.registrationNo,
+          registrationNoSource: "keirin-jp-entries",
+          registrationNoStatus: "official-entry-match",
+          registrationNoTrustStatus: "official-entry-match",
+        };
+      });
+      return { ...race, riders };
+    });
+    return { ...venue, races };
+  });
+
+  return changed ? { ...feed, venues } : feed;
 };
 
 export const isPredictionOddsSkippedOutsideWindow = (oddsNote?: string | null) =>
@@ -9213,7 +9332,7 @@ useEffect(() => {
 
     const loadPredictionData = async () => {
       try {
-        const [feed, bankIndexResponse, insightIndexResponse] = await Promise.all([
+        const [feed, entriesResponse, bankIndexResponse, insightIndexResponse] = await Promise.all([
           (async () => {
             let lastError: unknown = null;
             const feeds: PredictionTodayFeed[] = [];
@@ -9229,10 +9348,14 @@ useEffect(() => {
             if (feeds.length > 0) return mergePredictionTodayFeedsPreserveRichData(feeds);
             throw lastError ?? new Error("prediction-feed-missing");
           })(),
+          fetch(`${PREDICTION_KEIRIN_JP_ENTRIES_DATA_URL}?t=${Date.now()}`, { cache: "no-store" }).catch(() => null),
           fetch(PREDICTION_VENUE_BANK_INDEX_URL, { cache: "force-cache" }),
           fetch(PREDICTION_VENUE_INSIGHT_INDEX_URL, { cache: "no-cache" }).catch(() => null),
         ]);
 
+        const entriesFeed = entriesResponse && "ok" in entriesResponse && entriesResponse.ok
+          ? (await entriesResponse.json()) as KeirinJpEntriesFeed
+          : null;
         const bankIndex = bankIndexResponse.ok
           ? (await bankIndexResponse.json()) as PredictionVenueBankIndexItem[]
           : [];
@@ -9242,9 +9365,10 @@ useEffect(() => {
 
         if (!isActive) return;
 
-        const sortedVenues = [...(feed.venues ?? [])].sort(comparePredictionVenues);
+        const enrichedFeed = enrichPredictionFeedWithKeirinJpEntries(feed, entriesFeed);
+        const sortedVenues = [...(enrichedFeed.venues ?? [])].sort(comparePredictionVenues);
 
-        setPredictionFeed({ ...feed, venues: sortedVenues });
+        setPredictionFeed({ ...enrichedFeed, venues: sortedVenues });
         setPredictionBankIndex(bankIndex);
         setPredictionInsightGroups(groupVenueInsightEntries(insightIndex));
         setSelectedVenueId((current) => current || sortedVenues[0]?.id || "");

@@ -20,10 +20,12 @@ import {
   writeJson,
 } from "./kurari-ex-history-common.mjs";
 import {
+  extractStarterNameRegistrationNo,
   loadRiderIdentitySources,
   normalizeRiderName,
   parseExplicitStarterTable,
   resolveRiderIdentity,
+  stripStarterNameRegistrationNo,
 } from "./kurari-ex-rider-common.mjs";
 
 function mapBlocks(items, type) {
@@ -118,12 +120,25 @@ async function main() {
       const meta = parseRaceMeta(summaryBlock, predictionBlock?.text ?? resultBlock?.text ?? "");
       const explicitStarters = parseExplicitStarterTable(predictionBlock?.text ?? "");
       const starters = explicitStarters.map((starter) => {
-        const identity = resolveRiderIdentity(starter, riderIdentitySources);
+        const parsedRegistrationNo = extractStarterNameRegistrationNo(starter.name);
+        const cleanName = stripStarterNameRegistrationNo(starter.name);
+        const identityStarter = parsedRegistrationNo
+          ? {
+            ...starter,
+            name: cleanName || starter.name,
+            registrationNo: parsedRegistrationNo,
+            identityStatus: "parsed-registration-no",
+          }
+          : starter;
+        const identity = resolveRiderIdentity(identityStarter, riderIdentitySources);
         return {
           carNo: starter.carNo,
-          name: starter.name,
-          nameKey: normalizeRiderName(starter.name),
+          name: cleanName || starter.name,
+          nameKey: normalizeRiderName(cleanName || starter.name),
           registrationNo: identity.registrationNo,
+          registrationNoSource: parsedRegistrationNo
+            ? "history-starter-name-registrationNo"
+            : undefined,
           prefecture: identity.card?.prefecture ?? "",
           class: identity.card?.class ?? identity.card?.grade ?? "",
           period: null,
