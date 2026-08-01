@@ -1,33 +1,33 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-01T22:02:45.981Z",
+  "generatedAt": "2026-08-01T22:31:49.843Z",
   "source": "kurari-ex-analysis-v1",
   "sourceType": "SEED_ANALYSIS",
   "period": {
     "from": "2026-05-01",
-    "to": "2026-07-31"
+    "to": "2026-08-01"
   },
   "sourceStatus": {
-    "inputFileCount": 2051,
-    "predictionFileCount": 685,
-    "resultFileCount": 685,
-    "summaryFileCount": 681,
-    "completeTripletCount": 680,
+    "inputFileCount": 2081,
+    "predictionFileCount": 695,
+    "resultFileCount": 695,
+    "summaryFileCount": 691,
+    "completeTripletCount": 690,
     "warningCount": 6
   },
   "globalKpi": {
     "sourceType": "SEED",
-    "sourceCount": 681,
-    "raceCount": 4785,
-    "trifectaHits": 1822,
-    "trifectaHitRate": 43.2,
+    "sourceCount": 691,
+    "raceCount": 4811,
+    "trifectaHits": 1853,
+    "trifectaHitRate": 43.6,
     "exactaHits": 334,
     "exactaHitRate": 8.5,
-    "anyTicketHits": 214,
-    "hitRate": 58,
-    "investmentYen": 6607600,
-    "returnYen": 4776850,
-    "recoveryRate": 72.3,
+    "anyTicketHits": 217,
+    "hitRate": 58.8,
+    "investmentYen": 6666000,
+    "returnYen": 4848980,
+    "recoveryRate": 72.7,
     "kimarite": {
       "escape": 36,
       "makuri": 51,
@@ -50,31 +50,31 @@
       "riskLevel": "positive",
       "period": {
         "from": "2026-05-03",
-        "to": "2026-07-31"
+        "to": "2026-08-01"
       },
       "keyWarnings": [
         {
           "tag": "TIME_SLOT_BIAS",
           "label": "時間帯差を確認",
-          "evidenceCount": 28,
+          "evidenceCount": 29,
           "confidence": "high"
         },
         {
           "tag": "CLASS_CONTEXT",
           "label": "級班条件を分離",
-          "evidenceCount": 27,
+          "evidenceCount": 28,
           "confidence": "high"
         },
         {
           "tag": "SOLO_RIDER_ALERT",
           "label": "単騎の差し込みを警戒",
-          "evidenceCount": 25,
+          "evidenceCount": 26,
           "confidence": "high"
         },
         {
           "tag": "WIND_SENSITIVE",
           "label": "風条件を確認",
-          "evidenceCount": 23,
+          "evidenceCount": 24,
           "confidence": "high"
         }
       ],
@@ -183,36 +183,36 @@
     {
       "venueKey": "sasebo",
       "venueName": "佐世保",
-      "score": 94,
+      "score": 97,
       "rankHint": "A",
       "riskLevel": "positive",
       "period": {
         "from": "2026-06-28",
-        "to": "2026-07-31"
+        "to": "2026-08-01"
       },
       "keyWarnings": [
         {
           "tag": "BANTE_SASHI_ALERT",
           "label": "番手差しを警戒",
-          "evidenceCount": 13,
+          "evidenceCount": 14,
           "confidence": "high"
         },
         {
           "tag": "CLASS_CONTEXT",
           "label": "級班条件を分離",
-          "evidenceCount": 13,
+          "evidenceCount": 14,
           "confidence": "high"
         },
         {
           "tag": "MAKURI_ALERT",
           "label": "捲り展開を警戒",
-          "evidenceCount": 13,
+          "evidenceCount": 14,
           "confidence": "high"
         },
         {
           "tag": "OTHER_LINE_ALERT",
           "label": "別線の浮上を警戒",
-          "evidenceCount": 13,
+          "evidenceCount": 14,
           "confidence": "high"
         }
       ],
@@ -257,31 +257,31 @@
       "riskLevel": "positive",
       "period": {
         "from": "2026-05-04",
-        "to": "2026-07-31"
+        "to": "2026-08-01"
       },
       "keyWarnings": [
         {
           "tag": "CLASS_CONTEXT",
           "label": "級班条件を分離",
-          "evidenceCount": 27,
+          "evidenceCount": 28,
           "confidence": "high"
         },
         {
           "tag": "TIME_SLOT_BIAS",
           "label": "時間帯差を確認",
-          "evidenceCount": 27,
+          "evidenceCount": 28,
           "confidence": "high"
         },
         {
           "tag": "WIND_SENSITIVE",
           "label": "風条件を確認",
-          "evidenceCount": 27,
+          "evidenceCount": 28,
           "confidence": "high"
         },
         {
           "tag": "SOLO_RIDER_ALERT",
           "label": "単騎の差し込みを警戒",
-          "evidenceCount": 21,
+          "evidenceCount": 22,
           "confidence": "high"
         }
       ],
@@ -383,6 +383,75 @@
         {
           "priority": 6,
           "text": "タグ： 男子新人アドバンス 単騎戦想定 位置取り勝負 捲り差し 踏み直し 地元注意 三着荒れ 中穴",
+          "sourceType": "seedNotes"
+        }
+      ]
+    },
+    {
+      "venueKey": "odawara",
+      "venueName": "小田原",
+      "score": 91,
+      "rankHint": "A",
+      "riskLevel": "positive",
+      "period": {
+        "from": "2026-05-10",
+        "to": "2026-08-01"
+      },
+      "keyWarnings": [
+        {
+          "tag": "CLASS_CONTEXT",
+          "label": "級班条件を分離",
+          "evidenceCount": 21,
+          "confidence": "high"
+        },
+        {
+          "tag": "TIME_SLOT_BIAS",
+          "label": "時間帯差を確認",
+          "evidenceCount": 21,
+          "confidence": "high"
+        },
+        {
+          "tag": "WIND_SENSITIVE",
+          "label": "風条件を確認",
+          "evidenceCount": 21,
+          "confidence": "high"
+        },
+        {
+          "tag": "BANTE_SASHI_ALERT",
+          "label": "番手差しを警戒",
+          "evidenceCount": 12,
+          "confidence": "high"
+        }
+      ],
+      "nextActions": [
+        {
+          "priority": 1,
+          "text": "級班とレース種別を分けて傾向を評価する",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 2,
+          "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 3,
+          "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 4,
+          "text": "先行軸だけで固定せず、番手差しの逆目を残す",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 5,
+          "text": "先行争いがある場合は別線の捲り筋を残す",
+          "sourceType": "predictionGuidance"
+        },
+        {
+          "priority": 6,
+          "text": "北北東24km/hの強風で、4下山が早めに踏まされる展開リスクを過小評価。1安達-5藤縄ラインの逆転を3着保護止まりにしたのが敗因。",
           "sourceType": "seedNotes"
         }
       ]
@@ -809,31 +878,31 @@
       "riskLevel": "positive",
       "period": {
         "from": "2026-05-04",
-        "to": "2026-07-31"
+        "to": "2026-08-01"
       },
       "keyWarnings": [
         {
           "tag": "CLASS_CONTEXT",
           "label": "級班条件を分離",
-          "evidenceCount": 29,
+          "evidenceCount": 30,
           "confidence": "high"
         },
         {
           "tag": "TIME_SLOT_BIAS",
           "label": "時間帯差を確認",
-          "evidenceCount": 29,
+          "evidenceCount": 30,
           "confidence": "high"
         },
         {
           "tag": "SOLO_RIDER_ALERT",
           "label": "単騎の差し込みを警戒",
-          "evidenceCount": 27,
+          "evidenceCount": 28,
           "confidence": "high"
         },
         {
           "tag": "OTHER_LINE_ALERT",
           "label": "別線の浮上を警戒",
-          "evidenceCount": 23,
+          "evidenceCount": 24,
           "confidence": "high"
         }
       ],
@@ -935,75 +1004,6 @@
         {
           "priority": 6,
           "text": "買い目照合上の注意",
-          "sourceType": "seedNotes"
-        }
-      ]
-    },
-    {
-      "venueKey": "odawara",
-      "venueName": "小田原",
-      "score": 85,
-      "rankHint": "A",
-      "riskLevel": "positive",
-      "period": {
-        "from": "2026-05-10",
-        "to": "2026-07-25"
-      },
-      "keyWarnings": [
-        {
-          "tag": "CLASS_CONTEXT",
-          "label": "級班条件を分離",
-          "evidenceCount": 20,
-          "confidence": "high"
-        },
-        {
-          "tag": "TIME_SLOT_BIAS",
-          "label": "時間帯差を確認",
-          "evidenceCount": 20,
-          "confidence": "high"
-        },
-        {
-          "tag": "WIND_SENSITIVE",
-          "label": "風条件を確認",
-          "evidenceCount": 20,
-          "confidence": "high"
-        },
-        {
-          "tag": "BANTE_SASHI_ALERT",
-          "label": "番手差しを警戒",
-          "evidenceCount": 11,
-          "confidence": "high"
-        }
-      ],
-      "nextActions": [
-        {
-          "priority": 1,
-          "text": "級班とレース種別を分けて傾向を評価する",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 2,
-          "text": "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 3,
-          "text": "風向と風速を確認し、先行残りと差し届きを固定評価しない",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 4,
-          "text": "先行軸だけで固定せず、番手差しの逆目を残す",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 5,
-          "text": "先行争いがある場合は別線の捲り筋を残す",
-          "sourceType": "predictionGuidance"
-        },
-        {
-          "priority": 6,
-          "text": "北北東24km/hの強風で、4下山が早めに踏まされる展開リスクを過小評価。1安達-5藤縄ラインの逆転を3着保護止まりにしたのが敗因。",
           "sourceType": "seedNotes"
         }
       ]
@@ -1223,31 +1223,31 @@
       "riskLevel": "positive",
       "period": {
         "from": "2026-05-01",
-        "to": "2026-07-31"
+        "to": "2026-08-01"
       },
       "keyWarnings": [
         {
           "tag": "BANTE_SASHI_ALERT",
           "label": "番手差しを警戒",
-          "evidenceCount": 14,
+          "evidenceCount": 15,
           "confidence": "high"
         },
         {
           "tag": "CLASS_CONTEXT",
           "label": "級班条件を分離",
-          "evidenceCount": 14,
+          "evidenceCount": 15,
           "confidence": "high"
         },
         {
           "tag": "MAKURI_ALERT",
           "label": "捲り展開を警戒",
-          "evidenceCount": 14,
+          "evidenceCount": 15,
           "confidence": "high"
         },
         {
           "tag": "TIME_SLOT_BIAS",
           "label": "時間帯差を確認",
-          "evidenceCount": 14,
+          "evidenceCount": 15,
           "confidence": "high"
         }
       ],
@@ -1361,31 +1361,31 @@
       "riskLevel": "caution",
       "period": {
         "from": "2026-05-05",
-        "to": "2026-07-31"
+        "to": "2026-08-01"
       },
       "keyWarnings": [
         {
           "tag": "CLASS_CONTEXT",
           "label": "級班条件を分離",
-          "evidenceCount": 32,
+          "evidenceCount": 33,
           "confidence": "high"
         },
         {
           "tag": "TIME_SLOT_BIAS",
           "label": "時間帯差を確認",
-          "evidenceCount": 32,
+          "evidenceCount": 33,
           "confidence": "high"
         },
         {
           "tag": "WIND_SENSITIVE",
           "label": "風条件を確認",
-          "evidenceCount": 32,
+          "evidenceCount": 33,
           "confidence": "high"
         },
         {
           "tag": "SOLO_RIDER_ALERT",
           "label": "単騎の差し込みを警戒",
-          "evidenceCount": 23,
+          "evidenceCount": 24,
           "confidence": "high"
         }
       ],
@@ -1568,31 +1568,31 @@
       "riskLevel": "caution",
       "period": {
         "from": "2026-05-10",
-        "to": "2026-07-31"
+        "to": "2026-08-01"
       },
       "keyWarnings": [
         {
           "tag": "BANTE_SASHI_ALERT",
           "label": "番手差しを警戒",
-          "evidenceCount": 16,
+          "evidenceCount": 17,
           "confidence": "high"
         },
         {
           "tag": "CLASS_CONTEXT",
           "label": "級班条件を分離",
-          "evidenceCount": 16,
+          "evidenceCount": 17,
           "confidence": "high"
         },
         {
           "tag": "SOLO_RIDER_ALERT",
           "label": "単騎の差し込みを警戒",
-          "evidenceCount": 16,
+          "evidenceCount": 17,
           "confidence": "high"
         },
         {
           "tag": "TIME_SLOT_BIAS",
           "label": "時間帯差を確認",
-          "evidenceCount": 16,
+          "evidenceCount": 17,
           "confidence": "high"
         }
       ],
@@ -1637,31 +1637,31 @@
       "riskLevel": "caution",
       "period": {
         "from": "2026-05-04",
-        "to": "2026-07-31"
+        "to": "2026-08-01"
       },
       "keyWarnings": [
         {
           "tag": "CLASS_CONTEXT",
           "label": "級班条件を分離",
-          "evidenceCount": 18,
+          "evidenceCount": 19,
           "confidence": "high"
         },
         {
           "tag": "SOLO_RIDER_ALERT",
           "label": "単騎の差し込みを警戒",
-          "evidenceCount": 18,
+          "evidenceCount": 19,
           "confidence": "high"
         },
         {
           "tag": "TIME_SLOT_BIAS",
           "label": "時間帯差を確認",
-          "evidenceCount": 18,
+          "evidenceCount": 19,
           "confidence": "high"
         },
         {
           "tag": "WIND_SENSITIVE",
           "label": "風条件を確認",
-          "evidenceCount": 17,
+          "evidenceCount": 18,
           "confidence": "high"
         }
       ],
@@ -1844,31 +1844,31 @@
       "riskLevel": "caution",
       "period": {
         "from": "2026-05-13",
-        "to": "2026-07-31"
+        "to": "2026-08-01"
       },
       "keyWarnings": [
         {
           "tag": "CLASS_CONTEXT",
           "label": "級班条件を分離",
-          "evidenceCount": 18,
+          "evidenceCount": 19,
           "confidence": "high"
         },
         {
           "tag": "TIME_SLOT_BIAS",
           "label": "時間帯差を確認",
-          "evidenceCount": 18,
+          "evidenceCount": 19,
           "confidence": "high"
         },
         {
           "tag": "WIND_SENSITIVE",
           "label": "風条件を確認",
-          "evidenceCount": 18,
+          "evidenceCount": 19,
           "confidence": "high"
         },
         {
           "tag": "BANTE_SASHI_ALERT",
           "label": "番手差しを警戒",
-          "evidenceCount": 16,
+          "evidenceCount": 17,
           "confidence": "high"
         }
       ],
