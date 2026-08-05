@@ -1,17 +1,35 @@
 import type { MonthlyReviewDigest, MonthlyReviewIndexItem } from "../types/monthlyReview";
 
 const MONTHLY_REVIEW_INDEX_URL = "/data/monthly-review/index.json";
-export const MONTHLY_TICKET_POLICY_VERSION = "v2026-07";
-export const MONTHLY_TICKET_MODE = "STANDARD_18_TRIFECTA_VALUE";
-export const MONTHLY_RECOMMENDED_POINTS = 18;
-export const MONTHLY_INVESTMENT_YEN = 1800;
+export const MONTHLY_TICKET_POLICY_VERSION = "v2026-08";
+export const MONTHLY_TICKET_MODE = "BASE_8_SHADOW_18_TRIFECTA";
+export const MONTHLY_RECOMMENDED_POINTS = 8;
+export const MONTHLY_INVESTMENT_YEN = 800;
 export const MONTHLY_TICKET_REASON_TAGS = [
-  "monthly-review-value-rule",
-  "default-standard-18",
-  "trifecta-value-focused",
-  "cheap-mainline-max-4",
-  "exacta-exception-only",
+  "monthly-review-august-rule",
+  "base-8",
+  "max-14",
+  "shadow-18-audit",
+  "head-candidates-2-to-4",
+  "second-third-correction",
 ] as const;
+
+const FALLBACK_DIGEST: MonthlyReviewDigest = {
+  stableCohort: "2026-05-01〜2026-08-04",
+  hitRateAny: "監査レポート参照",
+  hitRate3tan: "監査レポート参照",
+  hitRate2tan: "8月新ルールでは原則購入対象外",
+  thirdOnlyMiss: "2・3着補正で監査",
+  headMiss: "頭候補は2〜4人まで",
+  targetHitRateAny: "的中率より回収率を優先",
+  targetHitRate3tan: "標準8点の質を優先",
+  targetHitRate2tan: "原則購入対象外",
+  targetRecoveryRate: "80〜90%",
+  targetThirdOnlyMiss: "影買い目18候補で監査",
+  fixedFormat: "標準8点 / 最大14点 / 18候補は影買い目 / 1点100円固定",
+  mission: "18点固定購入を廃止し、標準8点・最大14点・影18候補で回収率を改善する",
+  rawText: "",
+};
 
 const toPublicUrl = (path: string) => {
   const base = import.meta.env.BASE_URL || "/";
@@ -63,20 +81,72 @@ const matchFirst = (text: string, patterns: RegExp[]) => {
 
 export function parseMonthlyReviewDigest(text: string): MonthlyReviewDigest {
   const rawText = String(text ?? "");
+  const digest: MonthlyReviewDigest = {
+    stableCohort: matchFirst(rawText, [
+      /STABLE COHORT\s*[:：]\s*([^\n]+)/i,
+      /対象期間\s*[:：]\s*([^\n]+)/u,
+      /scope\s*[:：]\s*([^\n]+)/i,
+    ]),
+    hitRateAny: matchFirst(rawText, [
+      /ANY HIT RATE\s*[:：]\s*([^\n]+)/i,
+      /いずれか的中率\s*[:：]\s*([^\n]+)/u,
+      /的中率\s*[:：]\s*([^\n]+)/u,
+    ]),
+    hitRate3tan: matchFirst(rawText, [
+      /3TAN HIT RATE\s*[:：]\s*([^\n]+)/i,
+      /3連単(?:的中率)?\s*[:：]\s*([^\n]+)/u,
+    ]),
+    hitRate2tan: matchFirst(rawText, [
+      /2TAN HIT RATE\s*[:：]\s*([^\n]+)/i,
+      /2車単(?:的中率)?\s*[:：]\s*([^\n]+)/u,
+    ]),
+    thirdOnlyMiss: matchFirst(rawText, [
+      /THIRD-ONLY MISS\s*[:：]\s*([^\n]+)/i,
+      /3着(?:抜け|補正)\s*[:：]\s*([^\n]+)/u,
+    ]),
+    headMiss: matchFirst(rawText, [
+      /HEAD MISS\s*[:：]\s*([^\n]+)/i,
+      /頭候補\s*[:：]\s*([^\n]+)/u,
+    ]),
+    targetHitRateAny: matchFirst(rawText, [
+      /TARGET ANY HIT RATE\s*[:：]\s*([^\n]+)/i,
+      /目標.*的中率\s*[:：]\s*([^\n]+)/u,
+    ]),
+    targetHitRate3tan: matchFirst(rawText, [
+      /TARGET 3TAN HIT RATE\s*[:：]\s*([^\n]+)/i,
+      /目標.*3連単\s*[:：]\s*([^\n]+)/u,
+    ]),
+    targetHitRate2tan: matchFirst(rawText, [
+      /TARGET 2TAN HIT RATE\s*[:：]\s*([^\n]+)/i,
+      /目標.*2車単\s*[:：]\s*([^\n]+)/u,
+    ]),
+    targetRecoveryRate: matchFirst(rawText, [
+      /TARGET RECOVERY RATE\s*[:：]\s*([^\n]+)/i,
+      /回収率\s*[:：]\s*([^\n]+)/u,
+      /回収率80[〜～-]90%/u,
+    ]),
+    targetThirdOnlyMiss: matchFirst(rawText, [
+      /TARGET THIRD-ONLY MISS\s*[:：]\s*([^\n]+)/i,
+      /影買い目\s*[:：]\s*([^\n]+)/u,
+    ]),
+    fixedFormat: matchFirst(rawText, [
+      /FIXED FORMAT\s*[:：]\s*([^\n]+)/i,
+      /標準8点[^\n]*/u,
+      /最大14点[^\n]*/u,
+    ]),
+    mission: matchFirst(rawText, [
+      /CURRENT MISSION\s*[:：]\s*([^\n]+)/i,
+      /18点固定(?:購入)?を廃止[^\n]*/u,
+      /8月新ルール[^\n]*/u,
+    ]),
+    rawText,
+  };
+
   return {
-    stableCohort: matchFirst(rawText, [/STABLE COHORT\s*[:：]\s*([^\n]+)/i, /安定母集団\s*[:：]\s*([^\n]+)/u, /有効R\s*[:：]\s*([^\n]+)/u]),
-    hitRateAny: matchFirst(rawText, [/ANY HIT RATE\s*[:：]\s*([^\n]+)/i, /いずれか的中率\s*[:：]\s*([^\n]+)/u]),
-    hitRate3tan: matchFirst(rawText, [/3TAN HIT RATE\s*[:：]\s*([^\n]+)/i, /3連単的中率\s*[:：]\s*([^\n]+)/u]),
-    hitRate2tan: matchFirst(rawText, [/2TAN HIT RATE\s*[:：]\s*([^\n]+)/i, /2車単的中率\s*[:：]\s*([^\n]+)/u]),
-    thirdOnlyMiss: matchFirst(rawText, [/THIRD-ONLY MISS\s*[:：]\s*([^\n]+)/i, /3着だけ抜け\s*[:：]\s*([^\n]+)/u]),
-    headMiss: matchFirst(rawText, [/HEAD MISS\s*[:：]\s*([^\n]+)/i, /1着候補不一致\s*[:：]\s*([^\n]+)/u]),
-    targetHitRateAny: matchFirst(rawText, [/TARGET ANY HIT RATE\s*[:：]\s*([^\n]+)/i, /目標いずれか的中率\s*[:：]\s*([^\n]+)/u, /^-\s*いずれか的中率\s+([^\n]+)/mu]),
-    targetHitRate3tan: matchFirst(rawText, [/TARGET 3TAN HIT RATE\s*[:：]\s*([^\n]+)/i, /目標3連単的中率\s*[:：]\s*([^\n]+)/u, /^-\s*3連単的中率\s+([^\n]+)/mu]),
-    targetHitRate2tan: matchFirst(rawText, [/TARGET 2TAN HIT RATE\s*[:：]\s*([^\n]+)/i, /目標2車単的中率\s*[:：]\s*([^\n]+)/u, /^-\s*2車単的中率\s+([^\n]+)/mu]),
-    targetRecoveryRate: matchFirst(rawText, [/TARGET RECOVERY RATE\s*[:：]\s*([^\n]+)/i, /目標回収率\s*[:：]\s*([^\n]+)/u, /^-\s*回収率\s+([^\n]+)/mu]),
-    targetThirdOnlyMiss: matchFirst(rawText, [/TARGET THIRD-ONLY MISS\s*[:：]\s*([^\n]+)/i, /目標3着抜け率\s*[:：]\s*([^\n]+)/u]),
-    fixedFormat: matchFirst(rawText, [/FIXED FORMAT\s*[:：]\s*([^\n]+)/i, /固定フォーマット\s*[:：]\s*([^\n]+)/u]),
-    mission: matchFirst(rawText, [/CURRENT MISSION\s*[:：]\s*([^\n]+)/i, /最優先課題\s*[:：]\s*([^\n]+)/u]),
+    ...FALLBACK_DIGEST,
+    ...Object.fromEntries(
+      Object.entries(digest).filter(([, value]) => value !== ""),
+    ),
     rawText,
   };
 }
@@ -102,43 +172,49 @@ export function buildMonthlyPredictionGuidance({
 
   const flags: string[] = [];
   const title = `${raceTitle} ${lineup}`.trim();
-  if (!lineup.trim() || /未取得|未掲載|なし/.test(lineup)) flags.push("並び未掲載: ライン固定で決め打ちしない");
-  if (/新人|アドバンス|男ア|ガールズ新人/u.test(title)) flags.push("新人戦・アドバンス戦: 個々の走力・直近成績・上がりを優先");
-  if (/ガールズ/u.test(title)) flags.push("ガールズ戦: ライン固定ではなく位置取り・自力実績を優先");
-  if (hasVenueMaster) flags.push("会場別マスター分析あり: 数値・分戦別ルールを確認する");
-  if (hasReviewSummary) flags.push("Summary学習メモあり: 直近レビュー由来の注意点も反映する");
+  if (!lineup.trim() || /未取得|未掲載|なし/u.test(lineup)) {
+    flags.push("ライン未取得: ライン固定で決め打ちしない");
+  }
+  if (/新人|アドバンス|男ア|ガールズ新人/u.test(title)) {
+    flags.push("新人戦・アドバンス戦: 脚力差と上がりを優先し、影候補で監査する");
+  }
+  if (/ガールズ/u.test(title)) {
+    flags.push("ガールズ戦: LOW_VALUE_4_6候補。価値が薄ければ買いすぎない");
+  }
+  if (hasVenueMaster) flags.push("会場マスターあり: 価値型会場か低効率会場か確認する");
+  if (hasReviewSummary) flags.push("Summary学習メモあり: 直近レビュー由来の注意点を反映する");
   if (hasRegisteredRiderMemo) flags.push("登録選手特徴あり: 選手カードの強み・警戒を確認する");
-  if (isCancelled) flags.push("中止: 予想対象から除外");
+  if (isCancelled) flags.push("中止: 予想対象から除外する");
 
   return [
-    "[N. 月次振り返り反映 / 今回レースの注意点]",
+    "[N. 月次振り返り反映 / 2026年8月 3か月深掘り監査ルール]",
     "",
     `【可変点数ルール ${MONTHLY_TICKET_POLICY_VERSION}】`,
-    "- 月次振り返り: 反映済み",
-    "- 7/14時点の新ルール",
-    "- 目的は的中率の最大化ではなく、払戻単価と回収率の改善",
-    "- 1点100円固定",
-    "- 基本は3連単18点",
-    "- 点数は14〜20点可変",
-    "- 堅いレースは14点、標準レースは18点、荒れ含みレースは20点まで",
-    "- 原則3連単のみ",
-    "- 2車単は原則なし",
-    "- ただし20倍以上が見込める穴頭の2車単のみ例外的に採用可",
-    "- 安い本線は完全には捨てず、最大4点までに制限する",
-    "- 残りは中穴〜大穴へ配分する",
-    "- 点数を増やす理由を買目設計メモに必ず記録する",
-    `- 最優先課題: ${digest.mission || "的中率の最大化ではなく、払戻単価と回収率を改善する"}`,
+    "- 18点固定購入は廃止。",
+    "- 標準は3連単8点=800円。",
+    "- 拡張は10点=1,000円。",
+    "- 価値条件が強い場合は12点=1,200円。",
+    "- 最大は14点=1,400円。",
+    "- 18点は購入せず、影買い目として保存・監査する。",
+    "- 頭候補は2〜4人まで。",
+    "- 頭候補5人以上が必要なら見送り候補。",
+    "- 追加点は新しい頭ではなく2着・3着補正へ使う。",
+    "- 大穴頭は最後。根拠の薄い大穴固定枠は置かない。",
+    "- 2車単parser/過去照合は残すが、8月新ルールでは原則購入対象外。",
+    "- 投資額は保存された購入買い目数 * 100。影買い目は投資額に含めない。",
+    "- 買い目ごとに購入順位、購入/影買い目、役割、予想時オッズ、配当帯、展開理由を保存する。",
+    `- 目標回収率: ${digest.targetRecoveryRate || "80〜90%"}`,
+    `- 現在ミッション: ${digest.mission || FALLBACK_DIGEST.mission}`,
     "",
-    "【目標】",
-    `- いずれか的中率: ${digest.targetHitRateAny || "25〜32%でもOK"}`,
-    `- 3連単的中率: ${digest.targetHitRate3tan || "22〜28%でもOK"}`,
-    `- 回収率: ${digest.targetRecoveryRate || "80%以上"}`,
-    "- 平均払戻を上げる",
-    "- 5,000円以上的中率を上げる",
-    "- 万車的中本数を月5本以上へ近づける",
-    "- 1000倍超えは月1本を狙う",
+    "【点数モード】",
+    "- LOW_VALUE_4_6: ガールズ、堅いモーニングF2、低効率会場。価値が薄ければ4〜6点。",
+    "- BASE_8: 標準。安め本線2〜4点、中穴2〜4点、3着保護/順番補正2点。",
+    "- VALUE_10: 価値条件2つ以上。5,000〜30,000円帯が複数ある時。",
+    "- STRONG_VALUE_12: 価値条件3つ以上。S級/G3/価値型会場など根拠が重なる時。",
+    "- MAX_14: G3/S級/価値型会場で展開根拠が明確。追加点を2・3着補正へ使える時のみ。",
+    "- SHADOW_ONLY: 頭候補5人以上、根拠薄い大穴、展開が散るレース。購入せず研究のみ。",
     "",
-    "【レースごとの可変点数メタ情報】",
+    "【レースごとのメタ情報】",
     `- ticketMode: ${MONTHLY_TICKET_MODE}`,
     `- recommendedPoints: ${MONTHLY_RECOMMENDED_POINTS}`,
     `- investmentYen: ${MONTHLY_INVESTMENT_YEN}`,
@@ -146,67 +222,10 @@ export function buildMonthlyPredictionGuidance({
     ...MONTHLY_TICKET_REASON_TAGS.map((tag) => `  - ${tag}`),
     "",
     "【予想依頼テンプレ】",
-    "{会場名}競輪場{グレード}、{日付}、{開催日数}、{R}を月次振り返り反映済みの可変点数ルールで予想してください。",
-    "※オッズは記載されているオッズをそのまま使うのではなく、展開をしっかり丁寧に考えた買い目を記載してください。",
-    "選手の近況調子がいい・悪いなどは、KDreams出走表詳細、前回出走レース成績、KURARI EX、月次振り返りを参考にしてください。",
-    "必ず1Rごとにコピーしやすい形で送ってください。",
+    "{会場名}競輪場{グレード}、{日付}、{R}を、8月新ルール（標準8点・最大14点・影18候補）で予想してください。",
+    "購入買い目と影買い目を分け、各買い目に購入順位・役割・予想時オッズ・配当帯・展開理由を必ず付けてください。",
+    "登録番号など不明な項目はsource contractを優先し、推測補完しないでください。",
     "",
-    "～絶対にほしい情報～",
-    "1. 日付",
-    "2. 会場",
-    "3. R",
-    "4. 車番",
-    "5. 選手名",
-    "6. 登録番号",
-    "7. 府県",
-    "8. 年齢",
-    "9. 期",
-    "10. 級班",
-    "11. source名",
-    "12. source取得日時",
-    "13. source種別（official / user-entered-from-official / unknown）",
-    "登録番号など不明な項目は、素材内のsource contractを優先し、fake補完しないでください。",
-    "",
-    "【点数タイプ】",
-    "- FIRM_14: 14点 / 堅そうなレース。堅いレースで18点買いすぎない",
-    "- STANDARD_18: 18点 / 基本形。3連単配当寄せの標準",
-    "- VALUE_18: 18点 / 中穴重視。50〜199倍を主戦場にする",
-    "- VOLATILE_18_20: 18〜20点 / 荒れ含み。200〜999倍を厚めに混ぜる",
-    "- CAUTIOUS_14_16: 14〜16点 / 穴狙いだが展開根拠を慎重に扱う",
-    "",
-    "【点数構成】",
-    "- 堅そうなレース 14点: 安め本線4 + 中穴8 + 大穴2 + 超大穴0",
-    "- 標準レース 18点: 安め本線4 + 中穴8 + 大穴4 + 超大穴2",
-    "- 荒れそうなレース 20点: 安め本線3 + 中穴8 + 大穴6 + 超大穴3",
-    "- 安め本線: 10〜49倍まで。最大4点。当たりを完全に捨てないための保険。ここは絶対に広げない",
-    "- 中穴: 50〜199倍。主戦場",
-    "- 大穴: 200〜999倍。展開根拠がある時に入れる",
-    "- 超大穴: 1000倍超え。1〜3点まで。毎回当てに行く枠ではない",
-    "- 〜9.9倍: 原則買わない",
-    "",
-    "【印ルール】",
-    "- 🔥 的中自信度",
-    "- 💎 中穴妙味",
-    "- ⚡ 大穴・荒れ警戒",
-    "- 🧨 1000倍超えロマン枠",
-    "- 🛡️ 安め保険",
-    "",
-    "【点数決定】",
-    "- 🔥🔥🔥 / 💎なし → 14点。安め4 + 中穴8 + 大穴2",
-    "- 🔥🔥 / 💎あり → 18点。標準型",
-    "- 🔥 / 💎💎 → 18点。中穴重視",
-    "- 🔥 / 💎 / ⚡あり → 18〜20点。大穴込み",
-    "- 🔥なし / ⚡⚡ → 14〜16点。穴狙いだけど慎重",
-    "- 🧨あり → 超大穴1〜2点だけ追加",
-    "",
-    "【今回レースで必ず考えること】",
-    "- 🔥が強いから点数を増やすのではなく、💎や⚡があるから点数を増やす",
-    "- 50倍未満を買いすぎない",
-    "- 安い的中を完全に捨てず、4点だけ残す",
-    "- 残りを中穴〜大穴へ振る",
-    "- 安め4点の的中率、中穴〜大穴枠の的中率、平均払戻、5,000円以上的中率、万車的中本数を確認する",
-    "- 2車単を入れる場合は、20倍以上の穴頭である根拠を買目設計メモに残す",
-    "- 根拠なく高配当狙いへ寄せず、fake判定・fake補完をしない",
-    ...(flags.length ? ["", "【今回レースの自動注意フラグ】", ...flags.map((flag) => `- ${flag}`)] : []),
+    ...(flags.length ? ["【今回レースの自動注意フラグ】", ...flags.map((flag) => `- ${flag}`)] : []),
   ].join("\n");
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+﻿import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { buildMonthlyPredictionGuidance, loadMonthlyReviewIndex, loadMonthlyReviewText, parseMonthlyReviewDigest } from "../lib/monthlyReviewInsights";
 import type { MonthlyReviewDigest, MonthlyReviewIndexItem } from "../types/monthlyReview";
 import { PAGE_MAX_WIDTH, SiteHeader, useIsMobile } from "./PageImplementations";
@@ -21,11 +21,10 @@ const fallbackDigest: MonthlyReviewDigest = {
   targetHitRate2tan: "未取得",
   targetRecoveryRate: "未取得",
   targetThirdOnlyMiss: "未取得",
-  fixedFormat: "基本18点 / 14〜20点可変 / 原則3連単のみ / 1点100円固定",
-  mission: "的中率の最大化ではなく、払戻単価と回収率を改善する",
+  fixedFormat: "標準8点 / 最大14点 / 18候補は影買い目 / 1点100円固定",
+  mission: "18点固定を廃止し、回収率80〜90%を狙う8月運用へ切り替える",
   rawText: "",
 };
-
 const metricCards = (digest: MonthlyReviewDigest) => [
   { label: "STABLE COHORT", value: digest.stableCohort || "未取得", note: "安定評価対象" },
   { label: "ANY HIT RATE", value: digest.hitRateAny || "未取得", note: "いずれか的中" },
@@ -34,19 +33,20 @@ const metricCards = (digest: MonthlyReviewDigest) => [
 ];
 
 const playbookItems = [
-  { title: "FIRM 14", body: "堅そうなレース。安め本線4点、中穴8点、大穴2点。超大穴と2車単は原則入れない。" },
-  { title: "STANDARD 18", body: "基本形。安め本線4点、中穴8点、大穴4点、超大穴2点。中心は3連単50〜199倍。" },
-  { title: "VOLATILE 20", body: "荒れ含みレース。安め3点、中穴8点、大穴6点、超大穴3点まで。根拠が明確な時だけ。" },
+  { title: "BASE_8", body: "標準。安め本線2〜4点、中穴2〜4点、3着保護/順番補正2点。3連単8点=800円を基本にする。" },
+  { title: "VALUE_10_12", body: "価値条件あり。S級/G3/価値型会場/5,000〜30,000円帯が複数ある時だけ10〜12点へ拡張する。" },
+  { title: "MAX_14", body: "最大購入。展開シナリオが2つ以内で、追加点を新しい頭ではなく2・3着補正に使える時のみ。" },
+  { title: "SHADOW_18", body: "購入しない研究候補。18候補を生成し、非購入の影買い目として的中監査する。投資額には含めない。" },
 ];
 
 const raceTypeItems = [
-  { title: "FIRM_14", body: "🔥🔥🔥かつ💎なし。安め4 + 中穴8 + 大穴2。堅いレースで18点買いすぎない。" },
-  { title: "STANDARD_18", body: "🔥🔥かつ💎あり。安め4 + 中穴8 + 大穴4 + 超大穴2の基本形。" },
-  { title: "VALUE_18", body: "🔥かつ💎💎。50〜199倍を主戦場にして、中穴枠を厚く使う。" },
-  { title: "VOLATILE_18_20", body: "🔥 / 💎 / ⚡あり。200〜999倍を混ぜ、1000倍超えは1〜3点だけ。" },
-  { title: "CAUTIOUS_14_16", body: "🔥なし / ⚡⚡。穴狙いでも慎重に14〜16点へ抑える。" },
+  { title: "LOW_VALUE_4_6", body: "ガールズ、堅いモーニングF2、低効率会場。無理に8点へ広げず、価値が薄ければ4〜6点に抑える。" },
+  { title: "BASE_8", body: "標準。頭候補は2〜4人まで。追加点は2・3着補正へ使い、1点100円の800円運用にする。" },
+  { title: "VALUE_10", body: "価値条件2つ以上。5,000〜30,000円帯に複数の現実味がある時だけ10点へ拡張する。" },
+  { title: "STRONG_VALUE_12", body: "価値条件3つ以上。S級/G3/価値型会場など、回収率を押し上げる根拠が重なる時。" },
+  { title: "MAX_14", body: "G3/S級/価値型会場で展開根拠が明確。頭候補を増やさず、2・3着補正で最大14点まで。" },
+  { title: "SHADOW_ONLY", body: "頭候補5人以上が必要、根拠薄い大穴、展開が散りすぎるレース。購入せず影買い目として研究のみ。" },
 ];
-
 export default function MonthlyReviewPage() {
   const isMobile = useIsMobile();
   const [indexItems, setIndexItems] = useState<MonthlyReviewIndexItem[]>([]);
@@ -135,8 +135,8 @@ export default function MonthlyReviewPage() {
               <span style={{ borderRadius: "9999px", padding: "9px 13px", background: status === "ready" ? "#ecfdf5" : "#fff7ed", color: status === "ready" ? "#047857" : "#9a3412", border: status === "ready" ? "1px solid #a7f3d0" : "1px solid #fed7aa", fontSize: "11px", fontWeight: 900 }}>
                 {status === "ready" ? "月次振り返り: 反映済み" : status === "loading" ? "月次振り返り: 読み込み中" : "月次振り返り: 未登録"}
               </span>
-              <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#f4f1ff", color: "#6b57a8", border: "1px solid #ddd3f0", fontSize: "11px", fontWeight: 900 }}>可変点数ルール v2026-07</span>
-              <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#eef6ff", color: "#285e91", border: "1px solid #cfe3fb", fontSize: "11px", fontWeight: 900 }}>基本18点 / 14〜20点可変</span>
+              <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#f4f1ff", color: "#6b57a8", border: "1px solid #ddd3f0", fontSize: "11px", fontWeight: 900 }}>可変点数ルール v2026-08</span>
+              <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#eef6ff", color: "#285e91", border: "1px solid #cfe3fb", fontSize: "11px", fontWeight: 900 }}>標準8点 / 最大14点</span>
               <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#f0fdf4", color: "#167047", border: "1px solid #bbf7d0", fontSize: "11px", fontWeight: 900 }}>1点100円固定</span>
               <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#fff7ed", color: "#9a4f12", border: "1px solid #fed7aa", fontSize: "11px", fontWeight: 900 }}>3連単配当寄せへ更新済み</span>
               <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#fef2f2", color: "#b42318", border: "1px solid #fecaca", fontSize: "11px", fontWeight: 900 }}>2車単は原則なし</span>
@@ -188,7 +188,7 @@ export default function MonthlyReviewPage() {
               <div style={{ fontSize: "10px", fontWeight: 950, letterSpacing: "0.16em", color: "#6577c8", marginBottom: "8px" }}>VARIABLE TICKET PLAYBOOK</div>
               <h2 style={{ margin: 0, fontSize: isMobile ? "24px" : "32px", lineHeight: 1.18, color: "#071120" }}>14点・18点・20点の役割分担</h2>
             </div>
-            <span style={{ borderRadius: "9999px", padding: "9px 12px", border: "1px solid #d7e7f8", background: "#f4fbff", color: "#285e91", fontSize: "11px", fontWeight: 900 }}>標準: 3連単18点 / 2車単原則なし</span>
+            <span style={{ borderRadius: "9999px", padding: "9px 12px", border: "1px solid #d7e7f8", background: "#f4fbff", color: "#285e91", fontSize: "11px", fontWeight: 900 }}>標準: 3連単8点 / 18候補は影買い目</span>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))", gap: "12px" }}>
             {playbookItems.map((item) => (

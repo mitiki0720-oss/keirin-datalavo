@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
+﻿import { useEffect, useMemo, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import { raceScheduleData } from "../data/raceScheduleData";
 import { useRef } from "react";
 import type { DailyMetricItem } from "../types/dailyMetrics";
@@ -9965,7 +9965,7 @@ if (current.weatherActual) return;
         trifectaCount,
         exactaCount,
         total: selectedPredictionTickets.length,
-        expected: "14〜20点可変 / 基本3連単18点 / 2車単は20倍以上の穴頭のみ例外",
+        expected: "8〜14点可変 / 標準3連単8点 / 18候補は影買い目 / 2車単は原則購入対象外",
         sourcePreview: resolvedPredictionSourceText.slice(0, 800),
       });
     }
@@ -11033,17 +11033,17 @@ if (
       "",
       "====================",
       "【共通ルール】",
-      "- 月次振り返り: 反映済み / 可変点数ルール v2026-07",
-      "- 1点100円固定",
-      "- 14〜20点可変",
-      "- 標準18点",
-      "- 原則3連単のみ",
-      "- 安め本線は最大4点まで",
-      "- 中心は50〜199倍",
-      "- 200〜999倍を大穴枠として入れる",
-      "- 1000倍超えは1〜3点まで",
-      "- 2車単は原則なし。20倍以上の穴頭だけ例外採用可",
-      "- ticketMode / recommendedPoints / investmentYen / reasonTags を使う",
+      "- 月次振り返り: 反映済み / 8月新ルール v2026-08",
+      "- 18点固定購入は廃止",
+      "- 標準は3連単8点=800円",
+      "- 拡張は10点=1,000円、強い価値条件では12点=1,200円",
+      "- 最大は14点=1,400円",
+      "- 18候補は購入せず影買い目として保存・監査",
+      "- 頭候補は2〜4人まで。5人以上必要なら見送り候補",
+      "- 追加点は新しい頭ではなく2着・3着補正へ使う",
+      "- 大穴頭は最後。根拠の薄い大穴固定枠は置かない",
+      "- 2車単は8月新ルールでは原則購入対象外。parser/過去照合は互換のため残す",
+      "- 購入順位 / 購入・影買い目 / 役割 / 予想時オッズ / 配当帯 / 展開理由を保存する",
       "====================",
       "",
       "====================",
@@ -11160,7 +11160,7 @@ if (
       ? "素材生成済み"
       : "素材補完中";
   const monthlyReviewStateLabel = monthlyReviewStatus === "ready"
-    ? "月次振り返り: 反映済み / 可変点数 v2026-07"
+    ? "月次振り返り: 反映済み / 可変点数 v2026-08"
     : monthlyReviewStatus === "loading"
       ? "月次振り返り: 読み込み中"
       : "月次振り返り: 未登録";
