@@ -1,75 +1,137 @@
 {
   "schemaVersion": 1,
   "registrationNo": "013456",
-  "name": "小林和彦",
+  "name": "小林 和彦",
   "nameKey": "小林和彦",
   "sourceType": "EXACT",
-  "generatedAt": "2026-07-24T23:23:08.301Z",
+  "generatedAt": "2026-08-14T05:58:00.775Z",
   "period": {
     "from": "2026-05-14",
-    "to": "2026-06-17"
+    "to": "2026-08-13"
   },
   "identity": {
-    "status": "manual-override",
+    "status": "unique-player-card-name",
     "registrationNoResolved": true
   },
   "coverage": {
-    "observedRaceCount": 3,
-    "confirmedStartCount": 3,
-    "resultParsedCount": 3,
+    "observedRaceCount": 8,
+    "confirmedStartCount": 8,
+    "resultParsedCount": 5,
     "roleEligibleCount": 2,
-    "venueCount": 2
+    "venueCount": 5
   },
   "overall": {
-    "starts": 3,
-    "wins": 0,
+    "starts": 8,
+    "wins": 1,
     "seconds": 0,
     "thirds": 0,
-    "outside": 3,
+    "outside": null,
     "winRate": {
-      "count": 0,
-      "total": 3,
-      "rate": 0,
+      "count": 1,
+      "total": null,
+      "rate": null,
       "sourceType": "EXACT",
-      "quality": "low-sample"
+      "quality": "unavailable"
     },
     "top2Rate": {
-      "count": 0,
-      "total": 3,
-      "rate": 0,
+      "count": 1,
+      "total": null,
+      "rate": null,
       "sourceType": "EXACT",
-      "quality": "low-sample"
+      "quality": "unavailable"
     },
     "top3Rate": {
-      "count": 0,
-      "total": 3,
-      "rate": 0,
+      "count": 1,
+      "total": null,
+      "rate": null,
       "sourceType": "EXACT",
-      "quality": "low-sample"
+      "quality": "unavailable"
     },
     "sourceType": "EXACT"
   },
   "winningMethods": {
     "escape": {
       "count": 0,
-      "total": 0,
-      "rate": null,
+      "total": 1,
+      "rate": 0,
       "sourceType": "EXACT"
     },
     "sprint": {
       "count": 0,
-      "total": 0,
-      "rate": null,
+      "total": 1,
+      "rate": 0,
       "sourceType": "EXACT"
     },
     "difference": {
-      "count": 0,
-      "total": 0,
-      "rate": null,
+      "count": 1,
+      "total": 1,
+      "rate": 100,
       "sourceType": "EXACT"
     }
   },
   "byVenue": [
+    {
+      "venueKey": "iwakitaira",
+      "venueName": "いわき平",
+      "starts": 2,
+      "wins": 1,
+      "seconds": 0,
+      "thirds": 0,
+      "outside": 1,
+      "winRate": {
+        "count": 1,
+        "total": 2,
+        "rate": 50,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "top2Rate": {
+        "count": 1,
+        "total": 2,
+        "rate": 50,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "top3Rate": {
+        "count": 1,
+        "total": 2,
+        "rate": 50,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "sourceType": "EXACT"
+    },
+    {
+      "venueKey": "matsudo",
+      "venueName": "松戸",
+      "starts": 2,
+      "wins": 0,
+      "seconds": 0,
+      "thirds": 0,
+      "outside": null,
+      "winRate": {
+        "count": 0,
+        "total": null,
+        "rate": null,
+        "sourceType": "EXACT",
+        "quality": "unavailable"
+      },
+      "top2Rate": {
+        "count": 0,
+        "total": null,
+        "rate": null,
+        "sourceType": "EXACT",
+        "quality": "unavailable"
+      },
+      "top3Rate": {
+        "count": 0,
+        "total": null,
+        "rate": null,
+        "sourceType": "EXACT",
+        "quality": "unavailable"
+      },
+      "sourceType": "EXACT"
+    },
     {
       "venueKey": "matsusaka",
       "venueName": "松阪",
@@ -131,69 +193,192 @@
         "quality": "low-sample"
       },
       "sourceType": "EXACT"
+    },
+    {
+      "venueKey": "seibuen",
+      "venueName": "西武園",
+      "starts": 1,
+      "wins": 0,
+      "seconds": 0,
+      "thirds": 0,
+      "outside": null,
+      "winRate": {
+        "count": 0,
+        "total": null,
+        "rate": null,
+        "sourceType": "EXACT",
+        "quality": "unavailable"
+      },
+      "top2Rate": {
+        "count": 0,
+        "total": null,
+        "rate": null,
+        "sourceType": "EXACT",
+        "quality": "unavailable"
+      },
+      "top3Rate": {
+        "count": 0,
+        "total": null,
+        "rate": null,
+        "sourceType": "EXACT",
+        "quality": "unavailable"
+      },
+      "sourceType": "EXACT"
     }
   ],
   "byTimeslot": [
     {
       "timeslot": "midnight",
+      "starts": 5,
+      "wins": 1,
+      "seconds": 0,
+      "thirds": 0,
+      "outside": 4,
+      "winRate": {
+        "count": 1,
+        "total": 5,
+        "rate": 20,
+        "sourceType": "EXACT",
+        "quality": "ok"
+      },
+      "top2Rate": {
+        "count": 1,
+        "total": 5,
+        "rate": 20,
+        "sourceType": "EXACT",
+        "quality": "ok"
+      },
+      "top3Rate": {
+        "count": 1,
+        "total": 5,
+        "rate": 20,
+        "sourceType": "EXACT",
+        "quality": "ok"
+      },
+      "sourceType": "EXACT"
+    },
+    {
+      "timeslot": "unknown",
       "starts": 3,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
-      "outside": 3,
+      "outside": null,
       "winRate": {
         "count": 0,
-        "total": 3,
-        "rate": 0,
+        "total": null,
+        "rate": null,
         "sourceType": "EXACT",
-        "quality": "low-sample"
+        "quality": "unavailable"
       },
       "top2Rate": {
         "count": 0,
-        "total": 3,
-        "rate": 0,
+        "total": null,
+        "rate": null,
         "sourceType": "EXACT",
-        "quality": "low-sample"
+        "quality": "unavailable"
       },
       "top3Rate": {
         "count": 0,
-        "total": 3,
-        "rate": 0,
+        "total": null,
+        "rate": null,
         "sourceType": "EXACT",
-        "quality": "low-sample"
+        "quality": "unavailable"
       },
       "sourceType": "EXACT"
     }
   ],
   "byCarNo": [
     {
-      "carNo": "5",
-      "carNoLabel": "5番車",
+      "carNo": "1",
+      "carNoLabel": "1番車",
       "starts": 3,
+      "wins": 1,
+      "seconds": 0,
+      "thirds": 0,
+      "outside": null,
+      "winRate": {
+        "count": 1,
+        "total": null,
+        "rate": null,
+        "sourceType": "EXACT",
+        "quality": "unavailable"
+      },
+      "top2Rate": {
+        "count": 1,
+        "total": null,
+        "rate": null,
+        "sourceType": "EXACT",
+        "quality": "unavailable"
+      },
+      "top3Rate": {
+        "count": 1,
+        "total": null,
+        "rate": null,
+        "sourceType": "EXACT",
+        "quality": "unavailable"
+      },
+      "sourceType": "EXACT"
+    },
+    {
+      "carNo": "4",
+      "carNoLabel": "4番車",
+      "starts": 1,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
-      "outside": 3,
+      "outside": null,
       "winRate": {
         "count": 0,
-        "total": 3,
-        "rate": 0,
+        "total": null,
+        "rate": null,
         "sourceType": "EXACT",
-        "quality": "low-sample"
+        "quality": "unavailable"
       },
       "top2Rate": {
         "count": 0,
-        "total": 3,
-        "rate": 0,
+        "total": null,
+        "rate": null,
         "sourceType": "EXACT",
-        "quality": "low-sample"
+        "quality": "unavailable"
       },
       "top3Rate": {
         "count": 0,
-        "total": 3,
-        "rate": 0,
+        "total": null,
+        "rate": null,
         "sourceType": "EXACT",
-        "quality": "low-sample"
+        "quality": "unavailable"
+      },
+      "sourceType": "EXACT"
+    },
+    {
+      "carNo": "5",
+      "carNoLabel": "5番車",
+      "starts": 4,
+      "wins": 0,
+      "seconds": 0,
+      "thirds": 0,
+      "outside": null,
+      "winRate": {
+        "count": 0,
+        "total": null,
+        "rate": null,
+        "sourceType": "EXACT",
+        "quality": "unavailable"
+      },
+      "top2Rate": {
+        "count": 0,
+        "total": null,
+        "rate": null,
+        "sourceType": "EXACT",
+        "quality": "unavailable"
+      },
+      "top3Rate": {
+        "count": 0,
+        "total": null,
+        "rate": null,
+        "sourceType": "EXACT",
+        "quality": "unavailable"
       },
       "sourceType": "EXACT"
     }
@@ -258,6 +443,36 @@
         "quality": "low-sample"
       },
       "sourceType": "EXACT"
+    },
+    {
+      "raceClass": "unknown",
+      "starts": 5,
+      "wins": 1,
+      "seconds": 0,
+      "thirds": 0,
+      "outside": null,
+      "winRate": {
+        "count": 1,
+        "total": null,
+        "rate": null,
+        "sourceType": "EXACT",
+        "quality": "unavailable"
+      },
+      "top2Rate": {
+        "count": 1,
+        "total": null,
+        "rate": null,
+        "sourceType": "EXACT",
+        "quality": "unavailable"
+      },
+      "top3Rate": {
+        "count": 1,
+        "total": null,
+        "rate": null,
+        "sourceType": "EXACT",
+        "quality": "unavailable"
+      },
+      "sourceType": "EXACT"
     }
   ],
   "byRaceStage": [
@@ -295,36 +510,98 @@
     {
       "raceStage": "unknown",
       "raceStageLabel": "不明",
-      "starts": 2,
+      "starts": 7,
+      "wins": 1,
+      "seconds": 0,
+      "thirds": 0,
+      "outside": null,
+      "winRate": {
+        "count": 1,
+        "total": null,
+        "rate": null,
+        "sourceType": "EXACT",
+        "quality": "unavailable"
+      },
+      "top2Rate": {
+        "count": 1,
+        "total": null,
+        "rate": null,
+        "sourceType": "EXACT",
+        "quality": "unavailable"
+      },
+      "top3Rate": {
+        "count": 1,
+        "total": null,
+        "rate": null,
+        "sourceType": "EXACT",
+        "quality": "unavailable"
+      },
+      "sourceType": "EXACT"
+    }
+  ],
+  "byWeather": [
+    {
+      "weatherCondition": "cloudy",
+      "weatherLabel": "曇り",
+      "starts": 1,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
-      "outside": 2,
+      "outside": 1,
       "winRate": {
         "count": 0,
-        "total": 2,
+        "total": 1,
         "rate": 0,
         "sourceType": "EXACT",
         "quality": "low-sample"
       },
       "top2Rate": {
         "count": 0,
-        "total": 2,
+        "total": 1,
         "rate": 0,
         "sourceType": "EXACT",
         "quality": "low-sample"
       },
       "top3Rate": {
         "count": 0,
-        "total": 2,
+        "total": 1,
         "rate": 0,
         "sourceType": "EXACT",
         "quality": "low-sample"
       },
       "sourceType": "EXACT"
-    }
-  ],
-  "byWeather": [
+    },
+    {
+      "weatherCondition": "rain",
+      "weatherLabel": "雨",
+      "starts": 1,
+      "wins": 1,
+      "seconds": 0,
+      "thirds": 0,
+      "outside": 0,
+      "winRate": {
+        "count": 1,
+        "total": 1,
+        "rate": 100,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "top2Rate": {
+        "count": 1,
+        "total": 1,
+        "rate": 100,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "top3Rate": {
+        "count": 1,
+        "total": 1,
+        "rate": 100,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "sourceType": "EXACT"
+    },
     {
       "weatherCondition": "sunny",
       "weatherLabel": "晴れ",
@@ -359,64 +636,95 @@
     {
       "weatherCondition": "unknown",
       "weatherLabel": "不明",
-      "starts": 1,
+      "starts": 4,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
-      "outside": 1,
+      "outside": null,
       "winRate": {
         "count": 0,
-        "total": 1,
-        "rate": 0,
+        "total": null,
+        "rate": null,
         "sourceType": "EXACT",
-        "quality": "low-sample"
+        "quality": "unavailable"
       },
       "top2Rate": {
         "count": 0,
-        "total": 1,
-        "rate": 0,
+        "total": null,
+        "rate": null,
         "sourceType": "EXACT",
-        "quality": "low-sample"
+        "quality": "unavailable"
       },
       "top3Rate": {
         "count": 0,
-        "total": 1,
-        "rate": 0,
+        "total": null,
+        "rate": null,
         "sourceType": "EXACT",
-        "quality": "low-sample"
+        "quality": "unavailable"
       },
       "sourceType": "EXACT"
     }
   ],
   "byBankLength": [
     {
-      "bankLength": 400,
-      "bankLengthLabel": "400m",
-      "starts": 3,
+      "bankLength": 333,
+      "bankLengthLabel": "333m",
+      "starts": 2,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
-      "outside": 3,
+      "outside": null,
       "winRate": {
         "count": 0,
-        "total": 3,
-        "rate": 0,
+        "total": null,
+        "rate": null,
         "sourceType": "EXACT",
-        "quality": "low-sample"
+        "quality": "unavailable"
       },
       "top2Rate": {
         "count": 0,
-        "total": 3,
-        "rate": 0,
+        "total": null,
+        "rate": null,
         "sourceType": "EXACT",
-        "quality": "low-sample"
+        "quality": "unavailable"
       },
       "top3Rate": {
         "count": 0,
-        "total": 3,
-        "rate": 0,
+        "total": null,
+        "rate": null,
         "sourceType": "EXACT",
-        "quality": "low-sample"
+        "quality": "unavailable"
+      },
+      "sourceType": "EXACT"
+    },
+    {
+      "bankLength": 400,
+      "bankLengthLabel": "400m",
+      "starts": 6,
+      "wins": 1,
+      "seconds": 0,
+      "thirds": 0,
+      "outside": null,
+      "winRate": {
+        "count": 1,
+        "total": null,
+        "rate": null,
+        "sourceType": "EXACT",
+        "quality": "unavailable"
+      },
+      "top2Rate": {
+        "count": 1,
+        "total": null,
+        "rate": null,
+        "sourceType": "EXACT",
+        "quality": "unavailable"
+      },
+      "top3Rate": {
+        "count": 1,
+        "total": null,
+        "rate": null,
+        "sourceType": "EXACT",
+        "quality": "unavailable"
       },
       "sourceType": "EXACT"
     }
@@ -490,9 +798,8 @@
     },
     "single": null
   },
-  "quality": "low-sample",
+  "quality": "partial",
   "warnings": [
-    "confirmedStartCount below 5",
     "role unavailable for some starts"
   ]
 }

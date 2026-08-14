@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "seibuen",
   "venueName": "西武園",
-  "updatedAt": "2026-08-01",
+  "updatedAt": "2026-08-14",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-01",
-    "to": "2026-07-30"
+    "to": "2026-08-13"
   },
   "quality": {
-    "seedSources": 9,
-    "parsedDateSources": 9,
+    "seedSources": 13,
+    "parsedDateSources": 13,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 9,
-    "raceCount": 50,
+    "sourceCount": 13,
+    "raceCount": 86,
     "trifectaHits": 4,
     "trifectaHitRate": 28.6,
     "exactaHits": 0,
     "exactaHitRate": 0,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 129100,
-    "returnYen": 86210,
-    "recoveryRate": 66.8,
+    "investmentYen": 190500,
+    "returnYen": 132820,
+    "recoveryRate": 69.7,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,63 +38,63 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 13,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 13,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 13,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 8,
-      "confidence": "medium",
+      "evidenceCount": 12,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 7,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 7,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 6,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 6,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 5,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     }
@@ -102,7 +102,12 @@
   "seedNotes": {
     "features": [
       "伊藤がB15で先制し、競走得点99点台の今野が番手から差すのが中心。立花まで付く中四国3車はラインの厚みもある。上川―山口は捲り差し、上野―神開は位置取りからの一発を狙う。ナイター後半は差しが強まる傾向のため、伊藤の頭固定には寄せすぎない。",
-      "6) TYPE-A LINE STRONGでも同ラインワンツーへ寄せすぎる傾向が残った。"
+      "6) TYPE-A LINE STRONGでも同ラインワンツーへ寄せすぎる傾向が残った。",
+      "4-1と5-2の番手差しを中心に、3丹波の先行残りを対抗。EXの別線3着混入傾向を踏まえ、5・3・7を役割分散した。",
+      "4-7関東の番手差しと2-5中部の差し返しを二本柱。EX傾向どおり、単騎3と関東3番手1を3着の穴候補に残す。",
+      "5久田の機動力を軸に4鷲田の番手差しを重視。EXの同ライン1-2傾向は尊重しつつ、別線3着混入率が高いため3柴田・6野村も組み込む。",
+      "2-5の中四国を軸に、4-1の神奈川と7-3の中部を逆転枠に限定。別線3着が混じりやすい当地傾向を、3・4の3着保護で反映した。",
+      "B9の2冨倉とB9の3石田による主導権争い。2-7-4は京都勢に4藤縄まで続き、3-5-1は得点最上位の5及川が番手を回る。西武園の短直線と会場EXの同ライン1・2着傾向から、両ラインのワンツーを基本にする。"
     ],
     "targets": [
       "R 結果(3連単) 最終判定(結果ファイル) 照合(買い目10点) 払戻 1番人気(3連単) SB(B)着順",
@@ -140,7 +145,11 @@
       "【次回修正ルール】",
       "最終日は通算能力より開催内の着順・上がり・主導権実績を強く反映する。6-1を買うなら3着候補を3・2だけに固定せず単騎差し込み候補5もクロスする。候補選手を各シナリオへ接続できているか表で確認する。",
       "5阿部がBを取り逃げ、4小川辰、2小川大まで5-4-2。買い目1番で完全的中し、4車ラインの先行・番手・3番手決着を正確に捉えた。対抗3-1-7は車券外で、本線の厚みがそのまま結果へ反映された。",
-      "強い本線先行でも番手の追走が崩れるケースに備え、本線頭から対抗ラインの番手―先頭を接続する3-2-4型を継続する。TYPE-Aでも同ラインワンツー固定を避ける現在の改善が成果につながった。"
+      "強い本線先行でも番手の追走が崩れるケースに備え、本線頭から対抗ラインの番手―先頭を接続する3-2-4型を継続する。TYPE-Aでも同ラインワンツー固定を避ける現在の改善が成果につながった。",
+      "先行力の1水澤を利す4櫻井、松本を利す2柳谷を主軸。EXの別線3着混入を反映し、中部7-3と中四国3番手6を保険に置く。",
+      "本レースは落車の影響が大きく、通常の展開誤差として過度に学習しない。改善点は、単騎4を『頭だけ』でなく、中国ワンツー1-7の3着候補にも接続すること。事故レースは再現性評価を低くして別タグ管理する。",
+      "2) 予想文に書いた完全ライン決着は必ず買い目へ1点反映する。",
+      "落車・失格の影響が大きいため、通常の展開ミスとして過度に学習しない。事故タグを付けて別管理する。純粋な改善点は、4を頭まで評価する場合に強い南関7-1を2・3着へ接続する4-7-1を大穴枠へ置くこと。"
     ]
   },
   "predictionGuidance": [

@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "aomori",
   "venueName": "青森",
-  "updatedAt": "2026-08-01",
+  "updatedAt": "2026-08-14",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-04",
-    "to": "2026-08-01"
+    "to": "2026-08-13"
   },
   "quality": {
-    "seedSources": 28,
-    "parsedDateSources": 28,
+    "seedSources": 30,
+    "parsedDateSources": 30,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 28,
+    "sourceCount": 30,
     "raceCount": 158,
-    "trifectaHits": 93,
-    "trifectaHitRate": 58.9,
+    "trifectaHits": 102,
+    "trifectaHitRate": 64.6,
     "exactaHits": 25,
     "exactaHitRate": 15.8,
     "anyTicketHits": 26,
     "hitRate": null,
-    "investmentYen": 300200,
-    "returnYen": 266780,
-    "recoveryRate": 88.9,
+    "investmentYen": 317200,
+    "returnYen": 276790,
+    "recoveryRate": 87.3,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,41 +38,48 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 28,
+      "evidenceCount": 30,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 28,
+      "evidenceCount": 30,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 28,
+      "evidenceCount": 30,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 22,
+      "evidenceCount": 24,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 19,
+      "evidenceCount": 21,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
+      "evidenceCount": 21,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "MAKURI_ALERT",
+      "label": "捲り展開を警戒",
       "evidenceCount": 19,
       "confidence": "high",
       "sourceType": "SEED"
@@ -80,21 +87,14 @@
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 17,
-      "confidence": "high",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "MAKURI_ALERT",
-      "label": "捲り展開を警戒",
-      "evidenceCount": 17,
+      "evidenceCount": 18,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 15,
+      "evidenceCount": 17,
       "confidence": "high",
       "sourceType": "SEED"
     }
@@ -108,7 +108,10 @@
       "6. B選手を頭固定にしすぎず、2・3着残りも設計する。 B選手が車券内に残る傾向は強いが、番手差しや別線頭との混在も多い。",
       "B選手は7/7Rで車券内。 ただしB選手1着は1/7Rのみ。最終日は「主導権を取った選手が残るが、番手・別線・単騎に差される」傾向が強かった。",
       "【4-4. B選手・ライン傾向】",
-      "【4-2. 最重要ポイント】"
+      "【4-2. 最重要ポイント】",
+      "1の番手3飯尾は差し7回で、青森の番手差し傾向に合う。2井上が主導権を取る筋は4鈴木―5橋本までを本線として評価し、単騎6は3着の差し込みまでに留める。",
+      "B16、年間19勝の1川田が関東3車で主導権を取る形が濃い。番手2寺沼は追走の安定感があり、青森の番手差し傾向から2の差し切りと1の粘り込みを表裏の中心に置く。",
+      "得点最上位の1高塩は差し6回、マーク2回。B8の2小林が主導権を取る栃木3車なら、青森の番手差し傾向にも合う1の差し切りと、2の押し切りが主軸になる。4小菅はライン3番手でも、直近の着順以上に差し脚を持つため3着の中心。"
     ],
     "targets": [
       "このファイルは「予想プロジェクトで確定した買い目」と「実際の結果テキスト」を、開催単位で整理した 開催レポート です。",
@@ -160,7 +163,7 @@
     "踏み合い時は単騎の差し込みを3着候補に加える",
     "先行軸だけで固定せず、番手差しの逆目を残す",
     "本線が崩れた場合の別線頭と別線3着を保護する",
-    "ラインの長さと追走力を確認し、同ライン決着を評価する",
-    "先行争いがある場合は別線の捲り筋を残す"
+    "先行争いがある場合は別線の捲り筋を残す",
+    "ラインの長さと追走力を確認し、同ライン決着を評価する"
   ]
 }

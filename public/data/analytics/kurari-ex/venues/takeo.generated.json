@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "takeo",
   "venueName": "武雄",
-  "updatedAt": "2026-08-01",
+  "updatedAt": "2026-08-14",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-13",
-    "to": "2026-08-01"
+    "to": "2026-08-13"
   },
   "quality": {
-    "seedSources": 19,
-    "parsedDateSources": 19,
+    "seedSources": 22,
+    "parsedDateSources": 22,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 19,
+    "sourceCount": 22,
     "raceCount": 81,
-    "trifectaHits": 55,
-    "trifectaHitRate": 67.9,
+    "trifectaHits": 64,
+    "trifectaHitRate": 79,
     "exactaHits": 18,
     "exactaHitRate": 22.2,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 54000,
-    "returnYen": 29020,
-    "recoveryRate": 53.7,
+    "investmentYen": 65200,
+    "returnYen": 33040,
+    "recoveryRate": 50.7,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,63 +38,63 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 19,
+      "evidenceCount": 22,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 19,
+      "evidenceCount": 22,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 19,
+      "evidenceCount": 22,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 17,
+      "evidenceCount": 20,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 17,
+      "evidenceCount": 20,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 17,
+      "evidenceCount": 20,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 15,
+      "evidenceCount": 18,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 15,
+      "evidenceCount": 18,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 6,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     }
@@ -138,7 +138,9 @@
       "掲載結果はpendingだが、結果は1-2-3で08）1-2-3が三連単一致。1松本の武雄適性と2久樹の差し込みを押さえた形が的中。原本判定がpendingのため独立照合で回収へ反映する必要あり。",
       "5-4. 次回用チェックリスト",
       "新しい買い目は作成していません。予想時の出走表、結果時の天気、実際の結果、的中/不的中、展開差分、次回修正点、source情報を1枚のtxtに集約しています。",
-      "新しい買い目は作成していません。予想時点の出走表、実際の結果、天気、source情報、展開差分、次回修正点を1枚のtxtにまとめています。"
+      "新しい買い目は作成していません。予想時点の出走表、実際の結果、天気、source情報、展開差分、次回修正点を1枚のtxtにまとめています。",
+      "結果原本では9Rが pending、2R・3R・4R・6R・7R・8R・9Rなどは払戻欄が--または自動判定未反映の扱い。",
+      "2橋本は豊橋・伊東で連対を続けており、1の仕掛けが遅れれば先捲りで逆転可能。3田中は一般戦での1着があり、5杉沢は初日4着からの位置取り改善を3着保護に入れる。"
     ]
   },
   "predictionGuidance": [

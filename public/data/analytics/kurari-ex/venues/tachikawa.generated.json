@@ -2,22 +2,22 @@
   "schemaVersion": 1,
   "venueKey": "tachikawa",
   "venueName": "立川",
-  "updatedAt": "2026-08-01",
+  "updatedAt": "2026-08-14",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-07-27",
-    "to": "2026-07-29"
+    "to": "2026-08-10"
   },
   "quality": {
-    "seedSources": 3,
-    "parsedDateSources": 3,
+    "seedSources": 6,
+    "parsedDateSources": 6,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 3,
+    "sourceCount": 6,
     "raceCount": 12,
     "trifectaHits": 11,
     "trifectaHitRate": 91.7,
@@ -25,9 +25,9 @@
     "exactaHitRate": 0,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 60000,
-    "returnYen": 35380,
-    "recoveryRate": 59,
+    "investmentYen": 96200,
+    "returnYen": 68960,
+    "recoveryRate": 71.7,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,62 +38,62 @@
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 3,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 3,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 3,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 3,
-      "confidence": "medium",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "TIME_SLOT_BIAS",
-      "label": "時間帯差を確認",
-      "evidenceCount": 3,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
+      "evidenceCount": 6,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "TIME_SLOT_BIAS",
+      "label": "時間帯差を確認",
       "evidenceCount": 3,
       "confidence": "medium",
       "sourceType": "SEED"
@@ -105,7 +105,13 @@
       "開催総括｜次回の予想作業へ渡す修正ポイント",
       "立川の差し傾向を優先し、1小谷田・4田中・3近藤の追込み勢を中心に構成。6塚本の先行残り、7-4中近ラインの残りを保護する。",
       "4-7の連係を軸にしながら、単騎2河端と1中石の頭替わりを厚く配置。立川の差し傾向から6日高―3萩原の番手差しも保護した。",
-      "8. 当日の場傾向"
+      "8. 当日の場傾向",
+      "10Rは落車2名を含むため通常傾向と分離評価。",
+      "点数判断：1の先行力は高いが立川差し傾向から5逆転を最重視。7-3まで含め10点。",
+      "番手7落合も当所8走で1着3・2着1・3着3。3が早仕掛けになれば立川の差し傾向から7-3逆転も十分ある。",
+      "1着決まり手は逃・捲・差が各4Rで完全均衡。会場の差し傾向だけを強く使うと当日の実態を単純化しすぎる。",
+      "B16の3西本が主導権を握る形を基本に、競走得点上位の7坂口が番手差しで逆転する筋を中心視。立川の差し傾向もあり、3の押し切りと7の差しを両方残す。",
+      "1. 会場傾向の使い過ぎを抑える"
     ],
     "targets": [
       "新しい買い目の予想は行わず、実際に提示された買い目と確定結果の差分だけを検証した。",
@@ -116,7 +122,10 @@
       "5分戦で主導権は不透明。実戦で動ける6塚本が早めに踏めば、差し脚上位の1小谷田と地元3近藤が直線で浮上する。立川の長い直線を生かし、先行残りより追込み型の頭を重視する。",
       "新規予想は行わず、実際の18点買い目と確定結果の差分を事実ベースで分析した。",
       "買い目重複監査: なし",
-      "【実際の買い目（3連単18点）】"
+      "【実際の買い目（3連単18点）】",
+      "添付予想テキストと結果テキストを1開催分に統合。新しい予想・買い目追加は行わない。",
+      "実際の「購入」欄だけで的中を再監査し、「影買い目・購入しない」は実収支に含めない。",
+      "10R結果5-2-6は「影買い目16（購入しない）」にのみ存在。結果ファイルの10R hitは購入記録ベースでは不的中。"
     ],
     "cautions": [
       "押さえ：1松本の抵抗で5萱島が浮上し、単騎2・6のコース取りにも警戒。",
@@ -124,7 +133,13 @@
       "1立部、4外田、7原田はいずれも単騎で自力を出せる。特に近況3連勝中の4外田は、踏み合いを見ての捲りなら頭まである。2吉田が先制なら6内田の地元差しも3着以上に警戒する。",
       "1Rの145,650円を含め、1番人気が全Rで完全一致しない荒れた日。固定的な本線ライン依存は危険だった。",
       "B9の4加瀬が前受けから主導権を意識するが、近況の着順を踏まえると押し切り固定は危険。得点上位の5平子、位置取りと差しのある2渡部、当地で連対実績のある1野口を中心に置く。",
-      "B20の4西岡が主導権の中心で、番手3佐野の差しを本線にする。B12の7吉田も先行・捲りとも可能で、番手2齋藤の伸びまで警戒。"
+      "B20の4西岡が主導権の中心で、番手3佐野の差しを本線にする。B12の7吉田も先行・捲りとも可能で、番手2齋藤の伸びまで警戒。",
+      "荒れ警戒：⚡⚡⚡",
+      "九州4-1は4の近況が6・6・7・7・4・6と低調。1東矢の差し脚は警戒するが、主軸までは上げない。",
+      "レース型：7-2軸・先行争い注意",
+      "注意: review-open-meteoの発走近接時刻値で、競輪場公式観測値ではない。",
+      "B19の4高田が先行の中心で、3伊藤を連れる4-3が基本形。ただ、1菊池は捲り5勝の決定力があり、立川の直線では1の捲り切り、または4を追う形まで警戒する。",
+      "3不破は自力自在で、中団を確保できれば単独捲りが怖い。1岡-6白岩は位置取りからの連係で、踏み合いなら地元勢の3着浮上を警戒する。"
     ],
     "improvements": [
       "的中はしたが、主展開は4内山先行-3伊藤差しを上位に置いていた。実際は3車の1松本ラインが長い距離を先行し、1-5で残った。押さえ筋が当たったレースで、主導権評価自体は修正が必要。",
@@ -135,7 +150,10 @@
       "開催総括｜次回へ渡す詳細summary",
       "開催総括｜次回予想へ渡す詳細summary",
       "10. 次回最優先ルール",
-      "特に1R・5R・8R・11Rは、予想文に実着順選手が登場しており、組成改善の余地が大きい。"
+      "特に1R・5R・8R・11Rは、予想文に実着順選手が登場しており、組成改善の余地が大きい。",
+      "点数判断：2-5と4-1が二大軸。立川の差しを反映し5・1逆転まで入れ12点。",
+      "点数判断：1の先行力と4の差し脚が中心。立川傾向を反映し7差しも残して10点。",
+      "【5. 開催総括｜次回の予想に活かす詳細summary】"
     ]
   },
   "predictionGuidance": [
@@ -146,6 +164,6 @@
     "本線が崩れた場合の別線頭と別線3着を保護する",
     "踏み合い時は単騎の差し込みを3着候補に加える",
     "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
-    "開催時間帯ごとの傾向を他時間帯へそのまま転用しない"
+    "風向と風速を確認し、先行残りと差し届きを固定評価しない"
   ]
 }

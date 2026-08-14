@@ -2,22 +2,22 @@
   "schemaVersion": 1,
   "venueKey": "kumamoto",
   "venueName": "熊本",
-  "updatedAt": "2026-07-19",
+  "updatedAt": "2026-08-14",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-07",
-    "to": "2026-07-15"
+    "to": "2026-08-13"
   },
   "quality": {
-    "seedSources": 12,
-    "parsedDateSources": 12,
+    "seedSources": 15,
+    "parsedDateSources": 15,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 12,
+    "sourceCount": 15,
     "raceCount": 96,
     "trifectaHits": 21,
     "trifectaHitRate": 21.9,
@@ -25,9 +25,9 @@
     "exactaHitRate": 3.1,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 118800,
-    "returnYen": 39800,
-    "recoveryRate": 33.5,
+    "investmentYen": 144600,
+    "returnYen": 59840,
+    "recoveryRate": 41.4,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,27 +38,48 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 12,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 12,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 11,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
+      "evidenceCount": 12,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "MAKURI_ALERT",
+      "label": "捲り展開を警戒",
+      "evidenceCount": 9,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "OTHER_LINE_ALERT",
+      "label": "別線の浮上を警戒",
+      "evidenceCount": 9,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "THIRD_PLACE_SPREAD",
+      "label": "3着候補を分散",
       "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
@@ -66,35 +87,14 @@
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 6,
-      "confidence": "medium",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "MAKURI_ALERT",
-      "label": "捲り展開を警戒",
-      "evidenceCount": 6,
-      "confidence": "medium",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "OTHER_LINE_ALERT",
-      "label": "別線の浮上を警戒",
-      "evidenceCount": 6,
-      "confidence": "medium",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "THIRD_PLACE_SPREAD",
-      "label": "3着候補を分散",
-      "evidenceCount": 6,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 4,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     }
@@ -128,7 +128,10 @@
       "佐藤、邊見、牧田の自力型がそろい、主導権争いは激しい。邊見は18Bで先行力が最上位、番手大越の差しを中心に置く。地元佐藤―飯田は初日内容が良く、飯田の番手差し・佐藤残りは本線級。踏み合い時には関根の捲り追込み、地元3番手吉成の混入を警戒する。",
       "【集計上の注意】",
       "主導権はバック回数の多い3増成が有力。5沢田は番手から直線で差し切る形を本線に置く。熊本400mの長い直線に南西風7km/hが加わるため、先行3の粘りと5の差しを両方押さえる。7石貞は3番手からの伸びで有力。4米倉の先行が早いなら1青木の番手差しまで警戒し、単騎2橋本は3着穴で拾う。",
-      "注意: 結果ファイル投資欄は 1,900円。予想ファイル投資額と不一致。"
+      "注意: 結果ファイル投資欄は 1,900円。予想ファイル投資額と不一致。",
+      "3長谷部-6吉川は中団確保からの捲り返しが対抗。4久保田は単騎に近い自力戦で、主導権争いが激しくなった時の3着浮上を警戒する。",
+      "B15の2田村は九州ラインで早めに抵抗でき、単騎4高原は位置を取れた際の3着候補。6荒川の先行で流れが速くなれば、3佐伯の差し込みも警戒する。",
+      "若手自力2を買う場合は、番手だけでなくライン3番手まで1点は保護する。事故要素は予測不能だが、「番手不発時の3番手浮上」はS級で特に警戒。"
     ],
     "improvements": [
       "ここでは新規予想は行わず、事実整理・的中照合・次回改善メモのみを記録します。",
@@ -150,9 +153,9 @@
     "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
     "踏み合い時は単騎の差し込みを3着候補に加える",
-    "先行軸だけで固定せず、番手差しの逆目を残す",
     "先行争いがある場合は別線の捲り筋を残す",
     "本線が崩れた場合の別線頭と別線3着を保護する",
-    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す"
+    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
+    "先行軸だけで固定せず、番手差しの逆目を残す"
   ]
 }

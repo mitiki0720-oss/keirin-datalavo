@@ -2,22 +2,22 @@
   "schemaVersion": 1,
   "venueKey": "nagoya",
   "venueName": "名古屋",
-  "updatedAt": "2026-07-14",
+  "updatedAt": "2026-08-14",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-20",
-    "to": "2026-07-12"
+    "to": "2026-08-06"
   },
   "quality": {
-    "seedSources": 11,
-    "parsedDateSources": 11,
+    "seedSources": 14,
+    "parsedDateSources": 14,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 11,
+    "sourceCount": 14,
     "raceCount": 78,
     "trifectaHits": 17,
     "trifectaHitRate": 23.9,
@@ -25,9 +25,9 @@
     "exactaHitRate": 6.7,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 94200,
-    "returnYen": 47190,
-    "recoveryRate": 50.1,
+    "investmentYen": 123000,
+    "returnYen": 99430,
+    "recoveryRate": 80.8,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,70 +38,71 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 11,
+      "evidenceCount": 14,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 11,
+      "evidenceCount": 14,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 11,
+      "evidenceCount": 14,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 8,
-      "confidence": "medium",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "THIRD_PLACE_SPREAD",
-      "label": "3着候補を分散",
-      "evidenceCount": 8,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 7,
-      "confidence": "medium",
+      "evidenceCount": 10,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 7,
+      "evidenceCount": 10,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "THIRD_PLACE_SPREAD",
+      "label": "3着候補を分散",
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 4,
+      "evidenceCount": 7,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 2,
-      "confidence": "low",
+      "evidenceCount": 4,
+      "confidence": "medium",
       "sourceType": "SEED"
     }
   ],
   "seedNotes": {
     "features": [
-      "本線：地元2泉谷がB14で主導権。番手1佐藤は差8・マ3で、名古屋ミッドの逃げ残り傾向と番手差し傾向の両方に合う。基本は1-2-5の地元中部ライン。"
+      "本線：地元2泉谷がB14で主導権。番手1佐藤は差8・マ3で、名古屋ミッドの逃げ残り傾向と番手差し傾向の両方に合う。基本は1-2-5の地元中部ライン。",
+      "1の総合力を中心としつつ、名古屋の差し傾向から3の番手差しを厚く評価。"
     ],
     "targets": [
       "2着③を買い目に入れず（本線4-1想定→3逃げ残り）。",
@@ -127,7 +128,9 @@
       "番手1菅原は前期S級で競走得点101.03。初日特選6着でも格は最上位で、4が早めに出切れば直線差しが最有力。2は初日特選1着で状態が良く、5との先行争いを避けて捲りに回れば別線頭。5が主導権を取った場合は当所成績の良い3西村の番手差しにも注意する。",
       "2は捲り5本、初日特選3着で総合力が高い。4と6が踏み合えば中団からの捲りが決まり、番手3太田との中部決着が本線。5佐藤は本線3番手で差し8本・マーク3本を持ち、3着だけでなく2着への伸びも警戒。6は初日1着で状態が良く、別線の穴頭として残す。",
       "北西風4km/hで風の補正は小さい。地元1中野が好位を確保して直線で抜け出す形を中心に、積極性のある3鈴木が踏み合いを避けて捲る。2前田は近況着順こそ弱いが新人の伸びしろがあり、3着以上の浮上を警戒。4梶原の先行残り、地元7高橋の内突きも保険に入れる。",
-      "5岩辺と4出口、単騎3鈴木まで自力型が多く、決勝らしく主導権は流動的。静岡は5-7-1の長いラインで、総合力最上位の1菅原が番手・3番手から直線で抜ける形を中心視する。4-6-2は地元中部ラインで、6石田が駆ければ2北野の差しが脅威。3鈴木は踏み合いを待つ捲りで3着以上を警戒。"
+      "5岩辺と4出口、単騎3鈴木まで自力型が多く、決勝らしく主導権は流動的。静岡は5-7-1の長いラインで、総合力最上位の1菅原が番手・3番手から直線で抜ける形を中心視する。4-6-2は地元中部ラインで、6石田が駆ければ2北野の差しが脅威。3鈴木は踏み合いを待つ捲りで3着以上を警戒。",
+      "得点最上位の2石口は近況の着順が振るわないが、自力で巻き返す力はある。単騎4江端は踏み合い時の捲り・切替えを警戒して3着中心に評価する。",
+      "B18の3森田が先行の中心だが、当地で走れる7栗山は捲り10回と決め脚が強く、地元2笠松の番手差しまで最も警戒したい。3-5関東の押し切りは人気になりやすく、厚めは別線を優先する。"
     ],
     "improvements": [
       "3着候補は、本線側だけでなく逆目側にも同じ候補を最低1点反映する。",
@@ -138,7 +141,10 @@
       "【次回に向けた総合修正点】",
       "全体SUMMARY（次回予想に向けた反省）",
       "的中。ただし払戻が低いレースは、厚め点を増やすだけでは回収が伸びないため、的中率維持と回収率改善の両立には穴3着保護の精度が必要。",
-      "特に2R・5R・7R・9Rは、1点の入れ替えや3着保護でかなり改善できる。次回は、14点運用のうち少なくとも2点を「番手差し逆目」「3番手/単騎3着」に固定配分し、的中率だけでなく回収率も上げる。"
+      "特に2R・5R・7R・9Rは、1点の入れ替えや3着保護でかなり改善できる。次回は、14点運用のうち少なくとも2点を「番手差し逆目」「3番手/単騎3着」に固定配分し、的中率だけでなく回収率も上げる。",
+      "【次回へ向けた総合修正点】",
+      "展開読みはほぼ一致。1小川が実際にS・Bを取り切って逃げ、7吉岡がク、4原田が3着で、想定した四国九州ライン残りをそのまま回収できた。2貝原の先行力を高く見た分だけ軸が散ったが、風を受けながらも1が押し切った点は評価修正が必要。",
+      "【次回予想への実務メモ】"
     ]
   },
   "predictionGuidance": [
@@ -146,9 +152,9 @@
     "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
     "先行争いがある場合は別線の捲り筋を残す",
-    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
     "先行軸だけで固定せず、番手差しの逆目を残す",
     "踏み合い時は単騎の差し込みを3着候補に加える",
+    "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
     "本線が崩れた場合の別線頭と別線3着を保護する"
   ]
 }
