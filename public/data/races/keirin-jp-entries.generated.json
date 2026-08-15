@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-15T10:31:53.070Z",
+  "generatedAt": "2026-08-15T11:01:51.229Z",
   "source": {
     "provider": "KEIRIN.JP",
     "listType": "JSJ048",
@@ -11746,7 +11746,7 @@
       "venueName": "松山競輪場",
       "grade": "G1",
       "raceName": "オールスター競輪",
-      "selectedRaceNumber": "10",
+      "selectedRaceNumber": "11",
       "races": [
         {
           "raceNumber": 1,
@@ -14244,8 +14244,8 @@
         {
           "raceNumber": 10,
           "entryStatus": "available",
-          "operationStatus": "scheduled",
-          "raceEnded": false,
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
           "lastUpdateTime": "2026/08/15 07:03 更新",
@@ -14259,63 +14259,17 @@
           "official": {
             "bKeirinjyoCd": "75",
             "yudoSensyuName": "高市 訓但",
-            "yosoinMei": "金星",
+            "yosoinMei": "",
             "raceResult1CarNo": "2",
             "raceResult2CarNo": "1",
             "backCount1CarNo": "9",
             "backCount2CarNo": "8"
           },
-          "lineup": "1 7 2 5 9 3 6 8 4",
+          "lineup": "",
           "officialLineup": {
-            "lineup": "1 7 2 5 9 3 6 8 4",
-            "positions": [
-              {
-                "position": 1,
-                "carNo": "1",
-                "className": "base_color_1"
-              },
-              {
-                "position": 2,
-                "carNo": "7",
-                "className": "base_color_7"
-              },
-              {
-                "position": 4,
-                "carNo": "2",
-                "className": "base_color_2"
-              },
-              {
-                "position": 5,
-                "carNo": "5",
-                "className": "base_color_5"
-              },
-              {
-                "position": 7,
-                "carNo": "9",
-                "className": "base_color_9"
-              },
-              {
-                "position": 8,
-                "carNo": "3",
-                "className": "base_color_3"
-              },
-              {
-                "position": 9,
-                "carNo": "6",
-                "className": "base_color_6"
-              },
-              {
-                "position": 11,
-                "carNo": "8",
-                "className": "base_color_8"
-              },
-              {
-                "position": 12,
-                "carNo": "4",
-                "className": "base_color_4"
-              }
-            ],
-            "source": "KEIRIN.JP:JSJ005:narabiyoso"
+            "lineup": "",
+            "positions": [],
+            "source": ""
           },
           "entries": [
             {
@@ -14328,7 +14282,7 @@
               "style": "逃",
               "graduationTerm": "96",
               "age": 36,
-              "predictionMark": "▲",
+              "predictionMark": "",
               "score": 117.03,
               "stats": {
                 "escapeCount": 5,
@@ -14354,7 +14308,7 @@
               "style": "両",
               "graduationTerm": "100",
               "age": 35,
-              "predictionMark": "◎",
+              "predictionMark": "",
               "score": 122.68,
               "stats": {
                 "escapeCount": 0,
@@ -14380,7 +14334,7 @@
               "style": "両",
               "graduationTerm": "105",
               "age": 31,
-              "predictionMark": "×",
+              "predictionMark": "",
               "score": 112.94,
               "stats": {
                 "escapeCount": 0,
@@ -14432,7 +14386,7 @@
               "style": "追",
               "graduationTerm": "88",
               "age": 44,
-              "predictionMark": "○",
+              "predictionMark": "",
               "score": 112.46,
               "stats": {
                 "escapeCount": 0,
@@ -14484,7 +14438,7 @@
               "style": "両",
               "graduationTerm": "107",
               "age": 35,
-              "predictionMark": "注",
+              "predictionMark": "",
               "score": 115.53,
               "stats": {
                 "escapeCount": 0,
@@ -14558,8 +14512,10 @@
             "hasEntries": true,
             "hasRegistrationNumbers": true,
             "hasNames": true,
-            "hasLineup": true,
-            "warnings": []
+            "hasLineup": false,
+            "warnings": [
+              "official lineup missing"
+            ]
           }
         },
         {
@@ -14889,7 +14845,7 @@
       "missingRaceCount": 0,
       "errorCount": 0,
       "totalEntryCount": 99,
-      "lineupRaceCount": 2
+      "lineupRaceCount": 1
     }
   ],
   "venueCount": 6,
@@ -14898,6 +14854,6 @@
   "missingRaceCount": 0,
   "errorCount": 0,
   "totalEntryCount": 442,
-  "lineupRaceCount": 20,
+  "lineupRaceCount": 19,
   "preservedCompleteRaceCount": 0
 }
