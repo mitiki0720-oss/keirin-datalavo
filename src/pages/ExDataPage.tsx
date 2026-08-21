@@ -144,20 +144,36 @@ const EX_SECTION_TABS: Array<{
   key: ExSectionTab;
   label: string;
   sublabel: string;
+  category: "summary" | "source" | "trend" | "prediction" | "audit";
 }> = [
-  { key: "overview", label: "OVERVIEW", sublabel: "全体サマリー" },
-  { key: "identity", label: "IDENTITY", sublabel: "選手source" },
-  { key: "coverage", label: "DATA COVERAGE", sublabel: "自動更新・source" },
-  { key: "trend", label: "TREND LAB", sublabel: "ロードマップ" },
-  { key: "ranking", label: "出目ランキング", sublabel: "3連単 v1" },
-  { key: "turbulence", label: "荒れ指数", sublabel: "実払戻 v1" },
-  { key: "chain", label: "レース連鎖", sublabel: "transition v1" },
-  { key: "weather", label: "WEATHER", sublabel: "風速×決まり手" },
-  { key: "venue-bias", label: "会場クセ", sublabel: "venue bias v1" },
-  { key: "today-flow", label: "今日の流れ", sublabel: "today flow meter v1" },
-  { key: "structure-lab", label: "予想構造LAB", sublabel: "analysis coverage map v1" },
-  { key: "analysis", label: "EX ANALYSIS", sublabel: "会場・選手・対戦" },
+  { key: "overview", label: "OVERVIEW", sublabel: "全体サマリー", category: "summary" },
+  { key: "identity", label: "IDENTITY", sublabel: "選手source", category: "source" },
+  { key: "coverage", label: "DATA COVERAGE", sublabel: "自動更新・source", category: "source" },
+  { key: "trend", label: "TREND LAB", sublabel: "ロードマップ", category: "audit" },
+  { key: "ranking", label: "出目ランキング", sublabel: "3連単 v1", category: "trend" },
+  { key: "turbulence", label: "荒れ指数", sublabel: "実払戻 v1", category: "trend" },
+  { key: "chain", label: "レース連鎖", sublabel: "transition v1", category: "trend" },
+  { key: "weather", label: "WEATHER", sublabel: "風速×決まり手", category: "trend" },
+  { key: "venue-bias", label: "会場クセ", sublabel: "venue bias v1", category: "trend" },
+  { key: "today-flow", label: "今日の流れ", sublabel: "today flow meter v1", category: "prediction" },
+  { key: "structure-lab", label: "予想構造LAB", sublabel: "analysis coverage map v1", category: "audit" },
+  { key: "analysis", label: "EX ANALYSIS", sublabel: "会場・選手・対戦", category: "prediction" },
 ];
+
+const EX_TAB_CATEGORY_LABELS: Record<(typeof EX_SECTION_TABS)[number]["category"], string> = {
+  summary: "全体",
+  source: "source / coverage",
+  trend: "傾向",
+  prediction: "予想活用",
+  audit: "設計 / 監査",
+};
+
+const EX_USAGE_LABELS = [
+  { key: "usable", label: "予想に使える", note: "source-backed / 母数確認済み" },
+  { key: "reference", label: "参考", note: "LOW SAMPLEや補助傾向" },
+  { key: "building", label: "蓄積中", note: "identity-only / sample-short" },
+  { key: "blocked", label: "使用禁止", note: "fake禁止・未蓄積" },
+] as const;
 
 const RESULT_TREND_LOAD_TABS: ExSectionTab[] = [
   "trend",
@@ -2621,23 +2637,40 @@ export default function ExDataPage() {
         .ex-health-grid, .ex-kpi-grid, .ex-location-grid, .ex-category-grid, .ex-insights, .ex-note-grid, .ex-summary-primary-grid, .ex-summary-secondary-grid, .ex-prediction-summary, .ex-prediction-support-grid, .ex-source-primary-grid, .ex-source-secondary-grid, .ex-trend-ranking-grid, .ex-turbulence-category-grid, .ex-chain-type-grid, .ex-chain-examples, .ex-weather-bucket-grid, .ex-weather-venue-grid, .ex-venue-bias-grid, .ex-venue-definition-grid, .ex-today-flow-grid, .ex-today-flow-meter, .ex-coverage-tab-map, .ex-backfill-grid, .ex-definition-grid { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
         .ex-health-grid > *, .ex-kpi-grid > *, .ex-location-grid > *, .ex-category-grid > *, .ex-insights > *, .ex-note-grid > *, .ex-summary-primary-grid > *, .ex-summary-secondary-grid > *, .ex-prediction-summary > *, .ex-prediction-support-grid > *, .ex-source-primary-grid > *, .ex-source-secondary-grid > *, .ex-trend-ranking-grid > *, .ex-turbulence-category-grid > *, .ex-chain-type-grid > *, .ex-chain-examples > *, .ex-venue-bias-grid > *, .ex-venue-definition-grid > *, .ex-today-flow-grid > *, .ex-today-flow-meter > *, .ex-coverage-tab-map > *, .ex-backfill-grid > *, .ex-definition-grid > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
         .ex-main [hidden] { display: none !important; }
-        .ex-section-tabs { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 14px; width: min(100%, 1360px); margin-inline: auto; padding: 14px; border: 1px solid rgba(202,207,232,.7); border-radius: 26px; background: linear-gradient(135deg,rgba(255,255,255,.74),rgba(248,250,255,.62)); box-shadow: 0 16px 40px rgba(82,74,135,.075), inset 0 1px 0 rgba(255,255,255,.78); backdrop-filter: blur(18px) saturate(1.06); }
-        .ex-section-tab { position: relative; min-width: 0; min-height: 74px; cursor: pointer; display: grid; align-content: center; gap: 7px; padding: 16px 16px 17px 19px; border: 1px solid rgba(205,213,231,.78); border-radius: 17px; background: rgba(255,255,255,.52); color: #536077; text-align: left; box-shadow: 0 7px 18px rgba(53,67,96,.035), inset 0 1px 0 rgba(255,255,255,.7); transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease, color .16s ease; }
+        .ex-section-tabs { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 14px; width: min(100%, 1360px); margin-inline: auto; padding: 16px; border: 1px solid rgba(202,207,232,.72); border-radius: 28px; background: linear-gradient(135deg,rgba(255,255,255,.78),rgba(248,250,255,.64) 52%,rgba(244,255,250,.52)); box-shadow: 0 20px 48px rgba(82,74,135,.09), inset 0 1px 0 rgba(255,255,255,.82); backdrop-filter: blur(20px) saturate(1.08); }
+        .ex-section-tab { position: relative; min-width: 0; min-height: 82px; cursor: pointer; display: grid; grid-template-rows: auto 1fr auto; align-content: stretch; gap: 7px; padding: 15px 16px 15px 20px; border: 1px solid rgba(205,213,231,.8); border-radius: 18px; background: linear-gradient(145deg,rgba(255,255,255,.66),rgba(249,251,255,.54)); color: #536077; text-align: left; box-shadow: 0 8px 20px rgba(53,67,96,.04), inset 0 1px 0 rgba(255,255,255,.74); transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease, color .16s ease; }
         .ex-section-tab::before { content: ""; position: absolute; inset: 15px auto 15px 8px; width: 3px; border-radius: 99px; background: rgba(120,132,162,.34); transition: inset .16s ease, width .16s ease, background .16s ease, box-shadow .16s ease; }
         .ex-section-tab::after { content: ""; position: absolute; left: 17px; right: 17px; bottom: 9px; height: 3px; border-radius: 99px; background: transparent; transition: background .16s ease, box-shadow .16s ease; }
-        .ex-section-tab:nth-child(n+5):nth-child(-n+10)::before { background: rgba(111,91,181,.38); }
-        .ex-section-tab strong { overflow-wrap: anywhere; color: inherit; font-size: 12px; line-height: 1.22; letter-spacing: .075em; text-transform: uppercase; font-weight: 930; }
-        .ex-section-tab span { color: #747f92; font-size: 10.5px; line-height: 1.35; font-weight: 820; }
-        .ex-section-tab:hover:not(.is-active) { transform: translateY(-1px); border-color: rgba(154,166,205,.92); color: #33425a; background: rgba(255,255,255,.78); box-shadow: 0 12px 25px rgba(53,67,96,.07), inset 0 1px 0 rgba(255,255,255,.78); }
+        .ex-section-tab[data-category="trend"]::before { background: rgba(111,91,181,.42); }
+        .ex-section-tab[data-category="prediction"]::before { background: rgba(46,139,139,.44); }
+        .ex-section-tab[data-category="source"]::before { background: rgba(49,95,145,.4); }
+        .ex-section-tab[data-category="audit"]::before { background: rgba(128,89,30,.4); }
+        .ex-section-tab strong { overflow-wrap: anywhere; color: inherit; font-size: 12.5px; line-height: 1.22; letter-spacing: .07em; text-transform: uppercase; font-weight: 950; }
+        .ex-section-tab span { color: #747f92; font-size: 11px; line-height: 1.35; font-weight: 840; }
+        .ex-section-tab small { align-self: end; width: fit-content; max-width: 100%; padding: 4px 7px; border-radius: 999px; color: #69758b; background: rgba(241,244,249,.82); border: 1px solid rgba(224,229,238,.86); font-size: 8.5px; font-weight: 950; letter-spacing: .07em; line-height: 1.2; text-transform: uppercase; }
+        .ex-section-tab[data-category="prediction"] small { color: #2d6f69; background: #e9f8f4; border-color: #cbe8df; }
+        .ex-section-tab[data-category="source"] small { color: #315f91; background: #eaf4ff; border-color: #c9ddf5; }
+        .ex-section-tab[data-category="trend"] small { color: #59449b; background: #eee8ff; border-color: #dbd1fb; }
+        .ex-section-tab[data-category="audit"] small { color: #80591e; background: #fff4df; border-color: #efd7a2; }
+        .ex-section-tab:hover:not(.is-active) { transform: translateY(-2px); border-color: rgba(154,166,205,.94); color: #33425a; background: linear-gradient(145deg,rgba(255,255,255,.9),rgba(248,251,255,.78)); box-shadow: 0 16px 30px rgba(53,67,96,.085), inset 0 1px 0 rgba(255,255,255,.82); }
         .ex-section-tab:hover:not(.is-active)::before { background: rgba(95,111,153,.62); }
         .ex-section-tab.is-active { border-color: rgba(116,89,202,.78); color: #2f226e; background: linear-gradient(135deg,rgba(244,239,255,.98),rgba(234,244,255,.92) 68%,rgba(240,255,249,.9)); box-shadow: 0 16px 32px rgba(91,75,151,.18), 0 0 0 1px rgba(255,255,255,.84) inset; }
         .ex-section-tab.is-active::before { top: 11px; bottom: 11px; width: 4px; background: linear-gradient(180deg,#765bc5,#4da1ae); box-shadow: 0 0 0 4px rgba(118,91,197,.11); }
         .ex-section-tab.is-active::after { background: linear-gradient(90deg,rgba(118,91,197,.14),rgba(118,91,197,.92),rgba(83,167,176,.26)); box-shadow: 0 0 16px rgba(118,91,197,.24); }
         .ex-section-tab.is-active strong { font-weight: 980; }
         .ex-section-tab.is-active span { color: #51428f; }
+        .ex-section-tab.is-active small { color: #2f226e; background: rgba(255,255,255,.7); border-color: rgba(116,89,202,.22); }
         .ex-section-tab:focus-visible { outline: 3px solid rgba(92,134,206,.36); outline-offset: 3px; border-color: #6e8ed4; box-shadow: 0 0 0 6px rgba(92,134,206,.15), 0 14px 30px rgba(61,81,132,.14); }
         @media (max-width: 1100px) { .ex-section-tabs { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; } }
         @media (max-width: 720px) { .ex-section-tabs { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; padding: 10px; } .ex-section-tab { min-height: 68px; padding: 13px 13px 14px 17px; } .ex-section-tab strong { font-size: 10.8px; } .ex-section-tab span { font-size: 9.5px; } }
+        .ex-usage-strip { display: grid; grid-template-columns: repeat(${isMobile ? 2 : 4}, minmax(0,1fr)); gap: 10px; width: min(100%, 1120px); margin: -8px auto 0; }
+        .ex-usage-pill { min-width: 0; display: grid; gap: 4px; padding: 12px 14px; border: 1px solid #e2e7f0; border-radius: 18px; background: rgba(255,255,255,.68); box-shadow: 0 10px 24px rgba(53,67,96,.045), inset 0 1px 0 rgba(255,255,255,.7); }
+        .ex-usage-pill strong { color: #30415f; font-size: 11px; font-weight: 950; letter-spacing: .08em; }
+        .ex-usage-pill span { color: #758297; font-size: 10px; font-weight: 780; line-height: 1.45; }
+        .ex-usage-pill.is-usable { border-color: var(--ex-status-success-border); background: var(--ex-status-success-bg); }
+        .ex-usage-pill.is-reference { border-color: var(--ex-status-reference-border); background: var(--ex-status-reference-bg); }
+        .ex-usage-pill.is-building { border-color: var(--ex-status-unavailable-border); background: var(--ex-status-unavailable-bg); }
+        .ex-usage-pill.is-blocked { border-color: var(--ex-status-error-border); background: var(--ex-status-error-bg); }
         .ex-overview-status { display: flex; flex-wrap: wrap; gap: 8px; }
         .ex-summary-shell { display: grid; gap: 12px; }
         .ex-summary-primary-grid { display: grid; grid-template-columns: repeat(${isMobile ? 2 : 4}, minmax(0,1fr)); gap: 12px; }
@@ -2660,6 +2693,12 @@ export default function ExDataPage() {
         .ex-source-mini-card.is-exclusion small { color: #8a6a31; }
         .ex-source-safety-strip { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 11px; padding: 10px 13px; border: 1px solid #e3e9ef; border-radius: 17px; background: var(--ex-status-source-bg); color: var(--ex-status-source-text); font-size: 10px; font-weight: 850; line-height: 1.55; }
         .ex-source-safety-strip strong { color: #44546d; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+        .ex-coverage-cockpit { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 3},minmax(0,1fr)); gap: 12px; }
+        .ex-coverage-cockpit-card { min-width: 0; display: grid; gap: 9px; padding: 16px; border: 1px solid #e2e8f0; border-radius: 20px; background: linear-gradient(145deg,rgba(255,255,255,.9),rgba(248,250,255,.74)); box-shadow: 0 12px 28px rgba(53,67,96,.055); }
+        .ex-coverage-cockpit-card strong { color: #263650; font: 820 17px/1.28 ${serif}; }
+        .ex-coverage-cockpit-card p { margin: 0; color: #67748a; font-size: 11px; line-height: 1.65; font-weight: 720; }
+        .ex-coverage-cockpit-tags { display: flex; flex-wrap: wrap; gap: 7px; }
+        .ex-coverage-cockpit-tags span { padding: 6px 8px; border-radius: 999px; color: #526176; background: #f1f5f9; border: 1px solid #e2e8f0; font-size: 9px; font-weight: 920; letter-spacing: .06em; }
         .ex-trend-basis-note { margin-top: 12px; padding: ${isMobile ? "16px" : "18px 20px"}; border: 1px dashed #cbc7df; border-radius: 20px; color: #657187; background: rgba(255,255,255,.58); }
         .ex-trend-basis-note > strong { display: block; color: #526176; font-size: 12px; }
         .ex-trend-basis-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
@@ -3015,6 +3054,15 @@ export default function ExDataPage() {
         .ex-raw-grid { margin-top: 18px; display: grid; grid-template-columns: repeat(${isMobile ? 1 : 3},minmax(0,1fr)); gap: 9px; }
         .ex-raw-item { padding: 12px 14px; border-radius: 14px; background: #f6f7fb; color: #5b687c; font-size: 12px; overflow-wrap: anywhere; }
         .ex-analysis { border-color: #d7e6f5; background: linear-gradient(145deg, rgba(252,254,255,.96), rgba(246,248,255,.94), rgba(243,255,250,.9)); }
+        .ex-analysis-gateway { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 3},minmax(0,1fr)); gap: 14px; }
+        .ex-analysis-gateway-card { position: relative; min-width: 0; cursor: pointer; display: grid; gap: 10px; padding: 19px; border: 1px solid #dce5f2; border-radius: 24px; background: linear-gradient(145deg,rgba(255,255,255,.92),rgba(246,250,255,.82)); color: #52617c; text-align: left; box-shadow: 0 16px 34px rgba(53,67,96,.07); transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease, background .15s ease; }
+        .ex-analysis-gateway-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 5px; border-radius: 24px 0 0 24px; background: linear-gradient(180deg,#7561c8,#4da1ae); opacity: .72; }
+        .ex-analysis-gateway-card:hover { transform: translateY(-2px); border-color: #b8c8e6; box-shadow: 0 22px 44px rgba(53,67,96,.11); }
+        .ex-analysis-gateway-card.is-active { border-color: #8e78d2; background: linear-gradient(145deg,#f4efff,#eef8ff 72%,#effbf6); box-shadow: 0 22px 46px rgba(83,72,150,.16); }
+        .ex-analysis-gateway-card strong { color: #263650; font: 850 21px/1.16 ${serif}; }
+        .ex-analysis-gateway-card span { width: fit-content; padding: 6px 9px; border-radius: 999px; color: #51428f; background: rgba(238,232,255,.86); border: 1px solid rgba(211,201,245,.9); font-size: 9px; font-weight: 950; letter-spacing: .08em; }
+        .ex-analysis-gateway-card p { margin: 0; color: #64728a; font-size: 11px; line-height: 1.7; font-weight: 720; }
+        .ex-analysis-gateway-card small { color: #7b8799; font-size: 10px; font-weight: 850; line-height: 1.45; }
         .ex-ranking-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; max-height: 560px; overflow-y: auto; padding-right: 4px; }
         .ex-ranking-card { cursor: pointer; text-align: left; border: 1px solid var(--ex-table-border); border-radius: 20px; padding: 16px; background: rgba(255,255,255,.86); color: #233149; display: grid; gap: 9px; box-shadow: 0 10px 22px rgba(70,80,120,.05); transition: transform .16s ease, border-color .16s ease, background .16s ease, box-shadow .16s ease; }
         .ex-ranking-card:hover { border-color: #c8d3e7; background: linear-gradient(135deg,#fbfcff,#f1f6ff); transform: translateY(-1px); box-shadow: 0 14px 28px rgba(70,80,120,.08); }
@@ -3052,6 +3100,11 @@ export default function ExDataPage() {
         .ex-analysis-inventory-status.is-low-sample { color: var(--ex-status-reference-text); background: var(--ex-status-reference-bg); border-color: var(--ex-status-reference-border); }
         .ex-analysis-inventory-status.is-future-accumulation { color: var(--ex-status-unavailable-text); background: var(--ex-status-unavailable-bg); border-color: var(--ex-status-unavailable-border); border-style: dashed; }
         .ex-analysis-inventory-status.is-not-generated-fake-prohibited { color: var(--ex-status-error-text); background: var(--ex-status-error-bg); border-color: var(--ex-status-error-border); }
+        .ex-structure-audit-board { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 4},minmax(0,1fr)); gap: 12px; }
+        .ex-structure-audit-card { min-width: 0; padding: 16px; border: 1px solid #e0e7f1; border-radius: 20px; background: linear-gradient(145deg,rgba(255,255,255,.9),rgba(248,250,255,.76)); box-shadow: 0 12px 26px rgba(53,67,96,.055); }
+        .ex-structure-audit-card strong { display: block; color: #263650; font: 820 17px/1.3 ${serif}; }
+        .ex-structure-audit-card p { margin: 8px 0 0; color: #6b778d; font-size: 11px; line-height: 1.65; }
+        .ex-structure-audit-card span { display: inline-flex; margin-bottom: 8px; padding: 5px 8px; border-radius: 999px; color: #80591e; background: #fff4df; border: 1px solid #efd7a2; font-size: 9px; font-weight: 950; letter-spacing: .08em; }
         .ex-source-capability-summary { display: grid; grid-template-columns: repeat(${isMobile ? 2 : 5},minmax(0,1fr)); gap: 9px; }
         .ex-source-capability-summary article { min-width: 0; padding: 13px; border: 1px solid #e1e5ee; border-radius: 15px; background: rgba(255,255,255,.86); }
         .ex-source-capability-summary span { color: #748097; font-size: 9px; font-weight: 900; letter-spacing: .05em; overflow-wrap: anywhere; }
@@ -3199,6 +3252,7 @@ export default function ExDataPage() {
             <button
               key={tab.key}
               className={`ex-section-tab${activeSectionTab === tab.key ? " is-active" : ""}`}
+              data-category={tab.category}
               type="button"
               role="tab"
               aria-label={tab.label}
@@ -3216,9 +3270,18 @@ export default function ExDataPage() {
             >
               <strong>{tab.label}</strong>
               <span>{tab.sublabel}</span>
+              <small>{EX_TAB_CATEGORY_LABELS[tab.category]}</small>
             </button>
           ))}
         </nav>
+        <div className="ex-usage-strip" aria-label="EXデータ利用ラベル">
+          {EX_USAGE_LABELS.map((item) => (
+            <div className={`ex-usage-pill is-${item.key}`} key={item.key}>
+              <strong>{item.label}</strong>
+              <span>{item.note}</span>
+            </div>
+          ))}
+        </div>
 
         <section
           className="ex-panel ex-section"
@@ -4818,6 +4881,28 @@ export default function ExDataPage() {
               <span className="ex-trend-status-pill is-partial">availability-first</span>
               <span className="ex-trend-status-pill is-partial">backfill-ready</span>
             </div>
+            <div className="ex-structure-audit-board" aria-label="予想構造LABの監査分類">
+              <article className="ex-structure-audit-card">
+                <span>COVERAGE</span>
+                <strong>既存タブの所在を先に確認</strong>
+                <p>出目・荒れ・連鎖・天候・会場クセは既存Result Trend Lab側で確認し、同じ数値を重複表示しません。</p>
+              </article>
+              <article className="ex-structure-audit-card">
+                <span>BACKFILL</span>
+                <strong>source-backedだけ昇格</strong>
+                <p>official result、3連単払戻、取得日時、provenanceが揃う範囲だけを再集計対象にします。</p>
+              </article>
+              <article className="ex-structure-audit-card">
+                <span>EXISTING MAP</span>
+                <strong>重複実装を防ぐ台帳</strong>
+                <p>既存タブで見られるもの、一部だけあるもの、追加生成が必要なものを分けます。</p>
+              </article>
+              <article className="ex-structure-audit-card">
+                <span>FUTURE</span>
+                <strong>未蓄積は未蓄積のまま</strong>
+                <p>ラインイベント、オッズ変動、B/SBなどは推測せず、source設計後に追加します。</p>
+              </article>
+            </div>
 
             <div
               className="ex-empty"
@@ -4996,6 +5081,23 @@ export default function ExDataPage() {
             lead="today.generated、official entries、starter source、EX history、official resultsの保存済み状態と取得日時を表示します。"
           />
           <div className="ex-summary-shell">
+          <div className="ex-coverage-cockpit" aria-label="DATA COVERAGE status guide">
+            <article className="ex-coverage-cockpit-card">
+              <div className="ex-coverage-cockpit-tags"><span>予想に使える</span><span>source-backed</span></div>
+              <strong>登録番号・EXACT・official result</strong>
+              <p>official entries、starter source、EX history、Result Trend Lab は保存済み値だけを表示します。</p>
+            </article>
+            <article className="ex-coverage-cockpit-card">
+              <div className="ex-coverage-cockpit-tags"><span>参考</span><span>LOW SAMPLE</span></div>
+              <strong>母数少・sample-short</strong>
+              <p>LOW SAMPLE は警告付きの補助材料です。主根拠へ格上げせず、coverageと期間を先に確認します。</p>
+            </article>
+            <article className="ex-coverage-cockpit-card">
+              <div className="ex-coverage-cockpit-tags"><span>蓄積中</span><span>使用禁止</span></div>
+              <strong>未実装・未蓄積source</strong>
+              <p>未取得、identity-only、fake禁止項目は「使える」表示にせず、監査対象として残します。</p>
+            </article>
+          </div>
           <div className="ex-summary-primary-grid">
             <MetricCard
               label="TODAY.GENERATED"
@@ -6840,6 +6942,43 @@ export default function ExDataPage() {
         </section>
 
         <div hidden={activeSectionTab !== "analysis"} style={{ display: activeSectionTab === "analysis" ? "contents" : "none" }}>
+        <div className="ex-analysis-gateway" aria-label="EX ANALYSIS入口">
+          {[
+            {
+              key: "venue" as const,
+              title: "VENUE",
+              badge: "会場・バンク",
+              text: "venue-score、会場別SEED/EXACT、sample-shortを確認します。",
+              meta: venueScoreAnalysis ? `${venueScoreAnalysis.period.from ?? "--"}〜${venueScoreAnalysis.period.to ?? "--"} / ${valueText(venueScoreAnalysis.venueCount)} venues` : "venue-score loading",
+            },
+            {
+              key: "player" as const,
+              title: "PLAYER",
+              badge: "選手・条件",
+              text: "rider-score、選手別EXACT、周長・時間帯・役割・天候別を確認します。",
+              meta: riderScoreAnalysis ? `${riderScoreAnalysis.period.from ?? "--"}〜${riderScoreAnalysis.period.to ?? "--"} / ${valueText(riderScoreAnalysis.riderCount)} riders` : "rider-score loading",
+            },
+            {
+              key: "matchup" as const,
+              title: "MATCHUP",
+              badge: "対戦・同ライン",
+              text: "保存済み対戦ペア、同ライン/別ライン比較、LOW SAMPLEを確認します。",
+              meta: matchupSummary ? `${valueText(matchupSummary.distinctPairCount)} pairs / ${valueText(matchupSummary.pairObservationCount)} observations` : "matchup loading",
+            },
+          ].map((item) => (
+            <button
+              className={`ex-analysis-gateway-card${activeView === item.key ? " is-active" : ""}`}
+              key={item.key}
+              type="button"
+              onClick={() => setActiveView(item.key)}
+            >
+              <span>{item.badge}</span>
+              <strong>{item.title}</strong>
+              <p>{item.text}</p>
+              <small>{item.meta}</small>
+            </button>
+          ))}
+        </div>
         <div className="ex-view-tabs" role="tablist" aria-label="EX表示切替">
           <button className={`ex-view-tab${activeView === "venue" ? " is-active" : ""}`} type="button" role="tab" aria-selected={activeView === "venue"} onClick={() => setActiveView("venue")}>VENUE EX</button>
           <button className={`ex-view-tab${activeView === "player" ? " is-active" : ""}`} type="button" role="tab" aria-selected={activeView === "player"} onClick={() => setActiveView("player")}>PLAYER EX</button>
