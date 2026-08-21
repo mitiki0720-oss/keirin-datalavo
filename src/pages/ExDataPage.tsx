@@ -240,6 +240,14 @@ function getMatchupQualityLabel(quality?: string | null) {
 const MATCHUP_OVERVIEW_LIMIT = 50;
 const MATCHUP_OVERVIEW_SOURCE_RIDER_LIMIT = 12;
 
+type MatchupDetailSegment = "all" | "sameLine" | "otherLine";
+
+const MATCHUP_DETAIL_SEGMENTS: Array<{ key: MatchupDetailSegment; label: string; note: string }> = [
+  { key: "all", label: "全対戦", note: "保存済み全共走" },
+  { key: "sameLine", label: "同ライン", note: "保存済みsameLine" },
+  { key: "otherLine", label: "別線", note: "保存済みotherLine" },
+];
+
 type MatchupOverviewCategory = "practical" | "low-sample" | "insufficient" | "unavailable";
 
 type MatchupOverviewRow = {
@@ -350,6 +358,20 @@ function formatMatchupOverviewLine(stats: KurariExMatchupComparableStats) {
   if (!stats.sharedRaceCount) return "未蓄積";
   if (!stats.safeComparableRaceCount) return `${stats.sharedRaceCount}R / 比較未取得`;
   return `${stats.sharedRaceCount}R / A先着${stats.selfAheadCount} / B先着${stats.opponentAheadCount}`;
+}
+
+function getMatchupUsageLabel(quality: string | null | undefined, safeComparableRaceCount: number) {
+  const normalized = String(quality ?? "").toLowerCase();
+  if (safeComparableRaceCount <= 0) return "蓄積中";
+  if (normalized === "low-sample" || safeComparableRaceCount < 5) return "LOW SAMPLE / 参考";
+  if (normalized === "partial") return "参考";
+  return "予想に使える";
+}
+
+function getMatchupSegmentStats(row: KurariExMatchupEntry, segment: MatchupDetailSegment): KurariExMatchupComparableStats {
+  if (segment === "sameLine") return row.sameLine;
+  if (segment === "otherLine") return row.otherLine;
+  return row;
 }
 
 function MetricCard({ label, value, note, warning, className }: {
@@ -1757,6 +1779,8 @@ export default function ExDataPage() {
   const [matchupQuery, setMatchupQuery] = useState("");
   const [selectedMatchupRiderNo, setSelectedMatchupRiderNo] = useState<string | null>(null);
   const [matchupFilterMode, setMatchupFilterMode] = useState<"all" | "advantage" | "danger" | "sample" | "strong" | "risk" | "sameLine" | "otherLine">("all");
+  const [selectedMatchupPairKey, setSelectedMatchupPairKey] = useState<string | null>(null);
+  const [activeMatchupSegment, setActiveMatchupSegment] = useState<MatchupDetailSegment>("all");
   const [matchupCache, setMatchupCache] = useState<Record<string, KurariExMatchupExact>>({});
   const [matchupStatus, setMatchupStatus] = useState<Record<string, "loading" | "ready" | "error">>({});
   const [matchupOverviewRows, setMatchupOverviewRows] = useState<MatchupOverviewRow[]>([]);
@@ -2303,11 +2327,22 @@ export default function ExDataPage() {
   const filteredMatchupRiders = useMemo(() => {
     const normalized = normalizeSearchText(matchupQuery);
     const items = matchupInitialData?.index.items ?? [];
-    if (!normalized) return items;
-    return items.filter((item) => (
-      [item.name, item.registrationNo, item.quality]
-        .some((value) => normalizeSearchText(value).includes(normalized))
-    ));
+    const filtered = !normalized
+      ? items
+      : items.filter((item) => (
+        [item.name, item.registrationNo, item.quality]
+          .some((value) => normalizeSearchText(value).includes(normalized))
+      ));
+    return [...filtered].sort((left, right) => {
+      if (normalized) {
+        const leftRegistrationMatch = normalizeSearchText(left.registrationNo) === normalized ? 1 : 0;
+        const rightRegistrationMatch = normalizeSearchText(right.registrationNo) === normalized ? 1 : 0;
+        if (leftRegistrationMatch !== rightRegistrationMatch) return rightRegistrationMatch - leftRegistrationMatch;
+      }
+      return right.safeComparableRaceCount - left.safeComparableRaceCount ||
+        right.sharedRaceCount - left.sharedRaceCount ||
+        left.name.localeCompare(right.name, "ja");
+    });
   }, [matchupInitialData?.index.items, matchupQuery]);
 
   useEffect(() => {
@@ -2384,6 +2419,8 @@ export default function ExDataPage() {
 
   const selectMatchupRider = (item: KurariExMatchupExactIndexItem) => {
     setSelectedMatchupRiderNo(item.registrationNo);
+    setSelectedMatchupPairKey(null);
+    setActiveMatchupSegment("all");
     if (matchupCache[item.registrationNo] || matchupStatus[item.registrationNo] === "loading") return;
     setMatchupStatus((current) => ({ ...current, [item.registrationNo]: "loading" }));
     loadKurariExMatchupExactByFile(item.file)
@@ -2502,6 +2539,22 @@ export default function ExDataPage() {
       }
       return right.safeComparableRaceCount - left.safeComparableRaceCount || right.sharedRaceCount - left.sharedRaceCount || left.opponentName.localeCompare(right.opponentName, "ja");
     });
+  const selectedMatchupPair = selectedMatchupRows.find((row) => row.pairKey === selectedMatchupPairKey)
+    ?? selectedMatchupRows[0]
+    ?? null;
+  const availableMatchupSegments = selectedMatchupPair
+    ? MATCHUP_DETAIL_SEGMENTS.filter((segment) => {
+      if (segment.key === "all") return selectedMatchupPair.sharedRaceCount > 0;
+      return getMatchupSegmentStats(selectedMatchupPair, segment.key).sharedRaceCount > 0;
+    })
+    : [];
+  const effectiveMatchupSegment = availableMatchupSegments.some((segment) => segment.key === activeMatchupSegment)
+    ? activeMatchupSegment
+    : "all";
+  const selectedMatchupSegmentStats = selectedMatchupPair
+    ? getMatchupSegmentStats(selectedMatchupPair, effectiveMatchupSegment)
+    : null;
+  const selectedMatchupPreviewRows = selectedMatchupRows.slice(0, 4);
   const riderFilterOptions = [
     { key: "all" as const, label: "全て", note: "全公開選手" },
     { key: "practical" as const, label: "実戦候補", note: "確認出走5R以上かつ素材蓄積中を除外" },
@@ -3191,6 +3244,25 @@ export default function ExDataPage() {
         .ex-player-condition-table td:first-child small { display: block; margin-top: 4px; font-size: 9px; font-weight: 820; }
         .ex-player-use-label { display: inline-flex; align-items: center; border-radius: 999px; padding: 5px 8px; border: 1px solid var(--ex-status-reference-border); background: var(--ex-status-reference-bg); color: var(--ex-status-reference-text); font-size: 9px; font-weight: 950; }
         .ex-player-use-label.is-usable { border-color: var(--ex-status-source-border); background: var(--ex-status-source-bg); color: var(--ex-status-source-text); }
+        .ex-player-role-caution { margin: 12px 0 0; padding: 11px 13px; border: 1px dashed var(--ex-status-reference-border); border-radius: 14px; background: var(--ex-status-reference-bg); color: var(--ex-status-reference-text); font-size: 10px; line-height: 1.65; font-weight: 820; }
+        .ex-matchup-pair-grid, .ex-matchup-ab-grid, .ex-matchup-segment-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 4}, minmax(0,1fr)); gap: 10px; }
+        .ex-matchup-pair-grid { grid-template-columns: repeat(${isMobile ? 1 : 3}, minmax(0,1fr)); }
+        .ex-matchup-pair-grid article, .ex-matchup-ab-grid article, .ex-matchup-segment-grid article { min-width: 0; padding: 16px; border: 1px solid #dde7f4; border-radius: 18px; background: linear-gradient(145deg,rgba(255,255,255,.92),rgba(246,250,255,.84)); box-shadow: 0 12px 24px rgba(55,68,102,.05); }
+        .ex-matchup-pair-grid article.is-usable, .ex-matchup-ab-grid article.is-usable, .ex-matchup-segment-grid article.is-usable { border-color: var(--ex-status-source-border); background: linear-gradient(145deg,var(--ex-status-source-bg),#ffffff); }
+        .ex-matchup-pair-grid article.is-reference, .ex-matchup-ab-grid article.is-reference, .ex-matchup-segment-grid article.is-reference { border-color: var(--ex-status-reference-border); background: linear-gradient(145deg,var(--ex-status-reference-bg),#ffffff); }
+        .ex-matchup-pair-grid span, .ex-matchup-ab-grid span, .ex-matchup-segment-grid span { display: block; color: #738097; font-size: 9px; font-weight: 950; letter-spacing: .08em; text-transform: uppercase; }
+        .ex-matchup-pair-grid strong, .ex-matchup-ab-grid strong, .ex-matchup-segment-grid strong { display: block; margin-top: 7px; color: #273852; font: 850 24px/1.1 ${serif}; overflow-wrap: anywhere; }
+        .ex-matchup-pair-grid small, .ex-matchup-ab-grid small, .ex-matchup-segment-grid small { display: block; margin-top: 7px; color: #6d798d; font-size: 10px; font-weight: 800; line-height: 1.45; overflow-wrap: anywhere; }
+        .ex-matchup-shortlist { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 4}, minmax(0,1fr)); gap: 9px; margin-bottom: 13px; }
+        .ex-matchup-shortlist button { min-width: 0; cursor: pointer; text-align: left; padding: 13px; border: 1px solid #e0e6f0; border-radius: 15px; background: rgba(255,255,255,.85); color: #617087; transition: border-color .15s ease, background .15s ease, transform .15s ease; }
+        .ex-matchup-shortlist button:hover, .ex-matchup-shortlist button.is-active { border-color: #a99bdd; background: linear-gradient(145deg,#f5f1ff,#f4fbff); transform: translateY(-1px); }
+        .ex-matchup-shortlist span { display: block; color: #25354f; font-size: 12px; font-weight: 850; overflow-wrap: anywhere; }
+        .ex-matchup-shortlist strong { display: block; margin-top: 6px; color: #51428f; font: 850 22px/1 ${serif}; }
+        .ex-matchup-shortlist small { display: block; margin-top: 5px; color: #748197; font-size: 9px; font-weight: 850; }
+        .ex-matchup-pair-select { cursor: pointer; display: grid; gap: 3px; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; font: inherit; }
+        .ex-matchup-pair-select span { color: #263650; font-weight: 850; }
+        .ex-matchup-pair-select small { color: var(--ex-table-muted); font-size: 10px; }
+        .ex-data-table tbody tr.is-selected { background: #f4f0ff; }
         .ex-low-sample { display: inline-flex; margin-top: 8px; padding: 4px 7px; border: 1px solid var(--ex-status-reference-border); border-radius: 999px; background: var(--ex-status-reference-bg); color: var(--ex-status-reference-text); font-size: 9px; font-weight: 900; }
         .ex-subsection { display: grid; grid-template-columns: minmax(0,1fr); gap: 13px; padding-top: 4px; }
         .ex-category-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 2}, minmax(0,1fr)); gap: 12px; }
@@ -7718,6 +7790,9 @@ export default function ExDataPage() {
                         ))}
                       </div>
                       <PlayerConditionTable rows={selectedPlayerConditionRows} />
+                      {activePlayerCondition === "role" ? (
+                        <p className="ex-player-role-caution">戦法イベント（かまし・つっぱり・飛びつき・競り・ちぎり・ちぎられ）は未蓄積です。着順やroleだけから認定しません。</p>
+                      ) : null}
                     </section>
 
                     {selectedRider.byClass.length ? (
@@ -7828,6 +7903,110 @@ export default function ExDataPage() {
                 {selectedMatchup ? (
                   <>
                     <section className="ex-panel ex-section">
+                      <SectionTitle
+                        eyebrow="MATCHUP PAIR SUMMARY"
+                        title={selectedMatchupPair ? `${selectedMatchup.name} × ${selectedMatchupPair.opponentName}` : "対戦データなし / 未蓄積"}
+                        lead="選択中の選手Aと相手Bの保存済み対戦事実だけを表示します。"
+                      />
+                      {selectedMatchupPair ? (
+                        <div className="ex-matchup-pair-grid">
+                          <article>
+                            <span>選手A</span>
+                            <strong>{selectedMatchup.name}</strong>
+                            <small>{selectedMatchup.registrationNo}</small>
+                          </article>
+                          <article>
+                            <span>選手B</span>
+                            <strong>{selectedMatchupPair.opponentName}</strong>
+                            <small>{selectedMatchupPair.opponentRegistrationNo}</small>
+                          </article>
+                          <article>
+                            <span>pair observation</span>
+                            <strong>{valueText(selectedMatchupPair.sharedRaceCount)}R</strong>
+                            <small>比較可能 {valueText(selectedMatchupPair.safeComparableRaceCount)}R</small>
+                          </article>
+                          <article>
+                            <span>対象期間</span>
+                            <strong>{selectedMatchup.period.from ?? "--"}〜{selectedMatchup.period.to ?? "--"}</strong>
+                            <small>最終更新 {formatDate(selectedMatchup.generatedAt)}</small>
+                          </article>
+                          <article>
+                            <span>source / quality</span>
+                            <strong>{getMatchupQualityLabel(selectedMatchupPair.quality)}</strong>
+                            <small>sourceType {selectedMatchup.sourceType}</small>
+                          </article>
+                          <article className={selectedMatchupPair.safeComparableRaceCount >= 5 ? "is-usable" : "is-reference"}>
+                            <span>利用区分</span>
+                            <strong>{getMatchupUsageLabel(selectedMatchupPair.quality, selectedMatchupPair.safeComparableRaceCount)}</strong>
+                            <small>{selectedMatchupPair.safeComparableRaceCount < 5 ? "LOW SAMPLE / 参考" : "予想に使える"}</small>
+                          </article>
+                        </div>
+                      ) : (
+                        <EmptyState text="この選手の相手別対戦データはまだありません。0件と未取得を混同せず、蓄積中として扱ってください。" />
+                      )}
+                    </section>
+
+                    {selectedMatchupPair ? (
+                      <section className="ex-panel ex-section">
+                        <SectionTitle eyebrow="A / B FACTS" title="A vs B 比較" lead="比較可能レースに限ったA先着・B先着を表示します。強弱断定はしません。" />
+                        <div className="ex-matchup-ab-grid">
+                          <article>
+                            <span>A先着</span>
+                            <strong>{selectedMatchupPair.safeComparableRaceCount ? valueText(selectedMatchupPair.selfAheadCount) : "--"}</strong>
+                            <small>{formatMatchupRate(selectedMatchupPair.selfAheadRate)}</small>
+                          </article>
+                          <article>
+                            <span>B先着</span>
+                            <strong>{selectedMatchupPair.safeComparableRaceCount ? valueText(selectedMatchupPair.opponentAheadCount) : "--"}</strong>
+                            <small>{formatMatchupRate(selectedMatchupPair.opponentAheadRate)}</small>
+                          </article>
+                          <article>
+                            <span>比較可能</span>
+                            <strong>{valueText(selectedMatchupPair.safeComparableRaceCount)}R</strong>
+                            <small>観測 {valueText(selectedMatchupPair.sharedRaceCount)}R</small>
+                          </article>
+                          <article>
+                            <span>判定不能</span>
+                            <strong>{valueText(selectedMatchupPair.unknownOrderCount)}</strong>
+                            <small>ライン不明 {valueText(selectedMatchupPair.unknownLineRaceCount)}R</small>
+                          </article>
+                        </div>
+                      </section>
+                    ) : null}
+
+                    {selectedMatchupPair ? (
+                      <section className="ex-panel ex-section">
+                        <SectionTitle eyebrow="LINE SPLIT" title="同ライン / 別線分析" lead="保存済みsameLine / otherLineがある分類だけ表示します。戦法イベントは未蓄積です。" />
+                        <div className="ex-player-condition-tabs" role="tablist" aria-label="MATCHUP分類切替">
+                          {availableMatchupSegments.map((segment) => (
+                            <button
+                              key={segment.key}
+                              className={`ex-view-tab${effectiveMatchupSegment === segment.key ? " is-active" : ""}`}
+                              type="button"
+                              role="tab"
+                              aria-selected={effectiveMatchupSegment === segment.key}
+                              onClick={() => setActiveMatchupSegment(segment.key)}
+                              title={segment.note}
+                            >
+                              {segment.label}
+                            </button>
+                          ))}
+                        </div>
+                        {selectedMatchupSegmentStats ? (
+                          <div className="ex-matchup-segment-grid">
+                            <article><span>sample</span><strong>{valueText(selectedMatchupSegmentStats.sharedRaceCount)}R</strong><small>比較可能 {valueText(selectedMatchupSegmentStats.safeComparableRaceCount)}R</small></article>
+                            <article><span>A先着</span><strong>{selectedMatchupSegmentStats.safeComparableRaceCount ? valueText(selectedMatchupSegmentStats.selfAheadCount) : "--"}</strong><small>{formatMatchupRate(selectedMatchupSegmentStats.selfAheadRate)}</small></article>
+                            <article><span>B先着</span><strong>{selectedMatchupSegmentStats.safeComparableRaceCount ? valueText(selectedMatchupSegmentStats.opponentAheadCount) : "--"}</strong><small>{formatMatchupRate(selectedMatchupSegmentStats.opponentAheadRate)}</small></article>
+                            <article className={selectedMatchupSegmentStats.safeComparableRaceCount >= 5 ? "is-usable" : "is-reference"}><span>利用区分</span><strong>{getMatchupUsageLabel(selectedMatchupPair.quality, selectedMatchupSegmentStats.safeComparableRaceCount)}</strong><small>{selectedMatchupSegmentStats.safeComparableRaceCount < 5 ? "LOW SAMPLE / 参考" : "予想に使える"}</small></article>
+                          </div>
+                        ) : (
+                          <EmptyState text="この分類の保存済み対戦データはまだありません。" />
+                        )}
+                        <p className="ex-player-role-caution">戦法イベント（かまし・つっぱり・飛びつき・競り・ちぎり・ちぎられ）は未蓄積です。着順やroleだけから推測しません。</p>
+                      </section>
+                    ) : null}
+
+                    <section className="ex-panel ex-section">
                       <SectionTitle eyebrow="COVERAGE" title="対戦解析範囲" />
                       <div className="ex-health-grid">
                         <MetricCard label="OPPONENTS" value={valueText(selectedMatchup.coverage.distinctOpponentCount)} />
@@ -7840,6 +8019,22 @@ export default function ExDataPage() {
 
                     <section className="ex-panel ex-section">
                       <SectionTitle eyebrow="OPPONENT TABLE" title="同走相手別" lead={`表示 ${selectedMatchupRows.length.toLocaleString("ja-JP")} / ${selectedMatchup.matchups.length.toLocaleString("ja-JP")}件。自己先着率は比較可能レースだけで算出します。`} />
+                      {selectedMatchupPreviewRows.length ? (
+                        <div className="ex-matchup-shortlist" aria-label="主な対戦データ">
+                          {selectedMatchupPreviewRows.map((row) => (
+                            <button
+                              key={row.pairKey}
+                              className={selectedMatchupPair?.pairKey === row.pairKey ? "is-active" : ""}
+                              type="button"
+                              onClick={() => setSelectedMatchupPairKey(row.pairKey)}
+                            >
+                              <span>{row.opponentName}</span>
+                              <strong>{valueText(row.sharedRaceCount)}R</strong>
+                              <small>比較可能 {valueText(row.safeComparableRaceCount)}R</small>
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
                       <div className="ex-view-tabs" style={{ justifyContent: "flex-start", flexWrap: "wrap", marginBottom: 16 }}>
                         {matchupFilterOptions.map((option) => (
                           <button
@@ -7857,8 +8052,13 @@ export default function ExDataPage() {
                         <div className="ex-table-wrap"><table className="ex-data-table"><thead><tr><th>相手</th><th>共走</th><th>比較可</th><th>自己先着</th><th>相手先着</th><th>自己先着率</th><th>同ライン</th><th>別線</th><th>品質</th></tr></thead><tbody>
                           {selectedMatchupRows
                             .map((row) => (
-                              <tr key={row.pairKey}>
-                                <td>{row.opponentName}<br /><span className="ex-muted">{row.opponentRegistrationNo}</span></td>
+                              <tr key={row.pairKey} className={selectedMatchupPair?.pairKey === row.pairKey ? "is-selected" : ""}>
+                                <td>
+                                  <button className="ex-matchup-pair-select" type="button" onClick={() => setSelectedMatchupPairKey(row.pairKey)}>
+                                    <span>{row.opponentName}</span>
+                                    <small>{row.opponentRegistrationNo}</small>
+                                  </button>
+                                </td>
                                 <td>{row.sharedRaceCount}</td>
                                 <td>{row.safeComparableRaceCount}</td>
                                 <td>{row.selfAheadCount}</td>
