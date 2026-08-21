@@ -982,6 +982,28 @@ function RiderQualityBadge({ quality }: { quality: KurariExRiderQuality }) {
 
 const RIDER_EXACT_OVERVIEW_LIMIT = 50;
 
+type PlayerConditionTab = "venue" | "bankLength" | "timeslot" | "role";
+
+const PLAYER_CONDITION_TABS: Array<{ key: PlayerConditionTab; label: string; note: string }> = [
+  { key: "venue", label: "会場別", note: "保存済みbyVenue" },
+  { key: "bankLength", label: "周長別", note: "保存済みbyBankLength" },
+  { key: "timeslot", label: "時間帯別", note: "保存済みbyTimeslot" },
+  { key: "role", label: "ライン役割別", note: "保存済みbyRole" },
+];
+
+const PLAYER_ROLE_LABELS: Record<"front" | "bante" | "third" | "single", string> = {
+  front: "ライン先頭",
+  bante: "番手",
+  third: "3番手",
+  single: "単騎",
+};
+
+type PlayerConditionRow = KurariExRiderAggregate & {
+  id: string;
+  label: string;
+  note?: string;
+};
+
 type RiderOverviewFilterKey =
   | "practical"
   | "low-sample"
@@ -1101,6 +1123,121 @@ function RiderAggregateCards({ aggregate }: { aggregate: KurariExRiderAggregate 
   return (
     <div className="ex-kpi-grid">
       {values.map(([label, value]) => <MetricCard key={label} label={label} value={value} />)}
+    </div>
+  );
+}
+
+function getAggregateUsageLabel(aggregate: KurariExRiderAggregate) {
+  const starts = aggregate.starts ?? 0;
+  if (starts <= 0) return "蓄積中";
+  if (starts < 5) return "LOW SAMPLE / 参考";
+  return "予想に使える";
+}
+
+function getPlayerSourceLabel(rider: KurariExRiderExact) {
+  if (rider.quality === "identity-only") return "identity-only";
+  if (rider.identity.status === "registration-no") return "source-backed";
+  return getRiderIdentityLabel(rider);
+}
+
+function getPlayerConditionRows(rider: KurariExRiderExact, tab: PlayerConditionTab): PlayerConditionRow[] {
+  if (tab === "venue") {
+    return rider.byVenue.map((row, index) => ({
+      ...row,
+      id: row.venueKey ?? `venue-${index}`,
+      label: row.venueName ?? row.venueKey ?? "未取得",
+      note: "会場",
+    }));
+  }
+  if (tab === "bankLength") {
+    return rider.byBankLength.map((row, index) => ({
+      ...row,
+      id: `${row.bankLength ?? "unknown"}-${index}`,
+      label: row.bankLengthLabel ?? (row.bankLength ? `${row.bankLength}m` : "未取得"),
+      note: "バンク周長",
+    }));
+  }
+  if (tab === "timeslot") {
+    return rider.byTimeslot.map((row, index) => ({
+      ...row,
+      id: `${row.timeslot ?? "unknown"}-${index}`,
+      label: timeslotLabels[row.timeslot ?? "unknown"] ?? row.timeslot ?? "未取得",
+      note: "時間帯",
+    }));
+  }
+  const roleRows: PlayerConditionRow[] = [];
+  (Object.entries(PLAYER_ROLE_LABELS) as Array<[keyof typeof PLAYER_ROLE_LABELS, string]>).forEach(([key, label]) => {
+    const aggregate = rider.byRole?.[key];
+    if (!aggregate) return;
+    roleRows.push({
+        ...aggregate,
+        id: key,
+        label,
+        note: key === "bante" && aggregate.differenceWinRate ? `番手差し ${formatKurariExRiderMetric(aggregate.differenceWinRate)}` : "安全に解釈できた役割",
+    });
+  });
+  return roleRows;
+}
+
+function PlayerPositionGuide({ aggregate }: { aggregate: KurariExRiderAggregate }) {
+  const startsText = aggregate.starts == null ? "未取得" : `${valueText(aggregate.starts)}走`;
+  const rows = [
+    { key: "head", title: "1着評価を見る", count: valueText(aggregate.wins), rate: formatKurariExRiderMetric(aggregate.winRate), note: "頭候補判断は勝率と1着数を確認" },
+    { key: "top2", title: "2着までを見る", count: valueText(aggregate.wins + aggregate.seconds), rate: formatKurariExRiderMetric(aggregate.top2Rate), note: "2着内評価は2連対率を確認" },
+    { key: "top3", title: "3着候補を見る", count: valueText(aggregate.wins + aggregate.seconds + aggregate.thirds), rate: formatKurariExRiderMetric(aggregate.top3Rate), note: "3着保護は3着以内率を確認" },
+    { key: "outside", title: "消し/下げを見る", count: aggregate.outside == null ? "未取得" : valueText(aggregate.outside), rate: startsText, note: "着外数と母数を必ずセットで確認" },
+  ];
+  return (
+    <div className="ex-player-position-grid">
+      {rows.map((row) => (
+        <article className="ex-player-position-card" key={row.key}>
+          <span>{row.title}</span>
+          <strong>{row.rate}</strong>
+          <small>{row.count} / {row.note}</small>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function PlayerConditionTable({ rows }: { rows: PlayerConditionRow[] }) {
+  if (!rows.length) {
+    return <EmptyState text="この条件の保存済みEXACTはまだありません。0件を強い根拠として扱わず、蓄積中として確認してください。" />;
+  }
+  return (
+    <div className="ex-table-wrap">
+      <table className="ex-data-table ex-player-condition-table">
+        <thead>
+          <tr>
+            <th>条件</th>
+            <th>sample</th>
+            <th>1着</th>
+            <th>2着</th>
+            <th>3着</th>
+            <th>着外</th>
+            <th>1着率</th>
+            <th>2着内率</th>
+            <th>3着内率</th>
+            <th>利用区分</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.id}>
+              <td><strong>{row.label}</strong>{row.note ? <small>{row.note}</small> : null}</td>
+              <td>{row.starts == null ? "未取得" : valueText(row.starts)}</td>
+              <td>{valueText(row.wins)}</td>
+              <td>{valueText(row.seconds)}</td>
+              <td>{valueText(row.thirds)}</td>
+              <td>{row.outside == null ? "未取得" : valueText(row.outside)}</td>
+              <td>{formatKurariExRiderMetric(row.winRate)}</td>
+              <td>{formatKurariExRiderMetric(row.top2Rate)}</td>
+              <td>{formatKurariExRiderMetric(row.top3Rate)}</td>
+              <td><span className={`ex-player-use-label ${row.starts != null && row.starts >= 5 ? "is-usable" : "is-reference"}`}>{getAggregateUsageLabel(row)}</span></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -1595,6 +1732,7 @@ export default function ExDataPage() {
   const [exactInitialStatus, setExactInitialStatus] = useState<"loading" | "ready" | "error">("loading");
   const [activeSectionTab, setActiveSectionTab] = useState<ExSectionTab>("overview");
   const [activeView, setActiveView] = useState<"venue" | "player" | "matchup">("venue");
+  const [activePlayerCondition, setActivePlayerCondition] = useState<PlayerConditionTab>("venue");
   const [query, setQuery] = useState("");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [venueCache, setVenueCache] = useState<Record<string, KurariExVenueBundle>>({});
@@ -1995,6 +2133,11 @@ export default function ExDataPage() {
         return true;
       })
       .sort((left, right) => {
+        if (normalized) {
+          const leftRegistrationMatch = normalizeSearchText(left.registrationNo) === normalized ? 1 : 0;
+          const rightRegistrationMatch = normalizeSearchText(right.registrationNo) === normalized ? 1 : 0;
+          if (leftRegistrationMatch !== rightRegistrationMatch) return rightRegistrationMatch - leftRegistrationMatch;
+        }
         if (riderFilterMode === "identity") return left.name.localeCompare(right.name, "ja");
         return right.confirmedStartCount - left.confirmedStartCount || right.roleEligibleCount - left.roleEligibleCount || left.name.localeCompare(right.name, "ja");
       });
@@ -2275,6 +2418,10 @@ export default function ExDataPage() {
   const selectedRider = selectedRiderNo ? riderCache[selectedRiderNo] : null;
   const selectedRiderStatus = selectedRiderNo ? riderStatus[selectedRiderNo] : undefined;
   const selectedRiderScore = selectedRiderNo ? riderScoreByRegistrationNo.get(selectedRiderNo) : undefined;
+  const selectedPlayerConditionRows = useMemo(
+    () => selectedRider ? getPlayerConditionRows(selectedRider, activePlayerCondition) : [],
+    [activePlayerCondition, selectedRider],
+  );
   const shbNameByNameKey = useMemo(
     () => new Map((shbNameIndex?.items ?? []).map((item) => [item.nameKey, item])),
     [shbNameIndex],
@@ -3026,6 +3173,24 @@ export default function ExDataPage() {
         .ex-data-table td strong { color: #2f3d54; }
         .ex-data-table td small, .ex-data-table .ex-muted { color: var(--ex-table-muted); }
         .ex-table-wrap { max-width: 100%; overflow-x: auto; border: 1px solid var(--ex-table-border); border-radius: 18px; background: rgba(255,255,255,.82); box-shadow: inset 0 1px 0 rgba(255,255,255,.7); scrollbar-width: thin; scrollbar-color: #b9c2d4 #f3f6fb; }
+        .ex-player-summary-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 3}, minmax(0,1fr)); gap: 10px; margin-top: 16px; }
+        .ex-player-summary-grid article { min-width: 0; padding: 16px; border: 1px solid #dde7f4; border-radius: 18px; background: linear-gradient(145deg,rgba(255,255,255,.9),rgba(245,249,255,.82)); box-shadow: 0 12px 24px rgba(55,68,102,.05); }
+        .ex-player-summary-grid article.is-usable { border-color: var(--ex-status-source-border); background: linear-gradient(145deg,var(--ex-status-source-bg),#ffffff); }
+        .ex-player-summary-grid article.is-reference { border-color: var(--ex-status-reference-border); background: linear-gradient(145deg,var(--ex-status-reference-bg),#ffffff); }
+        .ex-player-summary-grid span { display: block; color: #738097; font-size: 9px; font-weight: 950; letter-spacing: .08em; text-transform: uppercase; }
+        .ex-player-summary-grid strong { display: block; margin-top: 7px; color: #273852; font: 850 22px/1.15 ${serif}; overflow-wrap: anywhere; }
+        .ex-player-summary-grid small { display: block; margin-top: 7px; color: #6d798d; font-size: 10px; font-weight: 800; line-height: 1.45; overflow-wrap: anywhere; }
+        .ex-player-position-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 4}, minmax(0,1fr)); gap: 10px; }
+        .ex-player-position-card { min-width: 0; padding: 17px; border: 1px solid #e0e5ef; border-radius: 18px; background: linear-gradient(145deg,#fff,#f6f9ff); }
+        .ex-player-position-card span { color: #5f6e85; font-size: 10px; font-weight: 950; letter-spacing: .07em; }
+        .ex-player-position-card strong { display: block; margin: 8px 0 6px; color: #51428f; font: 850 27px/1 ${serif}; }
+        .ex-player-position-card small { color: #758197; font-size: 10px; line-height: 1.55; font-weight: 780; }
+        .ex-player-condition-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: -2px 0 12px; }
+        .ex-player-condition-table { min-width: 980px; }
+        .ex-player-condition-table td:first-child { min-width: 160px; }
+        .ex-player-condition-table td:first-child small { display: block; margin-top: 4px; font-size: 9px; font-weight: 820; }
+        .ex-player-use-label { display: inline-flex; align-items: center; border-radius: 999px; padding: 5px 8px; border: 1px solid var(--ex-status-reference-border); background: var(--ex-status-reference-bg); color: var(--ex-status-reference-text); font-size: 9px; font-weight: 950; }
+        .ex-player-use-label.is-usable { border-color: var(--ex-status-source-border); background: var(--ex-status-source-bg); color: var(--ex-status-source-text); }
         .ex-low-sample { display: inline-flex; margin-top: 8px; padding: 4px 7px; border: 1px solid var(--ex-status-reference-border); border-radius: 999px; background: var(--ex-status-reference-bg); color: var(--ex-status-reference-text); font-size: 9px; font-weight: 900; }
         .ex-subsection { display: grid; grid-template-columns: minmax(0,1fr); gap: 13px; padding-top: 4px; }
         .ex-category-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 2}, minmax(0,1fr)); gap: 12px; }
@@ -7446,6 +7611,38 @@ export default function ExDataPage() {
                       {selectedRider.quality !== "identity-only" && (selectedRider.quality === "low-sample" || selectedRider.coverage.confirmedStartCount < 5) ? (
                         <div className="ex-sample-alert"><strong>LOW SAMPLE / 母数少</strong>母数が少ないため、確定的な評価には使わず、展開判断の補助として確認してください。</div>
                       ) : null}
+                      <div className="ex-player-summary-grid">
+                        <article>
+                          <span>登録番号</span>
+                          <strong>{selectedRider.registrationNo}</strong>
+                          <small>{getRiderIdentityLabel(selectedRider)}</small>
+                        </article>
+                        <article>
+                          <span>rider-score</span>
+                          <strong>{selectedRiderScore ? valueText(selectedRiderScore.score) : "--"}</strong>
+                          <small>{selectedRiderScore?.rankHint ?? "score未取得"}</small>
+                        </article>
+                        <article>
+                          <span>EX対象期間</span>
+                          <strong>{selectedRider.period.from ?? "--"}〜{selectedRider.period.to ?? "--"}</strong>
+                          <small>最終更新 {formatDate(selectedRider.generatedAt)}</small>
+                        </article>
+                        <article>
+                          <span>EX対象レース数</span>
+                          <strong>{valueText(selectedRider.coverage.confirmedStartCount)}R</strong>
+                          <small>解析済み {valueText(selectedRider.coverage.resultParsedCount)}R</small>
+                        </article>
+                        <article>
+                          <span>source状態</span>
+                          <strong>{getPlayerSourceLabel(selectedRider)}</strong>
+                          <small>sourceType {selectedRider.sourceType}</small>
+                        </article>
+                        <article className={selectedRider.quality === "complete" ? "is-usable" : "is-reference"}>
+                          <span>利用区分</span>
+                          <strong>{selectedRider.quality === "complete" ? "予想に使える" : selectedRider.quality === "identity-only" ? "identity-only" : "LOW SAMPLE / 参考"}</strong>
+                          <small>{getKurariExRiderQualityLabel(selectedRider.quality)}</small>
+                        </article>
+                      </div>
                     </>
                   ) : null}
                 </section>
@@ -7463,6 +7660,11 @@ export default function ExDataPage() {
                         <MetricCard label="ROLE ELIGIBLE" value={valueText(selectedRider.coverage.roleEligibleCount)} />
                         <MetricCard label="VENUES" value={valueText(selectedRider.coverage.venueCount)} />
                       </div>
+                    </section>
+
+                    <section className="ex-panel ex-section">
+                      <SectionTitle eyebrow="POSITION TREND" title="着順傾向" lead="頭・2着・3着のどこで評価するかを、保存済みEXACTの事実値だけで確認します。" />
+                      <PlayerPositionGuide aggregate={selectedRider.overall} />
                     </section>
 
                     <section className="ex-panel ex-section">
@@ -7498,23 +7700,25 @@ export default function ExDataPage() {
                       </div>
                     </section>
 
-                    {selectedRider.byVenue.length ? (
-                      <section className="ex-panel ex-section">
-                        <SectionTitle eyebrow="BY VENUE" title="会場別" />
-                        <div className="ex-table-wrap"><table className="ex-data-table"><thead><tr><th>会場</th><th>出走</th><th>1着</th><th>2着</th><th>3着</th><th>3着以内率</th></tr></thead><tbody>
-                          {selectedRider.byVenue.map((row) => <tr key={row.venueKey}><td>{row.venueName ?? row.venueKey}</td><td>{row.starts ?? "未取得"}</td><td>{row.wins}</td><td>{row.seconds}</td><td>{row.thirds}</td><td>{formatKurariExRiderMetric(row.top3Rate)}</td></tr>)}
-                        </tbody></table></div>
-                      </section>
-                    ) : null}
-
-                    {selectedRider.byTimeslot.length ? (
-                      <section className="ex-panel ex-section">
-                        <SectionTitle eyebrow="BY TIMESLOT" title="時間帯別" />
-                        <div className="ex-table-wrap"><table className="ex-data-table"><thead><tr><th>時間帯</th><th>出走</th><th>1着</th><th>2着</th><th>3着</th><th>3着以内率</th></tr></thead><tbody>
-                          {selectedRider.byTimeslot.map((row) => <tr key={row.timeslot}><td>{timeslotLabels[row.timeslot ?? "unknown"] ?? row.timeslot}</td><td>{row.starts ?? "未取得"}</td><td>{row.wins}</td><td>{row.seconds}</td><td>{row.thirds}</td><td>{formatKurariExRiderMetric(row.top3Rate)}</td></tr>)}
-                        </tbody></table></div>
-                      </section>
-                    ) : null}
+                    <section className="ex-panel ex-section">
+                      <SectionTitle eyebrow="PLAYER CONDITION EX" title="選手×条件EX" lead="会場・周長・時間帯・ライン役割の保存済みEXACTだけを切り替えて確認します。" />
+                      <div className="ex-player-condition-tabs" role="tablist" aria-label="PLAYER条件別EX">
+                        {PLAYER_CONDITION_TABS.map((tab) => (
+                          <button
+                            key={tab.key}
+                            className={`ex-view-tab${activePlayerCondition === tab.key ? " is-active" : ""}`}
+                            type="button"
+                            role="tab"
+                            aria-selected={activePlayerCondition === tab.key}
+                            onClick={() => setActivePlayerCondition(tab.key)}
+                            title={tab.note}
+                          >
+                            {tab.label}
+                          </button>
+                        ))}
+                      </div>
+                      <PlayerConditionTable rows={selectedPlayerConditionRows} />
+                    </section>
 
                     {selectedRider.byClass.length ? (
                       <section className="ex-panel ex-section">
@@ -7542,32 +7746,6 @@ export default function ExDataPage() {
                         </tbody></table></div>
                       </section>
                     ) : null}
-
-                    {selectedRider.byBankLength.length ? (
-                      <section className="ex-panel ex-section">
-                        <SectionTitle eyebrow="BY BANK LENGTH" title="周長別" />
-                        <div className="ex-table-wrap"><table className="ex-data-table"><thead><tr><th>周長</th><th>出走</th><th>1着</th><th>2着</th><th>3着</th><th>3着以内率</th></tr></thead><tbody>
-                          {selectedRider.byBankLength.map((row, index) => <tr key={`${row.bankLength ?? "unknown"}-${index}`}><td>{row.bankLengthLabel ?? (row.bankLength ? `${row.bankLength}m` : "未取得")}</td><td>{row.starts ?? "未取得"}</td><td>{row.wins}</td><td>{row.seconds}</td><td>{row.thirds}</td><td>{formatKurariExRiderMetric(row.top3Rate)}</td></tr>)}
-                        </tbody></table></div>
-                      </section>
-                    ) : null}
-                    <section className="ex-panel ex-section">
-                      <SectionTitle eyebrow="BY ROLE" title="ライン役割別" />
-                      {selectedRider.byRole && Object.values(selectedRider.byRole).some(Boolean) ? (
-                        <div className="ex-category-grid">
-                          {([
-                            ["front", "ライン先頭"],
-                            ["bante", "番手"],
-                            ["third", "3番手"],
-                            ["single", "単騎"],
-                          ] as const).map(([key, label]) => {
-                            const aggregate = selectedRider.byRole?.[key];
-                            if (!aggregate) return null;
-                            return <article className="ex-category-card" key={key}><h4>{label}</h4><div className="ex-category-row"><span>出走</span><span>{aggregate.starts ?? "未取得"}</span></div><div className="ex-category-row"><span>勝率</span><span>{formatKurariExRiderMetric(aggregate.winRate)}</span></div><div className="ex-category-row"><span>3着以内率</span><span>{formatKurariExRiderMetric(aggregate.top3Rate)}</span></div>{aggregate.differenceWinRate ? <div className="ex-category-row"><span>番手時差し</span><span>{formatKurariExRiderMetric(aggregate.differenceWinRate)}</span></div> : null}</article>;
-                          })}
-                        </div>
-                      ) : <EmptyState text="役割別EXACTは、解析可能レースの蓄積後に表示されます。" />}
-                    </section>
 
                     {selectedRider.warnings.length ? (
                       <section className="ex-panel ex-section">
