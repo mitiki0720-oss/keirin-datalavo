@@ -21,6 +21,7 @@ import {
 } from "../lib/predictionGptSourceContract";
 import {
   buildKurariExConditionMaterial,
+  buildKurariExPreRaceRiskSignalMaterial,
   buildKurariExPredictionMaterial,
   buildKurariExMatchupPredictionMaterial,
   buildKurariExFailureStructureGuidanceMaterial,
@@ -30,6 +31,7 @@ import {
   KURARI_EX_ACCUMULATION_RULES_UI_SUMMARY,
   KURARI_EX_DATA_INVENTORY_UI_SUMMARY,
   KURARI_EX_TACTIC_EVENT_RULES_UI_SUMMARY,
+  type KurariExRaceRiskIndex,
   type KurariExPredictionFailureGuidanceArtifact,
   findKurariExExactVenueEntryByVenueName,
   findKurariExVenueEntryByVenueName,
@@ -39,6 +41,7 @@ import {
   loadKurariExMatchupExactByFile,
   loadKurariExMatchupExactIndex,
   loadKurariExPredictionFailureGuidanceIndex,
+  loadKurariExRaceRiskIndex,
   loadKurariExRiderExactIndex,
   loadKurariExVenueBundle,
   loadKurariExVenueExact,
@@ -4149,6 +4152,7 @@ export const buildPredictionExportText = ({
   oddsText,
   monthlyGuidanceText = "",
   kurariExGuidanceText = "",
+  preRaceRiskSignalText = "",
 }: {
   date: string;
   feed?: PredictionTodayFeed | null;
@@ -4172,6 +4176,7 @@ export const buildPredictionExportText = ({
   oddsText: string;
   monthlyGuidanceText?: string;
   kurariExGuidanceText?: string;
+  preRaceRiskSignalText?: string;
 }) => {
   const exportRace = materialRace ?? race;
   const exportRiders = materialRiders?.length
@@ -4236,6 +4241,7 @@ export const buildPredictionExportText = ({
     `race_id: ${raceIdLabel}`,
     `レースタイトル: ${raceTitleLabel}`,
     ...(rookieRaceLabel ? [`レース区分: ${rookieRaceLabel}`] : []),
+    ...(preRaceRiskSignalText.trim() ? ["", preRaceRiskSignalText.trim()] : []),
     "",
     "[B. KDreams 並び予想 / 周回予想]",
     lineupText,
@@ -9013,6 +9019,9 @@ export function PredictionPage() {
   const [kurariExExactIndexStatus, setKurariExExactIndexStatus] = useState<"loading" | "ready" | "error">("loading");
   const [kurariExRiderExactIndex, setKurariExRiderExactIndex] = useState<KurariExRiderExactIndex | null>(null);
   const [kurariExRiderExactIndexStatus, setKurariExRiderExactIndexStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [kurariExRaceRisk, setKurariExRaceRisk] = useState<KurariExRaceRiskIndex | null>(null);
+  const [kurariExRaceRiskStatus, setKurariExRaceRiskStatus] =
+    useState<"loading" | "ready" | "error">("loading");
   const [kurariExFailureGuidance, setKurariExFailureGuidance] =
     useState<KurariExPredictionFailureGuidanceArtifact | null>(null);
   const [kurariExFailureGuidanceStatus, setKurariExFailureGuidanceStatus] =
@@ -9216,6 +9225,24 @@ useEffect(() => {
         if (!isActive) return;
         setKurariExRiderExactIndex(null);
         setKurariExRiderExactIndexStatus("error");
+      });
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+    loadKurariExRaceRiskIndex()
+      .then((artifact) => {
+        if (!isActive) return;
+        setKurariExRaceRisk(artifact);
+        setKurariExRaceRiskStatus("ready");
+      })
+      .catch(() => {
+        if (!isActive) return;
+        setKurariExRaceRisk(null);
+        setKurariExRaceRiskStatus("error");
       });
     return () => {
       isActive = false;
@@ -10889,6 +10916,27 @@ if (
       : "",
     [selectedKurariExAnyReady, selectedKurariExBothMissing, selectedKurariExBundle, selectedKurariExConditionMaterial.text, selectedKurariExConfidenceMaterial, selectedKurariExExact, selectedKurariExMatchupMaterial.text, selectedKurariExRiderMaterial.text, selectedPredictionMaterialRace, selectedPredictionMaterialVenue?.session, selectedWeather?.windSpeedText],
   );
+  const selectedKurariExRaceRiskText = useMemo(
+    () => buildKurariExPreRaceRiskSignalMaterial(
+      kurariExRaceRiskStatus === "error" ? null : kurariExRaceRisk,
+      {
+        raceDate: predictionFeed?.date,
+        venueCode: selectedPredictionMaterialVenue?.venueCode,
+        venueName: selectedPredictionMaterialVenue?.venue,
+        venueSlug: selectedPredictionMaterialVenue?.slug,
+        raceNo: selectedPredictionMaterialRace?.raceNo,
+      },
+    ),
+    [
+      kurariExRaceRisk,
+      kurariExRaceRiskStatus,
+      predictionFeed?.date,
+      selectedPredictionMaterialRace?.raceNo,
+      selectedPredictionMaterialVenue?.slug,
+      selectedPredictionMaterialVenue?.venue,
+      selectedPredictionMaterialVenue?.venueCode,
+    ],
+  );
   const selectedKurariExFailureGuidanceText = useMemo(
     () => buildKurariExFailureStructureGuidanceMaterial(
       kurariExFailureGuidanceStatus === "error" ? null : kurariExFailureGuidance,
@@ -10980,8 +11028,9 @@ if (
       oddsText: selectedPredictionOddsText,
       monthlyGuidanceText: selectedPredictionMonthlyGuidanceText,
       kurariExGuidanceText: selectedKurariExCombinedGuidanceText,
+      preRaceRiskSignalText: selectedKurariExRaceRiskText,
     });
-  }, [predictionFeed, selectedKurariExCombinedGuidanceText, selectedPredictionDataAnalysisText, selectedPredictionMatchupText, selectedPredictionMaterialRace, selectedPredictionMaterialRegistrationCandidates, selectedPredictionMaterialRiders, selectedPredictionMaterialVenue, selectedPredictionMemoText, selectedPredictionMonthlyGuidanceText, selectedPredictionOddsText, selectedPredictionPlayerCardInsightText, selectedPredictionRecentPerformanceText, selectedPredictionRecentRaceText, selectedPredictionRegistrationCandidates, selectedPredictionRiderBasicText, selectedPredictionTrackAffinityText, selectedVenueGradeLabel, selectedVenueSummary, selectedWeather, selectedWeatherFallbackText]);
+  }, [predictionFeed, selectedKurariExCombinedGuidanceText, selectedKurariExRaceRiskText, selectedPredictionDataAnalysisText, selectedPredictionMatchupText, selectedPredictionMaterialRace, selectedPredictionMaterialRegistrationCandidates, selectedPredictionMaterialRiders, selectedPredictionMaterialVenue, selectedPredictionMemoText, selectedPredictionMonthlyGuidanceText, selectedPredictionOddsText, selectedPredictionPlayerCardInsightText, selectedPredictionRecentPerformanceText, selectedPredictionRecentRaceText, selectedPredictionRegistrationCandidates, selectedPredictionRiderBasicText, selectedPredictionTrackAffinityText, selectedVenueGradeLabel, selectedVenueSummary, selectedWeather, selectedWeatherFallbackText]);
   const predictionBatchSessionLabel = selectedPredictionMaterialVenue
     ? getPredictionSessionBadge(selectedPredictionMaterialVenue)
     : "未選択";
@@ -11148,6 +11197,16 @@ if (
           raceNo: race.raceNo,
         },
       );
+      const raceRiskText = buildKurariExPreRaceRiskSignalMaterial(
+        kurariExRaceRiskStatus === "error" ? null : kurariExRaceRisk,
+        {
+          raceDate: predictionFeed.date,
+          venueCode: selectedPredictionMaterialVenue.venueCode,
+          venueName: selectedPredictionMaterialVenue.venue,
+          venueSlug: selectedPredictionMaterialVenue.slug,
+          raceNo: race.raceNo,
+        },
+      );
       const material = buildPredictionBatchRaceCoreText(buildPredictionExportText({
         date: predictionFeed.date,
         feed: predictionFeed,
@@ -11169,6 +11228,7 @@ if (
         oddsText: "",
         monthlyGuidanceText: "",
         kurariExGuidanceText: "",
+        preRaceRiskSignalText: raceRiskText,
       }));
       return [
         "====================",
@@ -11197,6 +11257,8 @@ if (
     monthlyReviewDigest,
     kurariExFailureGuidance,
     kurariExFailureGuidanceStatus,
+    kurariExRaceRisk,
+    kurariExRaceRiskStatus,
     predictionBatchRange,
     predictionFeed,
     predictionRegistrationIdentityCandidates,

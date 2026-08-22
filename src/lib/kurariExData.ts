@@ -1190,6 +1190,157 @@ export async function loadKurariExRaceRiskIndex(): Promise<KurariExRaceRiskIndex
   return fetchJson<KurariExRaceRiskIndex>(RACE_RISK_INDEX_PATH);
 }
 
+export type KurariExRaceRiskLookupParams = {
+  raceDate?: string | null;
+  venueCode?: string | number | null;
+  venueName?: string | null;
+  venueSlug?: string | null;
+  raceNo?: number | string | null;
+};
+
+function normalizeRaceRiskRaceNo(value?: number | string | null) {
+  if (value == null || value === "") return null;
+  const numeric = typeof value === "number" ? value : Number(String(value).replace(/R$/i, ""));
+  if (!Number.isInteger(numeric) || numeric <= 0) return null;
+  return numeric;
+}
+
+function normalizeRaceRiskLookupText(value?: string | number | null) {
+  return String(value ?? "").trim();
+}
+
+export function lookupKurariExRaceRiskForRace(
+  artifact: KurariExRaceRiskIndex,
+  params: KurariExRaceRiskLookupParams,
+): KurariExRaceRiskRecord | null {
+  const raceDate = normalizeRaceRiskLookupText(params.raceDate);
+  const raceNo = normalizeRaceRiskRaceNo(params.raceNo);
+  if (!raceDate || raceNo == null) return null;
+
+  const venueCode = normalizeRaceRiskLookupText(params.venueCode);
+  const venueSlug = normalizeRaceRiskLookupText(params.venueSlug);
+  const venueName = normalizeRaceRiskLookupText(params.venueName);
+  const candidates = artifact.records.filter((record) => record.date === raceDate && record.raceNo === raceNo);
+  if (candidates.length === 0) return null;
+
+  const exactMatches = venueCode
+    ? candidates.filter((record) => record.venueCode === venueCode)
+    : venueSlug
+      ? candidates.filter((record) => record.venueSlug === venueSlug)
+      : venueName
+        ? candidates.filter((record) => record.venueName === venueName)
+        : [];
+
+  return exactMatches.length === 1 ? exactMatches[0] : null;
+}
+
+function formatRaceRiskPointRange(record: KurariExRaceRiskRecord) {
+  switch (record.pointRange.action) {
+    case "BASE_8":
+      return "8点候補";
+    case "VALUE_10":
+      return "10点候補";
+    case "STRONG_VALUE_12":
+      return "12点候補";
+    case "MAX_14":
+      return "14点候補";
+    case "SKIP":
+      return "見送り候補";
+    default:
+      return `${record.pointRange.label}点候補`;
+  }
+}
+
+function hasRaceRiskLeakageGuardIssue(record: KurariExRaceRiskRecord) {
+  return Boolean(
+    record.leakageGuard.currentResultUsed
+      || record.leakageGuard.currentPayoutUsed
+      || record.leakageGuard.oddsUsedAsRiskDriver
+      || record.leakageGuard.fuzzyMatchingUsed
+      || record.leakageGuard.fakeCompletionUsed,
+  );
+}
+
+function formatRaceRiskSignalLine(signal: KurariExRaceRiskSignal) {
+  return [
+    signal.label,
+    signal.value,
+    `contribution ${signal.contribution}`,
+    `confidence ${signal.confidence}`,
+    signal.note ? `note ${signal.note}` : "",
+  ].filter(Boolean).join(" / ");
+}
+
+export function buildKurariExPreRaceRiskSignalMaterial(
+  artifact: KurariExRaceRiskIndex | null,
+  params: KurariExRaceRiskLookupParams,
+) {
+  if (!artifact) {
+    return [
+      "【RISK SIGNAL】",
+      "status: unavailable",
+      "usage: prohibited",
+      "note: race-risk artifactを取得できないため、点数range判断には使わない。",
+    ].join("\n");
+  }
+
+  const record = lookupKurariExRaceRiskForRace(artifact, params);
+  if (!record) {
+    return [
+      "【RISK SIGNAL】",
+      "status: unavailable",
+      "usage: prohibited",
+      "note: date + venueCode/venueSlug/venueName + raceNo のexact一致がないため、別レースのriskは流用しない。",
+    ].join("\n");
+  }
+
+  const guardFailed = hasRaceRiskLeakageGuardIssue(record);
+  const lines = [
+    "【RISK SIGNAL】",
+    "source: KURARI EX race-risk / pre-race source-backed signal",
+    `artifactTargetDate: ${artifact.period.date}`,
+    `historical: ${artifact.period.historicalFrom ?? "--"}〜${artifact.period.historicalTo ?? "--"}`,
+    `level: ${record.riskLevel}`,
+    `pointRange: ${record.pointRange.action}`,
+    `recommended range: ${formatRaceRiskPointRange(record)}`,
+    `confidence: ${record.confidence}`,
+    `riskScore: ${record.riskScore}`,
+    `freshness: ${artifact.freshness.status} / lagDays ${artifact.freshness.lagDays ?? "--"}`,
+    "usage: pointRange decision only",
+    "safety: pre-race-only guard / fuzzy matching false / fake completion false",
+  ];
+
+  if (guardFailed) {
+    lines.push("guard: failed");
+    lines.push("guidance: 使用禁止。artifact safety guardがpassしていないため、このRISK SIGNALは点数range判断に使わない。");
+    return lines.join("\n");
+  }
+
+  if (record.riskLevel === "INSUFFICIENT" || record.pointRange.action === "SKIP") {
+    lines.push("guidance: データ不足のため見送り候補。failure guidanceやPLAYER EXでSKIPを上書きしない。");
+  } else {
+    lines.push(`guidance: ${formatRaceRiskPointRange(record)}。頭候補は2〜4人まで、追加点は原則2着・3着補正へ使う。`);
+  }
+
+  const activeSignals = record.signals
+    .filter((signal) => signal.contribution > 0)
+    .slice(0, 5);
+  if (activeSignals.length > 0) {
+    lines.push("主なpre-race signal:");
+    activeSignals.forEach((signal) => {
+      lines.push(`- ${formatRaceRiskSignalLine(signal)}`);
+    });
+  } else {
+    lines.push("主なpre-race signal: elevated signalなし");
+  }
+
+  if (record.protectionGuide?.note) {
+    lines.push(`protectionGuide: ${record.protectionGuide.note}`);
+  }
+  lines.push("note: RISKは点数range候補のみ。FAILURE STRUCTURE GUIDANCEとはmergeせず、failure側で昇格させない。");
+  return lines.join("\n");
+}
+
 export async function loadKurariExPredictionFailureIndex():
   Promise<KurariExPredictionFailureArtifact> {
   return fetchJson<KurariExPredictionFailureArtifact>(PREDICTION_FAILURE_INDEX_PATH);
