@@ -55,6 +55,7 @@ const RIDER_EXACT_ROOT = `${EXACT_ROOT}/riders`;
 const MATCHUP_EXACT_ROOT = `${EXACT_ROOT}/matchups`;
 const HISTORY_INDEX_PATH = `${EX_ROOT}/history/index.generated.json`;
 const RACE_RISK_INDEX_PATH = `${EX_ROOT}/race-risk/index.generated.json`;
+const PREDICTION_FAILURE_INDEX_PATH = `${EX_ROOT}/prediction-failure/index.generated.json`;
 const STARTERS_SOURCE_INDEX_PATH = `${EX_ROOT}/source/starters/index.generated.json`;
 const TODAY_RACES_PATH = "/data/races/today.generated.json";
 const OFFICIAL_ENTRIES_PATH = "/data/races/keirin-jp-entries.generated.json";
@@ -141,6 +142,128 @@ export type KurariExRaceRiskIndex = {
   confidenceCounts: Partial<Record<KurariExRaceRiskConfidence, number>>;
   pointRangeCounts: Record<string, number>;
   records: KurariExRaceRiskRecord[];
+};
+
+export type KurariExPredictionFailurePrimaryClass =
+  | "UNCLASSIFIABLE"
+  | "EXACT_HIT"
+  | "THIRD_PLACE_SHADOW_DROP"
+  | "SHADOW_ONLY_HIT"
+  | "THIRD_PLACE_MISS"
+  | "HEAD_MISS"
+  | "TOP3_ORDER_MISS"
+  | "OTHER_STRUCTURE_MISS";
+
+export type KurariExPredictionFailureSummary = {
+  unclassifiable: number;
+  exactHit: number;
+  thirdPlaceShadowDrop: number;
+  shadowOnlyHit: number;
+  thirdPlaceMiss: number;
+  headMiss: number;
+  top3OrderMiss: number;
+  otherMiss: number;
+};
+
+export type KurariExPredictionFailurePointRange = {
+  raceCount: number;
+  classifiableRaceCount: number;
+  exactHit: number;
+  thirdPlaceMiss: number;
+  thirdPlaceShadowDrop: number;
+  shadowOnlyHit: number;
+  headMiss: number;
+  top3OrderMiss: number;
+  otherMiss: number;
+  unclassifiable: number;
+  observedPurchaseHeadAverage: number | null;
+  correctTop2ThirdCandidateAverage: number | null;
+  thirdProtectionRate: number | null;
+};
+
+export type KurariExPredictionFailureRecord = {
+  key: string;
+  date: string;
+  venueCode: string | null;
+  venue: string;
+  raceNo: number;
+  primaryClass: KurariExPredictionFailurePrimaryClass;
+  actualTrifecta: string | null;
+  purchaseTicketCount: number;
+  shadowTicketCount: number;
+  shadowAvailability: "observed" | "unavailable";
+  explicitPointRange: 8 | 10 | 12 | 14 | null;
+  declaredHeadCandidateCount: number;
+  observedPurchaseHeadCount: number;
+  correctTop2PairCovered: boolean;
+  correctTop2ThirdCandidateCount: number;
+  actualThirdCoveredForCorrectTop2: boolean;
+  shadowExactCovered: boolean | null;
+  shadowActualThirdCoveredForCorrectTop2: boolean | null;
+  actualWinnerCovered: boolean;
+  actualTop3PermutationCovered: boolean;
+  stake: number | null;
+  return: number | null;
+  net: number | null;
+  payout: number | null;
+  sourceStatus: {
+    classifiable: boolean;
+    reasons: string[];
+    fakeCompletionUsed: boolean;
+    fuzzyMatchingUsed: boolean;
+    resultBackfilledPrediction: boolean;
+    shadowGeneratedFromResult: boolean;
+  };
+  parseWarnings: string[];
+  predictionSource: string | null;
+  resultSource: string | null;
+  leakageGuard: Record<string, boolean | null | string>;
+};
+
+export type KurariExPredictionFailureArtifact = {
+  version: "kurari-ex-prediction-failure/v1";
+  generatedAt: string;
+  targetDate: string;
+  historicalFrom: string;
+  historicalTo: string;
+  sourcePolicy: {
+    primarySource: string;
+    reviewsRootMode: string;
+    fakeCompletionUsed: boolean;
+    fuzzyMatchingUsed: boolean;
+    resultBackfilledPrediction: boolean;
+    shadowGeneratedFromResult: boolean;
+    pointRangeInferredFromTicketCount: boolean;
+    stakeInferredFromTicketCount: boolean;
+  };
+  leakageGuard: {
+    targetDate: string;
+    resultDataAllowedThrough: string;
+    resultDateBeforeTargetDate: boolean;
+    currentOrFutureResultUsed: boolean;
+  };
+  duplicateRaceKeys: string[];
+  raceCount: number;
+  classifiableRaceCount: number;
+  summary: KurariExPredictionFailureSummary;
+  sourceCoverage: {
+    predictionSourceCount: number;
+    resultSourceCount: number;
+    shadowObservedCount: number;
+    pointRangeObservedCount: number;
+    declaredHeadCandidateObservedCount: number;
+    stakeObservedCount: number;
+    returnObservedCount: number;
+  };
+  byPointRange: Record<"8" | "10" | "12" | "14" | "unknown", KurariExPredictionFailurePointRange>;
+  thirdPlaceProtection: {
+    correctTop2PairCount: number;
+    thirdPlaceMissCount: number;
+    thirdPlaceShadowDropCount: number;
+    thirdCandidateAverage: number | null;
+    thirdProtectionRate: number | null;
+  };
+  records: KurariExPredictionFailureRecord[];
 };
 
 export const KURARI_EX_ACCUMULATION_RULES = [
@@ -949,6 +1072,11 @@ export async function loadKurariExInitialData(): Promise<KurariExInitialData> {
 
 export async function loadKurariExRaceRiskIndex(): Promise<KurariExRaceRiskIndex> {
   return fetchJson<KurariExRaceRiskIndex>(RACE_RISK_INDEX_PATH);
+}
+
+export async function loadKurariExPredictionFailureIndex():
+  Promise<KurariExPredictionFailureArtifact> {
+  return fetchJson<KurariExPredictionFailureArtifact>(PREDICTION_FAILURE_INDEX_PATH);
 }
 
 export async function loadKurariExVenueBundle(

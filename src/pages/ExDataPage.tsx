@@ -15,6 +15,7 @@ import {
   loadKurariExInitialData,
   loadKurariExMatchupExactByFile,
   loadKurariExMatchupExactInitialData,
+  loadKurariExPredictionFailureIndex,
   loadKurariExRaceRiskIndex,
   loadKurariExRiderExactByFile,
   loadKurariExRiderExactInitialData,
@@ -25,6 +26,8 @@ import {
 } from "../lib/kurariExData";
 import type {
   KurariExRaceRiskIndex,
+  KurariExPredictionFailureArtifact,
+  KurariExPredictionFailurePointRange,
   KurariExRaceRiskLevel,
   KurariExRaceRiskRecord,
 } from "../lib/kurariExData";
@@ -223,6 +226,14 @@ function sourceFreshness(value?: string | null, freshHours = 48) {
 
 function valueText(value?: number | null, suffix = "") {
   return Number.isFinite(value) ? `${Number(value).toLocaleString("ja-JP")}${suffix}` : "--";
+}
+
+function formatFailurePercent(value?: number | null) {
+  return Number.isFinite(value) ? `${(Number(value) * 100).toFixed(1)}%` : "--";
+}
+
+function formatFailureRatio(value: number | undefined, denominator: number | undefined, label: string) {
+  return `${valueText(value)} / ${valueText(denominator)} ${label}`;
 }
 
 function formatMatchupRate(value?: number | null) {
@@ -1881,6 +1892,9 @@ export default function ExDataPage() {
     useState<KurariExHistoricalAvailabilitySummary | null>(null);
   const [historicalAvailabilityStatus, setHistoricalAvailabilityStatus] =
     useState<"idle" | "loading" | "ready">("idle");
+  const [predictionFailure, setPredictionFailure] = useState<KurariExPredictionFailureArtifact | null>(null);
+  const [predictionFailureStatus, setPredictionFailureStatus] =
+    useState<"idle" | "loading" | "ready" | "error">("idle");
 
   useEffect(() => {
     if (!RESULT_TREND_LOAD_TABS.includes(activeSectionTab) || trifectaTrend) return;
@@ -1904,6 +1918,26 @@ export default function ExDataPage() {
       active = false;
     };
   }, [activeSectionTab, trifectaTrend]);
+
+  useEffect(() => {
+    if (activeSectionTab !== "structure-lab" || predictionFailure || predictionFailureStatus === "loading") return;
+    let active = true;
+    setPredictionFailureStatus("loading");
+    loadKurariExPredictionFailureIndex()
+      .then((artifact) => {
+        if (!active) return;
+        setPredictionFailure(artifact);
+        setPredictionFailureStatus("ready");
+      })
+      .catch(() => {
+        if (!active) return;
+        setPredictionFailure(null);
+        setPredictionFailureStatus("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, [activeSectionTab, predictionFailure, predictionFailureStatus]);
 
   useEffect(() => {
     let active = true;
@@ -2553,6 +2587,37 @@ export default function ExDataPage() {
         !record.leakageGuard.fakeCompletionUsed
       )
     : false;
+  const predictionFailureSummaryRows = predictionFailure ? [
+    { key: "race", label: "対象R", value: valueText(predictionFailure.raceCount), note: `${predictionFailure.historicalFrom}〜${predictionFailure.historicalTo}` },
+    { key: "classifiable", label: "分類可能R", value: formatFailureRatio(predictionFailure.classifiableRaceCount, predictionFailure.raceCount, "all"), note: "purchase/result parsed" },
+    { key: "unclassifiable", label: "分類不能R", value: formatFailureRatio(predictionFailure.summary.unclassifiable, predictionFailure.raceCount, "all"), note: "missing / parse failed", warning: predictionFailure.summary.unclassifiable > 0 },
+    { key: "exact", label: "的中", value: formatFailureRatio(predictionFailure.summary.exactHit, predictionFailure.classifiableRaceCount, "classifiable"), note: "purchase exact hit" },
+    { key: "third", label: "3着抜け", value: formatFailureRatio(predictionFailure.summary.thirdPlaceMiss, predictionFailure.classifiableRaceCount, "classifiable"), note: "correct 1→2 / actual 3rd missing", warning: predictionFailure.summary.thirdPlaceMiss > 0 },
+    { key: "shadow-drop", label: "3着shadow落ち", value: formatFailureRatio(predictionFailure.summary.thirdPlaceShadowDrop, predictionFailure.classifiableRaceCount, "classifiable"), note: "shadow observed only", warning: predictionFailure.summary.thirdPlaceShadowDrop > 0 },
+    { key: "shadow-only", label: "shadowのみ的中", value: formatFailureRatio(predictionFailure.summary.shadowOnlyHit, predictionFailure.classifiableRaceCount, "classifiable"), note: "purchase miss / shadow exact" },
+    { key: "head", label: "頭抜け", value: formatFailureRatio(predictionFailure.summary.headMiss, predictionFailure.classifiableRaceCount, "classifiable"), note: "winner not in purchase heads", warning: predictionFailure.summary.headMiss > 0 },
+    { key: "order", label: "上位3車順番違い", value: formatFailureRatio(predictionFailure.summary.top3OrderMiss, predictionFailure.classifiableRaceCount, "classifiable"), note: "same top3 set / order miss" },
+    { key: "other", label: "その他構造ミス", value: formatFailureRatio(predictionFailure.summary.otherMiss, predictionFailure.classifiableRaceCount, "classifiable"), note: "classifiable residual" },
+  ] : [];
+  const predictionFailureCoverageRows = predictionFailure ? [
+    { label: "classifiable", value: predictionFailure.classifiableRaceCount, denominator: predictionFailure.raceCount, status: "予想に使える" },
+    { label: "shadow observed", value: predictionFailure.sourceCoverage.shadowObservedCount, denominator: predictionFailure.raceCount, status: "参考 / LOW COVERAGE" },
+    { label: "explicit pointRange", value: predictionFailure.sourceCoverage.pointRangeObservedCount, denominator: predictionFailure.raceCount, status: "参考 / LOW COVERAGE" },
+    { label: "declared head candidate", value: predictionFailure.sourceCoverage.declaredHeadCandidateObservedCount, denominator: predictionFailure.raceCount, status: "参考" },
+    { label: "stake observed", value: predictionFailure.sourceCoverage.stakeObservedCount, denominator: predictionFailure.raceCount, status: "source-backed" },
+    { label: "return observed", value: predictionFailure.sourceCoverage.returnObservedCount, denominator: predictionFailure.raceCount, status: "source-backed" },
+  ] : [];
+  const predictionFailurePointRows: Array<{
+    key: "8" | "10" | "12" | "14" | "unknown";
+    label: string;
+    bucket: KurariExPredictionFailurePointRange;
+  }> = predictionFailure
+    ? (["8", "10", "12", "14", "unknown"] as const).map((key) => ({
+        key,
+        label: key === "unknown" ? "unknown" : `${key}点`,
+        bucket: predictionFailure.byPointRange[key],
+      }))
+    : [];
   const selectedRiderItem = riderInitialData?.index.items.find(
     (item) => item.registrationNo === selectedRiderNo,
   );
@@ -2938,8 +3003,8 @@ export default function ExDataPage() {
         .ex-panel, .ex-section, .ex-subsection, .ex-detail, .ex-workspace, .ex-table-wrap { min-width: 0; max-width: 100%; box-sizing: border-box; }
         .ex-subsection, .ex-table-wrap { width: 100%; }
         .ex-main h1, .ex-main h2, .ex-main h3, .ex-main h4, .ex-main p, .ex-main li, .ex-main td, .ex-main th, .ex-main span, .ex-main strong { overflow-wrap: anywhere; }
-        .ex-health-grid, .ex-kpi-grid, .ex-location-grid, .ex-category-grid, .ex-insights, .ex-note-grid, .ex-summary-primary-grid, .ex-summary-secondary-grid, .ex-prediction-summary, .ex-prediction-support-grid, .ex-source-primary-grid, .ex-source-secondary-grid, .ex-trend-ranking-grid, .ex-turbulence-category-grid, .ex-race-risk-grid, .ex-chain-type-grid, .ex-chain-examples, .ex-weather-bucket-grid, .ex-weather-venue-grid, .ex-venue-bias-grid, .ex-venue-definition-grid, .ex-today-flow-grid, .ex-today-flow-meter, .ex-coverage-tab-map, .ex-backfill-grid, .ex-definition-grid { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
-        .ex-health-grid > *, .ex-kpi-grid > *, .ex-location-grid > *, .ex-category-grid > *, .ex-insights > *, .ex-note-grid > *, .ex-summary-primary-grid > *, .ex-summary-secondary-grid > *, .ex-prediction-summary > *, .ex-prediction-support-grid > *, .ex-source-primary-grid > *, .ex-source-secondary-grid > *, .ex-trend-ranking-grid > *, .ex-turbulence-category-grid > *, .ex-race-risk-grid > *, .ex-chain-type-grid > *, .ex-chain-examples > *, .ex-venue-bias-grid > *, .ex-venue-definition-grid > *, .ex-today-flow-grid > *, .ex-today-flow-meter > *, .ex-coverage-tab-map > *, .ex-backfill-grid > *, .ex-definition-grid > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
+        .ex-health-grid, .ex-kpi-grid, .ex-location-grid, .ex-category-grid, .ex-insights, .ex-note-grid, .ex-summary-primary-grid, .ex-summary-secondary-grid, .ex-prediction-summary, .ex-prediction-support-grid, .ex-source-primary-grid, .ex-source-secondary-grid, .ex-trend-ranking-grid, .ex-turbulence-category-grid, .ex-race-risk-grid, .ex-prediction-failure-grid, .ex-prediction-failure-coverage, .ex-chain-type-grid, .ex-chain-examples, .ex-weather-bucket-grid, .ex-weather-venue-grid, .ex-venue-bias-grid, .ex-venue-definition-grid, .ex-today-flow-grid, .ex-today-flow-meter, .ex-coverage-tab-map, .ex-backfill-grid, .ex-definition-grid { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+        .ex-health-grid > *, .ex-kpi-grid > *, .ex-location-grid > *, .ex-category-grid > *, .ex-insights > *, .ex-note-grid > *, .ex-summary-primary-grid > *, .ex-summary-secondary-grid > *, .ex-prediction-summary > *, .ex-prediction-support-grid > *, .ex-source-primary-grid > *, .ex-source-secondary-grid > *, .ex-trend-ranking-grid > *, .ex-turbulence-category-grid > *, .ex-race-risk-grid > *, .ex-prediction-failure-grid > *, .ex-prediction-failure-coverage > *, .ex-chain-type-grid > *, .ex-chain-examples > *, .ex-venue-bias-grid > *, .ex-venue-definition-grid > *, .ex-today-flow-grid > *, .ex-today-flow-meter > *, .ex-coverage-tab-map > *, .ex-backfill-grid > *, .ex-definition-grid > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
         .ex-main [hidden] { display: none !important; }
         .ex-section-tabs { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 14px; width: min(100%, 1360px); margin-inline: auto; padding: 16px; border: 1px solid rgba(202,207,232,.72); border-radius: 28px; background: linear-gradient(135deg,rgba(255,255,255,.78),rgba(248,250,255,.64) 52%,rgba(244,255,250,.52)); box-shadow: 0 20px 48px rgba(82,74,135,.09), inset 0 1px 0 rgba(255,255,255,.82); backdrop-filter: blur(20px) saturate(1.08); }
         .ex-section-tab { position: relative; min-width: 0; min-height: 82px; cursor: pointer; display: grid; grid-template-rows: auto 1fr auto; align-content: stretch; gap: 7px; padding: 15px 16px 15px 20px; border: 1px solid rgba(205,213,231,.8); border-radius: 18px; background: linear-gradient(145deg,rgba(255,255,255,.66),rgba(249,251,255,.54)); color: #536077; text-align: left; box-shadow: 0 8px 20px rgba(53,67,96,.04), inset 0 1px 0 rgba(255,255,255,.74); transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease, color .16s ease; }
@@ -3273,6 +3338,19 @@ export default function ExDataPage() {
         .ex-race-risk-card li span { color: #5c4a95; font-size: 11px; font-weight: 950; }
         .ex-race-risk-card li small { grid-column: 1 / -1; color: #8a94a5; font-size: 9px; line-height: 1.45; }
         .ex-race-risk-card p { margin: 0; color: #647187; font-size: 11px; line-height: 1.7; }
+        .ex-prediction-failure-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 5}, minmax(0,1fr)); gap: 10px; }
+        .ex-prediction-failure-card { min-width: 0; display: grid; gap: 7px; padding: 15px; border: 1px solid #dfe5ef; border-radius: 18px; background: linear-gradient(145deg,#fff,#f7f9ff); box-shadow: 0 12px 24px rgba(47,61,91,.045); }
+        .ex-prediction-failure-card.is-warning { border-color: var(--ex-status-reference-border); background: linear-gradient(145deg,#fff,#fff8e8); }
+        .ex-prediction-failure-card span { color: #66758b; font-size: 9px; font-weight: 950; letter-spacing: .07em; text-transform: uppercase; }
+        .ex-prediction-failure-card strong { color: #2b3b55; font: 850 20px/1.15 ${serif}; overflow-wrap: anywhere; }
+        .ex-prediction-failure-card small { color: #748197; font-size: 10px; font-weight: 800; line-height: 1.45; }
+        .ex-prediction-failure-coverage { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 6}, minmax(0,1fr)); gap: 9px; }
+        .ex-prediction-failure-coverage article { min-width: 0; padding: 13px; border: 1px solid #e0e6f0; border-radius: 16px; background: rgba(255,255,255,.84); }
+        .ex-prediction-failure-coverage span { display: block; color: #6f7c91; font-size: 9px; font-weight: 950; letter-spacing: .07em; text-transform: uppercase; }
+        .ex-prediction-failure-coverage strong { display: block; margin-top: 5px; color: #51428f; font: 850 21px/1 ${serif}; }
+        .ex-prediction-failure-coverage small { display: block; margin-top: 5px; color: #7a8497; font-size: 9px; font-weight: 850; line-height: 1.45; }
+        .ex-prediction-failure-table { min-width: 980px; }
+        .ex-prediction-failure-guard { padding: 13px 15px; border: 1px dashed #d4cbe9; border-radius: 16px; background: #faf7ff; color: #625578; font-size: 11px; line-height: 1.7; font-weight: 780; }
         .ex-chain-type-grid { display: grid; grid-template-columns: repeat(${isMobile ? 2 : 6},minmax(0,1fr)); gap: 10px; }
         .ex-chain-type-card { min-width: 0; display: grid; gap: 6px; padding: 15px; border: 1px solid #dfe4ef; border-radius: 18px; background: linear-gradient(145deg,#fff,#f5f7fd); }
         .ex-chain-type-card strong { color: #34435b; font-size: 12px; }
@@ -5339,6 +5417,118 @@ export default function ExDataPage() {
                   {historicalAvailability?.acceptedRaceCount ?? 0} accepted / {historicalAvailability?.rejectedRaceCount ?? 0} rejected
                 </span>
               </div>
+            </div>
+
+            <div className="ex-subsection" data-testid="kurari-ex-prediction-failure-v1">
+              <SectionTitle
+                eyebrow="PREDICTION FAILURE / POST-RACE AUDIT"
+                title="3着抜け・予想構造failure分析"
+                lead="review原文の購入買い目と結果だけで分類します。post-race analyticsであり、current/future resultは使いません。"
+              />
+              {predictionFailureStatus === "loading" ? (
+                <EmptyState text="prediction-failure indexを読み込んでいます。" />
+              ) : predictionFailureStatus === "error" || !predictionFailure ? (
+                <EmptyState text="prediction-failure indexが未生成、または取得できませんでした。" />
+              ) : (
+                <>
+                  <div className="ex-overview-status">
+                    <span className="ex-trend-status-pill is-ready">{predictionFailure.version}</span>
+                    <span className="ex-trend-status-pill is-ready">{predictionFailure.historicalFrom}〜{predictionFailure.historicalTo}</span>
+                    <span className="ex-trend-status-pill is-partial">target {predictionFailure.targetDate}</span>
+                    <span className="ex-trend-status-pill is-ready">duplicate {predictionFailure.duplicateRaceKeys.length}</span>
+                    <span className={`ex-trend-status-pill is-${predictionFailure.leakageGuard.currentOrFutureResultUsed ? "warning" : "ready"}`}>
+                      leakage {predictionFailure.leakageGuard.currentOrFutureResultUsed ? "CHECK" : "PASS"}
+                    </span>
+                  </div>
+
+                  <div className="ex-prediction-failure-grid">
+                    {predictionFailureSummaryRows.map((row) => (
+                      <article key={row.key} className={`ex-prediction-failure-card ${row.warning ? "is-warning" : ""}`}>
+                        <span>{row.label}</span>
+                        <strong>{row.value}</strong>
+                        <small>{row.note}</small>
+                      </article>
+                    ))}
+                  </div>
+
+                  <div className="ex-location-grid">
+                    <article className="ex-location-card">
+                      <div className="ex-location-head">
+                        <h3>THIRD PLACE PROTECTION</h3>
+                        <span className="ex-location-status is-partial">classifiable</span>
+                      </div>
+                      <div className="ex-venue-bias-metrics">
+                        <div>正しい1→2<strong>{valueText(predictionFailure.thirdPlaceProtection.correctTop2PairCount)}R</strong></div>
+                        <div>3着抜け<strong>{valueText(predictionFailure.thirdPlaceProtection.thirdPlaceMissCount)}R</strong></div>
+                        <div>shadow残り<strong>{valueText(predictionFailure.thirdPlaceProtection.thirdPlaceShadowDropCount)}R</strong></div>
+                        <div>平均3着候補<strong>{valueText(predictionFailure.thirdPlaceProtection.thirdCandidateAverage)}</strong></div>
+                        <div>3着保護率<strong>{formatFailurePercent(predictionFailure.thirdPlaceProtection.thirdProtectionRate)}</strong></div>
+                      </div>
+                      <p className="ex-muted">
+                        3着保護率は、正しい1→2を購入で作れたレースのうち、実3着まで購入券で保護できた割合です。
+                      </p>
+                    </article>
+                    <article className="ex-location-card">
+                      <div className="ex-location-head">
+                        <h3>SOURCE COVERAGE</h3>
+                        <span className="ex-location-status is-warning">coverage first</span>
+                      </div>
+                      <div className="ex-prediction-failure-coverage">
+                        {predictionFailureCoverageRows.map((row) => (
+                          <article key={row.label}>
+                            <span>{row.label}</span>
+                            <strong>{formatFailureRatio(row.value, row.denominator, "all")}</strong>
+                            <small>{row.status}</small>
+                          </article>
+                        ))}
+                      </div>
+                    </article>
+                  </div>
+
+                  <div>
+                    <SectionTitle
+                      eyebrow="POINT RANGE"
+                      title="点数レンジ別の観測構造"
+                      lead={`explicit pointRange coverage: ${predictionFailure.sourceCoverage.pointRangeObservedCount.toLocaleString("ja-JP")} / ${predictionFailure.raceCount.toLocaleString("ja-JP")}。低coverageのため参考表示です。`}
+                    />
+                    <div className="ex-prediction-failure-guard">
+                      各pointRangeで観測された購入構造の集計です。異なるレース間の観測比較であり、8→10→12→14の増分効果を意味しません。
+                    </div>
+                    <div className="ex-table-wrap">
+                      <table className="ex-data-table ex-prediction-failure-table">
+                        <thead>
+                          <tr>
+                            <th>range</th>
+                            <th>race</th>
+                            <th>classifiable</th>
+                            <th>exact hit</th>
+                            <th>third miss</th>
+                            <th>head miss</th>
+                            <th>third protection</th>
+                            <th>avg heads</th>
+                            <th>avg 3rd candidates</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {predictionFailurePointRows.map(({ key, label, bucket }) => (
+                            <tr key={key}>
+                              <td><strong>{label}</strong>{key === "unknown" ? <small> / no explicit label</small> : null}</td>
+                              <td>{valueText(bucket.raceCount)}</td>
+                              <td>{formatFailureRatio(bucket.classifiableRaceCount, bucket.raceCount, "bucket")}</td>
+                              <td>{formatFailureRatio(bucket.exactHit, bucket.classifiableRaceCount, "classifiable")}</td>
+                              <td>{formatFailureRatio(bucket.thirdPlaceMiss, bucket.classifiableRaceCount, "classifiable")}</td>
+                              <td>{formatFailureRatio(bucket.headMiss, bucket.classifiableRaceCount, "classifiable")}</td>
+                              <td>{formatFailurePercent(bucket.thirdProtectionRate)}</td>
+                              <td>{valueText(bucket.observedPurchaseHeadAverage)}</td>
+                              <td>{valueText(bucket.correctTop2ThirdCandidateAverage)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="ex-kpi-grid">
