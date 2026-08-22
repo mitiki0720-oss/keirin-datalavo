@@ -10893,13 +10893,22 @@ if (
       "- 曖昧候補: 未取得",
       "- 扱い: 登録番号一致を最も信頼し、名前一致・補助一致は選手名の揺れに注意。",
       "",
-      selectedKurariExRoleMaterial.text,
-      "",
-      selectedKurariExRoleStatsMaterial.text,
-      "",
-      selectedKurariExWeatherMaterial.text,
+      "【KURARI EX 役割/天候 summary】",
+      `- ライン役割: ${selectedKurariExRoleMaterial.ready ? `先頭${selectedKurariExRoleMaterial.lineHeadCount} / 番手${selectedKurariExRoleMaterial.lineSecondCount} / 3番手以降${selectedKurariExRoleMaterial.lineThirdOrLaterCount} / 単騎${selectedKurariExRoleMaterial.soloCount}` : "安全判定不可"}`,
+      `- 役割別成績: ${selectedKurariExRoleStatsMaterial.status} / reflected ${selectedKurariExRoleStatsMaterial.reflectedRiderCount}/${selectedKurariExRoleStatsMaterial.assignedRiderCount} / lowSample ${selectedKurariExRoleStatsMaterial.lowSampleCount}`,
+      `- 天候別成績: ${selectedKurariExWeatherMaterial.status} / ${selectedKurariExWeatherMaterial.weatherLabel || "未取得"} / reflected ${selectedKurariExWeatherMaterial.reflectedRiderCount}/${selectedPredictionMaterialRiders.length} / lowSample ${selectedKurariExWeatherMaterial.lowSampleCount}`,
+      "- 扱い: role/weatherは保存済みEXACTのsummaryのみ。戦法イベントは着順だけから推測しない。",
     ].join("\n"),
-    [selectedKurariExAnyReady, selectedKurariExConfidence, selectedKurariExLinkAudit, selectedKurariExReflectionSummary, selectedKurariExRoleMaterial.text, selectedKurariExRoleStatsMaterial.text, selectedKurariExWeatherMaterial.text],
+    [
+      selectedKurariExAnyReady,
+      selectedKurariExConfidence,
+      selectedKurariExLinkAudit,
+      selectedKurariExReflectionSummary,
+      selectedKurariExRoleMaterial,
+      selectedKurariExRoleStatsMaterial,
+      selectedKurariExWeatherMaterial,
+      selectedPredictionMaterialRiders.length,
+    ],
   );
   const selectedKurariExGuidanceText = useMemo(
     () => selectedKurariExAnyReady
