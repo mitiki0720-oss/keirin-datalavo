@@ -152,6 +152,27 @@ jobs:
         if: (github.event_name == 'workflow_dispatch' && github.event.inputs.phase != 'backfill') || github.event.schedule == '10 21 * * *' || github.event.schedule == '0 23 * * *' || github.event.schedule == '0 1 * * *' || github.event.schedule == '0 3 * * *' || github.event.schedule == '0 5 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 8 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 11 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *'
         run: npm run check:keirin-jp-entries -- --expect-date="$KEIRIN_JP_EXPECT_ENTRY_DATE" --require-complete
 
+      - name: Generate KURARI EX race risk for current day
+        if: (github.event_name == 'workflow_dispatch' && github.event.inputs.phase != 'backfill') || github.event.schedule == '10 21 * * *' || github.event.schedule == '0 23 * * *' || github.event.schedule == '0 1 * * *' || github.event.schedule == '0 3 * * *' || github.event.schedule == '0 5 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 8 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 11 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *'
+        run: |
+          node - <<'NODE'
+          const fs = require("node:fs");
+
+          const today = JSON.parse(fs.readFileSync("public/data/races/today.generated.json", "utf8"));
+          const entries = JSON.parse(fs.readFileSync("public/data/races/keirin-jp-entries.generated.json", "utf8"));
+
+          if (!today.date || !entries.date || today.date !== entries.date) {
+            throw new Error(
+              `[guard] race-risk date mismatch: today=${today.date || "missing"}, entries=${entries.date || "missing"}`
+            );
+          }
+
+          console.log(`[guard] race-risk source date=${today.date}`);
+          NODE
+
+          node scripts/kurari-ex/generate-kurari-ex-race-risk.mjs
+          node scripts/check-kurari-ex-race-risk.mjs
+
       - name: Resolve KEIRIN.JP expected result date
         if: github.event.schedule == '0 3 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.phase == 'final' || github.event.inputs.phase == 'backfill'))
         env:
@@ -201,6 +222,7 @@ jobs:
           git add public/data/predictions/saved-predictions.generated.json
           git add public/data/races/keirin-jp-results.generated.json
           git add public/data/races/keirin-jp-entries.generated.json
+          git add public/data/analytics/kurari-ex/race-risk/index.generated.json
 
           if git diff --cached --quiet; then
             echo "No today race data, upcoming schedule, KEIRIN.JP official feeds, or Slack notification state changes."
