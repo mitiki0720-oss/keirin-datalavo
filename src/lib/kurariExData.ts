@@ -56,6 +56,7 @@ const MATCHUP_EXACT_ROOT = `${EXACT_ROOT}/matchups`;
 const HISTORY_INDEX_PATH = `${EX_ROOT}/history/index.generated.json`;
 const RACE_RISK_INDEX_PATH = `${EX_ROOT}/race-risk/index.generated.json`;
 const PREDICTION_FAILURE_INDEX_PATH = `${EX_ROOT}/prediction-failure/index.generated.json`;
+const PREDICTION_FAILURE_GUIDANCE_INDEX_PATH = `${EX_ROOT}/prediction-failure-guidance/index.generated.json`;
 const STARTERS_SOURCE_INDEX_PATH = `${EX_ROOT}/source/starters/index.generated.json`;
 const TODAY_RACES_PATH = "/data/races/today.generated.json";
 const OFFICIAL_ENTRIES_PATH = "/data/races/keirin-jp-entries.generated.json";
@@ -264,6 +265,121 @@ export type KurariExPredictionFailureArtifact = {
     thirdProtectionRate: number | null;
   };
   records: KurariExPredictionFailureRecord[];
+};
+
+export type KurariExFailureGuidanceFreshnessStatus = "fresh" | "reference" | "stale" | "unknown" | "prohibited";
+export type KurariExFailureGuidancePreRaceUsage = "allowed" | "reference_only" | "prohibited";
+export type KurariExFailureGuidanceSampleStatus = "usable" | "reference" | "low_sample";
+export type KurariExFailureGuidanceSignal =
+  | "NORMAL"
+  | "HEAD_STRUCTURE_CAUTION"
+  | "PROTECT_SECOND_THIRD"
+  | "REFERENCE"
+  | "LOW_SAMPLE"
+  | "STALE";
+
+export type KurariExFailureGuidanceFreshness = {
+  lagDays: number | null;
+  status: KurariExFailureGuidanceFreshnessStatus;
+  preRaceUsage: KurariExFailureGuidancePreRaceUsage;
+};
+
+export type KurariExFailureGuidanceContextType = "global" | "venue" | "raceNo" | "venueRaceNo";
+
+export type KurariExFailureGuidanceContext = {
+  key: string;
+  label: string;
+  contextType: KurariExFailureGuidanceContextType;
+  sampleStatus: KurariExFailureGuidanceSampleStatus;
+  sampleCount: number;
+  classifiableCount: number;
+  unclassifiableCount: number;
+  exactHitCount: number;
+  headMissCount: number;
+  correctTop2PairCount: number;
+  thirdPlaceMissCount: number;
+  thirdPlaceShadowDropCount: number;
+  exactHitRate: number | null;
+  headMissRate: number | null;
+  thirdPlaceMissRateAmongCorrectTop2: number | null;
+  thirdProtectionRate: number | null;
+  headGuidance: KurariExFailureGuidanceSignal;
+  thirdProtectionGuidance: KurariExFailureGuidanceSignal;
+  structureGuidance: {
+    head: KurariExFailureGuidanceSignal;
+    thirdProtection: KurariExFailureGuidanceSignal;
+    usage: string;
+    specificRiderSelectionAllowed: false;
+    pointRangeAutoPromotionAllowed: false;
+    raceRiskScoreMutationAllowed: false;
+  };
+};
+
+export type KurariExPredictionFailureGuidanceArtifact = {
+  version: "kurari-ex-prediction-failure-guidance/v1";
+  generatedAt: string;
+  targetDate: string;
+  historicalFrom: string;
+  historicalTo: string;
+  freshness: KurariExFailureGuidanceFreshness;
+  source: {
+    artifact: string;
+    version: string | null;
+    targetDate: string | null;
+    historicalFrom: string;
+    historicalTo: string;
+    raceCount: number | null;
+    classifiableRaceCount: number | null;
+  };
+  policy: {
+    specificRiderSelectionAllowed: false;
+    raceRiskScoreMutationAllowed: false;
+    pointRangeAutoPromotionAllowed: false;
+    counterfactualPointRangeAllowed: false;
+    currentDayResultAllowed: false;
+  };
+  leakageGuard: Record<string, boolean>;
+  global: KurariExFailureGuidanceContext;
+  byVenue: KurariExFailureGuidanceContext[];
+  byRaceNo: KurariExFailureGuidanceContext[];
+  byVenueRaceNo: KurariExFailureGuidanceContext[];
+  contextSummary: {
+    globalCount: number;
+    venueCount: number;
+    raceNoCount: number;
+    venueRaceNoCount: number;
+    sampleStatusCounts: Record<string, number>;
+    guidanceCounts: Record<string, number>;
+    strongContexts: Array<{
+      key: string;
+      label: string;
+      contextType: KurariExFailureGuidanceContextType;
+      sampleStatus: KurariExFailureGuidanceSampleStatus;
+      classifiableCount: number;
+      headGuidance: KurariExFailureGuidanceSignal;
+      thirdProtectionGuidance: KurariExFailureGuidanceSignal;
+      headMissRate: number | null;
+      thirdProtectionRate: number | null;
+    }>;
+  };
+};
+
+export type KurariExFailureGuidanceLookupResult = {
+  effectiveFreshness: KurariExFailureGuidanceFreshness;
+  usage: KurariExFailureGuidancePreRaceUsage;
+  global: KurariExFailureGuidanceContext;
+  venue: KurariExFailureGuidanceContext | null;
+  raceNo: KurariExFailureGuidanceContext | null;
+  venueRaceNo: KurariExFailureGuidanceContext | null;
+  strongContexts: KurariExFailureGuidanceContext[];
+  referenceContexts: KurariExFailureGuidanceContext[];
+};
+
+export type KurariExFailureGuidanceLookupParams = {
+  raceDate?: string | null;
+  venueKey?: string | null;
+  venueSlug?: string | null;
+  raceNo?: number | string | null;
 };
 
 export const KURARI_EX_ACCUMULATION_RULES = [
@@ -1077,6 +1193,164 @@ export async function loadKurariExRaceRiskIndex(): Promise<KurariExRaceRiskIndex
 export async function loadKurariExPredictionFailureIndex():
   Promise<KurariExPredictionFailureArtifact> {
   return fetchJson<KurariExPredictionFailureArtifact>(PREDICTION_FAILURE_INDEX_PATH);
+}
+
+export async function loadKurariExPredictionFailureGuidanceIndex():
+  Promise<KurariExPredictionFailureGuidanceArtifact> {
+  return fetchJson<KurariExPredictionFailureGuidanceArtifact>(PREDICTION_FAILURE_GUIDANCE_INDEX_PATH);
+}
+
+function isIsoDateOnly(value?: string | null): value is string {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function dateOnlyToUtcMs(value: string) {
+  const [year, month, day] = value.split("-").map((part) => Number(part));
+  return Date.UTC(year, month - 1, day);
+}
+
+function diffCalendarDays(fromDate: string, toDate: string) {
+  return Math.round((dateOnlyToUtcMs(toDate) - dateOnlyToUtcMs(fromDate)) / 86400000);
+}
+
+export function computeKurariExFailureGuidanceFreshness(
+  historicalTo?: string | null,
+  raceDate?: string | null,
+): KurariExFailureGuidanceFreshness {
+  if (!isIsoDateOnly(historicalTo) || !isIsoDateOnly(raceDate)) {
+    return { lagDays: null, status: "unknown", preRaceUsage: "prohibited" };
+  }
+  const diffDays = diffCalendarDays(historicalTo, raceDate);
+  if (!Number.isFinite(diffDays) || diffDays <= 0) {
+    return { lagDays: null, status: "prohibited", preRaceUsage: "prohibited" };
+  }
+  const lagDays = Math.max(0, diffDays - 1);
+  if (lagDays <= 1) return { lagDays, status: "fresh", preRaceUsage: "allowed" };
+  if (lagDays <= 7) return { lagDays, status: "reference", preRaceUsage: "reference_only" };
+  return { lagDays, status: "stale", preRaceUsage: "prohibited" };
+}
+
+function normalizeFailureGuidanceRaceNo(value?: number | string | null) {
+  if (value == null || value === "") return null;
+  const numeric = typeof value === "number" ? value : Number(String(value).replace(/R$/i, ""));
+  if (!Number.isInteger(numeric) || numeric <= 0) return null;
+  return String(numeric);
+}
+
+function isStrongFailureGuidanceContext(
+  context: KurariExFailureGuidanceContext,
+  usage: KurariExFailureGuidancePreRaceUsage,
+) {
+  if (usage !== "allowed") return false;
+  if (context.contextType === "venueRaceNo") return false;
+  if (context.sampleStatus !== "usable") return false;
+  if (context.structureGuidance.specificRiderSelectionAllowed) return false;
+  if (context.structureGuidance.pointRangeAutoPromotionAllowed) return false;
+  if (context.structureGuidance.raceRiskScoreMutationAllowed) return false;
+  return context.headGuidance === "HEAD_STRUCTURE_CAUTION"
+    || context.thirdProtectionGuidance === "PROTECT_SECOND_THIRD";
+}
+
+export function lookupKurariExFailureGuidanceForRace(
+  artifact: KurariExPredictionFailureGuidanceArtifact,
+  params: KurariExFailureGuidanceLookupParams,
+): KurariExFailureGuidanceLookupResult {
+  const effectiveFreshness = computeKurariExFailureGuidanceFreshness(
+    artifact.historicalTo,
+    params.raceDate,
+  );
+  const venueKey = (params.venueSlug ?? params.venueKey ?? "").trim();
+  const raceNoKey = normalizeFailureGuidanceRaceNo(params.raceNo);
+  const venue = venueKey
+    ? artifact.byVenue.find((context) => context.key === venueKey) ?? null
+    : null;
+  const raceNo = raceNoKey
+    ? artifact.byRaceNo.find((context) => context.key === raceNoKey) ?? null
+    : null;
+  const venueRaceNo = venueKey && raceNoKey
+    ? artifact.byVenueRaceNo.find((context) => context.key === `${venueKey}|${raceNoKey}`) ?? null
+    : null;
+  const usage = effectiveFreshness.preRaceUsage;
+  const contexts = [artifact.global, venue, raceNo, venueRaceNo]
+    .filter((context): context is KurariExFailureGuidanceContext => Boolean(context));
+  const strongContexts = contexts.filter((context) => isStrongFailureGuidanceContext(context, usage));
+  return {
+    effectiveFreshness,
+    usage,
+    global: artifact.global,
+    venue,
+    raceNo,
+    venueRaceNo,
+    strongContexts,
+    referenceContexts: contexts.filter((context) => !strongContexts.includes(context)),
+  };
+}
+
+function formatFailureGuidancePercent(value: number | null | undefined) {
+  return Number.isFinite(value) ? `${(Number(value) * 100).toFixed(1)}%` : "--";
+}
+
+function formatFailureGuidanceContextLine(context: KurariExFailureGuidanceContext) {
+  return [
+    `${context.label}`,
+    `sample ${context.classifiableCount}/${context.sampleCount}`,
+    `headMiss ${formatFailureGuidancePercent(context.headMissRate)}`,
+    `thirdProtect ${formatFailureGuidancePercent(context.thirdProtectionRate)}`,
+    `status ${context.sampleStatus}`,
+    `head ${context.headGuidance}`,
+    `third ${context.thirdProtectionGuidance}`,
+  ].join(" / ");
+}
+
+export function buildKurariExFailureStructureGuidanceMaterial(
+  artifact: KurariExPredictionFailureGuidanceArtifact | null,
+  params: KurariExFailureGuidanceLookupParams,
+) {
+  if (!artifact) {
+    return [
+      "【FAILURE STRUCTURE GUIDANCE】",
+      "status: unavailable",
+      "usage: prohibited",
+      "note: prediction-failure-guidance artifactを取得できないため、この補助signalは使わない。",
+    ].join("\n");
+  }
+  const lookup = lookupKurariExFailureGuidanceForRace(artifact, params);
+  const freshness = lookup.effectiveFreshness;
+  const lines = [
+    "【FAILURE STRUCTURE GUIDANCE】",
+    "source: KURARI EX prediction-failure historical / structure guidance",
+    `historical: ${artifact.historicalFrom}〜${artifact.historicalTo}`,
+    `artifactTargetDate: ${artifact.targetDate}`,
+    `effectiveFreshness: ${freshness.status} / lagDays ${freshness.lagDays ?? "--"} / usage ${lookup.usage}`,
+    "safety: specific rider/car selection prohibited / race-risk score mutation prohibited / pointRange auto promotion prohibited",
+  ];
+  if (lookup.usage === "prohibited") {
+    lines.push("guidance: 使用禁止。historicalToが対象日以降、または8日以上古いため、詳細な構造guidanceは出さない。");
+    return lines.join("\n");
+  }
+  if (lookup.usage === "reference_only") {
+    lines.push("guidance: 参考のみ。買い目変更の直接根拠・強い指示には使わない。");
+  }
+  lines.push(`GLOBAL: ${formatFailureGuidanceContextLine(lookup.global)}`);
+  [lookup.venue, lookup.raceNo, lookup.venueRaceNo].forEach((context) => {
+    if (context) lines.push(`${context.contextType.toUpperCase()}: ${formatFailureGuidanceContextLine(context)}`);
+  });
+  if (lookup.strongContexts.length > 0) {
+    lines.push("strongContexts:");
+    lookup.strongContexts.forEach((context) => {
+      lines.push(`- ${formatFailureGuidanceContextLine(context)}`);
+    });
+    if (lookup.strongContexts.some((context) => context.headGuidance === "HEAD_STRUCTURE_CAUTION")) {
+      lines.push("- HEAD_STRUCTURE_CAUTION: 頭固定の確信度を再確認する。failure historyだけで頭候補を増やさない。");
+    }
+    if (lookup.strongContexts.some((context) => context.thirdProtectionGuidance === "PROTECT_SECOND_THIRD")) {
+      lines.push("- PROTECT_SECOND_THIRD: 追加点を使う場合は、新しい頭ではなく2着・3着補正を優先する。");
+    }
+  } else {
+    lines.push("strongContexts: none");
+  }
+  lines.push("note: これは構造failureの補助signalであり、特定選手の順位付け・車番指定には使わない。");
+  return lines.join("\n");
 }
 
 export async function loadKurariExVenueBundle(

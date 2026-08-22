@@ -15,6 +15,7 @@ import {
   loadKurariExInitialData,
   loadKurariExMatchupExactByFile,
   loadKurariExMatchupExactInitialData,
+  loadKurariExPredictionFailureGuidanceIndex,
   loadKurariExPredictionFailureIndex,
   loadKurariExRaceRiskIndex,
   loadKurariExRiderExactByFile,
@@ -26,7 +27,9 @@ import {
 } from "../lib/kurariExData";
 import type {
   KurariExRaceRiskIndex,
+  KurariExFailureGuidanceContext,
   KurariExPredictionFailureArtifact,
+  KurariExPredictionFailureGuidanceArtifact,
   KurariExPredictionFailurePointRange,
   KurariExRaceRiskLevel,
   KurariExRaceRiskRecord,
@@ -1895,6 +1898,10 @@ export default function ExDataPage() {
   const [predictionFailure, setPredictionFailure] = useState<KurariExPredictionFailureArtifact | null>(null);
   const [predictionFailureStatus, setPredictionFailureStatus] =
     useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [predictionFailureGuidance, setPredictionFailureGuidance] =
+    useState<KurariExPredictionFailureGuidanceArtifact | null>(null);
+  const [predictionFailureGuidanceStatus, setPredictionFailureGuidanceStatus] =
+    useState<"idle" | "loading" | "ready" | "error">("idle");
 
   useEffect(() => {
     if (!RESULT_TREND_LOAD_TABS.includes(activeSectionTab) || trifectaTrend) return;
@@ -1938,6 +1945,30 @@ export default function ExDataPage() {
       active = false;
     };
   }, [activeSectionTab, predictionFailure, predictionFailureStatus]);
+
+  useEffect(() => {
+    if (
+      activeSectionTab !== "structure-lab"
+      || predictionFailureGuidance
+      || predictionFailureGuidanceStatus === "loading"
+    ) return;
+    let active = true;
+    setPredictionFailureGuidanceStatus("loading");
+    loadKurariExPredictionFailureGuidanceIndex()
+      .then((artifact) => {
+        if (!active) return;
+        setPredictionFailureGuidance(artifact);
+        setPredictionFailureGuidanceStatus("ready");
+      })
+      .catch(() => {
+        if (!active) return;
+        setPredictionFailureGuidance(null);
+        setPredictionFailureGuidanceStatus("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, [activeSectionTab, predictionFailureGuidance, predictionFailureGuidanceStatus]);
 
   useEffect(() => {
     let active = true;
@@ -2618,6 +2649,30 @@ export default function ExDataPage() {
         bucket: predictionFailure.byPointRange[key],
       }))
     : [];
+  const predictionFailureGuidanceStrongRows = predictionFailureGuidance?.contextSummary.strongContexts ?? [];
+  const predictionFailureGuidanceHeadRows = predictionFailureGuidanceStrongRows
+    .filter((context) => context.headGuidance === "HEAD_STRUCTURE_CAUTION");
+  const predictionFailureGuidanceThirdRows = predictionFailureGuidanceStrongRows
+    .filter((context) => context.thirdProtectionGuidance === "PROTECT_SECOND_THIRD");
+  const predictionFailureGuidanceGlobal = predictionFailureGuidance?.global ?? null;
+  const renderFailureGuidanceContextRows = (rows: Array<Pick<
+    KurariExFailureGuidanceContext,
+    "key" | "label" | "contextType" | "sampleStatus" | "classifiableCount" | "headMissRate" | "thirdProtectionRate" | "headGuidance" | "thirdProtectionGuidance"
+  >>) => (
+    rows.length > 0 ? (
+      <div className="ex-mini-table">
+        {rows.map((context) => (
+          <div key={`${context.contextType}-${context.key}`} className="ex-mini-table-row">
+            <span>{context.label}</span>
+            <strong>{valueText(context.classifiableCount)}R</strong>
+            <span>{context.sampleStatus}</span>
+            <span>頭抜け {formatFailurePercent(context.headMissRate)}</span>
+            <span>3着保護 {formatFailurePercent(context.thirdProtectionRate)}</span>
+          </div>
+        ))}
+      </div>
+    ) : <EmptyState text="fresh / usable / strong条件を満たすcontextはありません。" />
+  );
   const selectedRiderItem = riderInitialData?.index.items.find(
     (item) => item.registrationNo === selectedRiderNo,
   );
@@ -5417,6 +5472,70 @@ export default function ExDataPage() {
                   {historicalAvailability?.acceptedRaceCount ?? 0} accepted / {historicalAvailability?.rejectedRaceCount ?? 0} rejected
                 </span>
               </div>
+            </div>
+
+            <div className="ex-subsection" data-testid="kurari-ex-prediction-failure-guidance-v1">
+              <SectionTitle
+                eyebrow="PRE-RACE STRUCTURE GUIDANCE"
+                title="failure構造からの事前補助signal"
+                lead="過去の予想構造failureを、出走前に使える範囲だけ補助signal化します。特定選手の順位付け・車番指定には使いません。"
+              />
+              {predictionFailureGuidanceStatus === "loading" ? (
+                <EmptyState text="prediction-failure-guidance indexを読み込んでいます。" />
+              ) : predictionFailureGuidanceStatus === "error" || !predictionFailureGuidance ? (
+                <EmptyState text="prediction-failure-guidance indexが未生成、または取得できませんでした。ページ表示は継続します。" />
+              ) : (
+                <>
+                  <div className="ex-overview-status">
+                    <span className="ex-trend-status-pill is-ready">{predictionFailureGuidance.version}</span>
+                    <span className="ex-trend-status-pill is-ready">{predictionFailureGuidance.historicalFrom}〜{predictionFailureGuidance.historicalTo}</span>
+                    <span className="ex-trend-status-pill is-partial">target {predictionFailureGuidance.targetDate}</span>
+                    <span className="ex-trend-status-pill is-partial">saved freshness {predictionFailureGuidance.freshness.status}</span>
+                    <span className="ex-trend-status-pill is-ready">source policy guarded</span>
+                    <span className="ex-trend-status-pill is-caution">structure helper only</span>
+                  </div>
+                  <div className="ex-kpi-grid">
+                    <MetricCard label="SOURCE RACES" value={valueText(predictionFailureGuidance.source.raceCount)} note={predictionFailureGuidance.source.artifact} />
+                    <MetricCard label="CLASSIFIABLE" value={valueText(predictionFailureGuidance.source.classifiableRaceCount)} note="purchase/result parsed" />
+                    <MetricCard label="GLOBAL HEAD MISS" value={formatFailurePercent(predictionFailureGuidanceGlobal?.headMissRate)} note={predictionFailureGuidanceGlobal ? valueText(predictionFailureGuidanceGlobal.headMissCount) + "R" : "--"} />
+                    <MetricCard label="GLOBAL 3着保護" value={formatFailurePercent(predictionFailureGuidanceGlobal?.thirdProtectionRate)} note={predictionFailureGuidanceGlobal ? valueText(predictionFailureGuidanceGlobal.correctTop2PairCount) + " correct top2" : "--"} />
+                    <MetricCard label="STRONG CONTEXTS" value={valueText(predictionFailureGuidanceStrongRows.length)} note="fresh時だけ強signal候補" warning={predictionFailureGuidanceStrongRows.length === 0} />
+                    <MetricCard label="VENUE × R" value={valueText(predictionFailureGuidance.contextSummary.venueRaceNoCount)} note="reference only / no strong use" />
+                  </div>
+                  <div className="ex-prediction-failure-guard">
+                    保存artifactのfreshnessは表示用です。実運用では対象Rの日付DとhistoricalToから毎回再計算し、
+                    historicalTo &lt; D、lag 0〜1日だけをfreshとして扱います。2〜7日は参考のみ、8日以上または同日以降は使用禁止です。
+                  </div>
+                  <div className="ex-location-grid">
+                    <article className="ex-location-card">
+                      <div className="ex-location-head">
+                        <h3>HEAD STRUCTURE CAUTION</h3>
+                        <span className="ex-location-status is-warning">strong only if fresh</span>
+                      </div>
+                      {renderFailureGuidanceContextRows(predictionFailureGuidanceHeadRows)}
+                    </article>
+                    <article className="ex-location-card">
+                      <div className="ex-location-head">
+                        <h3>PROTECT SECOND / THIRD</h3>
+                        <span className="ex-location-status is-partial">補助signal</span>
+                      </div>
+                      {renderFailureGuidanceContextRows(predictionFailureGuidanceThirdRows)}
+                    </article>
+                  </div>
+                  <div className="ex-overview-status">
+                    <span className={`ex-trend-status-pill is-${predictionFailureGuidance.policy.specificRiderSelectionAllowed ? "warning" : "ready"}`}>
+                      specific rider {predictionFailureGuidance.policy.specificRiderSelectionAllowed ? "CHECK" : "prohibited"}
+                    </span>
+                    <span className={`ex-trend-status-pill is-${predictionFailureGuidance.policy.raceRiskScoreMutationAllowed ? "warning" : "ready"}`}>
+                      race-risk mutation {predictionFailureGuidance.policy.raceRiskScoreMutationAllowed ? "CHECK" : "prohibited"}
+                    </span>
+                    <span className={`ex-trend-status-pill is-${predictionFailureGuidance.policy.pointRangeAutoPromotionAllowed ? "warning" : "ready"}`}>
+                      pointRange auto promotion {predictionFailureGuidance.policy.pointRangeAutoPromotionAllowed ? "CHECK" : "prohibited"}
+                    </span>
+                    <span className="ex-trend-status-pill is-caution">venue×R is reference only</span>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="ex-subsection" data-testid="kurari-ex-prediction-failure-v1">
