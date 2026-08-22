@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "sasebo",
   "venueName": "佐世保",
-  "updatedAt": "2026-08-14",
+  "updatedAt": "2026-08-21",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-06-28",
-    "to": "2026-08-09"
+    "to": "2026-08-20"
   },
   "quality": {
-    "seedSources": 18,
-    "parsedDateSources": 18,
+    "seedSources": 21,
+    "parsedDateSources": 21,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 18,
-    "raceCount": 97,
+    "sourceCount": 21,
+    "raceCount": 106,
     "trifectaHits": 38,
     "trifectaHitRate": 57.6,
     "exactaHits": 3,
     "exactaHitRate": 5.6,
     "anyTicketHits": 3,
     "hitRate": 42.9,
-    "investmentYen": 190000,
-    "returnYen": 208160,
-    "recoveryRate": 109.6,
+    "investmentYen": 222000,
+    "returnYen": 240340,
+    "recoveryRate": 108.3,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,63 +38,63 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 18,
-      "confidence": "high",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "MAKURI_ALERT",
-      "label": "捲り展開を警戒",
-      "evidenceCount": 18,
+      "evidenceCount": 21,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 18,
+      "evidenceCount": 21,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 18,
+      "evidenceCount": 21,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "MAKURI_ALERT",
+      "label": "捲り展開を警戒",
+      "evidenceCount": 20,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 17,
+      "evidenceCount": 20,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 16,
+      "evidenceCount": 19,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 16,
+      "evidenceCount": 19,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 15,
+      "evidenceCount": 18,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 13,
+      "evidenceCount": 16,
       "confidence": "high",
       "sourceType": "SEED"
     }
@@ -110,7 +110,9 @@
       "【天気・風の全体傾向】",
       "7黒河内は400m走路15走で3着13回、佐世保でも15走中3着13回。頭よりも3着候補として極めて特徴的で、積極的に残す。",
       "寺崎は頭候補に増やさず、特徴が明確な3着補正に使用した。",
-      "佐世保EXの同ライン的中傾向とは別に、ガールズ戦なので位置取りと現地気配を優先した。"
+      "佐世保EXの同ライン的中傾向とは別に、ガールズ戦なので位置取りと現地気配を優先した。",
+      "4池部がB11で主導権の第一候補。3は差5・マ2で、佐世保EXの番手差し傾向に合う。",
+      "1. A級予選では佐世保EXの同ライン決着傾向を強く使ったレースが機能した。特に3Rは2-4-6で18,900円を的中し、当日のプラス収支を作った。"
     ],
     "targets": [
       "そのため、分析用レポートでは「実際の買い目照合」を優先し、6Rを的中扱いにした。",
@@ -157,9 +159,9 @@
   },
   "predictionGuidance": [
     "級班とレース種別を分けて傾向を評価する",
-    "先行争いがある場合は別線の捲り筋を残す",
     "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+    "先行争いがある場合は別線の捲り筋を残す",
     "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
     "先行軸だけで固定せず、番手差しの逆目を残す",
     "本線が崩れた場合の別線頭と別線3着を保護する",

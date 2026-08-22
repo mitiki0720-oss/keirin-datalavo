@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "takeo",
   "venueName": "武雄",
-  "updatedAt": "2026-08-14",
+  "updatedAt": "2026-08-21",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-13",
-    "to": "2026-08-13"
+    "to": "2026-08-21"
   },
   "quality": {
-    "seedSources": 22,
-    "parsedDateSources": 22,
+    "seedSources": 24,
+    "parsedDateSources": 24,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 22,
+    "sourceCount": 24,
     "raceCount": 81,
-    "trifectaHits": 64,
-    "trifectaHitRate": 79,
+    "trifectaHits": 66,
+    "trifectaHitRate": 81.5,
     "exactaHits": 18,
     "exactaHitRate": 22.2,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 65200,
+    "investmentYen": 75200,
     "returnYen": 33040,
-    "recoveryRate": 50.7,
+    "recoveryRate": 43.9,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,69 +38,72 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 22,
+      "evidenceCount": 24,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 22,
+      "evidenceCount": 24,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 22,
+      "evidenceCount": 24,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 20,
+      "evidenceCount": 22,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 20,
+      "evidenceCount": 22,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 20,
+      "evidenceCount": 21,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 18,
+      "evidenceCount": 20,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 18,
+      "evidenceCount": 20,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 7,
+      "evidenceCount": 8,
       "confidence": "medium",
       "sourceType": "SEED"
     }
   ],
   "seedNotes": {
-    "features": [],
+    "features": [
+      "③山原は単騎。単騎3着率は8.6％と高くないので大量には買わず、5-7-3だけのピンポイント保護。",
+      "④は得点94.92で⑥番手。武雄の差し傾向から④頭を強く警戒する。"
+    ],
     "targets": [
       "武雄 モーニング 二分戦 直線勝負 番手差し スジズレ 中穴狙い 先行争い",
       "武雄 モーニング 三分戦 長い直線 番手差し 捲り一発 スジズレ 穴狙い",
@@ -140,7 +143,8 @@
       "新しい買い目は作成していません。予想時の出走表、結果時の天気、実際の結果、的中/不的中、展開差分、次回修正点、source情報を1枚のtxtに集約しています。",
       "新しい買い目は作成していません。予想時点の出走表、実際の結果、天気、source情報、展開差分、次回修正点を1枚のtxtにまとめています。",
       "結果原本では9Rが pending、2R・3R・4R・6R・7R・8R・9Rなどは払戻欄が--または自動判定未反映の扱い。",
-      "2橋本は豊橋・伊東で連対を続けており、1の仕掛けが遅れれば先捲りで逆転可能。3田中は一般戦での1着があり、5杉沢は初日4着からの位置取り改善を3着保護に入れる。"
+      "2橋本は豊橋・伊東で連対を続けており、1の仕掛けが遅れれば先捲りで逆転可能。3田中は一般戦での1着があり、5杉沢は初日4着からの位置取り改善を3着保護に入れる。",
+      "4. 決勝の事故/混戦リスクの買い目反映が弱い"
     ]
   },
   "predictionGuidance": [

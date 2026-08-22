@@ -15,12 +15,18 @@ import {
   loadKurariExInitialData,
   loadKurariExMatchupExactByFile,
   loadKurariExMatchupExactInitialData,
+  loadKurariExRaceRiskIndex,
   loadKurariExRiderExactByFile,
   loadKurariExRiderExactInitialData,
   loadKurariExVenueBundle,
   loadKurariExVenueExact,
   summarizeKurariExHistoryDaily,
   summarizeKurariExHistoryIndex,
+} from "../lib/kurariExData";
+import type {
+  KurariExRaceRiskIndex,
+  KurariExRaceRiskLevel,
+  KurariExRaceRiskRecord,
 } from "../lib/kurariExData";
 import {
   KURARI_EX_ANALYSIS_INVENTORY,
@@ -223,6 +229,31 @@ function formatMatchupRate(value?: number | null) {
   return Number.isFinite(value) ? `${Number(value).toFixed(1)}%` : "未比較";
 }
 
+function getRaceRiskLevelLabel(level: KurariExRaceRiskLevel) {
+  const labels: Record<KurariExRaceRiskLevel, string> = {
+    LOW: "LOW",
+    MEDIUM: "MEDIUM",
+    HIGH: "HIGH",
+    VERY_HIGH: "VERY HIGH",
+    INSUFFICIENT: "INSUFFICIENT",
+  };
+  return labels[level];
+}
+
+function getRaceRiskTone(level: KurariExRaceRiskLevel) {
+  if (level === "LOW") return "is-ready";
+  if (level === "MEDIUM") return "is-partial";
+  if (level === "HIGH") return "is-caution";
+  if (level === "VERY_HIGH") return "is-warning";
+  return "is-unavailable";
+}
+
+function getRaceRiskConfidenceLabel(value: string) {
+  if (value === "high") return "confidence high";
+  if (value === "medium") return "confidence medium";
+  return "confidence low";
+}
+
 function formatMatchupLineStats(stats: KurariExMatchupComparableStats) {
   if (!stats.safeComparableRaceCount) return "比較なし";
   return `${formatMatchupRate(stats.selfAheadRate)}（${stats.selfAheadCount}-${stats.opponentAheadCount}）`;
@@ -386,6 +417,38 @@ function MetricCard({ label, value, note, warning, className }: {
       <div className="ex-eyebrow">{label}</div>
       <div className="ex-metric-value">{value}</div>
       {note ? <div className="ex-muted">{note}</div> : null}
+    </article>
+  );
+}
+
+function RaceRiskSignalCard({ record }: { record: KurariExRaceRiskRecord }) {
+  const visibleSignals = [...record.signals]
+    .filter((signal) => signal.contribution !== 0 || signal.confidence === "low")
+    .slice(0, 4);
+  return (
+    <article className={`ex-race-risk-card ${getRaceRiskTone(record.riskLevel)}`}>
+      <div className="ex-race-risk-head">
+        <div>
+          <span>{record.venueName} {record.raceNo}R</span>
+          <strong>{getRaceRiskLevelLabel(record.riskLevel)}</strong>
+        </div>
+        <b>{record.pointRange.label}</b>
+      </div>
+      <div className="ex-race-risk-meta">
+        <span>{getRaceRiskConfidenceLabel(record.confidence)}</span>
+        <span>{record.line.lineCount ?? "--"}分戦</span>
+        <span>自力候補 {record.line.selfPowerCount}人</span>
+      </div>
+      <ul>
+        {visibleSignals.map((signal) => (
+          <li key={signal.key}>
+            <strong>{signal.label}</strong>
+            <span>{signal.value}</span>
+            <small>{signal.source} / {signal.confidence}</small>
+          </li>
+        ))}
+      </ul>
+      <p>{record.protectionGuide.note}</p>
     </article>
   );
 }
@@ -1750,6 +1813,8 @@ export default function ExDataPage() {
   const isMobile = useIsMobile();
   const [initialData, setInitialData] = useState<KurariExInitialData | null>(null);
   const [initialStatus, setInitialStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [raceRiskIndex, setRaceRiskIndex] = useState<KurariExRaceRiskIndex | null>(null);
+  const [raceRiskStatus, setRaceRiskStatus] = useState<"loading" | "ready" | "error">("loading");
   const [exactInitialData, setExactInitialData] = useState<KurariExExactInitialData | null>(null);
   const [exactInitialStatus, setExactInitialStatus] = useState<"loading" | "ready" | "error">("loading");
   const [activeSectionTab, setActiveSectionTab] = useState<ExSectionTab>("overview");
@@ -1851,6 +1916,24 @@ export default function ExDataPage() {
       .catch(() => {
         if (!active) return;
         setInitialStatus("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    loadKurariExRaceRiskIndex()
+      .then((data) => {
+        if (!active) return;
+        setRaceRiskIndex(data);
+        setRaceRiskStatus("ready");
+      })
+      .catch(() => {
+        if (!active) return;
+        setRaceRiskIndex(null);
+        setRaceRiskStatus("error");
       });
     return () => {
       active = false;
@@ -2449,6 +2532,27 @@ export default function ExDataPage() {
   const global = initialData?.globalKpi.kpi;
   const exactStatus = exactInitialData?.status;
   const exactGlobal = exactInitialData?.globalKpi;
+  const visibleRaceRiskRecords = useMemo(
+    () => [...(raceRiskIndex?.records ?? [])]
+      .sort((left, right) =>
+        left.venueCode.localeCompare(right.venueCode) ||
+        left.raceNo - right.raceNo
+      )
+      .slice(0, 12),
+    [raceRiskIndex],
+  );
+  const raceRiskCoverageNote = raceRiskIndex
+    ? `${raceRiskIndex.coverage.officialEntryRaceCount ?? 0}/${raceRiskIndex.raceCount} official entries / ${raceRiskIndex.coverage.officialLineupRaceCount ?? 0} lineup`
+    : "official entries / lineup";
+  const raceRiskGuardOk = raceRiskIndex
+    ? raceRiskIndex.records.every((record) =>
+        !record.leakageGuard.currentResultUsed &&
+        !record.leakageGuard.currentPayoutUsed &&
+        !record.leakageGuard.oddsUsedAsRiskDriver &&
+        !record.leakageGuard.fuzzyMatchingUsed &&
+        !record.leakageGuard.fakeCompletionUsed
+      )
+    : false;
   const selectedRiderItem = riderInitialData?.index.items.find(
     (item) => item.registrationNo === selectedRiderNo,
   );
@@ -2834,8 +2938,8 @@ export default function ExDataPage() {
         .ex-panel, .ex-section, .ex-subsection, .ex-detail, .ex-workspace, .ex-table-wrap { min-width: 0; max-width: 100%; box-sizing: border-box; }
         .ex-subsection, .ex-table-wrap { width: 100%; }
         .ex-main h1, .ex-main h2, .ex-main h3, .ex-main h4, .ex-main p, .ex-main li, .ex-main td, .ex-main th, .ex-main span, .ex-main strong { overflow-wrap: anywhere; }
-        .ex-health-grid, .ex-kpi-grid, .ex-location-grid, .ex-category-grid, .ex-insights, .ex-note-grid, .ex-summary-primary-grid, .ex-summary-secondary-grid, .ex-prediction-summary, .ex-prediction-support-grid, .ex-source-primary-grid, .ex-source-secondary-grid, .ex-trend-ranking-grid, .ex-turbulence-category-grid, .ex-chain-type-grid, .ex-chain-examples, .ex-weather-bucket-grid, .ex-weather-venue-grid, .ex-venue-bias-grid, .ex-venue-definition-grid, .ex-today-flow-grid, .ex-today-flow-meter, .ex-coverage-tab-map, .ex-backfill-grid, .ex-definition-grid { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
-        .ex-health-grid > *, .ex-kpi-grid > *, .ex-location-grid > *, .ex-category-grid > *, .ex-insights > *, .ex-note-grid > *, .ex-summary-primary-grid > *, .ex-summary-secondary-grid > *, .ex-prediction-summary > *, .ex-prediction-support-grid > *, .ex-source-primary-grid > *, .ex-source-secondary-grid > *, .ex-trend-ranking-grid > *, .ex-turbulence-category-grid > *, .ex-chain-type-grid > *, .ex-chain-examples > *, .ex-venue-bias-grid > *, .ex-venue-definition-grid > *, .ex-today-flow-grid > *, .ex-today-flow-meter > *, .ex-coverage-tab-map > *, .ex-backfill-grid > *, .ex-definition-grid > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
+        .ex-health-grid, .ex-kpi-grid, .ex-location-grid, .ex-category-grid, .ex-insights, .ex-note-grid, .ex-summary-primary-grid, .ex-summary-secondary-grid, .ex-prediction-summary, .ex-prediction-support-grid, .ex-source-primary-grid, .ex-source-secondary-grid, .ex-trend-ranking-grid, .ex-turbulence-category-grid, .ex-race-risk-grid, .ex-chain-type-grid, .ex-chain-examples, .ex-weather-bucket-grid, .ex-weather-venue-grid, .ex-venue-bias-grid, .ex-venue-definition-grid, .ex-today-flow-grid, .ex-today-flow-meter, .ex-coverage-tab-map, .ex-backfill-grid, .ex-definition-grid { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+        .ex-health-grid > *, .ex-kpi-grid > *, .ex-location-grid > *, .ex-category-grid > *, .ex-insights > *, .ex-note-grid > *, .ex-summary-primary-grid > *, .ex-summary-secondary-grid > *, .ex-prediction-summary > *, .ex-prediction-support-grid > *, .ex-source-primary-grid > *, .ex-source-secondary-grid > *, .ex-trend-ranking-grid > *, .ex-turbulence-category-grid > *, .ex-race-risk-grid > *, .ex-chain-type-grid > *, .ex-chain-examples > *, .ex-venue-bias-grid > *, .ex-venue-definition-grid > *, .ex-today-flow-grid > *, .ex-today-flow-meter > *, .ex-coverage-tab-map > *, .ex-backfill-grid > *, .ex-definition-grid > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
         .ex-main [hidden] { display: none !important; }
         .ex-section-tabs { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 14px; width: min(100%, 1360px); margin-inline: auto; padding: 16px; border: 1px solid rgba(202,207,232,.72); border-radius: 28px; background: linear-gradient(135deg,rgba(255,255,255,.78),rgba(248,250,255,.64) 52%,rgba(244,255,250,.52)); box-shadow: 0 20px 48px rgba(82,74,135,.09), inset 0 1px 0 rgba(255,255,255,.82); backdrop-filter: blur(20px) saturate(1.08); }
         .ex-section-tab { position: relative; min-width: 0; min-height: 82px; cursor: pointer; display: grid; grid-template-rows: auto 1fr auto; align-content: stretch; gap: 7px; padding: 15px 16px 15px 20px; border: 1px solid rgba(205,213,231,.8); border-radius: 18px; background: linear-gradient(145deg,rgba(255,255,255,.66),rgba(249,251,255,.54)); color: #536077; text-align: left; box-shadow: 0 8px 20px rgba(53,67,96,.04), inset 0 1px 0 rgba(255,255,255,.74); transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease, color .16s ease; }
@@ -3149,6 +3253,26 @@ export default function ExDataPage() {
         .ex-turbulence-breakdown { min-width: 0; padding: 18px; border: 1px solid #e2e5ed; border-radius: 21px; background: rgba(255,255,255,.76); }
         .ex-turbulence-breakdown h3 { margin: 0; color: #263650; font: 800 18px/1.35 ${serif}; }
         .ex-turbulence-table { min-width: 760px; }
+        .ex-race-risk-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 3},minmax(0,1fr)); gap: 12px; }
+        .ex-race-risk-card { display: grid; gap: 12px; padding: 17px; border: 1px solid #dfe5ef; border-radius: 21px; background: linear-gradient(145deg,rgba(255,255,255,.94),rgba(246,248,255,.78)); box-shadow: 0 14px 30px rgba(47,61,91,.06); }
+        .ex-race-risk-card.is-ready { border-color: #cfe5dd; background: linear-gradient(145deg,#ffffff,#f3fbf8); }
+        .ex-race-risk-card.is-partial { border-color: #d8e3f3; background: linear-gradient(145deg,#ffffff,#f4f8fe); }
+        .ex-race-risk-card.is-caution { border-color: #eadbbd; background: linear-gradient(145deg,#ffffff,#fffaf0); }
+        .ex-race-risk-card.is-warning { border-color: #edc9b5; background: linear-gradient(145deg,#ffffff,#fff5ef); }
+        .ex-race-risk-card.is-unavailable { border-color: #dde1e8; background: linear-gradient(145deg,#ffffff,#f6f7fa); opacity: .82; }
+        .ex-race-risk-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+        .ex-race-risk-head div { display: grid; gap: 4px; }
+        .ex-race-risk-head span { color: #6b778d; font-size: 11px; font-weight: 900; }
+        .ex-race-risk-head strong { color: #263650; font: 850 22px/1.1 ${serif}; }
+        .ex-race-risk-head b { white-space: nowrap; color: #563f91; background: #f0ebff; border: 1px solid #ded5fb; border-radius: 999px; padding: 7px 10px; font-size: 11px; font-weight: 950; }
+        .ex-race-risk-meta { display: flex; flex-wrap: wrap; gap: 7px; }
+        .ex-race-risk-meta span { color: #55637a; background: rgba(255,255,255,.82); border: 1px solid #e2e6ee; border-radius: 999px; padding: 5px 8px; font-size: 10px; font-weight: 900; }
+        .ex-race-risk-card ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+        .ex-race-risk-card li { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 4px 8px; padding: 9px 10px; border: 1px solid rgba(224,229,238,.86); border-radius: 13px; background: rgba(255,255,255,.74); }
+        .ex-race-risk-card li strong { min-width: 0; color: #33435d; font-size: 11px; }
+        .ex-race-risk-card li span { color: #5c4a95; font-size: 11px; font-weight: 950; }
+        .ex-race-risk-card li small { grid-column: 1 / -1; color: #8a94a5; font-size: 9px; line-height: 1.45; }
+        .ex-race-risk-card p { margin: 0; color: #647187; font-size: 11px; line-height: 1.7; }
         .ex-chain-type-grid { display: grid; grid-template-columns: repeat(${isMobile ? 2 : 6},minmax(0,1fr)); gap: 10px; }
         .ex-chain-type-card { min-width: 0; display: grid; gap: 6px; padding: 15px; border: 1px solid #dfe4ef; border-radius: 18px; background: linear-gradient(145deg,#fff,#f5f7fd); }
         .ex-chain-type-card strong { color: #34435b; font-size: 12px; }
@@ -3917,6 +4041,57 @@ export default function ExDataPage() {
             {trifectaTrendStatus === "error" ? (
               <EmptyState text="No eligible official payout data / official sourceを取得できませんでした。" />
             ) : null}
+            <div className="ex-subsection" data-testid="kurari-ex-race-risk-signal-v1">
+              <SectionTitle
+                eyebrow="KURARI EX RISK SIGNAL v1 / PRE-RACE"
+                title="R別荒れ予測 / 可変点数メタ"
+                lead="今日の出走表・ライン構成・公式entries・過去60日historical傾向だけで、8 / 10 / 12 / 14の点数レンジ候補を表示します。現在レース結果、払戻、オッズはrisk driverに使いません。"
+              />
+              {raceRiskStatus === "loading" ? <EmptyState text="RISK SIGNALを確認しています。" /> : null}
+              {raceRiskStatus === "error" ? (
+                <EmptyState text="race-risk indexが未生成、または取得できませんでした。" />
+              ) : null}
+              {raceRiskIndex ? (
+                <>
+                  <div className="ex-health-grid">
+                    <MetricCard label="TARGET DATE" value={raceRiskIndex.period.date} note={raceRiskIndex.sourceType} />
+                    <MetricCard label="RACES" value={`${raceRiskIndex.raceCount.toLocaleString("ja-JP")}R`} note={raceRiskCoverageNote} />
+                    <MetricCard
+                      label="HIGH / VERY HIGH"
+                      value={`${raceRiskIndex.riskLevelCounts.HIGH ?? 0} / ${raceRiskIndex.riskLevelCounts.VERY_HIGH ?? 0}`}
+                      note="10〜12 / 12〜14 candidate"
+                      warning={(raceRiskIndex.riskLevelCounts.VERY_HIGH ?? 0) > 0}
+                    />
+                    <MetricCard
+                      label="INSUFFICIENT"
+                      value={(raceRiskIndex.riskLevelCounts.INSUFFICIENT ?? 0).toLocaleString("ja-JP")}
+                      note="source不足は見送り候補"
+                      warning={(raceRiskIndex.riskLevelCounts.INSUFFICIENT ?? 0) > 0}
+                    />
+                    <MetricCard
+                      label="LEAKAGE GUARD"
+                      value={raceRiskGuardOk ? "PASS" : "CHECK"}
+                      note="result / payout / odds / fuzzy / fake not used"
+                      warning={!raceRiskGuardOk}
+                    />
+                    <MetricCard
+                      label="HISTORICAL FRESHNESS"
+                      value={raceRiskIndex.freshness.status.toUpperCase()}
+                      note={raceRiskIndex.freshness.warning}
+                      warning={raceRiskIndex.freshness.status !== "fresh"}
+                    />
+                  </div>
+                  <div className="ex-race-risk-grid">
+                    {visibleRaceRiskRecords.map((record) => (
+                      <RaceRiskSignalCard key={record.raceKey} record={record} />
+                    ))}
+                  </div>
+                  <div className="ex-muted">
+                    RISK SIGNALは購入点数の命令ではなく、EX上の点数レンジ候補です。追加点は新しい頭候補ではなく、2着・3着補正と順番保護へ使う前提で表示します。
+                  </div>
+                </>
+              ) : null}
+            </div>
             {trifectaTrend ? (
               <>
                 <div className="ex-health-grid">
@@ -5139,6 +5314,11 @@ export default function ExDataPage() {
                 <strong>未蓄積は未蓄積のまま</strong>
                 <p>ラインイベント、オッズ変動、B/SBなどは推測せず、source設計後に追加します。</p>
               </article>
+              <article className="ex-structure-audit-card">
+                <span>RISK SIGNAL</span>
+                <strong>点数レンジ候補だけを表示</strong>
+                <p>today / official entries / historical trendを使い、8・10・12・14の候補を出します。現在結果・払戻・オッズはrisk driverにしません。</p>
+              </article>
             </div>
 
             <div
@@ -5189,6 +5369,18 @@ export default function ExDataPage() {
                 value={KURARI_EX_PREDICTION_STRUCTURE_SUMMARY.sourceNeeded.toLocaleString("ja-JP")}
                 note="requiredSourcesから動的count"
                 warning
+              />
+              <MetricCard
+                label="RISK SIGNAL v1"
+                value={raceRiskStatus === "loading" ? "…" : raceRiskStatus === "error" ? "UNAVAILABLE" : `${raceRiskIndex?.raceCount ?? 0}R`}
+                note={raceRiskIndex ? `${raceRiskIndex.period.date} / ${raceRiskIndex.version}` : "race-risk index"}
+                warning={raceRiskStatus === "error"}
+              />
+              <MetricCard
+                label="RISK SOURCE GUARD"
+                value={raceRiskStatus === "loading" ? "…" : raceRiskGuardOk ? "PASS" : "CHECK"}
+                note="no result / payout / odds driver"
+                warning={raceRiskStatus === "error" || (raceRiskStatus === "ready" && !raceRiskGuardOk)}
               />
             </div>
 

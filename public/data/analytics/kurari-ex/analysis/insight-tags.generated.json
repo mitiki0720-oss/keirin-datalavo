@@ -1,37 +1,37 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-14T05:59:11.948Z",
+  "generatedAt": "2026-08-21T23:57:25.668Z",
   "source": "kurari-ex-analysis-v1",
   "sourceType": "SEED_ANALYSIS",
   "period": {
     "from": "2026-05-01",
-    "to": "2026-08-13"
+    "to": "2026-08-21"
   },
   "sourceStatus": {
-    "inputFileCount": 2348,
-    "predictionFileCount": 784,
-    "resultFileCount": 784,
-    "summaryFileCount": 780,
-    "completeTripletCount": 779,
+    "inputFileCount": 2528,
+    "predictionFileCount": 844,
+    "resultFileCount": 844,
+    "summaryFileCount": 840,
+    "completeTripletCount": 839,
     "warningCount": 6
   },
   "globalKpi": {
     "sourceType": "SEED",
-    "sourceCount": 780,
-    "raceCount": 5100,
-    "trifectaHits": 2060,
-    "trifectaHitRate": 46.3,
+    "sourceCount": 840,
+    "raceCount": 5279,
+    "trifectaHits": 2184,
+    "trifectaHitRate": 47.7,
     "exactaHits": 334,
-    "exactaHitRate": 8.3,
-    "anyTicketHits": 227,
-    "hitRate": 61.5,
-    "investmentYen": 7512800,
-    "returnYen": 5557160,
-    "recoveryRate": 74,
+    "exactaHitRate": 8.2,
+    "anyTicketHits": 237,
+    "hitRate": 61.2,
+    "investmentYen": 8163000,
+    "returnYen": 5922790,
+    "recoveryRate": 72.6,
     "kimarite": {
-      "escape": 46,
-      "makuri": 61,
-      "sashi": 68
+      "escape": 61,
+      "makuri": 84,
+      "sashi": 97
     }
   },
   "inclusionPolicy": {
@@ -46,25 +46,25 @@
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
       "venueCount": 39,
-      "evidenceCount": 773,
+      "evidenceCount": 832,
       "highConfidenceVenueCount": 35,
       "venues": [
         {
           "venueKey": "gifu",
           "venueName": "岐阜",
-          "evidenceCount": 38,
+          "evidenceCount": 39,
           "confidence": "high"
         },
         {
           "venueKey": "ito",
           "venueName": "伊東",
-          "evidenceCount": 35,
+          "evidenceCount": 38,
           "confidence": "high"
         },
         {
           "venueKey": "yahiko",
           "venueName": "弥彦",
-          "evidenceCount": 33,
+          "evidenceCount": 36,
           "confidence": "high"
         },
         {
@@ -74,20 +74,32 @@
           "confidence": "high"
         },
         {
+          "venueKey": "nara",
+          "venueName": "奈良",
+          "evidenceCount": 32,
+          "confidence": "high"
+        },
+        {
           "venueKey": "aomori",
           "venueName": "青森",
-          "evidenceCount": 30,
+          "evidenceCount": 31,
           "confidence": "high"
         },
         {
           "venueKey": "keiokaku",
           "venueName": "京王閣",
-          "evidenceCount": 28,
+          "evidenceCount": 31,
           "confidence": "high"
         },
         {
-          "venueKey": "nara",
-          "venueName": "奈良",
+          "venueKey": "matsuyama",
+          "venueName": "松山",
+          "evidenceCount": 27,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "tamano",
+          "venueName": "玉野",
           "evidenceCount": 27,
           "confidence": "high"
         },
@@ -95,12 +107,6 @@
           "venueKey": "hiroshima",
           "venueName": "広島",
           "evidenceCount": 26,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "tamano",
-          "venueName": "玉野",
-          "evidenceCount": 25,
           "confidence": "high"
         },
         {
@@ -114,12 +120,6 @@
           "venueName": "平塚",
           "evidenceCount": 24,
           "confidence": "high"
-        },
-        {
-          "venueKey": "matsuyama",
-          "venueName": "松山",
-          "evidenceCount": 24,
-          "confidence": "high"
         }
       ]
     },
@@ -127,24 +127,30 @@
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
       "venueCount": 39,
-      "evidenceCount": 770,
+      "evidenceCount": 830,
       "highConfidenceVenueCount": 35,
       "venues": [
         {
           "venueKey": "gifu",
           "venueName": "岐阜",
-          "evidenceCount": 38,
+          "evidenceCount": 39,
           "confidence": "high"
         },
         {
           "venueKey": "ito",
           "venueName": "伊東",
-          "evidenceCount": 35,
+          "evidenceCount": 38,
           "confidence": "high"
         },
         {
           "venueKey": "yahiko",
           "venueName": "弥彦",
+          "evidenceCount": 36,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "keiokaku",
+          "venueName": "京王閣",
           "evidenceCount": 33,
           "confidence": "high"
         },
@@ -155,20 +161,26 @@
           "confidence": "high"
         },
         {
-          "venueKey": "aomori",
-          "venueName": "青森",
-          "evidenceCount": 30,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "keiokaku",
-          "venueName": "京王閣",
-          "evidenceCount": 30,
-          "confidence": "high"
-        },
-        {
           "venueKey": "nara",
           "venueName": "奈良",
+          "evidenceCount": 32,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "aomori",
+          "venueName": "青森",
+          "evidenceCount": 31,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "matsuyama",
+          "venueName": "松山",
+          "evidenceCount": 28,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "tamano",
+          "venueName": "玉野",
           "evidenceCount": 27,
           "confidence": "high"
         },
@@ -185,21 +197,9 @@
           "confidence": "high"
         },
         {
-          "venueKey": "tamano",
-          "venueName": "玉野",
-          "evidenceCount": 25,
-          "confidence": "high"
-        },
-        {
           "venueKey": "utsunomiya",
           "venueName": "宇都宮",
           "evidenceCount": 25,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "hiratsuka",
-          "venueName": "平塚",
-          "evidenceCount": 24,
           "confidence": "high"
         }
       ]
@@ -208,19 +208,25 @@
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
       "venueCount": 39,
-      "evidenceCount": 728,
+      "evidenceCount": 788,
       "highConfidenceVenueCount": 35,
       "venues": [
         {
           "venueKey": "gifu",
           "venueName": "岐阜",
-          "evidenceCount": 38,
+          "evidenceCount": 39,
           "confidence": "high"
         },
         {
           "venueKey": "aomori",
           "venueName": "青森",
-          "evidenceCount": 30,
+          "evidenceCount": 31,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "ito",
+          "venueName": "伊東",
+          "evidenceCount": 31,
           "confidence": "high"
         },
         {
@@ -230,14 +236,26 @@
           "confidence": "high"
         },
         {
-          "venueKey": "ito",
-          "venueName": "伊東",
+          "venueKey": "yahiko",
+          "venueName": "弥彦",
+          "evidenceCount": 30,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "keiokaku",
+          "venueName": "京王閣",
           "evidenceCount": 28,
           "confidence": "high"
         },
         {
-          "venueKey": "yahiko",
-          "venueName": "弥彦",
+          "venueKey": "matsuyama",
+          "venueName": "松山",
+          "evidenceCount": 27,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "nara",
+          "venueName": "奈良",
           "evidenceCount": 27,
           "confidence": "high"
         },
@@ -248,8 +266,8 @@
           "confidence": "high"
         },
         {
-          "venueKey": "keiokaku",
-          "venueName": "京王閣",
+          "venueKey": "tamano",
+          "venueName": "玉野",
           "evidenceCount": 25,
           "confidence": "high"
         },
@@ -264,24 +282,6 @@
           "venueName": "小田原",
           "evidenceCount": 24,
           "confidence": "high"
-        },
-        {
-          "venueKey": "hiratsuka",
-          "venueName": "平塚",
-          "evidenceCount": 23,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "matsuyama",
-          "venueName": "松山",
-          "evidenceCount": 23,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "tamano",
-          "venueName": "玉野",
-          "evidenceCount": 23,
-          "confidence": "high"
         }
       ]
     },
@@ -289,49 +289,61 @@
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
       "venueCount": 39,
-      "evidenceCount": 682,
+      "evidenceCount": 740,
       "highConfidenceVenueCount": 34,
       "venues": [
         {
           "venueKey": "ito",
           "venueName": "伊東",
-          "evidenceCount": 35,
+          "evidenceCount": 38,
           "confidence": "high"
         },
         {
           "venueKey": "yahiko",
           "venueName": "弥彦",
-          "evidenceCount": 31,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "gifu",
-          "venueName": "岐阜",
-          "evidenceCount": 29,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "keiokaku",
-          "venueName": "京王閣",
-          "evidenceCount": 27,
+          "evidenceCount": 34,
           "confidence": "high"
         },
         {
           "venueKey": "nara",
           "venueName": "奈良",
-          "evidenceCount": 27,
+          "evidenceCount": 32,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "gifu",
+          "venueName": "岐阜",
+          "evidenceCount": 30,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "keiokaku",
+          "venueName": "京王閣",
+          "evidenceCount": 30,
           "confidence": "high"
         },
         {
           "venueKey": "aomori",
           "venueName": "青森",
-          "evidenceCount": 24,
+          "evidenceCount": 25,
           "confidence": "high"
         },
         {
           "venueKey": "hakodate",
           "venueName": "函館",
           "evidenceCount": 24,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "kochi",
+          "venueName": "高知",
+          "evidenceCount": 23,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "matsuyama",
+          "venueName": "松山",
+          "evidenceCount": 23,
           "confidence": "high"
         },
         {
@@ -351,18 +363,6 @@
           "venueName": "和歌山",
           "evidenceCount": 22,
           "confidence": "high"
-        },
-        {
-          "venueKey": "hiratsuka",
-          "venueName": "平塚",
-          "evidenceCount": 21,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "iwakitaira",
-          "venueName": "いわき平",
-          "evidenceCount": 21,
-          "confidence": "high"
         }
       ]
     },
@@ -370,31 +370,49 @@
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
       "venueCount": 39,
-      "evidenceCount": 632,
+      "evidenceCount": 692,
       "highConfidenceVenueCount": 33,
       "venues": [
         {
-          "venueKey": "gifu",
-          "venueName": "岐阜",
-          "evidenceCount": 27,
-          "confidence": "high"
-        },
-        {
           "venueKey": "ito",
           "venueName": "伊東",
-          "evidenceCount": 27,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "yahiko",
-          "venueName": "弥彦",
-          "evidenceCount": 26,
+          "evidenceCount": 30,
           "confidence": "high"
         },
         {
           "venueKey": "nara",
           "venueName": "奈良",
-          "evidenceCount": 25,
+          "evidenceCount": 30,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "yahiko",
+          "venueName": "弥彦",
+          "evidenceCount": 29,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "gifu",
+          "venueName": "岐阜",
+          "evidenceCount": 28,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "keiokaku",
+          "venueName": "京王閣",
+          "evidenceCount": 26,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "matsuyama",
+          "venueName": "松山",
+          "evidenceCount": 26,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "tamano",
+          "venueName": "玉野",
+          "evidenceCount": 24,
           "confidence": "high"
         },
         {
@@ -404,15 +422,84 @@
           "confidence": "high"
         },
         {
+          "venueKey": "kishiwada",
+          "venueName": "岸和田",
+          "evidenceCount": 23,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "aomori",
+          "venueName": "青森",
+          "evidenceCount": 22,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "takeo",
+          "venueName": "武雄",
+          "evidenceCount": 22,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "beppu",
+          "venueName": "別府",
+          "evidenceCount": 21,
+          "confidence": "high"
+        }
+      ]
+    },
+    {
+      "tag": "MAKURI_ALERT",
+      "label": "捲り展開を警戒",
+      "venueCount": 39,
+      "evidenceCount": 681,
+      "highConfidenceVenueCount": 33,
+      "venues": [
+        {
+          "venueKey": "nara",
+          "venueName": "奈良",
+          "evidenceCount": 31,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "ito",
+          "venueName": "伊東",
+          "evidenceCount": 29,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "gifu",
+          "venueName": "岐阜",
+          "evidenceCount": 28,
+          "confidence": "high"
+        },
+        {
           "venueKey": "keiokaku",
           "venueName": "京王閣",
+          "evidenceCount": 27,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "yahiko",
+          "venueName": "弥彦",
+          "evidenceCount": 27,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "tamano",
+          "venueName": "玉野",
+          "evidenceCount": 24,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "hiroshima",
+          "venueName": "広島",
           "evidenceCount": 23,
           "confidence": "high"
         },
         {
           "venueKey": "kishiwada",
           "venueName": "岸和田",
-          "evidenceCount": 23,
+          "evidenceCount": 22,
           "confidence": "high"
         },
         {
@@ -422,108 +509,21 @@
           "confidence": "high"
         },
         {
-          "venueKey": "tamano",
-          "venueName": "玉野",
+          "venueKey": "takeo",
+          "venueName": "武雄",
           "evidenceCount": 22,
           "confidence": "high"
         },
         {
-          "venueKey": "aomori",
-          "venueName": "青森",
+          "venueKey": "beppu",
+          "venueName": "別府",
           "evidenceCount": 21,
           "confidence": "high"
         },
         {
-          "venueKey": "iwakitaira",
-          "venueName": "いわき平",
+          "venueKey": "ogaki",
+          "venueName": "大垣",
           "evidenceCount": 21,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "takeo",
-          "venueName": "武雄",
-          "evidenceCount": 20,
-          "confidence": "high"
-        }
-      ]
-    },
-    {
-      "tag": "MAKURI_ALERT",
-      "label": "捲り展開を警戒",
-      "venueCount": 39,
-      "evidenceCount": 623,
-      "highConfidenceVenueCount": 33,
-      "venues": [
-        {
-          "venueKey": "gifu",
-          "venueName": "岐阜",
-          "evidenceCount": 27,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "nara",
-          "venueName": "奈良",
-          "evidenceCount": 27,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "ito",
-          "venueName": "伊東",
-          "evidenceCount": 26,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "keiokaku",
-          "venueName": "京王閣",
-          "evidenceCount": 24,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "yahiko",
-          "venueName": "弥彦",
-          "evidenceCount": 24,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "hiroshima",
-          "venueName": "広島",
-          "evidenceCount": 23,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "kishiwada",
-          "venueName": "岸和田",
-          "evidenceCount": 22,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "tamano",
-          "venueName": "玉野",
-          "evidenceCount": 22,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "iwakitaira",
-          "venueName": "いわき平",
-          "evidenceCount": 20,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "takeo",
-          "venueName": "武雄",
-          "evidenceCount": 20,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "wakayama",
-          "venueName": "和歌山",
-          "evidenceCount": 20,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "aomori",
-          "venueName": "青森",
-          "evidenceCount": 19,
           "confidence": "high"
         }
       ]
@@ -532,42 +532,54 @@
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
       "venueCount": 39,
-      "evidenceCount": 574,
-      "highConfidenceVenueCount": 30,
+      "evidenceCount": 633,
+      "highConfidenceVenueCount": 31,
       "venues": [
-        {
-          "venueKey": "gifu",
-          "venueName": "岐阜",
-          "evidenceCount": 27,
-          "confidence": "high"
-        },
         {
           "venueKey": "ito",
           "venueName": "伊東",
-          "evidenceCount": 27,
+          "evidenceCount": 30,
           "confidence": "high"
         },
         {
           "venueKey": "yahiko",
           "venueName": "弥彦",
-          "evidenceCount": 27,
+          "evidenceCount": 30,
           "confidence": "high"
         },
         {
-          "venueKey": "tamano",
-          "venueName": "玉野",
-          "evidenceCount": 22,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "aomori",
-          "venueName": "青森",
-          "evidenceCount": 21,
+          "venueKey": "gifu",
+          "venueName": "岐阜",
+          "evidenceCount": 28,
           "confidence": "high"
         },
         {
           "venueKey": "keiokaku",
           "venueName": "京王閣",
+          "evidenceCount": 24,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "tamano",
+          "venueName": "玉野",
+          "evidenceCount": 24,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "aomori",
+          "venueName": "青森",
+          "evidenceCount": 22,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "nara",
+          "venueName": "奈良",
+          "evidenceCount": 21,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "toyohashi",
+          "venueName": "豊橋",
           "evidenceCount": 21,
           "confidence": "high"
         },
@@ -578,33 +590,21 @@
           "confidence": "high"
         },
         {
-          "venueKey": "iwakitaira",
-          "venueName": "いわき平",
-          "evidenceCount": 19,
+          "venueKey": "matsuyama",
+          "venueName": "松山",
+          "evidenceCount": 20,
           "confidence": "high"
         },
         {
-          "venueKey": "hiroshima",
-          "venueName": "広島",
-          "evidenceCount": 18,
+          "venueKey": "ogaki",
+          "venueName": "大垣",
+          "evidenceCount": 20,
           "confidence": "high"
         },
         {
           "venueKey": "takeo",
           "venueName": "武雄",
-          "evidenceCount": 18,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "toride",
-          "venueName": "取手",
-          "evidenceCount": 18,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "toyohashi",
-          "venueName": "豊橋",
-          "evidenceCount": 18,
+          "evidenceCount": 20,
           "confidence": "high"
         }
       ]
@@ -613,30 +613,42 @@
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
       "venueCount": 39,
-      "evidenceCount": 570,
-      "highConfidenceVenueCount": 31,
+      "evidenceCount": 628,
+      "highConfidenceVenueCount": 32,
       "venues": [
         {
-          "venueKey": "gifu",
-          "venueName": "岐阜",
-          "evidenceCount": 27,
+          "venueKey": "nara",
+          "venueName": "奈良",
+          "evidenceCount": 31,
           "confidence": "high"
         },
         {
           "venueKey": "ito",
           "venueName": "伊東",
-          "evidenceCount": 26,
+          "evidenceCount": 29,
           "confidence": "high"
         },
         {
-          "venueKey": "nara",
-          "venueName": "奈良",
-          "evidenceCount": 26,
+          "venueKey": "gifu",
+          "venueName": "岐阜",
+          "evidenceCount": 28,
           "confidence": "high"
         },
         {
           "venueKey": "yahiko",
           "venueName": "弥彦",
+          "evidenceCount": 26,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "keiokaku",
+          "venueName": "京王閣",
+          "evidenceCount": 24,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "tamano",
+          "venueName": "玉野",
           "evidenceCount": 23,
           "confidence": "high"
         },
@@ -647,14 +659,14 @@
           "confidence": "high"
         },
         {
-          "venueKey": "keiokaku",
-          "venueName": "京王閣",
+          "venueKey": "kochi",
+          "venueName": "高知",
           "evidenceCount": 21,
           "confidence": "high"
         },
         {
-          "venueKey": "tamano",
-          "venueName": "玉野",
+          "venueKey": "sasebo",
+          "venueName": "佐世保",
           "evidenceCount": 21,
           "confidence": "high"
         },
@@ -671,21 +683,9 @@
           "confidence": "high"
         },
         {
-          "venueKey": "wakayama",
-          "venueName": "和歌山",
+          "venueKey": "takeo",
+          "venueName": "武雄",
           "evidenceCount": 20,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "kishiwada",
-          "venueName": "岸和田",
-          "evidenceCount": 19,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "toride",
-          "venueName": "取手",
-          "evidenceCount": 19,
           "confidence": "high"
         }
       ]
@@ -694,36 +694,60 @@
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
       "venueCount": 39,
-      "evidenceCount": 398,
-      "highConfidenceVenueCount": 22,
+      "evidenceCount": 449,
+      "highConfidenceVenueCount": 23,
       "venues": [
         {
           "venueKey": "ito",
           "venueName": "伊東",
-          "evidenceCount": 21,
+          "evidenceCount": 24,
           "confidence": "high"
         },
         {
           "venueKey": "tamano",
           "venueName": "玉野",
-          "evidenceCount": 21,
+          "evidenceCount": 23,
           "confidence": "high"
         },
         {
           "venueKey": "gifu",
           "venueName": "岐阜",
-          "evidenceCount": 19,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "aomori",
-          "venueName": "青森",
-          "evidenceCount": 18,
+          "evidenceCount": 20,
           "confidence": "high"
         },
         {
           "venueKey": "matsuyama",
           "venueName": "松山",
+          "evidenceCount": 20,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "aomori",
+          "venueName": "青森",
+          "evidenceCount": 19,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "yahiko",
+          "venueName": "弥彦",
+          "evidenceCount": 18,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "toyohashi",
+          "venueName": "豊橋",
+          "evidenceCount": 17,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "keiokaku",
+          "venueName": "京王閣",
+          "evidenceCount": 16,
+          "confidence": "high"
+        },
+        {
+          "venueKey": "sasebo",
+          "venueName": "佐世保",
           "evidenceCount": 16,
           "confidence": "high"
         },
@@ -734,39 +758,15 @@
           "confidence": "high"
         },
         {
+          "venueKey": "beppu",
+          "venueName": "別府",
+          "evidenceCount": 15,
+          "confidence": "high"
+        },
+        {
           "venueKey": "wakayama",
           "venueName": "和歌山",
           "evidenceCount": 15,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "yahiko",
-          "venueName": "弥彦",
-          "evidenceCount": 15,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "toyohashi",
-          "venueName": "豊橋",
-          "evidenceCount": 14,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "keiokaku",
-          "venueName": "京王閣",
-          "evidenceCount": 13,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "sasebo",
-          "venueName": "佐世保",
-          "evidenceCount": 13,
-          "confidence": "high"
-        },
-        {
-          "venueKey": "beppu",
-          "venueName": "別府",
-          "evidenceCount": 12,
           "confidence": "high"
         }
       ]

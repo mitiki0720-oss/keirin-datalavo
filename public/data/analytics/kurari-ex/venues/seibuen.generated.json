@@ -2,22 +2,22 @@
   "schemaVersion": 1,
   "venueKey": "seibuen",
   "venueName": "西武園",
-  "updatedAt": "2026-08-14",
+  "updatedAt": "2026-08-21",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-01",
-    "to": "2026-08-13"
+    "to": "2026-08-21"
   },
   "quality": {
-    "seedSources": 13,
-    "parsedDateSources": 13,
+    "seedSources": 16,
+    "parsedDateSources": 16,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 13,
+    "sourceCount": 16,
     "raceCount": 86,
     "trifectaHits": 4,
     "trifectaHitRate": 28.6,
@@ -25,9 +25,9 @@
     "exactaHitRate": 0,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 190500,
-    "returnYen": 132820,
-    "recoveryRate": 69.7,
+    "investmentYen": 215300,
+    "returnYen": 140430,
+    "recoveryRate": 65.2,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,64 +38,64 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 13,
+      "evidenceCount": 16,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 13,
+      "evidenceCount": 16,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 13,
+      "evidenceCount": 16,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 12,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 11,
+      "evidenceCount": 14,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 11,
+      "evidenceCount": 14,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 10,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 10,
+      "evidenceCount": 13,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 12,
+      "confidence": "high",
       "sourceType": "SEED"
     }
   ],
@@ -107,7 +107,10 @@
       "4-7関東の番手差しと2-5中部の差し返しを二本柱。EX傾向どおり、単騎3と関東3番手1を3着の穴候補に残す。",
       "5久田の機動力を軸に4鷲田の番手差しを重視。EXの同ライン1-2傾向は尊重しつつ、別線3着混入率が高いため3柴田・6野村も組み込む。",
       "2-5の中四国を軸に、4-1の神奈川と7-3の中部を逆転枠に限定。別線3着が混じりやすい当地傾向を、3・4の3着保護で反映した。",
-      "B9の2冨倉とB9の3石田による主導権争い。2-7-4は京都勢に4藤縄まで続き、3-5-1は得点最上位の5及川が番手を回る。西武園の短直線と会場EXの同ライン1・2着傾向から、両ラインのワンツーを基本にする。"
+      "B9の2冨倉とB9の3石田による主導権争い。2-7-4は京都勢に4藤縄まで続き、3-5-1は得点最上位の5及川が番手を回る。西武園の短直線と会場EXの同ライン1・2着傾向から、両ラインのワンツーを基本にする。",
+      "番手①伊藤は89.32点で得点トップ。武雄予選2着、豊橋予選2着と番手戦の安定感があり、西武園の差し傾向から①-④を第一本線、④-①を逆目で残す。",
+      "⑦は400m5走すべて3着、当所5走もすべて3着という素材データが特徴的。今回は⑦頭より2・3着評価を強める。",
+      "番手②も88.55点、四日市2着→準決1着→決勝6着。玉野でも2着→2着→決勝3着。西武園の差し傾向を考えれば②-⑤を⑤-②よりわずかに上へ取る。"
     ],
     "targets": [
       "R 結果(3連単) 最終判定(結果ファイル) 照合(買い目10点) 払戻 1番人気(3連単) SB(B)着順",

@@ -54,11 +54,94 @@ const EXACT_ROOT = `${EX_ROOT}/exact`;
 const RIDER_EXACT_ROOT = `${EXACT_ROOT}/riders`;
 const MATCHUP_EXACT_ROOT = `${EXACT_ROOT}/matchups`;
 const HISTORY_INDEX_PATH = `${EX_ROOT}/history/index.generated.json`;
+const RACE_RISK_INDEX_PATH = `${EX_ROOT}/race-risk/index.generated.json`;
 const STARTERS_SOURCE_INDEX_PATH = `${EX_ROOT}/source/starters/index.generated.json`;
 const TODAY_RACES_PATH = "/data/races/today.generated.json";
 const OFFICIAL_ENTRIES_PATH = "/data/races/keirin-jp-entries.generated.json";
 const STARTERS_SOURCE_INDEX_SCHEMA_VERSION = "kurari-ex-starters-source-index/v1";
 const STARTERS_SOURCE_SCHEMA_VERSION = "kurari-ex-starters-from-today-registration/v1";
+
+export type KurariExRaceRiskLevel = "LOW" | "MEDIUM" | "HIGH" | "VERY_HIGH" | "INSUFFICIENT";
+export type KurariExRaceRiskConfidence = "high" | "medium" | "low";
+
+export type KurariExRaceRiskSignal = {
+  key: string;
+  label: string;
+  value: string;
+  contribution: number;
+  source: string;
+  confidence: KurariExRaceRiskConfidence;
+  note?: string;
+};
+
+export type KurariExRaceRiskRecord = {
+  raceKey: string;
+  date: string;
+  venueCode: string;
+  venueName: string;
+  venueSlug: string | null;
+  raceNo: number;
+  title: string;
+  time: string | null;
+  timeBand: string;
+  grade: string;
+  raceClass: string;
+  carCount: number;
+  line: {
+    source: string;
+    lineup: string | null;
+    lineCount: number | null;
+    singleCount: number;
+    selfPowerCount: number;
+  };
+  riskScore: number;
+  riskLevel: KurariExRaceRiskLevel;
+  confidence: KurariExRaceRiskConfidence;
+  pointRange: {
+    label: string;
+    min: number | null;
+    max: number | null;
+    action: "BASE_8" | "VALUE_10" | "STRONG_VALUE_12" | "MAX_14" | "SKIP";
+  };
+  signals: KurariExRaceRiskSignal[];
+  protectionGuide: {
+    mode: string;
+    note: string;
+    allowedRoles: string[];
+  };
+  sourceAvailability: Record<string, unknown>;
+  leakageGuard: {
+    currentResultUsed: boolean;
+    currentPayoutUsed: boolean;
+    oddsUsedAsRiskDriver: boolean;
+    fuzzyMatchingUsed: boolean;
+    fakeCompletionUsed: boolean;
+  };
+};
+
+export type KurariExRaceRiskIndex = {
+  version: "kurari-ex-race-risk/v1";
+  generatedAt: string;
+  sourceType: string;
+  period: {
+    date: string;
+    historicalFrom: string | null;
+    historicalTo: string | null;
+  };
+  raceCount: number;
+  coverage: Record<string, number>;
+  freshness: {
+    targetDate: string;
+    historicalTo: string | null;
+    lagDays: number | null;
+    status: "fresh" | "stale" | "unknown";
+    warning: string;
+  };
+  riskLevelCounts: Partial<Record<KurariExRaceRiskLevel, number>>;
+  confidenceCounts: Partial<Record<KurariExRaceRiskConfidence, number>>;
+  pointRangeCounts: Record<string, number>;
+  records: KurariExRaceRiskRecord[];
+};
 
 export const KURARI_EX_ACCUMULATION_RULES = [
   "fake補完は禁止。存在しない成績・対戦・登録番号は作らない。",
@@ -862,6 +945,10 @@ export async function loadKurariExInitialData(): Promise<KurariExInitialData> {
     fetchJson<KurariExGlobalKpi>(`${EX_ROOT}/global/prediction-kpi.generated.json`),
   ]);
   return { index, status, globalKpi, venues: buildKurariExVenueList(index) };
+}
+
+export async function loadKurariExRaceRiskIndex(): Promise<KurariExRaceRiskIndex> {
+  return fetchJson<KurariExRaceRiskIndex>(RACE_RISK_INDEX_PATH);
 }
 
 export async function loadKurariExVenueBundle(

@@ -2,22 +2,22 @@
   "schemaVersion": 1,
   "venueKey": "tachikawa",
   "venueName": "立川",
-  "updatedAt": "2026-08-14",
+  "updatedAt": "2026-08-21",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-07-27",
-    "to": "2026-08-10"
+    "to": "2026-08-19"
   },
   "quality": {
-    "seedSources": 6,
-    "parsedDateSources": 6,
+    "seedSources": 9,
+    "parsedDateSources": 9,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 6,
+    "sourceCount": 9,
     "raceCount": 12,
     "trifectaHits": 11,
     "trifectaHitRate": 91.7,
@@ -25,9 +25,9 @@
     "exactaHitRate": 0,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 96200,
-    "returnYen": 68960,
-    "recoveryRate": 71.7,
+    "investmentYen": 136900,
+    "returnYen": 88320,
+    "recoveryRate": 64.5,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,14 +38,49 @@
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 6,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 6,
+      "evidenceCount": 9,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "MAKURI_ALERT",
+      "label": "捲り展開を警戒",
+      "evidenceCount": 9,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "OTHER_LINE_ALERT",
+      "label": "別線の浮上を警戒",
+      "evidenceCount": 9,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "SOLO_RIDER_ALERT",
+      "label": "単騎の差し込みを警戒",
+      "evidenceCount": 9,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "THIRD_PLACE_SPREAD",
+      "label": "3着候補を分散",
+      "evidenceCount": 9,
+      "confidence": "medium",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "WIND_SENSITIVE",
+      "label": "風条件を確認",
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
@@ -57,44 +92,9 @@
       "sourceType": "SEED"
     },
     {
-      "tag": "MAKURI_ALERT",
-      "label": "捲り展開を警戒",
-      "evidenceCount": 6,
-      "confidence": "medium",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "OTHER_LINE_ALERT",
-      "label": "別線の浮上を警戒",
-      "evidenceCount": 6,
-      "confidence": "medium",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "SOLO_RIDER_ALERT",
-      "label": "単騎の差し込みを警戒",
-      "evidenceCount": 6,
-      "confidence": "medium",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "THIRD_PLACE_SPREAD",
-      "label": "3着候補を分散",
-      "evidenceCount": 6,
-      "confidence": "medium",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "WIND_SENSITIVE",
-      "label": "風条件を確認",
-      "evidenceCount": 6,
-      "confidence": "medium",
-      "sourceType": "SEED"
-    },
-    {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 3,
+      "evidenceCount": 6,
       "confidence": "medium",
       "sourceType": "SEED"
     }
@@ -111,7 +111,8 @@
       "番手7落合も当所8走で1着3・2着1・3着3。3が早仕掛けになれば立川の差し傾向から7-3逆転も十分ある。",
       "1着決まり手は逃・捲・差が各4Rで完全均衡。会場の差し傾向だけを強く使うと当日の実態を単純化しすぎる。",
       "B16の3西本が主導権を握る形を基本に、競走得点上位の7坂口が番手差しで逆転する筋を中心視。立川の差し傾向もあり、3の押し切りと7の差しを両方残す。",
-      "1. 会場傾向の使い過ぎを抑える"
+      "1. 会場傾向の使い過ぎを抑える",
+      "点数判断：①のB19と4車ラインを重視。ただし立川の差し傾向で③逆転を第一本線に置き、②差し頭まで8点。"
     ],
     "targets": [
       "新しい買い目の予想は行わず、実際に提示された買い目と確定結果の差分だけを検証した。",
@@ -159,11 +160,11 @@
   "predictionGuidance": [
     "先行軸だけで固定せず、番手差しの逆目を残す",
     "級班とレース種別を分けて傾向を評価する",
-    "ラインの長さと追走力を確認し、同ライン決着を評価する",
     "先行争いがある場合は別線の捲り筋を残す",
     "本線が崩れた場合の別線頭と別線3着を保護する",
     "踏み合い時は単騎の差し込みを3着候補に加える",
     "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す",
-    "風向と風速を確認し、先行残りと差し届きを固定評価しない"
+    "風向と風速を確認し、先行残りと差し届きを固定評価しない",
+    "ラインの長さと追走力を確認し、同ライン決着を評価する"
   ]
 }
