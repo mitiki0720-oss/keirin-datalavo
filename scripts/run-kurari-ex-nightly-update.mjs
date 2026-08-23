@@ -97,6 +97,8 @@ export async function runNightly(options = {}) {
     await runScript("generate-kurari-ex-today-recommendation.mjs");
     await runScript("kurari-ex/generate-kurari-ex-race-risk.mjs");
     await runScript("check-kurari-ex-race-risk.mjs");
+    await runScript("kurari-ex/archive-kurari-ex-race-risk.mjs");
+    await runScript("check-kurari-ex-race-risk-history.mjs");
     return { status: archive.status, archive };
   }
 
@@ -141,6 +143,8 @@ export async function runNightly(options = {}) {
     await runScript("generate-kurari-ex-today-recommendation.mjs");
     await runScript("kurari-ex/generate-kurari-ex-race-risk.mjs");
     await runScript("check-kurari-ex-race-risk.mjs");
+    await runScript("kurari-ex/archive-kurari-ex-race-risk.mjs");
+    await runScript("check-kurari-ex-race-risk-history.mjs");
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }

@@ -172,6 +172,8 @@ jobs:
 
           node scripts/kurari-ex/generate-kurari-ex-race-risk.mjs
           node scripts/check-kurari-ex-race-risk.mjs
+          node scripts/kurari-ex/archive-kurari-ex-race-risk.mjs
+          node scripts/check-kurari-ex-race-risk-history.mjs
 
       - name: Resolve KEIRIN.JP expected result date
         if: github.event.schedule == '0 3 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.phase == 'final' || github.event.inputs.phase == 'backfill'))
@@ -223,9 +225,11 @@ jobs:
           git add public/data/races/keirin-jp-results.generated.json
           git add public/data/races/keirin-jp-entries.generated.json
           git add public/data/analytics/kurari-ex/race-risk/index.generated.json
+          RISK_DATE="$(node -e 'const fs=require("fs"); const data=JSON.parse(fs.readFileSync("public/data/analytics/kurari-ex/race-risk/index.generated.json","utf8")); if(!/^\d{4}-\d{2}-\d{2}$/.test(data.period?.date || "")) process.exit(1); process.stdout.write(data.period.date);')"
+          git add "public/data/analytics/kurari-ex/race-risk-history/${RISK_DATE}.generated.json"
 
           if git diff --cached --quiet; then
-            echo "No today race data, upcoming schedule, KEIRIN.JP official feeds, or Slack notification state changes."
+            echo "No today race data, upcoming schedule, KEIRIN.JP official feeds, Slack notification state, or race-risk archive changes."
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
