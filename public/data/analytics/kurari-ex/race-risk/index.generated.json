@@ -1,6 +1,6 @@
 {
   "version": "kurari-ex-race-risk/v1",
-  "generatedAt": "2026-08-23T01:02:16.218Z",
+  "generatedAt": "2026-08-23T01:32:24.729Z",
   "sourceType": "PRE_RACE_SOURCE_BACKED_EX_SIGNAL",
   "period": {
     "date": "2026-08-23",
@@ -11,9 +11,9 @@
   "coverage": {
     "venueCount": 8,
     "officialEntryRaceCount": 79,
-    "officialLineupRaceCount": 61,
-    "insufficientRaceCount": 18,
-    "lowConfidenceRaceCount": 18
+    "officialLineupRaceCount": 70,
+    "insufficientRaceCount": 9,
+    "lowConfidenceRaceCount": 9
   },
   "freshness": {
     "targetDate": "2026-08-23",
@@ -25,20 +25,20 @@
   "riskLevelCounts": {
     "LOW": 14,
     "MEDIUM": 31,
-    "HIGH": 13,
+    "HIGH": 22,
     "VERY_HIGH": 3,
-    "INSUFFICIENT": 18
+    "INSUFFICIENT": 9
   },
   "confidenceCounts": {
-    "high": 61,
-    "low": 18
+    "high": 70,
+    "low": 9
   },
   "pointRangeCounts": {
     "BASE_8": 14,
     "VALUE_10": 31,
-    "STRONG_VALUE_12": 13,
+    "STRONG_VALUE_12": 22,
     "MAX_14": 3,
-    "SKIP": 18
+    "SKIP": 9
   },
   "records": [
     {
@@ -7457,28 +7457,28 @@
       "carCount": 6,
       "line": {
         "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
-        "singleCount": 0,
+        "lineup": "1 5 4 6 2 3",
+        "lineCount": 6,
+        "singleCount": 6,
         "selfPowerCount": 2
       },
-      "riskScore": 1,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskScore": 3,
+      "riskLevel": "HIGH",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "10〜12",
+        "min": 10,
+        "max": 12,
+        "action": "STRONG_VALUE_12"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
-          "contribution": 0,
+          "value": "6分戦",
+          "contribution": 1,
           "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -7488,6 +7488,14 @@
           "source": "keirin-jp-entries.entries.style/stats",
           "confidence": "medium",
           "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "single-line",
+          "label": "単騎/短ライン",
+          "value": "6本",
+          "contribution": 1,
+          "source": "keirin-jp-entries.lineup",
+          "confidence": "medium"
         },
         {
           "key": "venue-historical-turbulence",
@@ -7539,7 +7547,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 133,
         "raceNumberHistoricalSampleSize": 465,
         "riderCoverageCount": 6,
@@ -7568,28 +7576,28 @@
       "carCount": 7,
       "line": {
         "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
-        "singleCount": 0,
+        "lineup": "5 1 7 3 2 4 6",
+        "lineCount": 7,
+        "singleCount": 7,
         "selfPowerCount": 3
       },
-      "riskScore": 1,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskScore": 3,
+      "riskLevel": "HIGH",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "10〜12",
+        "min": 10,
+        "max": 12,
+        "action": "STRONG_VALUE_12"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
-          "contribution": 0,
+          "value": "7分戦",
+          "contribution": 1,
           "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -7599,6 +7607,14 @@
           "source": "keirin-jp-entries.entries.style/stats",
           "confidence": "medium",
           "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "single-line",
+          "label": "単騎/短ライン",
+          "value": "7本",
+          "contribution": 1,
+          "source": "keirin-jp-entries.lineup",
+          "confidence": "medium"
         },
         {
           "key": "venue-historical-turbulence",
@@ -7650,7 +7666,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 133,
         "raceNumberHistoricalSampleSize": 460,
         "riderCoverageCount": 7,
@@ -7679,28 +7695,28 @@
       "carCount": 7,
       "line": {
         "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
-        "singleCount": 0,
+        "lineup": "6 1 5 2 7 3 4",
+        "lineCount": 7,
+        "singleCount": 7,
         "selfPowerCount": 3
       },
-      "riskScore": 1,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskScore": 3,
+      "riskLevel": "HIGH",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "10〜12",
+        "min": 10,
+        "max": 12,
+        "action": "STRONG_VALUE_12"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
-          "contribution": 0,
+          "value": "7分戦",
+          "contribution": 1,
           "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -7710,6 +7726,14 @@
           "source": "keirin-jp-entries.entries.style/stats",
           "confidence": "medium",
           "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "single-line",
+          "label": "単騎/短ライン",
+          "value": "7本",
+          "contribution": 1,
+          "source": "keirin-jp-entries.lineup",
+          "confidence": "medium"
         },
         {
           "key": "venue-historical-turbulence",
@@ -7761,7 +7785,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 133,
         "raceNumberHistoricalSampleSize": 464,
         "riderCoverageCount": 7,
@@ -7790,28 +7814,28 @@
       "carCount": 7,
       "line": {
         "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
-        "singleCount": 0,
+        "lineup": "6 1 7 2 4 3 5",
+        "lineCount": 7,
+        "singleCount": 7,
         "selfPowerCount": 3
       },
-      "riskScore": 1,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskScore": 3,
+      "riskLevel": "HIGH",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "10〜12",
+        "min": 10,
+        "max": 12,
+        "action": "STRONG_VALUE_12"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
-          "contribution": 0,
+          "value": "7分戦",
+          "contribution": 1,
           "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -7821,6 +7845,14 @@
           "source": "keirin-jp-entries.entries.style/stats",
           "confidence": "medium",
           "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "single-line",
+          "label": "単騎/短ライン",
+          "value": "7本",
+          "contribution": 1,
+          "source": "keirin-jp-entries.lineup",
+          "confidence": "medium"
         },
         {
           "key": "venue-historical-turbulence",
@@ -7872,7 +7904,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 133,
         "raceNumberHistoricalSampleSize": 462,
         "riderCoverageCount": 7,
@@ -7901,28 +7933,28 @@
       "carCount": 7,
       "line": {
         "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
-        "singleCount": 0,
+        "lineup": "1 3 6 2 4 5 7",
+        "lineCount": 7,
+        "singleCount": 7,
         "selfPowerCount": 2
       },
-      "riskScore": 1,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskScore": 3,
+      "riskLevel": "HIGH",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "10〜12",
+        "min": 10,
+        "max": 12,
+        "action": "STRONG_VALUE_12"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
-          "contribution": 0,
+          "value": "7分戦",
+          "contribution": 1,
           "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -7932,6 +7964,14 @@
           "source": "keirin-jp-entries.entries.style/stats",
           "confidence": "medium",
           "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "single-line",
+          "label": "単騎/短ライン",
+          "value": "7本",
+          "contribution": 1,
+          "source": "keirin-jp-entries.lineup",
+          "confidence": "medium"
         },
         {
           "key": "venue-historical-turbulence",
@@ -7983,7 +8023,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 133,
         "raceNumberHistoricalSampleSize": 463,
         "riderCoverageCount": 7,
@@ -8012,28 +8052,28 @@
       "carCount": 7,
       "line": {
         "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
-        "singleCount": 0,
+        "lineup": "1 3 4 6 2 7 5",
+        "lineCount": 7,
+        "singleCount": 7,
         "selfPowerCount": 3
       },
-      "riskScore": 1,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskScore": 3,
+      "riskLevel": "HIGH",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "10〜12",
+        "min": 10,
+        "max": 12,
+        "action": "STRONG_VALUE_12"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
-          "contribution": 0,
+          "value": "7分戦",
+          "contribution": 1,
           "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -8043,6 +8083,14 @@
           "source": "keirin-jp-entries.entries.style/stats",
           "confidence": "medium",
           "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "single-line",
+          "label": "単騎/短ライン",
+          "value": "7本",
+          "contribution": 1,
+          "source": "keirin-jp-entries.lineup",
+          "confidence": "medium"
         },
         {
           "key": "venue-historical-turbulence",
@@ -8094,7 +8142,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 133,
         "raceNumberHistoricalSampleSize": 463,
         "riderCoverageCount": 7,
@@ -8123,28 +8171,28 @@
       "carCount": 7,
       "line": {
         "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
-        "singleCount": 0,
+        "lineup": "2 1 3 6 4 5 7",
+        "lineCount": 7,
+        "singleCount": 7,
         "selfPowerCount": 4
       },
-      "riskScore": 2,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskScore": 4,
+      "riskLevel": "HIGH",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "10〜12",
+        "min": 10,
+        "max": 12,
+        "action": "STRONG_VALUE_12"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
-          "contribution": 0,
+          "value": "7分戦",
+          "contribution": 1,
           "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -8154,6 +8202,14 @@
           "source": "keirin-jp-entries.entries.style/stats",
           "confidence": "medium",
           "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "single-line",
+          "label": "単騎/短ライン",
+          "value": "7本",
+          "contribution": 1,
+          "source": "keirin-jp-entries.lineup",
+          "confidence": "medium"
         },
         {
           "key": "venue-historical-turbulence",
@@ -8205,7 +8261,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 133,
         "raceNumberHistoricalSampleSize": 463,
         "riderCoverageCount": 7,
@@ -8234,28 +8290,28 @@
       "carCount": 7,
       "line": {
         "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
-        "singleCount": 0,
+        "lineup": "1 5 3 4 2 7 6",
+        "lineCount": 7,
+        "singleCount": 7,
         "selfPowerCount": 3
       },
-      "riskScore": 1,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskScore": 3,
+      "riskLevel": "HIGH",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "10〜12",
+        "min": 10,
+        "max": 12,
+        "action": "STRONG_VALUE_12"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
-          "contribution": 0,
+          "value": "7分戦",
+          "contribution": 1,
           "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -8265,6 +8321,14 @@
           "source": "keirin-jp-entries.entries.style/stats",
           "confidence": "medium",
           "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "single-line",
+          "label": "単騎/短ライン",
+          "value": "7本",
+          "contribution": 1,
+          "source": "keirin-jp-entries.lineup",
+          "confidence": "medium"
         },
         {
           "key": "venue-historical-turbulence",
@@ -8316,7 +8380,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 133,
         "raceNumberHistoricalSampleSize": 312,
         "riderCoverageCount": 7,
@@ -8345,28 +8409,28 @@
       "carCount": 7,
       "line": {
         "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
-        "singleCount": 0,
+        "lineup": "3 1 5 2 4 7 6",
+        "lineCount": 7,
+        "singleCount": 7,
         "selfPowerCount": 4
       },
-      "riskScore": 2,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskScore": 4,
+      "riskLevel": "HIGH",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "10〜12",
+        "min": 10,
+        "max": 12,
+        "action": "STRONG_VALUE_12"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
-          "contribution": 0,
+          "value": "7分戦",
+          "contribution": 1,
           "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -8376,6 +8440,14 @@
           "source": "keirin-jp-entries.entries.style/stats",
           "confidence": "medium",
           "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "single-line",
+          "label": "単騎/短ライン",
+          "value": "7本",
+          "contribution": 1,
+          "source": "keirin-jp-entries.lineup",
+          "confidence": "medium"
         },
         {
           "key": "venue-historical-turbulence",
@@ -8427,7 +8499,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 133,
         "raceNumberHistoricalSampleSize": 319,
         "riderCoverageCount": 7,
