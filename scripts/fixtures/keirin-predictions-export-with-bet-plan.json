@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-23T00:00:00.000Z",
+  "date": "2026-08-23",
+  "source": "prediction-page-local-export",
+  "raceCount": 1,
+  "items": [
+    {
+      "raceId": "1120260823010001",
+      "date": "2026-08-23",
+      "venueName": "函館",
+      "venueKey": "hakodate",
+      "venueCode": "11",
+      "raceNumber": 1,
+      "raceTitle": "A級予選",
+      "grade": "FII",
+      "timeslot": "night",
+      "predictionStatus": "structured",
+      "trifectaTickets": ["1-2-3", "1-3-2", "2-1-3", "2-3-1"],
+      "exactaTickets": [],
+      "confidence": "medium",
+      "raceType": "標準",
+      "tags": ["#BASE_8"],
+      "isSpecialRace": false,
+      "preRaceSnapshot": {
+        "version": 1,
+        "capturedAt": "2026-08-23T00:00:00.000Z",
+        "source": "prediction-page-export",
+        "raceIdentity": {
+          "date": "2026-08-23",
+          "raceId": "1120260823010001",
+          "venueName": "函館",
+          "venueKey": "hakodate",
+          "venueCode": "11",
+          "raceNumber": 1
+        },
+        "risk": {
+          "status": "available",
+          "source": "kurari-ex-race-risk",
+          "sourceVersion": "kurari-ex-race-risk/v1",
+          "targetDate": "2026-08-23",
+          "generatedAt": "2026-08-22T22:07:49.937Z",
+          "riskLevel": "LOW",
+          "riskScore": 0,
+          "pointRange": {
+            "action": "BASE_8",
+            "label": "8",
+            "min": 8,
+            "max": 8
+          },
+          "confidence": "high",
+          "signals": [
+            {
+              "key": "line-count",
+              "label": "分戦数",
+              "value": "3分戦",
+              "contribution": 0,
+              "source": "today.generated.lineup",
+              "confidence": "high"
+            }
+          ]
+        },
+        "failure": {
+          "status": "available",
+          "source": "kurari-ex-prediction-failure-guidance",
+          "targetDate": "2026-08-22",
+          "generatedAt": "2026-08-22T10:42:23.827Z",
+          "historicalFrom": "2026-07-14",
+          "historicalTo": "2026-08-21",
+          "usage": "allowed",
+          "freshnessStatus": "fresh",
+          "strongContextCount": 0
+        },
+        "ticketSnapshot": {
+          "source": "slot.predictionJson.tickets",
+          "purchaseClassification": "structured",
+          "tickets": [
+            {"index": "01", "betType": "3連単", "combination": "1-2-3", "group": "本線"},
+            {"index": "02", "betType": "3連単", "combination": "1-3-2", "group": "本線"},
+            {"index": "03", "betType": "3連単", "combination": "2-1-3", "group": "穴狙い"},
+            {"index": "04", "betType": "3連単", "combination": "2-3-1", "group": "その他"}
+          ],
+          "trifectaTicketCount": 4,
+          "exactaTicketCount": 0,
+          "actualTicketCount": 4,
+          "riskRecommendedSkip": false,
+          "riskPointRangeAction": "BASE_8",
+          "betPlan": {
+            "source": "slot.predictionJson.betPlan",
+            "status": "structured",
+            "sourceStatus": "source-backed",
+            "purchaseTicketIndices": ["01", "02"],
+            "shadowTicketIndices": ["03"],
+            "unclassifiedTicketIndices": ["04"],
+            "structuredPurchaseCount": 2,
+            "structuredShadowCount": 1,
+            "structuredUnclassifiedCount": 1,
+            "recommendedPurchaseCount": 8,
+            "purchaseCountDifference": -6,
+            "purchaseDerivedHeads": ["1"],
+            "purchaseDerivedHeadCount": 1,
+            "declaredHeadCandidates": ["1", "2"],
+            "unitStakeYen": 100,
+            "plannedStakeYen": 200,
+            "actualStakeYen": null
+          }
+        },
+        "stake": {
+          "unitStakeYen": 100,
+          "actualStakeYen": null,
+          "calculatedCandidateStakeYen": 400,
+          "plannedStakeYen": 200,
+          "actualStakeSource": "unavailable"
+        },
+        "headCandidates": {
+          "status": "structured",
+          "source": "slot.predictionJson.betPlan",
+          "declaredHeadCandidates": ["1", "2"],
+          "purchaseDerivedHeads": ["1"],
+          "purchaseDerivedHeadCount": 1
+        },
+        "evidence": {
+          "player": {"status": "available", "source": "prediction-material", "note": "PLAYER EX only"},
+          "matchup": {"status": "available", "source": "prediction-material", "note": "MATCHUP EX only"},
+          "venue": {"status": "available", "source": "prediction-feed", "grade": "FII", "timeslot": "night"}
+        }
+      }
+    }
+  ]
+}

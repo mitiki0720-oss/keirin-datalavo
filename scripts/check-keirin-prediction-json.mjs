@@ -94,6 +94,91 @@ function collectHumanText(records) {
   ]).map((value) => String(value ?? "").trim()).filter(Boolean);
 }
 
+function normalizeBetPlanIndex(value) {
+  const text = String(value ?? "").trim();
+  return /^\d+$/u.test(text) ? text.padStart(2, "0") : text;
+}
+
+function normalizeBetPlanIndexList(values) {
+  return (Array.isArray(values) ? values : [])
+    .map(normalizeBetPlanIndex)
+    .filter(Boolean);
+}
+
+function duplicateValues(values) {
+  const seen = new Set();
+  const duplicates = new Set();
+  for (const value of values) {
+    if (seen.has(value)) duplicates.add(value);
+    seen.add(value);
+  }
+  return [...duplicates].sort();
+}
+
+function getRiskRecommendedPurchaseCount(risk) {
+  if (risk?.pointRange?.action === "SKIP") return 0;
+  const max = risk?.pointRange?.max;
+  return Number.isFinite(Number(max)) ? Number(max) : null;
+}
+
+function derivePurchaseHeads(tickets, purchaseTicketIndices) {
+  const purchaseSet = new Set(purchaseTicketIndices);
+  return [...new Set(tickets
+    .filter((ticket) => purchaseSet.has(String(ticket?.index ?? "").trim()) && String(ticket?.betType ?? "").includes("3連単"))
+    .map((ticket) => String(ticket?.combination ?? "").split("-")[0]?.trim() ?? "")
+    .filter((value) => /^[1-9]$/u.test(value)))].sort();
+}
+
+function validateBetPlanSnapshot(snapshot, tickets, risk, prefix) {
+  const errors = [];
+  const betPlan = snapshot.ticketSnapshot?.betPlan;
+  if (betPlan == null) {
+    errors.push(`${prefix}: structured purchaseClassification requires betPlan`);
+    return errors;
+  }
+  const ticketIndices = tickets.map((ticket) => String(ticket?.index ?? "").trim());
+  const ticketIndexSet = new Set(ticketIndices);
+  const purchaseTicketIndices = normalizeBetPlanIndexList(betPlan.purchaseTicketIndices);
+  const shadowTicketIndices = normalizeBetPlanIndexList(betPlan.shadowTicketIndices);
+  const purchaseUnique = [...new Set(purchaseTicketIndices)].sort();
+  const shadowUnique = [...new Set(shadowTicketIndices)].sort();
+  const missingPurchase = purchaseUnique.filter((index) => !ticketIndexSet.has(index));
+  const missingShadow = shadowUnique.filter((index) => !ticketIndexSet.has(index));
+  const overlap = purchaseUnique.filter((index) => shadowUnique.includes(index));
+  const classified = new Set([...purchaseUnique, ...shadowUnique]);
+  const unclassified = ticketIndices.filter((index) => !classified.has(index));
+  const purchaseHeads = derivePurchaseHeads(tickets, purchaseUnique);
+  const recommendedPurchaseCount = getRiskRecommendedPurchaseCount(risk);
+  if (betPlan.status !== "structured") errors.push(`${prefix}: betPlan status invalid`);
+  if (betPlan.source !== "slot.predictionJson.betPlan") errors.push(`${prefix}: betPlan source invalid`);
+  if (betPlan.sourceStatus !== "source-backed") errors.push(`${prefix}: betPlan sourceStatus invalid`);
+  const duplicatePurchase = duplicateValues(purchaseTicketIndices);
+  const duplicateShadow = duplicateValues(shadowTicketIndices);
+  if (duplicatePurchase.length > 0) errors.push(`${prefix}: betPlan purchase duplicates ${duplicatePurchase.join(",")}`);
+  if (duplicateShadow.length > 0) errors.push(`${prefix}: betPlan shadow duplicates ${duplicateShadow.join(",")}`);
+  if (missingPurchase.length > 0) errors.push(`${prefix}: betPlan purchase missing tickets ${missingPurchase.join(",")}`);
+  if (missingShadow.length > 0) errors.push(`${prefix}: betPlan shadow missing tickets ${missingShadow.join(",")}`);
+  if (overlap.length > 0) errors.push(`${prefix}: betPlan purchase/shadow overlap ${overlap.join(",")}`);
+  if (Number(betPlan.structuredPurchaseCount) !== purchaseUnique.length) errors.push(`${prefix}: structuredPurchaseCount mismatch`);
+  if (Number(betPlan.structuredShadowCount) !== shadowUnique.length) errors.push(`${prefix}: structuredShadowCount mismatch`);
+  if (Number(betPlan.structuredUnclassifiedCount) !== unclassified.length) errors.push(`${prefix}: structuredUnclassifiedCount mismatch`);
+  if (Number(betPlan.plannedStakeYen) !== purchaseUnique.length * 100) errors.push(`${prefix}: plannedStakeYen mismatch`);
+  if (betPlan.actualStakeYen != null) errors.push(`${prefix}: betPlan actualStakeYen must be null`);
+  if (recommendedPurchaseCount == null) {
+    if (betPlan.recommendedPurchaseCount != null) errors.push(`${prefix}: recommendedPurchaseCount mismatch`);
+  } else if (Number(betPlan.recommendedPurchaseCount) !== recommendedPurchaseCount) {
+    errors.push(`${prefix}: recommendedPurchaseCount mismatch`);
+  }
+  const expectedDifference = recommendedPurchaseCount == null ? null : purchaseUnique.length - recommendedPurchaseCount;
+  if (expectedDifference == null ? betPlan.purchaseCountDifference != null : Number(betPlan.purchaseCountDifference) !== expectedDifference) {
+    errors.push(`${prefix}: purchaseCountDifference mismatch`);
+  }
+  if (JSON.stringify(betPlan.purchaseDerivedHeads ?? []) !== JSON.stringify(purchaseHeads)) {
+    errors.push(`${prefix}: purchaseDerivedHeads mismatch`);
+  }
+  return errors;
+}
+
 function validatePreRaceSnapshot(record, fallbackDate, index) {
   const snapshot = record?.preRaceSnapshot ?? record?.predictionJson?.preRaceSnapshot;
   if (snapshot == null) return [];
@@ -131,16 +216,22 @@ function validatePreRaceSnapshot(record, fallbackDate, index) {
     }
   }
   const ticketSnapshot = snapshot.ticketSnapshot ?? {};
-  if (ticketSnapshot.purchaseClassification !== "unavailable") {
-    errors.push(`${prefix}: purchaseClassification must remain unavailable unless source-backed`);
+  if (!["unavailable", "structured"].includes(ticketSnapshot.purchaseClassification)) {
+    errors.push(`${prefix}: purchaseClassification must be unavailable or structured`);
   }
   const tickets = Array.isArray(ticketSnapshot.tickets) ? ticketSnapshot.tickets : [];
   if (!Array.isArray(ticketSnapshot.tickets)) errors.push(`${prefix}: ticketSnapshot tickets must be an array`);
   if (Number(ticketSnapshot.actualTicketCount) !== tickets.length) {
     errors.push(`${prefix}: actualTicketCount mismatch`);
   }
+  if (ticketSnapshot.purchaseClassification === "structured") {
+    errors.push(...validateBetPlanSnapshot(snapshot, tickets, risk, prefix));
+  }
   if (snapshot.stake?.actualStakeYen != null) {
     errors.push(`${prefix}: actualStakeYen must not be set without purchase source`);
+  }
+  if (ticketSnapshot.purchaseClassification === "structured" && Number(snapshot.stake?.plannedStakeYen) !== Number(ticketSnapshot.betPlan?.plannedStakeYen)) {
+    errors.push(`${prefix}: stake plannedStakeYen mismatch`);
   }
   return errors;
 }

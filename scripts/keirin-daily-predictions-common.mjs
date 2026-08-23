@@ -50,6 +50,112 @@ const allowedRiskLevels = new Set(["LOW", "MEDIUM", "HIGH", "VERY_HIGH", "INSUFF
 const allowedPointRangeActions = new Set(["BASE_8", "VALUE_10", "STRONG_VALUE_12", "MAX_14", "SKIP"]);
 const allowedConfidence = new Set(["high", "medium", "low"]);
 
+function normalizeBetPlanIndex(value) {
+  const text = String(value ?? "").trim();
+  return /^\d+$/u.test(text) ? text.padStart(2, "0") : text;
+}
+
+function normalizeBetPlanIndexList(values) {
+  return (Array.isArray(values) ? values : [])
+    .map(normalizeBetPlanIndex)
+    .filter(Boolean);
+}
+
+function sortedUnique(values) {
+  return [...new Set(values)].sort();
+}
+
+function getDuplicateValues(values) {
+  const seen = new Set();
+  const duplicates = new Set();
+  for (const value of values) {
+    if (seen.has(value)) duplicates.add(value);
+    seen.add(value);
+  }
+  return [...duplicates].sort();
+}
+
+function getRecommendedPurchaseCount(risk) {
+  if (risk?.pointRange?.action === "SKIP") return 0;
+  const max = risk?.pointRange?.max;
+  return Number.isFinite(Number(max)) ? Number(max) : null;
+}
+
+function derivePurchaseHeads(tickets, purchaseTicketIndices) {
+  const purchaseSet = new Set(purchaseTicketIndices);
+  return sortedUnique(tickets
+    .filter((ticket) => purchaseSet.has(ticket.index) && ticket.betType.includes("3連単"))
+    .map((ticket) => String(ticket.combination ?? "").split("-")[0]?.trim() ?? "")
+    .filter((value) => /^[1-9]$/u.test(value)));
+}
+
+function normalizeBetPlanSnapshot(ticketSnapshot, snapshotTickets, risk, prefix, errors) {
+  const raw = ticketSnapshot.betPlan;
+  if (raw == null) return undefined;
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    errors.push(`${prefix}.preRaceSnapshot.ticketSnapshot.betPlan must be an object`);
+    return undefined;
+  }
+  const ticketIndices = snapshotTickets.map((ticket) => ticket.index);
+  const ticketIndexSet = new Set(ticketIndices);
+  const purchaseTicketIndicesRaw = normalizeBetPlanIndexList(raw.purchaseTicketIndices);
+  const shadowTicketIndicesRaw = normalizeBetPlanIndexList(raw.shadowTicketIndices);
+  const purchaseTicketIndices = sortedUnique(purchaseTicketIndicesRaw);
+  const shadowTicketIndices = sortedUnique(shadowTicketIndicesRaw);
+  const duplicatePurchase = getDuplicateValues(purchaseTicketIndicesRaw);
+  const duplicateShadow = getDuplicateValues(shadowTicketIndicesRaw);
+  const missingPurchase = purchaseTicketIndices.filter((index) => !ticketIndexSet.has(index));
+  const missingShadow = shadowTicketIndices.filter((index) => !ticketIndexSet.has(index));
+  const overlap = purchaseTicketIndices.filter((index) => shadowTicketIndices.includes(index));
+  if (raw.status !== "structured") errors.push(`${prefix}.preRaceSnapshot.ticketSnapshot.betPlan.status is invalid`);
+  if (raw.source !== "slot.predictionJson.betPlan") errors.push(`${prefix}.preRaceSnapshot.ticketSnapshot.betPlan.source is invalid`);
+  if (raw.sourceStatus !== "source-backed") errors.push(`${prefix}.preRaceSnapshot.ticketSnapshot.betPlan.sourceStatus is invalid`);
+  if (duplicatePurchase.length > 0) errors.push(`${prefix}.preRaceSnapshot.ticketSnapshot.betPlan.purchaseTicketIndices duplicate: ${duplicatePurchase.join(",")}`);
+  if (duplicateShadow.length > 0) errors.push(`${prefix}.preRaceSnapshot.ticketSnapshot.betPlan.shadowTicketIndices duplicate: ${duplicateShadow.join(",")}`);
+  if (missingPurchase.length > 0) errors.push(`${prefix}.preRaceSnapshot.ticketSnapshot.betPlan.purchaseTicketIndices missing tickets: ${missingPurchase.join(",")}`);
+  if (missingShadow.length > 0) errors.push(`${prefix}.preRaceSnapshot.ticketSnapshot.betPlan.shadowTicketIndices missing tickets: ${missingShadow.join(",")}`);
+  if (overlap.length > 0) errors.push(`${prefix}.preRaceSnapshot.ticketSnapshot.betPlan purchase/shadow overlap: ${overlap.join(",")}`);
+  const classified = new Set([...purchaseTicketIndices, ...shadowTicketIndices]);
+  const unclassifiedTicketIndices = ticketIndices.filter((index) => !classified.has(index));
+  const purchaseDerivedHeads = derivePurchaseHeads(snapshotTickets, purchaseTicketIndices);
+  const recommendedPurchaseCount = getRecommendedPurchaseCount(risk);
+  const plannedStakeYen = purchaseTicketIndices.length * 100;
+  if (Number(raw.structuredPurchaseCount) !== purchaseTicketIndices.length) {
+    errors.push(`${prefix}.preRaceSnapshot.ticketSnapshot.betPlan.structuredPurchaseCount mismatch`);
+  }
+  if (Number(raw.structuredShadowCount) !== shadowTicketIndices.length) {
+    errors.push(`${prefix}.preRaceSnapshot.ticketSnapshot.betPlan.structuredShadowCount mismatch`);
+  }
+  if (Number(raw.structuredUnclassifiedCount) !== unclassifiedTicketIndices.length) {
+    errors.push(`${prefix}.preRaceSnapshot.ticketSnapshot.betPlan.structuredUnclassifiedCount mismatch`);
+  }
+  if (Number(raw.plannedStakeYen) !== plannedStakeYen) {
+    errors.push(`${prefix}.preRaceSnapshot.ticketSnapshot.betPlan.plannedStakeYen mismatch`);
+  }
+  if (raw.actualStakeYen != null) {
+    errors.push(`${prefix}.preRaceSnapshot.ticketSnapshot.betPlan.actualStakeYen must be null pre-race`);
+  }
+  return {
+    source: "slot.predictionJson.betPlan",
+    status: "structured",
+    sourceStatus: "source-backed",
+    purchaseTicketIndices,
+    shadowTicketIndices,
+    unclassifiedTicketIndices,
+    structuredPurchaseCount: purchaseTicketIndices.length,
+    structuredShadowCount: shadowTicketIndices.length,
+    structuredUnclassifiedCount: unclassifiedTicketIndices.length,
+    recommendedPurchaseCount,
+    purchaseCountDifference: recommendedPurchaseCount == null ? null : purchaseTicketIndices.length - recommendedPurchaseCount,
+    purchaseDerivedHeads,
+    purchaseDerivedHeadCount: purchaseDerivedHeads.length,
+    declaredHeadCandidates: normalizeStringList(raw.declaredHeadCandidates).filter((value) => /^[1-9]$/u.test(value)),
+    unitStakeYen: 100,
+    plannedStakeYen,
+    actualStakeYen: null,
+  };
+}
+
 function normalizeSnapshotTicket(raw, prefix, errors) {
   const index = String(raw?.index ?? "").trim();
   const betType = String(raw?.betType ?? "").trim();
@@ -129,10 +235,48 @@ function normalizePreRaceSnapshot(raw, item, payloadDate, prefix, errors) {
     errors.push(`${prefix}.preRaceSnapshot.ticketSnapshot.tickets must be an array`);
   }
   if (ticketSnapshot.purchaseClassification !== "unavailable") {
-    errors.push(`${prefix}.preRaceSnapshot.ticketSnapshot.purchaseClassification must be unavailable unless source-backed`);
+    if (ticketSnapshot.purchaseClassification !== "structured") {
+      errors.push(`${prefix}.preRaceSnapshot.ticketSnapshot.purchaseClassification must be unavailable or structured`);
+    }
   }
   if (Number(ticketSnapshot.actualTicketCount) !== snapshotTickets.length) {
     errors.push(`${prefix}.preRaceSnapshot.ticketSnapshot.actualTicketCount mismatch`);
+  }
+  const normalizedRisk = risk.status === "available"
+    ? {
+        status: "available",
+        source: "kurari-ex-race-risk",
+        ...(String(risk.sourceVersion ?? "").trim() ? { sourceVersion: String(risk.sourceVersion).trim() } : {}),
+        targetDate: String(risk.targetDate ?? ""),
+        generatedAt: String(risk.generatedAt ?? ""),
+        riskLevel: String(risk.riskLevel ?? ""),
+        riskScore: Number(risk.riskScore),
+        pointRange: {
+          action: String(risk.pointRange?.action ?? ""),
+          label: String(risk.pointRange?.label ?? ""),
+          min: risk.pointRange?.min == null ? null : Number(risk.pointRange.min),
+          max: risk.pointRange?.max == null ? null : Number(risk.pointRange.max),
+        },
+        confidence: String(risk.confidence ?? ""),
+        signals: (Array.isArray(risk.signals) ? risk.signals : []).map((signal) => ({
+          key: String(signal?.key ?? "").trim(),
+          label: String(signal?.label ?? "").trim(),
+          value: String(signal?.value ?? "").trim(),
+          contribution: Number(signal?.contribution),
+          source: String(signal?.source ?? "").trim(),
+          confidence: String(signal?.confidence ?? "").trim(),
+          ...(String(signal?.note ?? "").trim() ? { note: String(signal.note).trim() } : {}),
+        })),
+      }
+    : {
+        status: "unavailable",
+        source: "kurari-ex-race-risk",
+      };
+  const normalizedBetPlan = ticketSnapshot.purchaseClassification === "structured"
+    ? normalizeBetPlanSnapshot(ticketSnapshot, snapshotTickets, normalizedRisk, prefix, errors)
+    : undefined;
+  if (ticketSnapshot.purchaseClassification === "structured" && !normalizedBetPlan) {
+    errors.push(`${prefix}.preRaceSnapshot.ticketSnapshot.betPlan is required for structured purchaseClassification`);
   }
 
   return {
@@ -147,36 +291,7 @@ function normalizePreRaceSnapshot(raw, item, payloadDate, prefix, errors) {
       ...(String(raceIdentity.venueCode ?? "").trim() ? { venueCode: String(raceIdentity.venueCode).trim() } : {}),
       raceNumber: Number(raceIdentity.raceNumber),
     },
-    risk: risk.status === "available"
-      ? {
-          status: "available",
-          source: "kurari-ex-race-risk",
-          ...(String(risk.sourceVersion ?? "").trim() ? { sourceVersion: String(risk.sourceVersion).trim() } : {}),
-          targetDate: String(risk.targetDate ?? ""),
-          generatedAt: String(risk.generatedAt ?? ""),
-          riskLevel: String(risk.riskLevel ?? ""),
-          riskScore: Number(risk.riskScore),
-          pointRange: {
-            action: String(risk.pointRange?.action ?? ""),
-            label: String(risk.pointRange?.label ?? ""),
-            min: risk.pointRange?.min == null ? null : Number(risk.pointRange.min),
-            max: risk.pointRange?.max == null ? null : Number(risk.pointRange.max),
-          },
-          confidence: String(risk.confidence ?? ""),
-          signals: (Array.isArray(risk.signals) ? risk.signals : []).map((signal) => ({
-            key: String(signal?.key ?? "").trim(),
-            label: String(signal?.label ?? "").trim(),
-            value: String(signal?.value ?? "").trim(),
-            contribution: Number(signal?.contribution),
-            source: String(signal?.source ?? "").trim(),
-            confidence: String(signal?.confidence ?? "").trim(),
-            ...(String(signal?.note ?? "").trim() ? { note: String(signal.note).trim() } : {}),
-          })),
-        }
-      : {
-          status: "unavailable",
-          source: "kurari-ex-race-risk",
-        },
+    risk: normalizedRisk,
     failure: {
       status: raw.failure?.status === "available" ? "available" : "unavailable",
       source: "kurari-ex-prediction-failure-guidance",
@@ -190,7 +305,7 @@ function normalizePreRaceSnapshot(raw, item, payloadDate, prefix, errors) {
     },
     ticketSnapshot: {
       source: "slot.predictionJson.tickets",
-      purchaseClassification: "unavailable",
+      purchaseClassification: normalizedBetPlan ? "structured" : "unavailable",
       tickets: snapshotTickets,
       trifectaTicketCount: Number(ticketSnapshot.trifectaTicketCount ?? 0),
       exactaTicketCount: Number(ticketSnapshot.exactaTicketCount ?? 0),
@@ -199,17 +314,27 @@ function normalizePreRaceSnapshot(raw, item, payloadDate, prefix, errors) {
       ...(String(ticketSnapshot.riskPointRangeAction ?? "").trim()
         ? { riskPointRangeAction: String(ticketSnapshot.riskPointRangeAction).trim() }
         : {}),
+      ...(normalizedBetPlan ? { betPlan: normalizedBetPlan } : {}),
     },
     stake: {
       unitStakeYen: 100,
       actualStakeYen: null,
       calculatedCandidateStakeYen: Number(raw.stake?.calculatedCandidateStakeYen ?? snapshotTickets.length * 100),
+      plannedStakeYen: normalizedBetPlan?.plannedStakeYen ?? null,
       actualStakeSource: "unavailable",
     },
-    headCandidates: {
-      status: "unavailable",
-      source: "not-structured",
-    },
+    headCandidates: normalizedBetPlan
+      ? {
+          status: "structured",
+          source: "slot.predictionJson.betPlan",
+          declaredHeadCandidates: normalizedBetPlan.declaredHeadCandidates,
+          purchaseDerivedHeads: normalizedBetPlan.purchaseDerivedHeads,
+          purchaseDerivedHeadCount: normalizedBetPlan.purchaseDerivedHeadCount,
+        }
+      : {
+          status: "unavailable",
+          source: "not-structured",
+        },
     evidence: {
       player: {
         status: raw.evidence?.player?.status === "available" ? "available" : "unavailable",

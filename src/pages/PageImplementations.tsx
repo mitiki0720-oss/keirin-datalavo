@@ -744,6 +744,17 @@ export type StructuredPredictionTicket = {
   note?: string;
 };
 
+export type StructuredPredictionBetPlan = {
+  version: 1;
+  status: "structured";
+  source: "manual-jsonize-explicit-bet-plan";
+  purchaseTicketIndices: string[];
+  shadowTicketIndices: string[];
+  declaredHeadCandidates?: string[];
+  unitStakeYen: 100;
+  actualStakeYen: null;
+};
+
 export type StructuredPrediction = {
   version: 1;
   source: "manual-jsonize";
@@ -755,6 +766,7 @@ export type StructuredPrediction = {
     memo?: string;
   };
   tickets: StructuredPredictionTicket[];
+  betPlan?: StructuredPredictionBetPlan;
 };
 
 export type PredictionResultMap = Record<string, PredictionResultRecord>;
@@ -1975,6 +1987,68 @@ export const extractStructuredPredictionSummary = (predictionText: string) => {
   };
 };
 
+const normalizeStructuredTicketIndex = (value: unknown) => {
+  const text = String(value ?? "").trim();
+  const numeric = text.match(/^\d+$/u)?.[0];
+  return numeric ? numeric.padStart(2, "0") : text;
+};
+
+const normalizeStructuredBetPlanIndices = (values: unknown) => (
+  [...new Set(
+    (Array.isArray(values) ? values : [])
+      .map(normalizeStructuredTicketIndex)
+      .filter(Boolean),
+  )]
+);
+
+const normalizeStructuredDeclaredHeads = (values: unknown) => (
+  [...new Set(
+    (Array.isArray(values) ? values : [])
+      .map((value) => String(value ?? "").trim())
+      .filter((value) => /^[1-9]$/u.test(value)),
+  )].sort()
+);
+
+const extractExplicitStructuredBetPlan = (
+  predictionText: string,
+  ticketIndices: Set<string>,
+): StructuredPredictionBetPlan | undefined => {
+  const text = String(predictionText ?? "").trim();
+  if (!text.startsWith("{")) return undefined;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+
+  const candidate = (parsed && typeof parsed === "object" && !Array.isArray(parsed))
+    ? (parsed as { betPlan?: unknown; predictionJson?: { betPlan?: unknown } })
+    : null;
+  const raw = (candidate?.betPlan ?? candidate?.predictionJson?.betPlan) as Record<string, unknown> | undefined;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+
+  const purchaseTicketIndices = normalizeStructuredBetPlanIndices(raw.purchaseTicketIndices)
+    .filter((index) => ticketIndices.has(index));
+  const shadowTicketIndices = normalizeStructuredBetPlanIndices(raw.shadowTicketIndices)
+    .filter((index) => ticketIndices.has(index));
+  const declaredHeadCandidates = normalizeStructuredDeclaredHeads(raw.declaredHeadCandidates);
+
+  if (purchaseTicketIndices.length === 0 && shadowTicketIndices.length === 0) return undefined;
+
+  return {
+    version: 1,
+    status: "structured",
+    source: "manual-jsonize-explicit-bet-plan",
+    purchaseTicketIndices,
+    shadowTicketIndices,
+    ...(declaredHeadCandidates.length > 0 ? { declaredHeadCandidates } : {}),
+    unitStakeYen: 100,
+    actualStakeYen: null,
+  };
+};
+
 export const parsePredictionTextToStructuredPrediction = (
   predictionText: string,
 ): StructuredPrediction => {
@@ -2000,6 +2074,10 @@ export const parsePredictionTextToStructuredPrediction = (
       note: relatedLine.replace(entry.combination, "").trim() || undefined,
     };
   });
+  const betPlan = extractExplicitStructuredBetPlan(
+    text,
+    new Set(tickets.map((ticket) => ticket.index)),
+  );
 
   return {
     version: 1,
@@ -2007,6 +2085,7 @@ export const parsePredictionTextToStructuredPrediction = (
     generatedAt: new Date().toISOString(),
     summary: extractStructuredPredictionSummary(text),
     tickets,
+    ...(betPlan ? { betPlan } : {}),
   };
 };
 

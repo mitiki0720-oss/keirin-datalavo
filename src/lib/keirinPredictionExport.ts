@@ -43,6 +43,16 @@ export type KeirinPredictionExportSlot = {
       group?: string;
       note?: string;
     }>;
+    betPlan?: {
+      version?: number;
+      status?: string;
+      source?: string;
+      purchaseTicketIndices?: unknown[];
+      shadowTicketIndices?: unknown[];
+      declaredHeadCandidates?: unknown[];
+      unitStakeYen?: number;
+      actualStakeYen?: number | null;
+    };
   };
 };
 
@@ -80,6 +90,26 @@ export type KeirinPredictionRiskSnapshot = {
   }>;
 };
 
+export type KeirinPredictionBetPlanSnapshot = {
+  source: "slot.predictionJson.betPlan";
+  status: "structured";
+  sourceStatus: "source-backed";
+  purchaseTicketIndices: string[];
+  shadowTicketIndices: string[];
+  unclassifiedTicketIndices: string[];
+  structuredPurchaseCount: number;
+  structuredShadowCount: number;
+  structuredUnclassifiedCount: number;
+  recommendedPurchaseCount: number | null;
+  purchaseCountDifference: number | null;
+  purchaseDerivedHeads: string[];
+  purchaseDerivedHeadCount: number;
+  declaredHeadCandidates: string[];
+  unitStakeYen: 100;
+  plannedStakeYen: number;
+  actualStakeYen: null;
+};
+
 export type KeirinPredictionPreRaceSnapshot = {
   version: 1;
   capturedAt: string;
@@ -106,24 +136,34 @@ export type KeirinPredictionPreRaceSnapshot = {
   };
   ticketSnapshot: {
     source: "slot.predictionJson.tickets";
-    purchaseClassification: "unavailable";
+    purchaseClassification: "unavailable" | "structured";
     tickets: KeirinPredictionTicketSnapshot[];
     trifectaTicketCount: number;
     exactaTicketCount: number;
     actualTicketCount: number;
     riskRecommendedSkip: boolean;
     riskPointRangeAction?: string;
+    betPlan?: KeirinPredictionBetPlanSnapshot;
   };
   stake: {
     unitStakeYen: 100;
     actualStakeYen: null;
     calculatedCandidateStakeYen: number;
+    plannedStakeYen: number | null;
     actualStakeSource: "unavailable";
   };
-  headCandidates: {
-    status: "unavailable";
-    source: "not-structured";
-  };
+  headCandidates:
+    | {
+        status: "unavailable";
+        source: "not-structured";
+      }
+    | {
+        status: "structured";
+        source: "slot.predictionJson.betPlan";
+        declaredHeadCandidates: string[];
+        purchaseDerivedHeads: string[];
+        purchaseDerivedHeadCount: number;
+      };
   evidence: {
     player: {
       status: "available" | "unavailable";
@@ -233,6 +273,83 @@ const normalizeTicketSnapshot = (
     : []
 );
 
+const normalizeBetPlanIndex = (value: unknown) => {
+  const text = String(value ?? "").trim();
+  const numeric = text.match(/^\d+$/u)?.[0];
+  return numeric ? numeric.padStart(2, "0") : text;
+};
+
+const normalizeBetPlanIndexList = (values: unknown) => (
+  [...new Set(
+    (Array.isArray(values) ? values : [])
+      .map(normalizeBetPlanIndex)
+      .filter(Boolean),
+  )]
+);
+
+const normalizeHeadCandidateList = (values: unknown) => (
+  [...new Set(
+    (Array.isArray(values) ? values : [])
+      .map((value) => String(value ?? "").trim())
+      .filter((value) => /^[1-9]$/u.test(value)),
+  )].sort()
+);
+
+const getRiskRecommendedPurchaseCount = (risk: KeirinPredictionRiskSnapshot) => {
+  const action = risk.pointRange?.action;
+  if (action === "SKIP") return 0;
+  const max = risk.pointRange?.max;
+  if (Number.isFinite(Number(max))) return Number(max);
+  return null;
+};
+
+const buildStructuredBetPlanSnapshot = (
+  betPlan: NonNullable<KeirinPredictionExportSlot["predictionJson"]>["betPlan"] | undefined,
+  tickets: KeirinPredictionTicketSnapshot[],
+  risk: KeirinPredictionRiskSnapshot,
+): KeirinPredictionBetPlanSnapshot | null => {
+  if (!betPlan || betPlan.status !== "structured") return null;
+  const ticketIndexSet = new Set(tickets.map((ticket) => ticket.index));
+  const purchaseTicketIndices = normalizeBetPlanIndexList(betPlan.purchaseTicketIndices)
+    .filter((index) => ticketIndexSet.has(index));
+  const shadowTicketIndices = normalizeBetPlanIndexList(betPlan.shadowTicketIndices)
+    .filter((index) => ticketIndexSet.has(index));
+  if (purchaseTicketIndices.length === 0 && shadowTicketIndices.length === 0) return null;
+  const classified = new Set([...purchaseTicketIndices, ...shadowTicketIndices]);
+  const unclassifiedTicketIndices = tickets
+    .map((ticket) => ticket.index)
+    .filter((index) => !classified.has(index));
+  const purchaseTicketIndexSet = new Set(purchaseTicketIndices);
+  const purchaseDerivedHeads = [...new Set(
+    tickets
+      .filter((ticket) => purchaseTicketIndexSet.has(ticket.index) && ticket.betType.includes("3連単"))
+      .map((ticket) => ticket.combination.split("-")[0]?.trim() ?? "")
+      .filter((value) => /^[1-9]$/u.test(value)),
+  )].sort();
+  const recommendedPurchaseCount = getRiskRecommendedPurchaseCount(risk);
+  const structuredPurchaseCount = purchaseTicketIndices.length;
+
+  return {
+    source: "slot.predictionJson.betPlan",
+    status: "structured",
+    sourceStatus: "source-backed",
+    purchaseTicketIndices,
+    shadowTicketIndices,
+    unclassifiedTicketIndices,
+    structuredPurchaseCount,
+    structuredShadowCount: shadowTicketIndices.length,
+    structuredUnclassifiedCount: unclassifiedTicketIndices.length,
+    recommendedPurchaseCount,
+    purchaseCountDifference: recommendedPurchaseCount == null ? null : structuredPurchaseCount - recommendedPurchaseCount,
+    purchaseDerivedHeads,
+    purchaseDerivedHeadCount: purchaseDerivedHeads.length,
+    declaredHeadCandidates: normalizeHeadCandidateList(betPlan.declaredHeadCandidates),
+    unitStakeYen: 100,
+    plannedStakeYen: structuredPurchaseCount * 100,
+    actualStakeYen: null,
+  };
+};
+
 const buildRiskSnapshot = (
   artifact: KurariExRaceRiskIndex | null | undefined,
   record: KurariExRaceRiskRecord | null,
@@ -271,6 +388,7 @@ const buildPreRaceSnapshot = ({
   venue,
   race,
   tickets,
+  betPlan,
   generatedAt,
   options,
 }: {
@@ -279,6 +397,7 @@ const buildPreRaceSnapshot = ({
   venue: KeirinPredictionExportFeedVenue;
   race: KeirinPredictionExportFeedRace;
   tickets: NonNullable<KeirinPredictionExportSlot["predictionJson"]>["tickets"];
+  betPlan?: NonNullable<KeirinPredictionExportSlot["predictionJson"]>["betPlan"];
   generatedAt: string;
   options: KeirinPredictionExportOptions;
 }): KeirinPredictionPreRaceSnapshot => {
@@ -304,6 +423,7 @@ const buildPreRaceSnapshot = ({
   const exactaTicketCount = ticketSnapshot.filter((ticket) => ticket.betType.includes("2車単")).length;
   const risk = buildRiskSnapshot(options.raceRisk, raceRiskRecord);
   const riskPointRangeAction = risk.pointRange?.action;
+  const betPlanSnapshot = buildStructuredBetPlanSnapshot(betPlan, ticketSnapshot, risk);
 
   return {
     version: 1,
@@ -336,24 +456,34 @@ const buildPreRaceSnapshot = ({
         },
     ticketSnapshot: {
       source: "slot.predictionJson.tickets",
-      purchaseClassification: "unavailable",
+      purchaseClassification: betPlanSnapshot ? "structured" : "unavailable",
       tickets: ticketSnapshot,
       trifectaTicketCount,
       exactaTicketCount,
       actualTicketCount: ticketSnapshot.length,
       riskRecommendedSkip: riskPointRangeAction === "SKIP",
       ...(riskPointRangeAction ? { riskPointRangeAction } : {}),
+      ...(betPlanSnapshot ? { betPlan: betPlanSnapshot } : {}),
     },
     stake: {
       unitStakeYen: 100,
       actualStakeYen: null,
       calculatedCandidateStakeYen: ticketSnapshot.length * 100,
+      plannedStakeYen: betPlanSnapshot?.plannedStakeYen ?? null,
       actualStakeSource: "unavailable",
     },
-    headCandidates: {
-      status: "unavailable",
-      source: "not-structured",
-    },
+    headCandidates: betPlanSnapshot
+      ? {
+          status: "structured",
+          source: "slot.predictionJson.betPlan",
+          declaredHeadCandidates: betPlanSnapshot.declaredHeadCandidates,
+          purchaseDerivedHeads: betPlanSnapshot.purchaseDerivedHeads,
+          purchaseDerivedHeadCount: betPlanSnapshot.purchaseDerivedHeadCount,
+        }
+      : {
+          status: "unavailable",
+          source: "not-structured",
+        },
     evidence: {
       player: {
         status: "available",
@@ -448,6 +578,7 @@ export function buildKeirinPredictionExport(
         venue: context.venue,
         race: context.race,
         tickets,
+        betPlan: slot.predictionJson?.betPlan,
         generatedAt,
         options,
       }),
