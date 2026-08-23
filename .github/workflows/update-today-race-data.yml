@@ -203,6 +203,44 @@ jobs:
           else
             npm run check:keirin-jp-results
           fi
+      - name: Generate KURARI EX prediction performance
+        if: github.event.schedule == '47 14 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.phase == 'final')
+        shell: bash
+        run: |
+          echo "PERFORMANCE_GENERATED=false" >> "$GITHUB_ENV"
+          PREDICTION_FILE="public/data/predictions/daily/${KEIRIN_JP_EXPECT_DATE:0:7}/${KEIRIN_JP_EXPECT_DATE}.generated.json"
+          if [ ! -f "$PREDICTION_FILE" ]; then
+            echo "prediction performance skipped: no pre-race prediction daily snapshot for ${KEIRIN_JP_EXPECT_DATE}"
+            exit 0
+          fi
+
+          node scripts/kurari-ex/evaluate-kurari-ex-prediction-performance.mjs \
+            --date "$KEIRIN_JP_EXPECT_DATE" \
+            --write
+
+          PERFORMANCE_DAILY="public/data/analytics/kurari-ex/prediction-performance/daily/${KEIRIN_JP_EXPECT_DATE:0:7}/${KEIRIN_JP_EXPECT_DATE}.generated.json"
+          PERFORMANCE_INDEX="public/data/analytics/kurari-ex/prediction-performance/index.generated.json"
+          node scripts/check-kurari-ex-prediction-performance.mjs --file "$PERFORMANCE_DAILY"
+
+          node - <<'NODE'
+          const fs = require("node:fs");
+          const expectedDate = process.env.KEIRIN_JP_EXPECT_DATE;
+          const expectedFile = `/data/analytics/kurari-ex/prediction-performance/daily/${expectedDate.slice(0, 7)}/${expectedDate}.generated.json`;
+          const index = JSON.parse(fs.readFileSync("public/data/analytics/kurari-ex/prediction-performance/index.generated.json", "utf8"));
+          if (index.version !== "kurari-ex-prediction-performance/v1") {
+            throw new Error(`[guard] prediction-performance index version mismatch: ${index.version || "missing"}`);
+          }
+          if (index.latestDate !== expectedDate) {
+            throw new Error(`[guard] prediction-performance latestDate mismatch: ${index.latestDate || "missing"} != ${expectedDate}`);
+          }
+          if (index.latestFile !== expectedFile) {
+            throw new Error(`[guard] prediction-performance latestFile mismatch: ${index.latestFile || "missing"} != ${expectedFile}`);
+          }
+          console.log(`[guard] prediction-performance index latestDate=${index.latestDate}`);
+          NODE
+
+          echo "PERFORMANCE_GENERATED=true" >> "$GITHUB_ENV"
+          echo "PERFORMANCE_DATE=$KEIRIN_JP_EXPECT_DATE" >> "$GITHUB_ENV"
       - name: Update upcoming race schedule
         if: github.event_name == 'workflow_dispatch' || github.event.schedule == '10 21 * * *'
         run: npm run update:schedule:upcoming
@@ -227,6 +265,11 @@ jobs:
           git add public/data/analytics/kurari-ex/race-risk/index.generated.json
           RISK_DATE="$(node -e 'const fs=require("fs"); const data=JSON.parse(fs.readFileSync("public/data/analytics/kurari-ex/race-risk/index.generated.json","utf8")); if(!/^\d{4}-\d{2}-\d{2}$/.test(data.period?.date || "")) process.exit(1); process.stdout.write(data.period.date);')"
           git add "public/data/analytics/kurari-ex/race-risk-history/${RISK_DATE}.generated.json"
+          if [ "${PERFORMANCE_GENERATED:-false}" = "true" ]; then
+            PERFORMANCE_DATE="$(node -e 'const fs=require("fs"); const expected=process.env.PERFORMANCE_DATE; const index=JSON.parse(fs.readFileSync("public/data/analytics/kurari-ex/prediction-performance/index.generated.json","utf8")); if(!expected || index.latestDate !== expected) process.exit(1); process.stdout.write(index.latestDate);')"
+            git add "public/data/analytics/kurari-ex/prediction-performance/index.generated.json"
+            git add "public/data/analytics/kurari-ex/prediction-performance/daily/${PERFORMANCE_DATE:0:7}/${PERFORMANCE_DATE}.generated.json"
+          fi
 
           if git diff --cached --quiet; then
             echo "No today race data, upcoming schedule, KEIRIN.JP official feeds, Slack notification state, or race-risk archive changes."
