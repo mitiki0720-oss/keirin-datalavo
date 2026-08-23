@@ -46,6 +46,191 @@ function normalizeTicket(value, length) {
   return text;
 }
 
+const allowedRiskLevels = new Set(["LOW", "MEDIUM", "HIGH", "VERY_HIGH", "INSUFFICIENT"]);
+const allowedPointRangeActions = new Set(["BASE_8", "VALUE_10", "STRONG_VALUE_12", "MAX_14", "SKIP"]);
+const allowedConfidence = new Set(["high", "medium", "low"]);
+
+function normalizeSnapshotTicket(raw, prefix, errors) {
+  const index = String(raw?.index ?? "").trim();
+  const betType = String(raw?.betType ?? "").trim();
+  const combination = String(raw?.combination ?? "").trim();
+  if (!index) errors.push(`${prefix}.index is empty`);
+  if (!betType) errors.push(`${prefix}.betType is empty`);
+  if (!combination) errors.push(`${prefix}.combination is empty`);
+  return {
+    index,
+    betType,
+    combination,
+    ...(String(raw?.group ?? "").trim() ? { group: String(raw.group).trim() } : {}),
+    ...(String(raw?.note ?? "").trim() ? { note: String(raw.note).trim() } : {}),
+  };
+}
+
+function normalizePreRaceSnapshot(raw, item, payloadDate, prefix, errors) {
+  if (raw == null) return undefined;
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    errors.push(`${prefix}.preRaceSnapshot must be an object`);
+    return undefined;
+  }
+  if (raw.version !== 1) errors.push(`${prefix}.preRaceSnapshot.version is invalid`);
+  const raceIdentity = raw.raceIdentity ?? {};
+  if (raceIdentity.date !== payloadDate || raceIdentity.date !== item.date) {
+    errors.push(`${prefix}.preRaceSnapshot.raceIdentity.date mismatch`);
+  }
+  if (String(raceIdentity.raceId ?? "").trim() !== item.raceId) {
+    errors.push(`${prefix}.preRaceSnapshot.raceIdentity.raceId mismatch`);
+  }
+  if (Number(raceIdentity.raceNumber) !== item.raceNumber) {
+    errors.push(`${prefix}.preRaceSnapshot.raceIdentity.raceNumber mismatch`);
+  }
+  if (String(raceIdentity.venueName ?? "").trim() !== item.venueName) {
+    errors.push(`${prefix}.preRaceSnapshot.raceIdentity.venueName mismatch`);
+  }
+
+  const risk = raw.risk ?? {};
+  if (!["available", "unavailable"].includes(risk.status)) {
+    errors.push(`${prefix}.preRaceSnapshot.risk.status is invalid`);
+  }
+  if (risk.status === "available") {
+    if (risk.targetDate !== payloadDate) errors.push(`${prefix}.preRaceSnapshot.risk.targetDate mismatch`);
+    if (!allowedRiskLevels.has(risk.riskLevel)) errors.push(`${prefix}.preRaceSnapshot.risk.riskLevel is invalid`);
+    if (!Number.isFinite(Number(risk.riskScore))) errors.push(`${prefix}.preRaceSnapshot.risk.riskScore is invalid`);
+    if (!allowedConfidence.has(risk.confidence)) errors.push(`${prefix}.preRaceSnapshot.risk.confidence is invalid`);
+    if (!risk.pointRange || !allowedPointRangeActions.has(risk.pointRange.action)) {
+      errors.push(`${prefix}.preRaceSnapshot.risk.pointRange.action is invalid`);
+    }
+    if (!Array.isArray(risk.signals) || risk.signals.length === 0) {
+      errors.push(`${prefix}.preRaceSnapshot.risk.signals is empty`);
+    }
+    for (const [signalIndex, signal] of (Array.isArray(risk.signals) ? risk.signals : []).entries()) {
+      const signalPrefix = `${prefix}.preRaceSnapshot.risk.signals[${signalIndex}]`;
+      if (!String(signal?.key ?? "").trim()) errors.push(`${signalPrefix}.key is empty`);
+      if (!String(signal?.source ?? "").trim()) errors.push(`${signalPrefix}.source is empty`);
+      if (!Number.isFinite(Number(signal?.contribution))) errors.push(`${signalPrefix}.contribution is invalid`);
+      if (!allowedConfidence.has(signal?.confidence)) errors.push(`${signalPrefix}.confidence is invalid`);
+      if (/current.*result|current.*payout|today.*result|today.*payout|finishOrder|refund|払戻|確定結果/iu.test(String(signal?.source ?? ""))) {
+        errors.push(`${signalPrefix}.source has current result leakage`);
+      }
+      if (/fake|synthetic|fuzzy/iu.test(String(signal?.source ?? ""))) {
+        errors.push(`${signalPrefix}.source has fake/fuzzy marker`);
+      }
+    }
+  }
+
+  const ticketSnapshot = raw.ticketSnapshot ?? {};
+  const snapshotTickets = Array.isArray(ticketSnapshot.tickets)
+    ? ticketSnapshot.tickets.map((ticket, ticketIndex) => normalizeSnapshotTicket(
+        ticket,
+        `${prefix}.preRaceSnapshot.ticketSnapshot.tickets[${ticketIndex}]`,
+        errors,
+      ))
+    : [];
+  if (!Array.isArray(ticketSnapshot.tickets)) {
+    errors.push(`${prefix}.preRaceSnapshot.ticketSnapshot.tickets must be an array`);
+  }
+  if (ticketSnapshot.purchaseClassification !== "unavailable") {
+    errors.push(`${prefix}.preRaceSnapshot.ticketSnapshot.purchaseClassification must be unavailable unless source-backed`);
+  }
+  if (Number(ticketSnapshot.actualTicketCount) !== snapshotTickets.length) {
+    errors.push(`${prefix}.preRaceSnapshot.ticketSnapshot.actualTicketCount mismatch`);
+  }
+
+  return {
+    version: 1,
+    capturedAt: String(raw.capturedAt ?? ""),
+    source: "prediction-page-export",
+    raceIdentity: {
+      date: String(raceIdentity.date ?? ""),
+      raceId: String(raceIdentity.raceId ?? ""),
+      venueName: String(raceIdentity.venueName ?? ""),
+      venueKey: String(raceIdentity.venueKey ?? ""),
+      ...(String(raceIdentity.venueCode ?? "").trim() ? { venueCode: String(raceIdentity.venueCode).trim() } : {}),
+      raceNumber: Number(raceIdentity.raceNumber),
+    },
+    risk: risk.status === "available"
+      ? {
+          status: "available",
+          source: "kurari-ex-race-risk",
+          ...(String(risk.sourceVersion ?? "").trim() ? { sourceVersion: String(risk.sourceVersion).trim() } : {}),
+          targetDate: String(risk.targetDate ?? ""),
+          generatedAt: String(risk.generatedAt ?? ""),
+          riskLevel: String(risk.riskLevel ?? ""),
+          riskScore: Number(risk.riskScore),
+          pointRange: {
+            action: String(risk.pointRange?.action ?? ""),
+            label: String(risk.pointRange?.label ?? ""),
+            min: risk.pointRange?.min == null ? null : Number(risk.pointRange.min),
+            max: risk.pointRange?.max == null ? null : Number(risk.pointRange.max),
+          },
+          confidence: String(risk.confidence ?? ""),
+          signals: (Array.isArray(risk.signals) ? risk.signals : []).map((signal) => ({
+            key: String(signal?.key ?? "").trim(),
+            label: String(signal?.label ?? "").trim(),
+            value: String(signal?.value ?? "").trim(),
+            contribution: Number(signal?.contribution),
+            source: String(signal?.source ?? "").trim(),
+            confidence: String(signal?.confidence ?? "").trim(),
+            ...(String(signal?.note ?? "").trim() ? { note: String(signal.note).trim() } : {}),
+          })),
+        }
+      : {
+          status: "unavailable",
+          source: "kurari-ex-race-risk",
+        },
+    failure: {
+      status: raw.failure?.status === "available" ? "available" : "unavailable",
+      source: "kurari-ex-prediction-failure-guidance",
+      ...(raw.failure?.targetDate ? { targetDate: String(raw.failure.targetDate) } : {}),
+      ...(raw.failure?.generatedAt ? { generatedAt: String(raw.failure.generatedAt) } : {}),
+      ...(raw.failure?.historicalFrom ? { historicalFrom: String(raw.failure.historicalFrom) } : {}),
+      ...(raw.failure?.historicalTo ? { historicalTo: String(raw.failure.historicalTo) } : {}),
+      ...(raw.failure?.usage ? { usage: String(raw.failure.usage) } : {}),
+      ...(raw.failure?.freshnessStatus ? { freshnessStatus: String(raw.failure.freshnessStatus) } : {}),
+      ...(Number.isFinite(Number(raw.failure?.strongContextCount)) ? { strongContextCount: Number(raw.failure.strongContextCount) } : {}),
+    },
+    ticketSnapshot: {
+      source: "slot.predictionJson.tickets",
+      purchaseClassification: "unavailable",
+      tickets: snapshotTickets,
+      trifectaTicketCount: Number(ticketSnapshot.trifectaTicketCount ?? 0),
+      exactaTicketCount: Number(ticketSnapshot.exactaTicketCount ?? 0),
+      actualTicketCount: snapshotTickets.length,
+      riskRecommendedSkip: ticketSnapshot.riskRecommendedSkip === true,
+      ...(String(ticketSnapshot.riskPointRangeAction ?? "").trim()
+        ? { riskPointRangeAction: String(ticketSnapshot.riskPointRangeAction).trim() }
+        : {}),
+    },
+    stake: {
+      unitStakeYen: 100,
+      actualStakeYen: null,
+      calculatedCandidateStakeYen: Number(raw.stake?.calculatedCandidateStakeYen ?? snapshotTickets.length * 100),
+      actualStakeSource: "unavailable",
+    },
+    headCandidates: {
+      status: "unavailable",
+      source: "not-structured",
+    },
+    evidence: {
+      player: {
+        status: raw.evidence?.player?.status === "available" ? "available" : "unavailable",
+        source: "prediction-material",
+        note: String(raw.evidence?.player?.note ?? ""),
+      },
+      matchup: {
+        status: raw.evidence?.matchup?.status === "available" ? "available" : "unavailable",
+        source: "prediction-material",
+        note: String(raw.evidence?.matchup?.note ?? ""),
+      },
+      venue: {
+        status: "available",
+        source: "prediction-feed",
+        ...(String(raw.evidence?.venue?.grade ?? "").trim() ? { grade: String(raw.evidence.venue.grade).trim() } : {}),
+        ...(String(raw.evidence?.venue?.timeslot ?? "").trim() ? { timeslot: String(raw.evidence.venue.timeslot).trim() } : {}),
+      },
+    },
+  };
+}
+
 export function validateDailyPredictionExport(payload) {
   const errors = [];
   if (payload?.schemaVersion !== 1) errors.push("unsupported schemaVersion");
@@ -71,6 +256,7 @@ export function validateDailyPredictionExport(payload) {
     if (date !== payload.date) errors.push(`${prefix}.date does not match payload date`);
     const venueName = String(raw?.venueName ?? "").trim();
     if (!venueName) errors.push(`${prefix}.venueName is empty`);
+    const venueCode = String(raw?.venueCode ?? "").trim();
     const raceNumber = Number(raw?.raceNumber);
     if (!Number.isInteger(raceNumber) || raceNumber < 1 || raceNumber > 12) {
       errors.push(`${prefix}.raceNumber is invalid`);
@@ -101,6 +287,7 @@ export function validateDailyPredictionExport(payload) {
       date,
       venueName,
       venueKey: String(raw?.venueKey ?? "").trim(),
+      ...(venueCode ? { venueCode } : {}),
       raceNumber,
       raceTitle: String(raw?.raceTitle ?? "").trim(),
       grade: String(raw?.grade ?? "").trim(),
@@ -112,6 +299,14 @@ export function validateDailyPredictionExport(payload) {
       raceType: String(raw?.raceType ?? "").trim(),
       tags: normalizeStringList(raw?.tags),
       isSpecialRace: raw?.isSpecialRace === true,
+      ...(raw?.preRaceSnapshot
+        ? { preRaceSnapshot: normalizePreRaceSnapshot(raw.preRaceSnapshot, {
+            raceId,
+            date,
+            venueName,
+            raceNumber,
+          }, payload.date, prefix, errors) }
+        : {}),
     });
   }
   items.sort((left, right) => left.raceId.localeCompare(right.raceId));
@@ -197,6 +392,7 @@ export function toLegacyPredictionRecord(item, generatedAt) {
     raceKey: `prediction-slot:${item.raceId}`,
     raceId: String(item.raceId ?? "").trim(),
     venue: item.venueName,
+    ...(item.venueCode ? { venueCode: item.venueCode } : {}),
     date: item.date,
     raceNumber: item.raceNumber,
     predictionText: "",
@@ -204,6 +400,7 @@ export function toLegacyPredictionRecord(item, generatedAt) {
       version: 1,
       source: "daily-prediction-export",
       generatedAt,
+      ...(item.preRaceSnapshot ? { preRaceSnapshot: item.preRaceSnapshot } : {}),
       summary: {
         title: "",
         lineup: "",

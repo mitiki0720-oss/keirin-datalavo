@@ -10992,9 +10992,19 @@ if (
   const reflectedWeatherCount = Object.values(weatherByVenue).filter((item) => item !== null).length;
   const predictionExportBundle = useMemo(
     () => predictionFeed
-      ? buildKeirinPredictionExport(predictionFeed, savedPredictionSlots)
+      ? buildKeirinPredictionExport(predictionFeed, savedPredictionSlots, {
+          raceRisk: kurariExRaceRiskStatus === "error" ? null : kurariExRaceRisk,
+          failureGuidance: kurariExFailureGuidanceStatus === "error" ? null : kurariExFailureGuidance,
+        })
       : null,
-    [predictionFeed, savedPredictionSlots],
+    [
+      kurariExFailureGuidance,
+      kurariExFailureGuidanceStatus,
+      kurariExRaceRisk,
+      kurariExRaceRiskStatus,
+      predictionFeed,
+      savedPredictionSlots,
+    ],
   );
   const predictionExportSummary = predictionExportBundle?.summary ?? {
     date: predictionFeed?.date ?? TODAY,

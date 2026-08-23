@@ -94,6 +94,57 @@ function collectHumanText(records) {
   ]).map((value) => String(value ?? "").trim()).filter(Boolean);
 }
 
+function validatePreRaceSnapshot(record, fallbackDate, index) {
+  const snapshot = record?.preRaceSnapshot ?? record?.predictionJson?.preRaceSnapshot;
+  if (snapshot == null) return [];
+  const errors = [];
+  const prefix = `record[${index}].preRaceSnapshot`;
+  const expectedDate = getRecordDate(record, fallbackDate);
+  const raceIdentity = snapshot.raceIdentity ?? {};
+  if (snapshot.version !== 1) errors.push(`${prefix}: invalid version`);
+  if (raceIdentity.date !== expectedDate) errors.push(`${prefix}: raceIdentity date mismatch`);
+  if (String(raceIdentity.raceId ?? "").trim() && String(record?.raceId ?? "").trim() && String(raceIdentity.raceId).trim() !== String(record.raceId).trim()) {
+    errors.push(`${prefix}: raceIdentity raceId mismatch`);
+  }
+  if (Number.isFinite(Number(record?.raceNumber)) && Number(raceIdentity.raceNumber) !== Number(record.raceNumber)) {
+    errors.push(`${prefix}: raceIdentity raceNumber mismatch`);
+  }
+  const risk = snapshot.risk ?? {};
+  if (!["available", "unavailable"].includes(risk.status)) errors.push(`${prefix}: invalid risk status`);
+  if (risk.status === "available") {
+    if (risk.targetDate !== expectedDate) errors.push(`${prefix}: risk targetDate mismatch`);
+    if (!["LOW", "MEDIUM", "HIGH", "VERY_HIGH", "INSUFFICIENT"].includes(risk.riskLevel)) {
+      errors.push(`${prefix}: invalid riskLevel`);
+    }
+    if (!risk.pointRange || !["BASE_8", "VALUE_10", "STRONG_VALUE_12", "MAX_14", "SKIP"].includes(risk.pointRange.action)) {
+      errors.push(`${prefix}: invalid pointRange action`);
+    }
+    if (!["high", "medium", "low"].includes(risk.confidence)) errors.push(`${prefix}: invalid confidence`);
+    for (const [signalIndex, signal] of (Array.isArray(risk.signals) ? risk.signals : []).entries()) {
+      const source = String(signal?.source ?? "");
+      if (!String(signal?.key ?? "").trim()) errors.push(`${prefix}: signal[${signalIndex}] key missing`);
+      if (!Number.isFinite(Number(signal?.contribution))) errors.push(`${prefix}: signal[${signalIndex}] contribution invalid`);
+      if (/current.*result|current.*payout|today.*result|today.*payout|finishOrder|refund|払戻|確定結果/iu.test(source)) {
+        errors.push(`${prefix}: signal[${signalIndex}] current result leakage`);
+      }
+      if (/fake|synthetic|fuzzy/iu.test(source)) errors.push(`${prefix}: signal[${signalIndex}] fake/fuzzy source`);
+    }
+  }
+  const ticketSnapshot = snapshot.ticketSnapshot ?? {};
+  if (ticketSnapshot.purchaseClassification !== "unavailable") {
+    errors.push(`${prefix}: purchaseClassification must remain unavailable unless source-backed`);
+  }
+  const tickets = Array.isArray(ticketSnapshot.tickets) ? ticketSnapshot.tickets : [];
+  if (!Array.isArray(ticketSnapshot.tickets)) errors.push(`${prefix}: ticketSnapshot tickets must be an array`);
+  if (Number(ticketSnapshot.actualTicketCount) !== tickets.length) {
+    errors.push(`${prefix}: actualTicketCount mismatch`);
+  }
+  if (snapshot.stake?.actualStakeYen != null) {
+    errors.push(`${prefix}: actualStakeYen must not be set without purchase source`);
+  }
+  return errors;
+}
+
 async function checkFile(file, options) {
   const raw = await readFile(file, "utf8");
   const payload = parseJsonText(raw, file);
@@ -114,6 +165,12 @@ async function checkFile(file, options) {
   const joinedText = collectHumanText(records).join("\n");
   if (MOJIBAKE_PATTERN.test(joinedText)) {
     throw new Error(`${file}: suspected mojibake marker detected`);
+  }
+  const snapshotErrors = records.flatMap((record, index) => (
+    validatePreRaceSnapshot(record, payload?.date, index)
+  ));
+  if (snapshotErrors.length > 0) {
+    throw new Error(`${file}: ${snapshotErrors.join("; ")}`);
   }
 
   return {
