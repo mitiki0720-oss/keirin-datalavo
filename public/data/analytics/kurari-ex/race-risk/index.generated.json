@@ -1,19 +1,19 @@
 {
   "version": "kurari-ex-race-risk/v1",
-  "generatedAt": "2026-08-24T15:06:02.384Z",
+  "generatedAt": "2026-08-24T15:26:16.372Z",
   "sourceType": "PRE_RACE_SOURCE_BACKED_EX_SIGNAL",
   "period": {
     "date": "2026-08-25",
     "historicalFrom": "2026-06-23",
     "historicalTo": "2026-08-21"
   },
-  "raceCount": 79,
+  "raceCount": 86,
   "coverage": {
-    "venueCount": 8,
-    "officialEntryRaceCount": 79,
+    "venueCount": 9,
+    "officialEntryRaceCount": 86,
     "officialLineupRaceCount": 65,
-    "insufficientRaceCount": 14,
-    "lowConfidenceRaceCount": 14
+    "insufficientRaceCount": 21,
+    "lowConfidenceRaceCount": 21
   },
   "freshness": {
     "targetDate": "2026-08-25",
@@ -23,18 +23,18 @@
     "warning": "historicalがtargetDate-1より3日古いです"
   },
   "riskLevelCounts": {
-    "INSUFFICIENT": 14,
+    "INSUFFICIENT": 21,
     "MEDIUM": 28,
     "HIGH": 21,
     "VERY_HIGH": 2,
     "LOW": 14
   },
   "confidenceCounts": {
-    "low": 14,
+    "low": 21,
     "high": 65
   },
   "pointRangeCounts": {
-    "SKIP": 14,
+    "SKIP": 21,
     "VALUE_10": 28,
     "STRONG_VALUE_12": 21,
     "MAX_14": 2,
@@ -825,7 +825,7 @@
       "venueName": "宇都宮",
       "venueSlug": "utsunomiya",
       "raceNo": 1,
-      "title": "2026年08月25日 レース詳細 A級戦チ一般",
+      "title": "2026年08月25日 レース詳細 チャレンジ一般",
       "time": "20:49",
       "timeBand": "midnight",
       "grade": "F2",
@@ -936,7 +936,7 @@
       "venueName": "宇都宮",
       "venueSlug": "utsunomiya",
       "raceNo": 2,
-      "title": "2026年08月25日 レース詳細 A級戦チ一般",
+      "title": "2026年08月25日 レース詳細 チャレンジ一般",
       "time": "21:13",
       "timeBand": "midnight",
       "grade": "F2",
@@ -1047,7 +1047,7 @@
       "venueName": "宇都宮",
       "venueSlug": "utsunomiya",
       "raceNo": 3,
-      "title": "2026年08月25日 レース詳細 A級戦チ選抜",
+      "title": "2026年08月25日 レース詳細 チャレンジ選抜",
       "time": "21:37",
       "timeBand": "midnight",
       "grade": "F2",
@@ -1158,7 +1158,7 @@
       "venueName": "宇都宮",
       "venueSlug": "utsunomiya",
       "raceNo": 4,
-      "title": "2026年08月25日 レース詳細 A級戦チ選抜",
+      "title": "2026年08月25日 レース詳細 チャレンジ選抜",
       "time": "22:01",
       "timeBand": "midnight",
       "grade": "F2",
@@ -1269,7 +1269,7 @@
       "venueName": "宇都宮",
       "venueSlug": "utsunomiya",
       "raceNo": 5,
-      "title": "2026年08月25日 レース詳細 A級戦チ準決",
+      "title": "2026年08月25日 レース詳細 チャレンジ準決勝",
       "time": "22:27",
       "timeBand": "midnight",
       "grade": "F2",
@@ -1380,7 +1380,7 @@
       "venueName": "宇都宮",
       "venueSlug": "utsunomiya",
       "raceNo": 6,
-      "title": "2026年08月25日 レース詳細 A級戦チ準決",
+      "title": "2026年08月25日 レース詳細 チャレンジ準決勝",
       "time": "22:54",
       "timeBand": "midnight",
       "grade": "F2",
@@ -1491,7 +1491,7 @@
       "venueName": "宇都宮",
       "venueSlug": "utsunomiya",
       "raceNo": 7,
-      "title": "2026年08月25日 レース詳細 A級戦チ準決",
+      "title": "2026年08月25日 レース詳細 チャレンジ準決勝",
       "time": "23:21",
       "timeBand": "midnight",
       "grade": "F2",
@@ -9273,6 +9273,783 @@
         "raceNumberHistoricalSampleSize": 463,
         "riderCoverageCount": 6,
         "matchupCoverageCount": 6
+      },
+      "leakageGuard": {
+        "currentResultUsed": false,
+        "currentPayoutUsed": false,
+        "oddsUsedAsRiskDriver": false,
+        "fuzzyMatchingUsed": false,
+        "fakeCompletionUsed": false
+      }
+    },
+    {
+      "raceKey": "2026-08-25|87|1",
+      "date": "2026-08-25",
+      "venueCode": "87",
+      "venueName": "熊本",
+      "venueSlug": "kumamoto",
+      "raceNo": 1,
+      "title": "2026年08月25日 レース詳細 L級戦ガ予2",
+      "time": "20:57",
+      "timeBand": "midnight",
+      "grade": "F2",
+      "raceClass": "L1",
+      "carCount": 7,
+      "line": {
+        "source": "keirin-jp-entries.lineup",
+        "lineup": null,
+        "lineCount": null,
+        "singleCount": 0,
+        "selfPowerCount": 5
+      },
+      "riskScore": 2,
+      "riskLevel": "INSUFFICIENT",
+      "confidence": "low",
+      "pointRange": {
+        "label": "SKIP / 判断材料不足",
+        "min": null,
+        "max": null,
+        "action": "SKIP"
+      },
+      "signals": [
+        {
+          "key": "line-count",
+          "label": "分戦数",
+          "value": "未取得分戦",
+          "contribution": 0,
+          "source": "keirin-jp-entries.lineup",
+          "confidence": "low"
+        },
+        {
+          "key": "self-power-contest",
+          "label": "自力/先行役の競合",
+          "value": "5人",
+          "contribution": 2,
+          "source": "keirin-jp-entries.entries.style/stats",
+          "confidence": "medium",
+          "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "venue-historical-turbulence",
+          "label": "会場historical荒れ",
+          "value": "万車券率 31.6%",
+          "contribution": 0,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 57R / global 26.9% / 過去結果のみ"
+        },
+        {
+          "key": "race-number-historical-turbulence",
+          "label": "R番号historical荒れ",
+          "value": "万車券率 23.9%",
+          "contribution": 0,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 465R / global 26.9% / 過去結果のみ"
+        },
+        {
+          "key": "rider-ex-coverage",
+          "label": "rider EX母数",
+          "value": "3/7人 / LOW SAMPLE 0人",
+          "contribution": 0,
+          "source": "kurari-ex-exact-riders-index",
+          "confidence": "low",
+          "note": "LOW SAMPLEはrisk上昇ではなくconfidence低下として扱う"
+        },
+        {
+          "key": "matchup-coverage",
+          "label": "MATCHUP coverage",
+          "value": "平均比較可能 11.3R",
+          "contribution": 0,
+          "source": "kurari-ex-exact-matchups-index",
+          "confidence": "high"
+        }
+      ],
+      "protectionGuide": {
+        "mode": "second-third-correction",
+        "note": "RISKが高い場合も頭数追加ではなく、2着・3着補正と別線3着保護を優先して検討する。",
+        "allowedRoles": [
+          "OTHER_SELF",
+          "OTHER_MARK",
+          "SINGLE",
+          "LINE_THIRD_OUTSIDE",
+          "OTHER_LINE_THIRD"
+        ]
+      },
+      "sourceAvailability": {
+        "todayRace": true,
+        "officialEntries": true,
+        "officialLineup": false,
+        "venueHistoricalSampleSize": 57,
+        "raceNumberHistoricalSampleSize": 465,
+        "riderCoverageCount": 3,
+        "matchupCoverageCount": 3
+      },
+      "leakageGuard": {
+        "currentResultUsed": false,
+        "currentPayoutUsed": false,
+        "oddsUsedAsRiskDriver": false,
+        "fuzzyMatchingUsed": false,
+        "fakeCompletionUsed": false
+      }
+    },
+    {
+      "raceKey": "2026-08-25|87|2",
+      "date": "2026-08-25",
+      "venueCode": "87",
+      "venueName": "熊本",
+      "venueSlug": "kumamoto",
+      "raceNo": 2,
+      "title": "2026年08月25日 レース詳細 L級戦ガ予2",
+      "time": "21:21",
+      "timeBand": "midnight",
+      "grade": "F2",
+      "raceClass": "L1",
+      "carCount": 7,
+      "line": {
+        "source": "keirin-jp-entries.lineup",
+        "lineup": null,
+        "lineCount": null,
+        "singleCount": 0,
+        "selfPowerCount": 7
+      },
+      "riskScore": 2,
+      "riskLevel": "INSUFFICIENT",
+      "confidence": "low",
+      "pointRange": {
+        "label": "SKIP / 判断材料不足",
+        "min": null,
+        "max": null,
+        "action": "SKIP"
+      },
+      "signals": [
+        {
+          "key": "line-count",
+          "label": "分戦数",
+          "value": "未取得分戦",
+          "contribution": 0,
+          "source": "keirin-jp-entries.lineup",
+          "confidence": "low"
+        },
+        {
+          "key": "self-power-contest",
+          "label": "自力/先行役の競合",
+          "value": "7人",
+          "contribution": 2,
+          "source": "keirin-jp-entries.entries.style/stats",
+          "confidence": "medium",
+          "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "venue-historical-turbulence",
+          "label": "会場historical荒れ",
+          "value": "万車券率 31.6%",
+          "contribution": 0,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 57R / global 26.9% / 過去結果のみ"
+        },
+        {
+          "key": "race-number-historical-turbulence",
+          "label": "R番号historical荒れ",
+          "value": "万車券率 24.3%",
+          "contribution": 0,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 460R / global 26.9% / 過去結果のみ"
+        },
+        {
+          "key": "rider-ex-coverage",
+          "label": "rider EX母数",
+          "value": "6/7人 / LOW SAMPLE 1人",
+          "contribution": 0,
+          "source": "kurari-ex-exact-riders-index",
+          "confidence": "high",
+          "note": "LOW SAMPLEはrisk上昇ではなくconfidence低下として扱う"
+        },
+        {
+          "key": "matchup-coverage",
+          "label": "MATCHUP coverage",
+          "value": "平均比較可能 13R",
+          "contribution": 0,
+          "source": "kurari-ex-exact-matchups-index",
+          "confidence": "high"
+        }
+      ],
+      "protectionGuide": {
+        "mode": "second-third-correction",
+        "note": "RISKが高い場合も頭数追加ではなく、2着・3着補正と別線3着保護を優先して検討する。",
+        "allowedRoles": [
+          "OTHER_SELF",
+          "OTHER_MARK",
+          "SINGLE",
+          "LINE_THIRD_OUTSIDE",
+          "OTHER_LINE_THIRD"
+        ]
+      },
+      "sourceAvailability": {
+        "todayRace": true,
+        "officialEntries": true,
+        "officialLineup": false,
+        "venueHistoricalSampleSize": 57,
+        "raceNumberHistoricalSampleSize": 460,
+        "riderCoverageCount": 6,
+        "matchupCoverageCount": 6
+      },
+      "leakageGuard": {
+        "currentResultUsed": false,
+        "currentPayoutUsed": false,
+        "oddsUsedAsRiskDriver": false,
+        "fuzzyMatchingUsed": false,
+        "fakeCompletionUsed": false
+      }
+    },
+    {
+      "raceKey": "2026-08-25|87|3",
+      "date": "2026-08-25",
+      "venueCode": "87",
+      "venueName": "熊本",
+      "venueSlug": "kumamoto",
+      "raceNo": 3,
+      "title": "2026年08月25日 レース詳細 A級戦チ一般",
+      "time": "21:45",
+      "timeBand": "midnight",
+      "grade": "F2",
+      "raceClass": "A3",
+      "carCount": 7,
+      "line": {
+        "source": "keirin-jp-entries.lineup",
+        "lineup": null,
+        "lineCount": null,
+        "singleCount": 0,
+        "selfPowerCount": 2
+      },
+      "riskScore": 0,
+      "riskLevel": "INSUFFICIENT",
+      "confidence": "low",
+      "pointRange": {
+        "label": "SKIP / 判断材料不足",
+        "min": null,
+        "max": null,
+        "action": "SKIP"
+      },
+      "signals": [
+        {
+          "key": "line-count",
+          "label": "分戦数",
+          "value": "未取得分戦",
+          "contribution": 0,
+          "source": "keirin-jp-entries.lineup",
+          "confidence": "low"
+        },
+        {
+          "key": "self-power-contest",
+          "label": "自力/先行役の競合",
+          "value": "2人",
+          "contribution": 0,
+          "source": "keirin-jp-entries.entries.style/stats",
+          "confidence": "medium",
+          "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "venue-historical-turbulence",
+          "label": "会場historical荒れ",
+          "value": "万車券率 31.6%",
+          "contribution": 0,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 57R / global 26.9% / 過去結果のみ"
+        },
+        {
+          "key": "race-number-historical-turbulence",
+          "label": "R番号historical荒れ",
+          "value": "万車券率 29.1%",
+          "contribution": 0,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 464R / global 26.9% / 過去結果のみ"
+        },
+        {
+          "key": "rider-ex-coverage",
+          "label": "rider EX母数",
+          "value": "5/7人 / LOW SAMPLE 0人",
+          "contribution": 0,
+          "source": "kurari-ex-exact-riders-index",
+          "confidence": "low",
+          "note": "LOW SAMPLEはrisk上昇ではなくconfidence低下として扱う"
+        },
+        {
+          "key": "matchup-coverage",
+          "label": "MATCHUP coverage",
+          "value": "平均比較可能 12.2R",
+          "contribution": 0,
+          "source": "kurari-ex-exact-matchups-index",
+          "confidence": "high"
+        }
+      ],
+      "protectionGuide": {
+        "mode": "second-third-correction",
+        "note": "RISKが高い場合も頭数追加ではなく、2着・3着補正と別線3着保護を優先して検討する。",
+        "allowedRoles": [
+          "OTHER_SELF",
+          "OTHER_MARK",
+          "SINGLE",
+          "LINE_THIRD_OUTSIDE",
+          "OTHER_LINE_THIRD"
+        ]
+      },
+      "sourceAvailability": {
+        "todayRace": true,
+        "officialEntries": true,
+        "officialLineup": false,
+        "venueHistoricalSampleSize": 57,
+        "raceNumberHistoricalSampleSize": 464,
+        "riderCoverageCount": 5,
+        "matchupCoverageCount": 5
+      },
+      "leakageGuard": {
+        "currentResultUsed": false,
+        "currentPayoutUsed": false,
+        "oddsUsedAsRiskDriver": false,
+        "fuzzyMatchingUsed": false,
+        "fakeCompletionUsed": false
+      }
+    },
+    {
+      "raceKey": "2026-08-25|87|4",
+      "date": "2026-08-25",
+      "venueCode": "87",
+      "venueName": "熊本",
+      "venueSlug": "kumamoto",
+      "raceNo": 4,
+      "title": "2026年08月25日 レース詳細 A級戦チ一般",
+      "time": "22:09",
+      "timeBand": "midnight",
+      "grade": "F2",
+      "raceClass": "A3",
+      "carCount": 7,
+      "line": {
+        "source": "keirin-jp-entries.lineup",
+        "lineup": null,
+        "lineCount": null,
+        "singleCount": 0,
+        "selfPowerCount": 3
+      },
+      "riskScore": 0,
+      "riskLevel": "INSUFFICIENT",
+      "confidence": "low",
+      "pointRange": {
+        "label": "SKIP / 判断材料不足",
+        "min": null,
+        "max": null,
+        "action": "SKIP"
+      },
+      "signals": [
+        {
+          "key": "line-count",
+          "label": "分戦数",
+          "value": "未取得分戦",
+          "contribution": 0,
+          "source": "keirin-jp-entries.lineup",
+          "confidence": "low"
+        },
+        {
+          "key": "self-power-contest",
+          "label": "自力/先行役の競合",
+          "value": "3人",
+          "contribution": 0,
+          "source": "keirin-jp-entries.entries.style/stats",
+          "confidence": "medium",
+          "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "venue-historical-turbulence",
+          "label": "会場historical荒れ",
+          "value": "万車券率 31.6%",
+          "contribution": 0,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 57R / global 26.9% / 過去結果のみ"
+        },
+        {
+          "key": "race-number-historical-turbulence",
+          "label": "R番号historical荒れ",
+          "value": "万車券率 22.3%",
+          "contribution": 0,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 462R / global 26.9% / 過去結果のみ"
+        },
+        {
+          "key": "rider-ex-coverage",
+          "label": "rider EX母数",
+          "value": "3/7人 / LOW SAMPLE 1人",
+          "contribution": 0,
+          "source": "kurari-ex-exact-riders-index",
+          "confidence": "low",
+          "note": "LOW SAMPLEはrisk上昇ではなくconfidence低下として扱う"
+        },
+        {
+          "key": "matchup-coverage",
+          "label": "MATCHUP coverage",
+          "value": "平均比較可能 8.3R",
+          "contribution": 0,
+          "source": "kurari-ex-exact-matchups-index",
+          "confidence": "medium"
+        }
+      ],
+      "protectionGuide": {
+        "mode": "second-third-correction",
+        "note": "RISKが高い場合も頭数追加ではなく、2着・3着補正と別線3着保護を優先して検討する。",
+        "allowedRoles": [
+          "OTHER_SELF",
+          "OTHER_MARK",
+          "SINGLE",
+          "LINE_THIRD_OUTSIDE",
+          "OTHER_LINE_THIRD"
+        ]
+      },
+      "sourceAvailability": {
+        "todayRace": true,
+        "officialEntries": true,
+        "officialLineup": false,
+        "venueHistoricalSampleSize": 57,
+        "raceNumberHistoricalSampleSize": 462,
+        "riderCoverageCount": 3,
+        "matchupCoverageCount": 3
+      },
+      "leakageGuard": {
+        "currentResultUsed": false,
+        "currentPayoutUsed": false,
+        "oddsUsedAsRiskDriver": false,
+        "fuzzyMatchingUsed": false,
+        "fakeCompletionUsed": false
+      }
+    },
+    {
+      "raceKey": "2026-08-25|87|5",
+      "date": "2026-08-25",
+      "venueCode": "87",
+      "venueName": "熊本",
+      "venueSlug": "kumamoto",
+      "raceNo": 5,
+      "title": "2026年08月25日 レース詳細 A級戦チ準決",
+      "time": "22:36",
+      "timeBand": "midnight",
+      "grade": "F2",
+      "raceClass": "A3",
+      "carCount": 7,
+      "line": {
+        "source": "keirin-jp-entries.lineup",
+        "lineup": null,
+        "lineCount": null,
+        "singleCount": 0,
+        "selfPowerCount": 3
+      },
+      "riskScore": 0,
+      "riskLevel": "INSUFFICIENT",
+      "confidence": "low",
+      "pointRange": {
+        "label": "SKIP / 判断材料不足",
+        "min": null,
+        "max": null,
+        "action": "SKIP"
+      },
+      "signals": [
+        {
+          "key": "line-count",
+          "label": "分戦数",
+          "value": "未取得分戦",
+          "contribution": 0,
+          "source": "keirin-jp-entries.lineup",
+          "confidence": "low"
+        },
+        {
+          "key": "self-power-contest",
+          "label": "自力/先行役の競合",
+          "value": "3人",
+          "contribution": 0,
+          "source": "keirin-jp-entries.entries.style/stats",
+          "confidence": "medium",
+          "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "venue-historical-turbulence",
+          "label": "会場historical荒れ",
+          "value": "万車券率 31.6%",
+          "contribution": 0,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 57R / global 26.9% / 過去結果のみ"
+        },
+        {
+          "key": "race-number-historical-turbulence",
+          "label": "R番号historical荒れ",
+          "value": "万車券率 23.3%",
+          "contribution": 0,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 463R / global 26.9% / 過去結果のみ"
+        },
+        {
+          "key": "rider-ex-coverage",
+          "label": "rider EX母数",
+          "value": "2/7人 / LOW SAMPLE 0人",
+          "contribution": 0,
+          "source": "kurari-ex-exact-riders-index",
+          "confidence": "low",
+          "note": "LOW SAMPLEはrisk上昇ではなくconfidence低下として扱う"
+        },
+        {
+          "key": "matchup-coverage",
+          "label": "MATCHUP coverage",
+          "value": "平均比較可能 11R",
+          "contribution": 0,
+          "source": "kurari-ex-exact-matchups-index",
+          "confidence": "high"
+        }
+      ],
+      "protectionGuide": {
+        "mode": "second-third-correction",
+        "note": "RISKが高い場合も頭数追加ではなく、2着・3着補正と別線3着保護を優先して検討する。",
+        "allowedRoles": [
+          "OTHER_SELF",
+          "OTHER_MARK",
+          "SINGLE",
+          "LINE_THIRD_OUTSIDE",
+          "OTHER_LINE_THIRD"
+        ]
+      },
+      "sourceAvailability": {
+        "todayRace": true,
+        "officialEntries": true,
+        "officialLineup": false,
+        "venueHistoricalSampleSize": 57,
+        "raceNumberHistoricalSampleSize": 463,
+        "riderCoverageCount": 2,
+        "matchupCoverageCount": 2
+      },
+      "leakageGuard": {
+        "currentResultUsed": false,
+        "currentPayoutUsed": false,
+        "oddsUsedAsRiskDriver": false,
+        "fuzzyMatchingUsed": false,
+        "fakeCompletionUsed": false
+      }
+    },
+    {
+      "raceKey": "2026-08-25|87|6",
+      "date": "2026-08-25",
+      "venueCode": "87",
+      "venueName": "熊本",
+      "venueSlug": "kumamoto",
+      "raceNo": 6,
+      "title": "2026年08月25日 レース詳細 A級戦チ準決",
+      "time": "23:03",
+      "timeBand": "midnight",
+      "grade": "F2",
+      "raceClass": "A3",
+      "carCount": 7,
+      "line": {
+        "source": "keirin-jp-entries.lineup",
+        "lineup": null,
+        "lineCount": null,
+        "singleCount": 0,
+        "selfPowerCount": 2
+      },
+      "riskScore": 0,
+      "riskLevel": "INSUFFICIENT",
+      "confidence": "low",
+      "pointRange": {
+        "label": "SKIP / 判断材料不足",
+        "min": null,
+        "max": null,
+        "action": "SKIP"
+      },
+      "signals": [
+        {
+          "key": "line-count",
+          "label": "分戦数",
+          "value": "未取得分戦",
+          "contribution": 0,
+          "source": "keirin-jp-entries.lineup",
+          "confidence": "low"
+        },
+        {
+          "key": "self-power-contest",
+          "label": "自力/先行役の競合",
+          "value": "2人",
+          "contribution": 0,
+          "source": "keirin-jp-entries.entries.style/stats",
+          "confidence": "medium",
+          "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "venue-historical-turbulence",
+          "label": "会場historical荒れ",
+          "value": "万車券率 31.6%",
+          "contribution": 0,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 57R / global 26.9% / 過去結果のみ"
+        },
+        {
+          "key": "race-number-historical-turbulence",
+          "label": "R番号historical荒れ",
+          "value": "万車券率 23.3%",
+          "contribution": 0,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 463R / global 26.9% / 過去結果のみ"
+        },
+        {
+          "key": "rider-ex-coverage",
+          "label": "rider EX母数",
+          "value": "4/7人 / LOW SAMPLE 0人",
+          "contribution": 0,
+          "source": "kurari-ex-exact-riders-index",
+          "confidence": "low",
+          "note": "LOW SAMPLEはrisk上昇ではなくconfidence低下として扱う"
+        },
+        {
+          "key": "matchup-coverage",
+          "label": "MATCHUP coverage",
+          "value": "平均比較可能 13R",
+          "contribution": 0,
+          "source": "kurari-ex-exact-matchups-index",
+          "confidence": "high"
+        }
+      ],
+      "protectionGuide": {
+        "mode": "second-third-correction",
+        "note": "RISKが高い場合も頭数追加ではなく、2着・3着補正と別線3着保護を優先して検討する。",
+        "allowedRoles": [
+          "OTHER_SELF",
+          "OTHER_MARK",
+          "SINGLE",
+          "LINE_THIRD_OUTSIDE",
+          "OTHER_LINE_THIRD"
+        ]
+      },
+      "sourceAvailability": {
+        "todayRace": true,
+        "officialEntries": true,
+        "officialLineup": false,
+        "venueHistoricalSampleSize": 57,
+        "raceNumberHistoricalSampleSize": 463,
+        "riderCoverageCount": 4,
+        "matchupCoverageCount": 4
+      },
+      "leakageGuard": {
+        "currentResultUsed": false,
+        "currentPayoutUsed": false,
+        "oddsUsedAsRiskDriver": false,
+        "fuzzyMatchingUsed": false,
+        "fakeCompletionUsed": false
+      }
+    },
+    {
+      "raceKey": "2026-08-25|87|7",
+      "date": "2026-08-25",
+      "venueCode": "87",
+      "venueName": "熊本",
+      "venueSlug": "kumamoto",
+      "raceNo": 7,
+      "title": "2026年08月25日 レース詳細 A級戦チ準決",
+      "time": "23:30",
+      "timeBand": "midnight",
+      "grade": "F2",
+      "raceClass": "A3",
+      "carCount": 7,
+      "line": {
+        "source": "keirin-jp-entries.lineup",
+        "lineup": null,
+        "lineCount": null,
+        "singleCount": 0,
+        "selfPowerCount": 2
+      },
+      "riskScore": 0,
+      "riskLevel": "INSUFFICIENT",
+      "confidence": "low",
+      "pointRange": {
+        "label": "SKIP / 判断材料不足",
+        "min": null,
+        "max": null,
+        "action": "SKIP"
+      },
+      "signals": [
+        {
+          "key": "line-count",
+          "label": "分戦数",
+          "value": "未取得分戦",
+          "contribution": 0,
+          "source": "keirin-jp-entries.lineup",
+          "confidence": "low"
+        },
+        {
+          "key": "self-power-contest",
+          "label": "自力/先行役の競合",
+          "value": "2人",
+          "contribution": 0,
+          "source": "keirin-jp-entries.entries.style/stats",
+          "confidence": "medium",
+          "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "venue-historical-turbulence",
+          "label": "会場historical荒れ",
+          "value": "万車券率 31.6%",
+          "contribution": 0,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 57R / global 26.9% / 過去結果のみ"
+        },
+        {
+          "key": "race-number-historical-turbulence",
+          "label": "R番号historical荒れ",
+          "value": "万車券率 26.8%",
+          "contribution": 0,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 463R / global 26.9% / 過去結果のみ"
+        },
+        {
+          "key": "rider-ex-coverage",
+          "label": "rider EX母数",
+          "value": "2/7人 / LOW SAMPLE 0人",
+          "contribution": 0,
+          "source": "kurari-ex-exact-riders-index",
+          "confidence": "low",
+          "note": "LOW SAMPLEはrisk上昇ではなくconfidence低下として扱う"
+        },
+        {
+          "key": "matchup-coverage",
+          "label": "MATCHUP coverage",
+          "value": "平均比較可能 11R",
+          "contribution": 0,
+          "source": "kurari-ex-exact-matchups-index",
+          "confidence": "high"
+        }
+      ],
+      "protectionGuide": {
+        "mode": "second-third-correction",
+        "note": "RISKが高い場合も頭数追加ではなく、2着・3着補正と別線3着保護を優先して検討する。",
+        "allowedRoles": [
+          "OTHER_SELF",
+          "OTHER_MARK",
+          "SINGLE",
+          "LINE_THIRD_OUTSIDE",
+          "OTHER_LINE_THIRD"
+        ]
+      },
+      "sourceAvailability": {
+        "todayRace": true,
+        "officialEntries": true,
+        "officialLineup": false,
+        "venueHistoricalSampleSize": 57,
+        "raceNumberHistoricalSampleSize": 463,
+        "riderCoverageCount": 2,
+        "matchupCoverageCount": 2
       },
       "leakageGuard": {
         "currentResultUsed": false,
