@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 const ROOT_DIR = process.cwd();
 
@@ -25,9 +26,12 @@ const DRY_RUN = process.argv.includes("--dry-run");
 const SELF_TEST_PAYOUT_PARSER = process.argv.includes("--self-test-payout-parser");
 const LOG_PREFIX = "[notify-slack-results]";
 const MAX_BLOCKS_PER_MESSAGE = 45;
-const MAX_HITS_PER_CHUNK = 12;
+const SLACK_RESERVED_BLOCKS_PER_MESSAGE = 3;
+const MAX_HITS_PER_CHUNK = Math.min(40, MAX_BLOCKS_PER_MESSAGE - SLACK_RESERVED_BLOCKS_PER_MESSAGE);
 const MAX_SECTION_TEXT_LENGTH = 2800;
 const MAX_FALLBACK_TEXT_LENGTH = 35000;
+const DEFAULT_RETRY_AFTER_SECONDS = 60;
+const MAX_429_RETRY_COUNT = 1;
 
 function normalizeText(value) {
   return String(value ?? "")
@@ -679,8 +683,31 @@ function buildSlackHitMessage(result) {
   ].join("\n");
 }
 
-async function sendSlackPayload(payload) {
-  const response = await fetch(SLACK_WEBHOOK_URL, {
+function parseRetryAfterSeconds(headers) {
+  const raw = headers?.get?.("retry-after") ?? headers?.get?.("Retry-After") ?? "";
+  const seconds = Number.parseInt(String(raw).trim(), 10);
+  return Number.isFinite(seconds) && seconds > 0 ? seconds : DEFAULT_RETRY_AFTER_SECONDS;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function isPayloadFallbackEligible(status, body) {
+  if (status === 429) return false;
+  if (typeof status !== "number") return false;
+  if (status < 400 || status >= 500) return false;
+  const text = String(body ?? "");
+  if (!text) return true;
+  return /invalid_blocks|invalid_payload|invalid_json|bad_payload|bad_request/iu.test(text);
+}
+
+async function sendSlackPayload(payload, options = {}) {
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const webhookUrl = options.webhookUrl ?? SLACK_WEBHOOK_URL;
+  const response = await fetchImpl(webhookUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json; charset=utf-8",
@@ -692,6 +719,7 @@ async function sendSlackPayload(payload) {
     ok: response.ok,
     status: response.status,
     body: responseBody,
+    retryAfterSeconds: response.status === 429 ? parseRetryAfterSeconds(response.headers) : null,
   };
 }
 
@@ -707,11 +735,12 @@ function logSlackFailure({ payloadType, chunkIndex, itemCount, blockCount, textL
   });
 }
 
-async function sendSlackPayloadWithFallback(payload, hitResults, meta) {
+async function sendSlackPayloadWithFallback(payload, hitResults, meta, options = {}) {
   const blockCount = Array.isArray(payload.blocks) ? payload.blocks.length : 0;
+  const sleepImpl = options.sleepImpl ?? sleep;
   let first;
   try {
-    first = await sendSlackPayload(payload);
+    first = await sendSlackPayload(payload, options);
   } catch (error) {
     first = {
       ok: false,
@@ -731,10 +760,51 @@ async function sendSlackPayloadWithFallback(payload, hitResults, meta) {
     body: first.body,
   });
 
+  if (first.status === 429) {
+    const retryAfterSeconds = first.retryAfterSeconds ?? DEFAULT_RETRY_AFTER_SECONDS;
+    console.warn(`${LOG_PREFIX} Slack 429 ${first.body || "rate_limited"}`, {
+      chunkIndex: meta.chunkIndex,
+      itemCount: hitResults.length,
+      retryAfterSeconds,
+      retryCount: MAX_429_RETRY_COUNT,
+    });
+    await sleepImpl(retryAfterSeconds * 1000);
+    let retry;
+    try {
+      retry = await sendSlackPayload(payload, options);
+    } catch (error) {
+      retry = {
+        ok: false,
+        status: "network-error",
+        body: error instanceof Error ? error.message : String(error),
+      };
+    }
+    if (retry.ok) {
+      console.warn(`${LOG_PREFIX} Slack 429 retry succeeded`, {
+        chunkIndex: meta.chunkIndex,
+        itemCount: hitResults.length,
+        retryAfterSeconds,
+      });
+      return true;
+    }
+    logSlackFailure({
+      payloadType: "blocks_429_retry",
+      chunkIndex: meta.chunkIndex,
+      itemCount: hitResults.length,
+      blockCount,
+      textLength: payload.text.length,
+      status: retry.status,
+      body: retry.body,
+    });
+    return false;
+  }
+
+  if (!isPayloadFallbackEligible(first.status, first.body)) return false;
+
   const fallbackPayload = buildSlackPlainTextPayload(hitResults, meta);
   let fallback;
   try {
-    fallback = await sendSlackPayload(fallbackPayload);
+    fallback = await sendSlackPayload(fallbackPayload, options);
   } catch (error) {
     fallback = {
       ok: false,
@@ -763,12 +833,14 @@ async function sendSlackPayloadWithFallback(payload, hitResults, meta) {
   return false;
 }
 
-async function postToSlack(results) {
+async function postToSlack(results, options = {}) {
   const emptyResult = { successfulHitKeys: [], failedHitKeys: [], failureCount: 0 };
   const hitResults = results.filter((result) => result.status === "hit");
   const chunks = chunkArray(hitResults, MAX_HITS_PER_CHUNK);
+  const dryRun = options.dryRun ?? DRY_RUN;
+  const webhookUrl = options.webhookUrl ?? SLACK_WEBHOOK_URL;
 
-  if (DRY_RUN) {
+  if (dryRun) {
     console.log(`${LOG_PREFIX} dry-run slack chunks`, {
       chunkCount: chunks.length,
       hitCount: hitResults.length,
@@ -796,7 +868,7 @@ async function postToSlack(results) {
     return emptyResult;
   }
 
-  if (!SLACK_WEBHOOK_URL) {
+  if (!webhookUrl) {
     console.warn(`${LOG_PREFIX} SLACK_WEBHOOK_URL is missing; skip hit send`);
     return {
       successfulHitKeys: [],
@@ -816,7 +888,10 @@ async function postToSlack(results) {
       hitCount: hitResults.length,
     };
     const payload = buildSlackBlockPayload(chunk, meta);
-    const sent = await sendSlackPayloadWithFallback(payload, chunk, meta);
+    const sent = await sendSlackPayloadWithFallback(payload, chunk, meta, {
+      ...options,
+      webhookUrl,
+    });
     if (sent) {
       successfulHitKeys.push(...chunk.map((result) => result.hitKey));
     } else {
@@ -1048,7 +1123,22 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(`${LOG_PREFIX} failed`, error);
-  process.exit(1);
-});
+export const slackDeliveryTestApi = {
+  MAX_BLOCKS_PER_MESSAGE,
+  MAX_HITS_PER_CHUNK,
+  MAX_SECTION_TEXT_LENGTH,
+  MAX_FALLBACK_TEXT_LENGTH,
+  DEFAULT_RETRY_AFTER_SECONDS,
+  MAX_429_RETRY_COUNT,
+  buildSlackBlockPayload,
+  buildSlackPlainTextPayload,
+  parseRetryAfterSeconds,
+  postToSlack,
+};
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error(`${LOG_PREFIX} failed`, error);
+    process.exit(1);
+  });
+}
