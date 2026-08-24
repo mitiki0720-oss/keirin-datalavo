@@ -1,6 +1,6 @@
 {
   "version": "kurari-ex-race-risk/v1",
-  "generatedAt": "2026-08-24T15:26:16.372Z",
+  "generatedAt": "2026-08-24T21:40:26.811Z",
   "sourceType": "PRE_RACE_SOURCE_BACKED_EX_SIGNAL",
   "period": {
     "date": "2026-08-25",
@@ -11,9 +11,9 @@
   "coverage": {
     "venueCount": 9,
     "officialEntryRaceCount": 86,
-    "officialLineupRaceCount": 65,
-    "insufficientRaceCount": 21,
-    "lowConfidenceRaceCount": 21
+    "officialLineupRaceCount": 72,
+    "insufficientRaceCount": 14,
+    "lowConfidenceRaceCount": 14
   },
   "freshness": {
     "targetDate": "2026-08-25",
@@ -23,22 +23,22 @@
     "warning": "historicalがtargetDate-1より3日古いです"
   },
   "riskLevelCounts": {
-    "INSUFFICIENT": 21,
-    "MEDIUM": 28,
+    "LOW": 19,
+    "MEDIUM": 30,
+    "INSUFFICIENT": 14,
     "HIGH": 21,
-    "VERY_HIGH": 2,
-    "LOW": 14
+    "VERY_HIGH": 2
   },
   "confidenceCounts": {
-    "low": 21,
-    "high": 65
+    "high": 72,
+    "low": 14
   },
   "pointRangeCounts": {
-    "SKIP": 21,
-    "VALUE_10": 28,
+    "BASE_8": 19,
+    "VALUE_10": 30,
+    "SKIP": 14,
     "STRONG_VALUE_12": 21,
-    "MAX_14": 2,
-    "BASE_8": 14
+    "MAX_14": 2
   },
   "records": [
     {
@@ -48,36 +48,36 @@
       "venueName": "青森",
       "venueSlug": "aomori",
       "raceNo": 1,
-      "title": "2026年08月25日 レース詳細 A級戦チ一般",
+      "title": "2026年08月25日 レース詳細 チャレンジ一般",
       "time": "20:41",
       "timeBand": "midnight",
       "grade": "F2",
       "raceClass": "A3",
       "carCount": 7,
       "line": {
-        "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
-        "singleCount": 0,
+        "source": "today.generated.lineup",
+        "lineup": "167 3 524",
+        "lineCount": 3,
+        "singleCount": 1,
         "selfPowerCount": 2
       },
       "riskScore": 0,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskLevel": "LOW",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "8",
+        "min": 8,
+        "max": 8,
+        "action": "BASE_8"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
+          "value": "3分戦",
           "contribution": 0,
-          "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "source": "today.generated.lineup",
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -87,6 +87,14 @@
           "source": "keirin-jp-entries.entries.style/stats",
           "confidence": "medium",
           "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "single-line",
+          "label": "単騎/短ライン",
+          "value": "1本",
+          "contribution": 0,
+          "source": "today.generated.lineup",
+          "confidence": "medium"
         },
         {
           "key": "venue-historical-turbulence",
@@ -138,7 +146,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 141,
         "raceNumberHistoricalSampleSize": 465,
         "riderCoverageCount": 6,
@@ -159,36 +167,36 @@
       "venueName": "青森",
       "venueSlug": "aomori",
       "raceNo": 2,
-      "title": "2026年08月25日 レース詳細 A級戦チ一般",
+      "title": "2026年08月25日 レース詳細 チャレンジ一般",
       "time": "21:05",
       "timeBand": "midnight",
       "grade": "F2",
       "raceClass": "A3",
       "carCount": 7,
       "line": {
-        "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
-        "singleCount": 0,
+        "source": "today.generated.lineup",
+        "lineup": "3561 2 4 7",
+        "lineCount": 4,
+        "singleCount": 3,
         "selfPowerCount": 1
       },
-      "riskScore": 0,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskScore": 2,
+      "riskLevel": "MEDIUM",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "8〜10",
+        "min": 8,
+        "max": 10,
+        "action": "VALUE_10"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
-          "contribution": 0,
-          "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "value": "4分戦",
+          "contribution": 1,
+          "source": "today.generated.lineup",
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -198,6 +206,14 @@
           "source": "keirin-jp-entries.entries.style/stats",
           "confidence": "medium",
           "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "single-line",
+          "label": "単騎/短ライン",
+          "value": "3本",
+          "contribution": 1,
+          "source": "today.generated.lineup",
+          "confidence": "medium"
         },
         {
           "key": "venue-historical-turbulence",
@@ -249,7 +265,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 141,
         "raceNumberHistoricalSampleSize": 460,
         "riderCoverageCount": 3,
@@ -270,36 +286,36 @@
       "venueName": "青森",
       "venueSlug": "aomori",
       "raceNo": 3,
-      "title": "2026年08月25日 レース詳細 A級戦チ選抜",
+      "title": "2026年08月25日 レース詳細 チャレンジ選抜",
       "time": "21:29",
       "timeBand": "midnight",
       "grade": "F2",
       "raceClass": "A3",
       "carCount": 7,
       "line": {
-        "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
-        "singleCount": 0,
+        "source": "today.generated.lineup",
+        "lineup": "1267 3 4 5",
+        "lineCount": 4,
+        "singleCount": 3,
         "selfPowerCount": 2
       },
-      "riskScore": 0,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskScore": 2,
+      "riskLevel": "MEDIUM",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "8〜10",
+        "min": 8,
+        "max": 10,
+        "action": "VALUE_10"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
-          "contribution": 0,
-          "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "value": "4分戦",
+          "contribution": 1,
+          "source": "today.generated.lineup",
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -309,6 +325,14 @@
           "source": "keirin-jp-entries.entries.style/stats",
           "confidence": "medium",
           "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "single-line",
+          "label": "単騎/短ライン",
+          "value": "3本",
+          "contribution": 1,
+          "source": "today.generated.lineup",
+          "confidence": "medium"
         },
         {
           "key": "venue-historical-turbulence",
@@ -360,7 +384,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 141,
         "raceNumberHistoricalSampleSize": 464,
         "riderCoverageCount": 4,
@@ -381,36 +405,36 @@
       "venueName": "青森",
       "venueSlug": "aomori",
       "raceNo": 4,
-      "title": "2026年08月25日 レース詳細 A級戦チ選抜",
+      "title": "2026年08月25日 レース詳細 チャレンジ選抜",
       "time": "21:53",
       "timeBand": "midnight",
       "grade": "F2",
       "raceClass": "A3",
       "carCount": 7,
       "line": {
-        "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
+        "source": "today.generated.lineup",
+        "lineup": "71 26 534",
+        "lineCount": 3,
         "singleCount": 0,
         "selfPowerCount": 2
       },
       "riskScore": 0,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskLevel": "LOW",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "8",
+        "min": 8,
+        "max": 8,
+        "action": "BASE_8"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
+          "value": "3分戦",
           "contribution": 0,
-          "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "source": "today.generated.lineup",
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -471,7 +495,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 141,
         "raceNumberHistoricalSampleSize": 462,
         "riderCoverageCount": 5,
@@ -492,36 +516,36 @@
       "venueName": "青森",
       "venueSlug": "aomori",
       "raceNo": 5,
-      "title": "2026年08月25日 レース詳細 A級戦チ準決",
+      "title": "2026年08月25日 レース詳細 チャレンジ準決勝",
       "time": "22:18",
       "timeBand": "midnight",
       "grade": "F2",
       "raceClass": "A3",
       "carCount": 7,
       "line": {
-        "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
+        "source": "today.generated.lineup",
+        "lineup": "216 53 47",
+        "lineCount": 3,
         "singleCount": 0,
         "selfPowerCount": 3
       },
       "riskScore": 0,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskLevel": "LOW",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "8",
+        "min": 8,
+        "max": 8,
+        "action": "BASE_8"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
+          "value": "3分戦",
           "contribution": 0,
-          "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "source": "today.generated.lineup",
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -582,7 +606,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 141,
         "raceNumberHistoricalSampleSize": 463,
         "riderCoverageCount": 5,
@@ -603,36 +627,36 @@
       "venueName": "青森",
       "venueSlug": "aomori",
       "raceNo": 6,
-      "title": "2026年08月25日 レース詳細 A級戦チ準決",
+      "title": "2026年08月25日 レース詳細 チャレンジ準決勝",
       "time": "22:45",
       "timeBand": "midnight",
       "grade": "F2",
       "raceClass": "A3",
       "carCount": 7,
       "line": {
-        "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
+        "source": "today.generated.lineup",
+        "lineup": "13 247 56",
+        "lineCount": 3,
         "singleCount": 0,
         "selfPowerCount": 3
       },
       "riskScore": 0,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskLevel": "LOW",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "8",
+        "min": 8,
+        "max": 8,
+        "action": "BASE_8"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
+          "value": "3分戦",
           "contribution": 0,
-          "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "source": "today.generated.lineup",
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -693,7 +717,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 141,
         "raceNumberHistoricalSampleSize": 463,
         "riderCoverageCount": 4,
@@ -714,36 +738,36 @@
       "venueName": "青森",
       "venueSlug": "aomori",
       "raceNo": 7,
-      "title": "2026年08月25日 レース詳細 A級戦チ準決",
+      "title": "2026年08月25日 レース詳細 チャレンジ準決勝",
       "time": "23:12",
       "timeBand": "midnight",
       "grade": "F2",
       "raceClass": "A3",
       "carCount": 7,
       "line": {
-        "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
-        "singleCount": 0,
+        "source": "today.generated.lineup",
+        "lineup": "146 325 7",
+        "lineCount": 3,
+        "singleCount": 1,
         "selfPowerCount": 3
       },
       "riskScore": 0,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskLevel": "LOW",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "8",
+        "min": 8,
+        "max": 8,
+        "action": "BASE_8"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
+          "value": "3分戦",
           "contribution": 0,
-          "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "source": "today.generated.lineup",
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -753,6 +777,14 @@
           "source": "keirin-jp-entries.entries.style/stats",
           "confidence": "medium",
           "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "single-line",
+          "label": "単騎/短ライン",
+          "value": "1本",
+          "contribution": 0,
+          "source": "today.generated.lineup",
+          "confidence": "medium"
         },
         {
           "key": "venue-historical-turbulence",
@@ -804,7 +836,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 141,
         "raceNumberHistoricalSampleSize": 463,
         "riderCoverageCount": 6,
@@ -9289,7 +9321,7 @@
       "venueName": "熊本",
       "venueSlug": "kumamoto",
       "raceNo": 1,
-      "title": "2026年08月25日 レース詳細 L級戦ガ予2",
+      "title": "2026年08月25日 レース詳細 ガールズ予選2",
       "time": "20:57",
       "timeBand": "midnight",
       "grade": "F2",
@@ -9400,7 +9432,7 @@
       "venueName": "熊本",
       "venueSlug": "kumamoto",
       "raceNo": 2,
-      "title": "2026年08月25日 レース詳細 L級戦ガ予2",
+      "title": "2026年08月25日 レース詳細 ガールズ予選2",
       "time": "21:21",
       "timeBand": "midnight",
       "grade": "F2",
@@ -9511,7 +9543,7 @@
       "venueName": "熊本",
       "venueSlug": "kumamoto",
       "raceNo": 3,
-      "title": "2026年08月25日 レース詳細 A級戦チ一般",
+      "title": "2026年08月25日 レース詳細 チャレンジ一般",
       "time": "21:45",
       "timeBand": "midnight",
       "grade": "F2",
@@ -9622,7 +9654,7 @@
       "venueName": "熊本",
       "venueSlug": "kumamoto",
       "raceNo": 4,
-      "title": "2026年08月25日 レース詳細 A級戦チ一般",
+      "title": "2026年08月25日 レース詳細 チャレンジ一般",
       "time": "22:09",
       "timeBand": "midnight",
       "grade": "F2",
@@ -9733,7 +9765,7 @@
       "venueName": "熊本",
       "venueSlug": "kumamoto",
       "raceNo": 5,
-      "title": "2026年08月25日 レース詳細 A級戦チ準決",
+      "title": "2026年08月25日 レース詳細 チャレンジ準決勝",
       "time": "22:36",
       "timeBand": "midnight",
       "grade": "F2",
@@ -9844,7 +9876,7 @@
       "venueName": "熊本",
       "venueSlug": "kumamoto",
       "raceNo": 6,
-      "title": "2026年08月25日 レース詳細 A級戦チ準決",
+      "title": "2026年08月25日 レース詳細 チャレンジ準決勝",
       "time": "23:03",
       "timeBand": "midnight",
       "grade": "F2",
@@ -9955,7 +9987,7 @@
       "venueName": "熊本",
       "venueSlug": "kumamoto",
       "raceNo": 7,
-      "title": "2026年08月25日 レース詳細 A級戦チ準決",
+      "title": "2026年08月25日 レース詳細 チャレンジ準決勝",
       "time": "23:30",
       "timeBand": "midnight",
       "grade": "F2",
