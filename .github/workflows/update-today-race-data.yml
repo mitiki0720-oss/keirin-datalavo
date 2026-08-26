@@ -48,6 +48,9 @@ concurrency:
 jobs:
   update-build-deploy:
     runs-on: ubuntu-latest
+    concurrency:
+      group: keirin-slack-hit-state
+      cancel-in-progress: false
 
     environment:
       name: github-pages

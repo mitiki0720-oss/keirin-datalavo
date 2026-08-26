@@ -37,9 +37,7 @@ function keepTodayDedupeKeys(keys, activeDate) {
   )];
 }
 
-export async function rebuildSavedPredictions() {
-  const entries = await readDailyPredictionFiles();
-  const activeDate = getJstOperationalDate();
+export function buildSavedPredictionsPayload({ entries, previous = {}, activeDate, now = new Date() }) {
   const retained = entries.filter(({ payload }) => payload.date === activeDate);
   const recordList = retained
     .flatMap(({ payload }) => (payload.items ?? []).map(
@@ -52,13 +50,7 @@ export async function rebuildSavedPredictions() {
     ));
   const records = Object.fromEntries(recordList.map((record) => [record.raceKey, record]));
   const updatedAt = retained.map(({ payload }) => payload.generatedAt).filter(Boolean).sort().at(-1)
-    ?? new Date().toISOString();
-  let previous = {};
-  try {
-    previous = JSON.parse(await readFile(savedPredictionsPath, "utf8"));
-  } catch (error) {
-    if (error?.code !== "ENOENT") throw error;
-  }
+    ?? now.toISOString();
   const payload = {
     version: 1,
     updatedAt,
@@ -66,8 +58,27 @@ export async function rebuildSavedPredictions() {
     records,
     recordList,
     notifiedSlackResultKeys: keepTodayDedupeKeys(previous.notifiedSlackResultKeys, activeDate),
+    notifiedSlackHitKeys: keepTodayDedupeKeys(previous.notifiedSlackHitKeys, activeDate),
+    notifiedSlackRaceKeys: keepTodayDedupeKeys(previous.notifiedSlackRaceKeys, activeDate),
     slackResultNotifiedAt: previous.slackResultNotifiedAt ?? null,
   };
+  return { payload, retained, recordList };
+}
+
+export async function rebuildSavedPredictions() {
+  const entries = await readDailyPredictionFiles();
+  const activeDate = getJstOperationalDate();
+  let previous = {};
+  try {
+    previous = JSON.parse(await readFile(savedPredictionsPath, "utf8"));
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+  const { payload, retained, recordList } = buildSavedPredictionsPayload({
+    entries,
+    previous,
+    activeDate,
+  });
   const changed = await writeIfChanged(savedPredictionsPath, serializeJson(payload));
   return {
     changed,

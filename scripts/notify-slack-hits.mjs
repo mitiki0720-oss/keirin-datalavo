@@ -58,6 +58,11 @@ function normalizeVenueName(value) {
     .trim();
 }
 
+function normalizeVenueCode(value) {
+  const code = String(value ?? "").normalize("NFKC").trim();
+  return /^\d{2}$/.test(code) ? code : "";
+}
+
 function getBetTypeKind(betType) {
   const text = String(betType ?? "");
 
@@ -190,6 +195,10 @@ function makeVenueName(venue) {
   return venue?.venue ?? venue?.venueName ?? venue?.name ?? venue?.trackName ?? "";
 }
 
+function makeVenueCode(venue) {
+  return normalizeVenueCode(venue?.venueCode ?? venue?.venue_code ?? venue?.code);
+}
+
 function makeRaceNumber(race) {
   const raceNo = Number(race?.raceNumber ?? race?.raceNo);
   return Number.isFinite(raceNo) && raceNo > 0 ? raceNo : undefined;
@@ -235,7 +244,8 @@ function buildRaceIndex(todayFeed) {
       const raceId = normalizeRaceId(race?.raceId ?? race?.race_id ?? (raceNo ? venue?.raceIds?.[raceNo - 1] : ""));
       const date = race?.date ?? makeVenueDate(todayFeed, venue);
       const venueName = makeVenueName(venue);
-      const raceInfo = { venue, race, date, raceId, venueName, raceNo };
+      const venueCode = makeVenueCode(venue);
+      const raceInfo = { venue, race, date, raceId, venueName, venueCode, raceNo };
 
       for (const key of makeRaceLookupKeys(race, venue, todayFeed)) {
         if (!raceMap.has(key)) raceMap.set(key, raceInfo);
@@ -452,6 +462,7 @@ function resolveSettledResult(slot, raceInfo) {
   return {
     status: hitTicket ? "hit" : "miss",
     venue: raceInfo.venueName,
+    venueCode: raceInfo.venueCode,
     raceNo: raceInfo.raceNo,
     date: raceInfo.date,
     raceId: raceInfo.raceId,
@@ -496,6 +507,58 @@ function buildHitDedupeKey(result) {
   ].join(":");
 }
 
+function buildRaceNotificationKey(result) {
+  const date = String(result?.date ?? "").trim();
+  const raceNo = Number(result?.raceNo);
+  const venueIdentity = normalizeVenueCode(result?.venueCode) || normalizeVenueName(result?.venue);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !venueIdentity || !Number.isInteger(raceNo) || raceNo < 1) {
+    return "";
+  }
+  return `${date}:${venueIdentity}:${raceNo}:slack-hit-race:v1`;
+}
+
+function prepareNotificationResult(result) {
+  const resultKey = buildResultDedupeKey(result);
+  const hitKey = result.status === "hit" ? buildHitDedupeKey(result) : "";
+  return {
+    ...result,
+    dedupeKey: resultKey,
+    resultKey,
+    hitKey,
+    legacyKey: buildDedupeKey(result),
+    raceNotificationKey: result.status === "hit" ? buildRaceNotificationKey(result) : "",
+  };
+}
+
+function classifyHitNotification(result, notifiedKeys) {
+  const legacyRacePrefix = [
+    result.date,
+    normalizeVenueName(result.venue),
+    result.raceNo,
+  ].join(":") + ":";
+  const legacyHitForSameRace = Array.from(notifiedKeys.hit).some(
+    (key) => String(key).startsWith(legacyRacePrefix),
+  );
+  const alreadyRaceNotified = Boolean(
+    result.raceNotificationKey
+    && notifiedKeys.race.has(result.raceNotificationKey)
+  );
+  const alreadyLegacyNotified = (
+    notifiedKeys.hit.has(result.hitKey)
+    || notifiedKeys.hit.has(result.legacyKey)
+    || notifiedKeys.result.has(result.legacyKey)
+    || legacyHitForSameRace
+  );
+  return {
+    alreadyNotified: alreadyRaceNotified || alreadyLegacyNotified,
+    alreadyRaceNotified,
+    alreadyLegacyNotified,
+    migrateRaceNotificationKey: !alreadyRaceNotified && alreadyLegacyNotified
+      ? result.raceNotificationKey
+      : "",
+  };
+}
+
 function keepTodayDedupeKeys(keys, todayDate) {
   if (!todayDate) return [];
   return Array.from(new Set(
@@ -503,6 +566,38 @@ function keepTodayDedupeKeys(keys, todayDate) {
       .map((key) => String(key ?? "").trim())
       .filter((key) => key.startsWith(`${todayDate}:`)),
   ));
+}
+
+function buildNextNotificationState({
+  todayDate,
+  retainedResultKeys,
+  retainedHitKeys,
+  retainedRaceKeys,
+  missResults,
+  hitResults,
+  successfulHitKeys,
+  migratedRaceKeys,
+}) {
+  const successfulHitKeySet = new Set(successfulHitKeys);
+  const successfulHitResults = hitResults.filter((result) => successfulHitKeySet.has(result.hitKey));
+  const processedResultKeys = [
+    ...missResults.map((result) => result.resultKey),
+    ...successfulHitResults.map((result) => result.resultKey),
+  ];
+  const successfulRaceKeys = successfulHitResults
+    .map((result) => result.raceNotificationKey)
+    .filter(Boolean);
+
+  return {
+    resultKeys: keepTodayDedupeKeys([...retainedResultKeys, ...processedResultKeys], todayDate),
+    hitKeys: keepTodayDedupeKeys([...retainedHitKeys, ...successfulHitKeys], todayDate),
+    raceKeys: keepTodayDedupeKeys(
+      [...retainedRaceKeys, ...migratedRaceKeys, ...successfulRaceKeys],
+      todayDate,
+    ),
+    processedResultKeys,
+    successfulRaceKeys,
+  };
 }
 
 async function loadJson(filePath, fallback) {
@@ -514,13 +609,14 @@ async function loadJson(filePath, fallback) {
   }
 }
 
-async function writePayloadWithNotifiedKeys(predictionsPayload, resultKeys, hitKeys) {
+async function writePayloadWithNotifiedKeys(predictionsPayload, resultKeys, hitKeys, raceKeys) {
   await fs.writeFile(
     PREDICTIONS_FILE,
     `${JSON.stringify({
       ...predictionsPayload,
       notifiedSlackResultKeys: resultKeys,
       notifiedSlackHitKeys: hitKeys,
+      notifiedSlackRaceKeys: raceKeys,
     }, null, 2)}\n`,
     "utf-8",
   );
@@ -950,22 +1046,29 @@ async function main() {
     predictionsPayload?.notifiedSlackHitKeys,
     todayDate,
   );
+  const retainedNotifiedSlackRaceKeys = keepTodayDedupeKeys(
+    predictionsPayload?.notifiedSlackRaceKeys,
+    todayDate,
+  );
 
   const slots = findSlotRecords(predictionsPayload);
   const raceIndex = buildRaceIndex(todayFeed);
   const notifiedResultKeys = new Set(retainedNotifiedSlackResultKeys);
   const notifiedHitKeys = new Set(retainedNotifiedSlackHitKeys);
+  const notifiedRaceKeys = new Set(retainedNotifiedSlackRaceKeys);
   const stats = {
     predictionRecordCount: slots.length,
     todayVenueCount: todayFeed?.venues?.length ?? 0,
     raceIndexCount: raceIndex.size,
-    hasNotifiedKeys: notifiedResultKeys.size > 0 || notifiedHitKeys.size > 0,
+    hasNotifiedKeys: notifiedResultKeys.size > 0 || notifiedHitKeys.size > 0 || notifiedRaceKeys.size > 0,
     skippedOldPredictions: 0,
     unmatchedTodayPredictions: 0,
     matchedPredictions: 0,
     pendingResults: 0,
+    missingStableRaceIdentity: 0,
     alreadyNotified: 0,
     skippedAlreadyNotifiedHits: 0,
+    skippedDuplicateRaceHits: 0,
     skippedAlreadyProcessedResults: 0,
     notifiedHit: 0,
     notifiedMiss: 0,
@@ -975,6 +1078,8 @@ async function main() {
   };
 
   const results = [];
+  const migratedRaceKeys = [];
+  const plannedRaceNotificationKeys = new Set();
 
   for (const slot of slots) {
     if (todayDate && slot?.date !== todayDate) {
@@ -1008,28 +1113,51 @@ async function main() {
       continue;
     }
 
-    const legacyKey = buildDedupeKey(result);
-    const resultKey = buildResultDedupeKey(result);
-    const hitKey = result.status === "hit" ? buildHitDedupeKey(result) : "";
-    const alreadyHitNotified =
-      result.status === "hit"
-      && (
-        notifiedHitKeys.has(hitKey)
-        || notifiedHitKeys.has(legacyKey)
-        || notifiedResultKeys.has(legacyKey)
-      );
-    const alreadyResultProcessed = result.status !== "hit" && notifiedResultKeys.has(resultKey);
+    const preparedResult = prepareNotificationResult(result);
+    if (result.status === "hit" && !preparedResult.raceNotificationKey) {
+      stats.missingStableRaceIdentity += 1;
+      console.warn(`${LOG_PREFIX} skip hit without stable race identity`, {
+        date: result.date,
+        venue: result.venue,
+        venueCode: result.venueCode,
+        raceNo: result.raceNo,
+      });
+      continue;
+    }
+    const hitNotificationState = result.status === "hit"
+      ? classifyHitNotification(preparedResult, {
+        result: notifiedResultKeys,
+        hit: notifiedHitKeys,
+        race: notifiedRaceKeys,
+      })
+      : null;
+    const alreadyHitNotified = hitNotificationState?.alreadyNotified ?? false;
+    const alreadyResultProcessed = result.status !== "hit"
+      && notifiedResultKeys.has(preparedResult.resultKey);
 
     if (alreadyHitNotified || alreadyResultProcessed) {
       stats.alreadyNotified += 1;
-      if (alreadyHitNotified) stats.skippedAlreadyNotifiedHits += 1;
+      if (alreadyHitNotified) {
+        stats.skippedAlreadyNotifiedHits += 1;
+        if (hitNotificationState.migrateRaceNotificationKey) {
+          migratedRaceKeys.push(hitNotificationState.migrateRaceNotificationKey);
+        }
+      }
       if (alreadyResultProcessed) stats.skippedAlreadyProcessedResults += 1;
       continue;
     }
 
-    if (result.status === "hit") stats.notifiedHit += 1;
+    if (result.status === "hit" && plannedRaceNotificationKeys.has(preparedResult.raceNotificationKey)) {
+      stats.skippedDuplicateRaceHits += 1;
+      continue;
+    }
+
+    if (result.status === "hit") {
+      plannedRaceNotificationKeys.add(preparedResult.raceNotificationKey);
+      stats.notifiedHit += 1;
+    }
     if (result.status === "miss") stats.notifiedMiss += 1;
-    results.push({ ...result, dedupeKey: resultKey, resultKey, hitKey, legacyKey });
+    results.push(preparedResult);
   }
 
   console.log(`${LOG_PREFIX} loaded`, {
@@ -1046,8 +1174,10 @@ async function main() {
   console.log(`${LOG_PREFIX} unmatched today predictions: ${stats.unmatchedTodayPredictions}`);
   console.log(`${LOG_PREFIX} no-ticket predictions: ${stats.noTicketPredictions}`);
   console.log(`${LOG_PREFIX} pending results: ${stats.pendingResults}`);
+  console.log(`${LOG_PREFIX} missing stable race identity: ${stats.missingStableRaceIdentity}`);
   console.log(`${LOG_PREFIX} already notified: ${stats.alreadyNotified}`);
   console.log(`${LOG_PREFIX} skipped already-notified hits: ${stats.skippedAlreadyNotifiedHits}`);
+  console.log(`${LOG_PREFIX} skipped duplicate same-run hits: ${stats.skippedDuplicateRaceHits}`);
   console.log(`${LOG_PREFIX} skipped already-processed results: ${stats.skippedAlreadyProcessedResults}`);
   console.log(`${LOG_PREFIX} notified hit: ${stats.notifiedHit}`);
   console.log(`${LOG_PREFIX} notified miss: ${stats.notifiedMiss}`);
@@ -1072,20 +1202,30 @@ async function main() {
       Array.isArray(predictionsPayload?.notifiedSlackHitKeys)
         ? predictionsPayload.notifiedSlackHitKeys.length
         : 0
+    )
+    || retainedNotifiedSlackRaceKeys.length !== (
+      Array.isArray(predictionsPayload?.notifiedSlackRaceKeys)
+        ? predictionsPayload.notifiedSlackRaceKeys.length
+        : 0
     );
 
   const slackResult = await postToSlack(hitResults);
-  const successfulHitKeySet = new Set(slackResult.successfulHitKeys);
-  const processedResultKeys = [
-    ...missResults.map((result) => result.resultKey),
-    ...hitResults
-      .filter((result) => successfulHitKeySet.has(result.hitKey))
-      .map((result) => result.resultKey),
-  ];
+  const nextState = buildNextNotificationState({
+    todayDate,
+    retainedResultKeys: retainedNotifiedSlackResultKeys,
+    retainedHitKeys: retainedNotifiedSlackHitKeys,
+    retainedRaceKeys: retainedNotifiedSlackRaceKeys,
+    missResults,
+    hitResults,
+    successfulHitKeys: slackResult.successfulHitKeys,
+    migratedRaceKeys,
+  });
 
   console.log(`${LOG_PREFIX} processed key plan`, {
-    processedResultKeyCount: processedResultKeys.length,
+    processedResultKeyCount: nextState.processedResultKeys.length,
     successfulHitKeyCount: slackResult.successfulHitKeys.length,
+    successfulRaceKeyCount: nextState.successfulRaceKeys.length,
+    migratedRaceKeyCount: migratedRaceKeys.length,
     failedHitKeyCount: slackResult.failedHitKeys.length,
     dryRun: DRY_RUN,
   });
@@ -1095,27 +1235,23 @@ async function main() {
     return;
   }
 
-  const nextResultKeys = keepTodayDedupeKeys(
-    [
-      ...retainedNotifiedSlackResultKeys,
-      ...processedResultKeys,
-    ],
-    todayDate,
-  );
-  const nextHitKeys = keepTodayDedupeKeys(
-    [
-      ...retainedNotifiedSlackHitKeys,
-      ...slackResult.successfulHitKeys,
-    ],
-    todayDate,
-  );
-
-  if (shouldPruneStoredKeys || processedResultKeys.length > 0 || slackResult.successfulHitKeys.length > 0) {
-    await writePayloadWithNotifiedKeys(predictionsPayload, nextResultKeys, nextHitKeys);
+  if (
+    shouldPruneStoredKeys
+    || nextState.processedResultKeys.length > 0
+    || slackResult.successfulHitKeys.length > 0
+    || migratedRaceKeys.length > 0
+  ) {
+    await writePayloadWithNotifiedKeys(
+      predictionsPayload,
+      nextState.resultKeys,
+      nextState.hitKeys,
+      nextState.raceKeys,
+    );
     console.log(`${LOG_PREFIX} Updated notified keys`, {
-      resultKeyCount: nextResultKeys.length,
-      hitKeyCount: nextHitKeys.length,
-      processedResultKeyCount: processedResultKeys.length,
+      resultKeyCount: nextState.resultKeys.length,
+      hitKeyCount: nextState.hitKeys.length,
+      raceKeyCount: nextState.raceKeys.length,
+      processedResultKeyCount: nextState.processedResultKeys.length,
       failedHitKeyCount: slackResult.failedHitKeys.length,
     });
   } else {
@@ -1132,6 +1268,11 @@ export const slackDeliveryTestApi = {
   MAX_429_RETRY_COUNT,
   buildSlackBlockPayload,
   buildSlackPlainTextPayload,
+  buildRaceNotificationKey,
+  prepareNotificationResult,
+  classifyHitNotification,
+  buildNextNotificationState,
+  keepTodayDedupeKeys,
   parseRetryAfterSeconds,
   postToSlack,
 };
