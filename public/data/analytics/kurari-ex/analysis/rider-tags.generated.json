@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-21T23:57:26.990Z",
+  "generatedAt": "2026-08-27T12:20:58.340Z",
   "source": "kurari-ex-rider-score-v1",
   "sourceType": "EXACT_RIDER_SCORE",
   "period": {
     "from": "2026-05-09",
-    "to": "2026-08-14"
+    "to": "2026-08-26"
   },
-  "riderCount": 1915,
+  "riderCount": 2116,
   "qualityCounts": {
-    "complete": 8,
-    "partial": 1624,
-    "low-sample": 260,
-    "identity-only": 23
+    "complete": 18,
+    "partial": 1864,
+    "low-sample": 222,
+    "identity-only": 12
   },
   "inclusionPolicy": {
     "riders": "include-all-known-riders",
@@ -25,49 +25,49 @@
       "tag": "ROLE_MISSING",
       "label": "役割欠損あり",
       "memo": "ライン・役割情報が一部不足している。",
-      "riderCount": 1829
+      "riderCount": 2012
     },
     {
       "tag": "PARTIAL_DATA",
       "label": "部分データ",
       "memo": "一部データ不足があるため評価を弱めて扱う。",
-      "riderCount": 1624
+      "riderCount": 1864
     },
     {
       "tag": "CONFIRMED_START_SHORT",
       "label": "出走数不足",
       "memo": "confirmedStartCount が5未満。",
-      "riderCount": 283
+      "riderCount": 234
     },
     {
       "tag": "LOW_SAMPLE_GROWING",
       "label": "低サンプル育成中",
       "memo": "出走数が少ないため、消さずに育成中として保持する。",
-      "riderCount": 260
+      "riderCount": 222
     },
     {
       "tag": "TOP3_CANDIDATE",
       "label": "3着候補",
       "memo": "3連対率が高く、3着保護候補に使える。",
-      "riderCount": 114
+      "riderCount": 147
     },
     {
       "tag": "TOP2_CANDIDATE",
       "label": "2着候補",
       "memo": "2連対率が一定以上で、2着候補に使える。",
-      "riderCount": 99
-    },
-    {
-      "tag": "IDENTITY_ONLY_GROWING",
-      "label": "IDのみ育成中",
-      "memo": "選手IDのみ保持。出走実績が入ったら評価を育てる。",
-      "riderCount": 23
+      "riderCount": 128
     },
     {
       "tag": "COMPLETE_PROFILE",
       "label": "分析可能",
       "memo": "出走実績があり、条件別評価に使いやすい。",
-      "riderCount": 8
+      "riderCount": 18
+    },
+    {
+      "tag": "IDENTITY_ONLY_GROWING",
+      "label": "IDのみ育成中",
+      "memo": "選手IDのみ保持。出走実績が入ったら評価を育てる。",
+      "riderCount": 12
     }
   ]
 }
