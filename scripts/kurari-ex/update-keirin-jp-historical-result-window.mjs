@@ -192,6 +192,26 @@ function gitStatusPaths(lines) {
   });
 }
 
+function isAllowedHistoryGitPath(filePath) {
+  const normalized = filePath.replaceAll("\\", "/");
+  return normalized === ALLOWED_HISTORY_PATH
+    || normalized.startsWith(`${ALLOWED_HISTORY_PATH}/`);
+}
+
+export function filterProtectedGitStatusLines(lines) {
+  return lines.filter((line) => {
+    const paths = gitStatusPaths([line]);
+    return paths.length === 0
+      || paths.some((filePath) => !isAllowedHistoryGitPath(filePath));
+  });
+}
+
+async function protectedGitStatus() {
+  return filterProtectedGitStatusLines(
+    await gitStatus(DRY_RUN_PROTECTED_PATHS),
+  );
+}
+
 async function pathExists(filePath) {
   try {
     await access(filePath);
@@ -501,6 +521,8 @@ async function promoteCandidate({
   let newShardCreated = false;
   let indexCommitted = false;
   let oldShardDeleted = false;
+  const allowedBefore = await gitStatus([ALLOWED_HISTORY_PATH]);
+  const allowedBaselinePaths = new Set(gitStatusPaths(allowedBefore));
   try {
     await mkdir(path.dirname(targetPath), { recursive: true });
     await writeFile(
@@ -538,6 +560,7 @@ async function promoteCandidate({
     }
     const allowedAfter = await gitStatus([ALLOWED_HISTORY_PATH]);
     const allowedPaths = new Set([
+      ...allowedBaselinePaths,
       path.relative(REPO_ROOT, INDEX_PATH).replaceAll("\\", "/"),
       path.relative(REPO_ROOT, targetPath).replaceAll("\\", "/"),
       path.relative(REPO_ROOT, removalPath).replaceAll("\\", "/"),
@@ -883,7 +906,7 @@ async function inspectCandidate(options, tempRoot, protectedBefore) {
     shards,
   );
   const loaderRejectedCount = loaderResult.availability.rejectedRaceCount;
-  const protectedAfter = await gitStatus(DRY_RUN_PROTECTED_PATHS);
+  const protectedAfter = await protectedGitStatus();
   const protectedDiff = [
     ...new Set([...protectedBefore, ...protectedAfter]),
   ];
@@ -1044,7 +1067,7 @@ async function main() {
 
   let tempRoot = null;
   try {
-    const protectedBefore = await gitStatus(DRY_RUN_PROTECTED_PATHS);
+    const protectedBefore = await protectedGitStatus();
     tempRoot = await mkdtemp(
       path.join(tmpdir(), "kurari-ex-historical-window-"),
     );
