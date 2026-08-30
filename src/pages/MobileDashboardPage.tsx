@@ -12,7 +12,8 @@ import {
   findPredictionSlotRecord,
   getFavoriteRiderRaceLabel,
   getGradeBadgeTone,
-  getPredictionResultAggregate,
+  getPredictionSessionGroupKey,
+  getPredictionTimeMinutes,
   getPredictionVenueStageLabel,
   getSessionLabel,
   loadCachedFavoriteRiderFeed,
@@ -46,6 +47,7 @@ type PublicPredictionSlotsFile = {
 };
 
 const PUBLIC_PREDICTION_SLOTS_URL = toPublicPath("/data/predictions/saved-predictions.generated.json");
+const MOBILE_DASHBOARD_POLL_INTERVAL_MS = 60_000;
 
 const mobilePageShellStyle: CSSProperties = {
   width: "100%",
@@ -170,13 +172,45 @@ const getMobileResultTopCombination = (resultOrder: string, count: number) => {
 };
 
 const getMobileRaceResultOrderText = (race?: PredictionRaceItem | null) => {
-  const finishOrder = race?.result?.finishOrder?.filter(Boolean) ?? [];
+  const finishOrder = (race?.result?.finishOrder ?? [])
+    .map((item) =>
+      typeof item === "string"
+        ? item.trim()
+        : String(item?.carNo ?? "").trim()
+    )
+    .filter(Boolean);
   if (finishOrder.length >= 3) return finishOrder.slice(0, 3).join("-");
 
   const top3Order = race?.resultTop3?.map((item) => item.carNo).filter(Boolean) ?? [];
   if (top3Order.length >= 3) return top3Order.slice(0, 3).join("-");
 
   return "";
+};
+
+const getMobilePredictionEvaluation = (slot: PredictionSlotMap[string] | undefined) => {
+  const tickets = slot?.predictionJson?.tickets ?? [];
+  const betPlan = slot?.predictionJson?.betPlan;
+
+  if (betPlan?.status === "structured") {
+    const purchaseIndices = new Set(
+      betPlan.purchaseTicketIndices.map((index) => String(index ?? "").trim()).filter(Boolean)
+    );
+    const unitStakeYen = Number.isFinite(Number(betPlan.unitStakeYen)) && Number(betPlan.unitStakeYen) > 0
+      ? Number(betPlan.unitStakeYen)
+      : 100;
+
+    return {
+      tickets: tickets.filter((ticket) => purchaseIndices.has(String(ticket.index ?? "").trim())),
+      unitStakeYen,
+      hasExplicitBetPlan: true,
+    };
+  }
+
+  return {
+    tickets,
+    unitStakeYen: 100,
+    hasExplicitBetPlan: false,
+  };
 };
 
 const resolveMobileStructuredPredictionHit = (
@@ -187,7 +221,7 @@ const resolveMobileStructuredPredictionHit = (
   hitBetType?: "3連単" | "2車単";
   hitCombination?: string;
 } => {
-  const tickets = slot?.predictionJson?.tickets ?? [];
+  const { tickets } = getMobilePredictionEvaluation(slot);
   if (!resultOrder || tickets.length === 0) return { status: "pending" };
 
     const resultTop3 = getMobileResultTopCombination(resultOrder, 3);
@@ -231,8 +265,14 @@ const buildMobileAutoPredictionResultMap = (
       const slot = slotLookup.record;
       if (!slot) return;
 
+      const isConfirmed = race.resultStatus === "confirmed" || race.result?.status === "confirmed";
+      if (!isConfirmed) return;
+
       const resultOrder = getMobileRaceResultOrderText(race);
       if (!resultOrder) return;
+
+      const evaluation = getMobilePredictionEvaluation(slot);
+      if (evaluation.tickets.length === 0) return;
 
       const hitDetail = resolveMobileStructuredPredictionHit(slot, resultOrder);
       const hitStatus = hitDetail.status;
@@ -244,9 +284,11 @@ const buildMobileAutoPredictionResultMap = (
             ? parsePredictionPayoutAmount(race.result?.payout3tan?.payout)
             : undefined;
 
-      const payout = resolvePredictionEffectivePayout(hitStatus, rawPayout);
-      const ticketCount = slot.predictionJson?.tickets.length ?? 0;
-      const investment = ticketCount > 0 ? ticketCount * 100 : undefined;
+      const basePayout = resolvePredictionEffectivePayout(hitStatus, rawPayout);
+      const payout = basePayout === undefined
+        ? undefined
+        : Math.round(basePayout * (evaluation.unitStakeYen / 100));
+      const investment = evaluation.tickets.length * evaluation.unitStakeYen;
       const profitLoss =
         investment !== undefined && payout !== undefined
           ? payout - investment
@@ -274,7 +316,7 @@ const buildMobileAutoPredictionResultMap = (
         roi,
         weatherActual: race.result?.weatherActual,
         memo: "モバイル公開JSONから自動照合",
-        savedAt: new Date().toISOString(),
+        savedAt: race.result?.finalizedAt ?? new Date().toISOString(),
       };
 
       nextMap[resultRecord.raceKey] = resultRecord;
@@ -282,6 +324,129 @@ const buildMobileAutoPredictionResultMap = (
   });
 
   return nextMap;
+};
+
+type MobileTodaySummary = {
+  savedRaceCount: number;
+  hitCount: number;
+  missCount: number;
+  settledRaceCount: number;
+  pendingCount: number;
+  investment?: number;
+  payout?: number;
+  profitLoss?: number;
+  hitRate?: number;
+  roi?: number;
+};
+
+type MobileVenueSummary = MobileTodaySummary & {
+  venue: string;
+};
+
+const getUniqueRecordsByRaceKey = <T extends { raceKey: string }>(records: T[]) => (
+  [...new Map(records.map((record) => [record.raceKey, record])).values()]
+);
+
+const buildMobileTodaySummary = (
+  slotMap: PredictionSlotMap,
+  resultMap: PredictionResultMap,
+  targetDate: string
+): MobileTodaySummary => {
+  const todaySlots = getUniqueRecordsByRaceKey(
+    Object.values(slotMap).filter((slot) => slot.date === targetDate)
+  );
+  const settledResults = getUniqueRecordsByRaceKey(
+    Object.values(resultMap).filter(
+      (result) => result.date === targetDate && (result.hitStatus === "hit" || result.hitStatus === "miss")
+    )
+  );
+  const hitCount = settledResults.filter((result) => result.hitStatus === "hit").length;
+  const settledRaceCount = settledResults.length;
+
+  if (settledRaceCount === 0) {
+    return {
+      savedRaceCount: todaySlots.length,
+      hitCount: 0,
+      missCount: 0,
+      settledRaceCount: 0,
+      pendingCount: todaySlots.length,
+    };
+  }
+
+  const investment = settledResults.reduce((sum, result) => sum + (result.investment ?? 0), 0);
+  const payout = settledResults.reduce(
+    (sum, result) => sum + (resolvePredictionEffectivePayout(result.hitStatus, result.payout) ?? 0),
+    0
+  );
+
+  return {
+    savedRaceCount: todaySlots.length,
+    hitCount,
+    missCount: settledRaceCount - hitCount,
+    settledRaceCount,
+    pendingCount: Math.max(0, todaySlots.length - settledRaceCount),
+    investment,
+    payout,
+    profitLoss: payout - investment,
+    hitRate: (hitCount / settledRaceCount) * 100,
+    roi: investment > 0 ? (payout / investment) * 100 : undefined,
+  };
+};
+
+const buildMobileTodayVenueSummaryMap = (
+  slotMap: PredictionSlotMap,
+  resultMap: PredictionResultMap,
+  targetDate: string
+) => {
+  const venueNames = new Set<string>();
+  Object.values(slotMap).forEach((slot) => {
+    if (slot.date === targetDate) venueNames.add(normalizePredictionVenueName(slot.venue));
+  });
+  Object.values(resultMap).forEach((result) => {
+    if (result.date === targetDate) venueNames.add(normalizePredictionVenueName(result.venue));
+  });
+
+  return Object.fromEntries(
+    [...venueNames].map((venueKey) => {
+      const venueSlots = Object.fromEntries(
+        Object.entries(slotMap).filter(([, slot]) =>
+          slot.date === targetDate && normalizePredictionVenueName(slot.venue) === venueKey
+        )
+      );
+      const venueResults = Object.fromEntries(
+        Object.entries(resultMap).filter(([, result]) =>
+          result.date === targetDate && normalizePredictionVenueName(result.venue) === venueKey
+        )
+      );
+      const summary = buildMobileTodaySummary(venueSlots, venueResults, targetDate);
+      const venue = Object.values(venueSlots)[0]?.venue ?? Object.values(venueResults)[0]?.venue ?? venueKey;
+      return [venueKey, { ...summary, venue } satisfies MobileVenueSummary];
+    })
+  ) as Record<string, MobileVenueSummary>;
+};
+
+const buildMobileHitLogItems = (resultMap: PredictionResultMap, targetDate: string) => {
+  const uniqueHits = new Map<string, PredictionResultRecord>();
+  Object.values(resultMap)
+    .filter((item) => item.date === targetDate && item.hitStatus === "hit")
+    .forEach((item) => {
+      const existing = uniqueHits.get(item.raceKey);
+      if (!existing || existing.savedAt.localeCompare(item.savedAt) < 0) {
+        uniqueHits.set(item.raceKey, item);
+      }
+    });
+
+  return [...uniqueHits.values()]
+    .sort((a, b) => b.savedAt.localeCompare(a.savedAt))
+    .slice(0, 12)
+    .map((item) => ({
+      id: item.raceKey,
+      venue: item.venue,
+      raceNumber: item.raceNumber,
+      hitBetType: item.hitBetType,
+      hitCombination: item.hitCombination,
+      profitLoss: item.profitLoss,
+    }));
 };
 
 const formatYen = (value?: number) => {
@@ -312,6 +477,65 @@ const getFirstRaceTimeLabel = (venue?: PredictionVenueItem) => {
   const firstRaceTime = venue?.races?.[0]?.time;
   if (!firstRaceTime) return "時刻確認中";
   return `${firstRaceTime}開始`;
+};
+
+type MobileVenueTimeBand = "morning" | "day" | "night" | "midnight";
+
+const getMobileVenueTimeBand = (
+  race: DashboardTodayRaceCard,
+  predictionVenue?: PredictionVenueItem
+): MobileVenueTimeBand => {
+  if (predictionVenue) return getPredictionSessionGroupKey(predictionVenue);
+  if (race.session === "midnight") return "midnight";
+  if (race.session === "night") return "night";
+  if (`${race.title ?? ""} ${race.note ?? ""}`.includes("モーニング")) return "morning";
+  return "day";
+};
+
+const getMobileVenueTimeBandLabel = (
+  race: DashboardTodayRaceCard,
+  predictionVenue?: PredictionVenueItem
+) => {
+  const labels: Record<MobileVenueTimeBand, string> = {
+    morning: "モーニング",
+    day: "デイ",
+    night: "ナイター",
+    midnight: "ミッドナイト",
+  };
+  return labels[getMobileVenueTimeBand(race, predictionVenue)];
+};
+
+const compareMobileDashboardVenues = (
+  a: DashboardTodayRaceCard,
+  b: DashboardTodayRaceCard,
+  predictionVenueMap: Map<string, PredictionVenueItem>,
+  sourceOrderMap: Map<string, number>
+) => {
+  const priority: Record<MobileVenueTimeBand, number> = {
+    morning: 0,
+    day: 1,
+    night: 2,
+    midnight: 3,
+  };
+  const aKey = normalizePredictionVenueName(a.venue);
+  const bKey = normalizePredictionVenueName(b.venue);
+  const aVenue = predictionVenueMap.get(aKey);
+  const bVenue = predictionVenueMap.get(bKey);
+  const bandDiff = priority[getMobileVenueTimeBand(a, aVenue)] - priority[getMobileVenueTimeBand(b, bVenue)];
+  if (bandDiff !== 0) return bandDiff;
+
+  const aTime = getPredictionTimeMinutes(aVenue?.races[0]?.time);
+  const bTime = getPredictionTimeMinutes(bVenue?.races[0]?.time);
+  if (aTime !== null && bTime !== null && aTime !== bTime) return aTime - bTime;
+  if (aTime !== null && bTime === null) return -1;
+  if (aTime === null && bTime !== null) return 1;
+
+  const gradeDiff = compareRaces(a, b);
+  if (gradeDiff !== 0) return gradeDiff;
+
+  const venueDiff = a.venue.localeCompare(b.venue, "ja");
+  if (venueDiff !== 0) return venueDiff;
+  return (sourceOrderMap.get(aKey) ?? 0) - (sourceOrderMap.get(bKey) ?? 0);
 };
 
 const clipMobilePredictionText = (value?: string | null) => {
@@ -864,6 +1088,117 @@ function MobileHitTicker({
   );
 }
 
+function MobileVenueListCard({
+  race,
+  predictionVenue,
+  savedRaceCount,
+  hasFavoriteVenue,
+  onSelect,
+}: {
+  race: DashboardTodayRaceCard;
+  predictionVenue?: PredictionVenueItem;
+  savedRaceCount: number;
+  hasFavoriteVenue: boolean;
+  onSelect: () => void;
+}) {
+  const gradeTone = getGradeBadgeTone(race.displayGradeLabel ?? race.grade);
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      style={{
+        width: "100%",
+        borderRadius: "24px",
+        padding: "15px",
+        background: hasFavoriteVenue
+          ? "linear-gradient(135deg, #fffafe 0%, #f7f1ff 54%, #f5fbff 100%)"
+          : "linear-gradient(135deg, #ffffff 0%, #faf7ff 58%, #f7fbff 100%)",
+        border: hasFavoriteVenue ? "1px solid #e5c6d7" : "1px solid #e7ddf5",
+        boxShadow: "0 10px 24px rgba(39, 33, 72, 0.07)",
+        color: "#081224",
+        display: "grid",
+        gap: "11px",
+        textAlign: "left",
+        cursor: "pointer",
+        minWidth: 0,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
+        <div style={{ display: "grid", gap: "7px", minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "7px", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "18px", lineHeight: 1.15, fontWeight: 950, overflowWrap: "anywhere" }}>
+              {race.venue}
+            </span>
+            <span
+              style={{
+                borderRadius: "7px",
+                padding: "3px 7px",
+                fontSize: "10px",
+                fontWeight: 950,
+                background: gradeTone.background,
+                color: gradeTone.text,
+                border: `1px solid ${gradeTone.border}`,
+                boxShadow: gradeTone.shadow,
+              }}
+            >
+              {race.displayGradeLabel ?? race.grade}
+            </span>
+            {hasFavoriteVenue && <span style={{ color: "#e56b93", fontSize: "11px", fontWeight: 950 }}>❤ PUSH</span>}
+          </div>
+          <span style={{ color: "#526072", fontSize: "11px", lineHeight: 1.55, fontWeight: 800 }}>
+            {getMobileVenueTimeBandLabel(race, predictionVenue)} ・ {getPredictionVenueStageLabel(race, TODAY)}
+          </span>
+        </div>
+
+        <span
+          style={{
+            flexShrink: 0,
+            borderRadius: "9999px",
+            padding: "9px 11px",
+            background: "linear-gradient(135deg, #00856f 0%, #13a88d 100%)",
+            color: "#ffffff",
+            fontSize: "11px",
+            fontWeight: 950,
+            boxShadow: "0 9px 18px rgba(0,133,111,0.2)",
+          }}
+        >
+          見る ›
+        </span>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "7px" }}>
+        {[
+          { label: "初回発走", value: getFirstRaceTimeLabel(predictionVenue) },
+          { label: "レース", value: getVenueRaceCountLabel(predictionVenue) },
+          { label: "結果", value: getVenueResultLabel(predictionVenue) },
+          { label: "保存予想", value: `${savedRaceCount}R` },
+        ].map((item) => (
+          <span
+            key={`${race.venue}-${item.label}`}
+            style={{
+              borderRadius: "14px",
+              padding: "8px 9px",
+              background: "rgba(255,255,255,0.78)",
+              border: "1px solid rgba(231,221,245,0.95)",
+              color: "#334155",
+              fontSize: "10px",
+              lineHeight: 1.35,
+              fontWeight: 900,
+              overflowWrap: "anywhere",
+            }}
+          >
+            <span style={{ display: "block", color: "#8c63c7", fontSize: "8px", letterSpacing: "0.1em", marginBottom: "3px" }}>
+              {item.label}
+            </span>
+            {item.value}
+          </span>
+        ))}
+      </div>
+    </button>
+  );
+}
+
 function MobileVenueCard({
   race,
   predictionVenue,
@@ -918,6 +1253,7 @@ function MobileVenueCard({
 
   const selectedSavedPredictionText = clipMobilePredictionText(selectedSavedSlotLookup.record?.predictionText);
   const selectedStructuredPrediction = selectedSavedSlotLookup.record?.predictionJson;
+  const selectedPredictionEvaluation = getMobilePredictionEvaluation(selectedSavedSlotLookup.record);
   const selectedHasSavedPrediction = Boolean(
     selectedSavedPredictionText || (selectedStructuredPrediction?.tickets.length ?? 0) > 0
   );
@@ -926,10 +1262,7 @@ function MobileVenueCard({
     ? getMobileRaceResultTone(selectedVenueRace)
     : { background: "#faf8fd", color: "#64748b", border: "#ede7f5" };
 
-  const selectedResultOrderText =
-    selectedVenueRace?.result?.finishOrder?.length
-      ? selectedVenueRace.result.finishOrder.join("-")
-      : selectedSavedResult?.resultOrder || "";
+  const selectedResultOrderText = getMobileRaceResultOrderText(selectedVenueRace) || selectedSavedResult?.resultOrder || "";
 
   const selectedResultTop3Text = selectedResultOrderText
     ? getMobileResultTopCombination(selectedResultOrderText, 3)
@@ -939,7 +1272,7 @@ function MobileVenueCard({
     ? getMobileResultTopCombination(selectedResultOrderText, 2)
     : "";
 
-  const selectedStructuredHitTicket = selectedStructuredPrediction?.tickets.find((ticket) => {
+  const selectedStructuredHitTicket = selectedPredictionEvaluation.tickets.find((ticket) => {
     if (!selectedResultOrderText) return false;
 
     const normalizedTicketCombination = normalizeMobileBetCombination(ticket.combination);
@@ -957,8 +1290,10 @@ function MobileVenueCard({
   });
 
   const selectedStructuredPredictionResultLabel =
-    !selectedStructuredPrediction || selectedStructuredPrediction.tickets.length === 0
+      !selectedStructuredPrediction || selectedStructuredPrediction.tickets.length === 0
       ? "JSON予想なし"
+      : selectedPredictionEvaluation.hasExplicitBetPlan && selectedPredictionEvaluation.tickets.length === 0
+        ? "購入買い目なし"
       : !selectedResultOrderText
         ? "結果待ち"
         : selectedStructuredHitTicket
@@ -1174,7 +1509,7 @@ const selectedResolvedHitBetType =
           type="button"
           onClick={onToggle}
           style={{
-            width: "78px",
+            width: isOpen ? "102px" : "78px",
             minHeight: "44px",
             borderRadius: "9999px",
             border: isOpen ? "1px solid #d8c9f4" : "1px solid rgba(255,255,255,0.72)",
@@ -1192,7 +1527,7 @@ const selectedResolvedHitBetType =
             flexShrink: 0,
           }}
         >
-          {isOpen ? "閉じる" : "詳細"}
+          {isOpen ? "← 会場一覧" : "詳細"}
         </button>
       </div>
 
@@ -2309,17 +2644,21 @@ export default function MobileDashboardPage() {
   const [localPredictionSlotMap, setLocalPredictionSlotMap] = useState<PredictionSlotMap>(() => loadStoredPredictionSlots());
   const [publicPredictionSlotMap, setPublicPredictionSlotMap] = useState<PredictionSlotMap>({});
   const [feedStatus, setFeedStatus] = useState<"loading" | "ready" | "error">("loading");
-  const [openVenueKey, setOpenVenueKey] = useState<string | null>(null);
+  const [selectedVenueKey, setSelectedVenueKey] = useState<string | null>(null);
   const [selectedCalendarIso, setSelectedCalendarIso] = useState(TODAY);
   const [activeMobileSection, setActiveMobileSection] = useState("mobile-calendar");
+  const currentTodayPredictionFeed = useMemo(
+    () => todayPredictionFeed?.date === TODAY ? todayPredictionFeed : null,
+    [todayPredictionFeed]
+  );
     const predictionSlotMap = useMemo(
     () => mergePredictionSlotMaps(publicPredictionSlotMap, localPredictionSlotMap),
     [publicPredictionSlotMap, localPredictionSlotMap]
   );
 
-    const publicAutoPredictionResultMap = useMemo(
-    () => buildMobileAutoPredictionResultMap(todayPredictionFeed, predictionSlotMap),
-    [todayPredictionFeed, predictionSlotMap]
+  const publicAutoPredictionResultMap = useMemo(
+    () => buildMobileAutoPredictionResultMap(currentTodayPredictionFeed, predictionSlotMap),
+    [currentTodayPredictionFeed, predictionSlotMap]
   );
 
 const resolvedPredictionResultMap = useMemo<PredictionResultMap>(
@@ -2390,8 +2729,21 @@ const resolvedPredictionResultMap = useMemo<PredictionResultMap>(
 
     loadTodayFeed();
 
+    const intervalId = window.setInterval(loadTodayFeed, MOBILE_DASHBOARD_POLL_INTERVAL_MS);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") loadTodayFeed();
+    };
+
+    const handleFocus = () => loadTodayFeed();
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
       isActive = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 
@@ -2469,6 +2821,8 @@ const resolvedPredictionResultMap = useMemo<PredictionResultMap>(
 
     loadPublicSlots();
 
+    const intervalId = window.setInterval(loadPublicSlots, MOBILE_DASHBOARD_POLL_INTERVAL_MS);
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         loadPublicSlots();
@@ -2480,51 +2834,56 @@ const resolvedPredictionResultMap = useMemo<PredictionResultMap>(
 
     return () => {
       isActive = false;
+      window.clearInterval(intervalId);
       window.removeEventListener("focus", loadPublicSlots);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 
-  const dashboardTodayRaces = useMemo(
-    () => mergeTodayRaceCardItems(todayRaces, todayPredictionFeed?.venues ?? []),
-    [todayPredictionFeed]
-  );
-
   const predictionVenueMap = useMemo(
     () =>
       new Map(
-        (todayPredictionFeed?.venues ?? []).map((venue) => [
+        (currentTodayPredictionFeed?.venues ?? []).map((venue) => [
           normalizePredictionVenueName(venue.venue),
           venue,
         ])
       ),
-    [todayPredictionFeed]
+    [currentTodayPredictionFeed]
   );
 
-  const predictionAggregate = useMemo(
-    () => getPredictionResultAggregate(resolvedPredictionResultMap, TODAY),
-    [resolvedPredictionResultMap]
+  const dashboardTodayRaces = useMemo(() => {
+    const mergedRaces = mergeTodayRaceCardItems(todayRaces, currentTodayPredictionFeed?.venues ?? []);
+    const sourceOrderMap = new Map(
+      mergedRaces.map((race, index) => [normalizePredictionVenueName(race.venue), index])
+    );
+    return [...mergedRaces].sort((a, b) =>
+      compareMobileDashboardVenues(a, b, predictionVenueMap, sourceOrderMap)
+    );
+  }, [currentTodayPredictionFeed, predictionVenueMap]);
+
+  useEffect(() => {
+    if (
+      selectedVenueKey &&
+      !dashboardTodayRaces.some((race) => normalizePredictionVenueName(race.venue) === selectedVenueKey)
+    ) {
+      setSelectedVenueKey(null);
+    }
+  }, [dashboardTodayRaces, selectedVenueKey]);
+
+  const todaySummary = useMemo(
+    () => buildMobileTodaySummary(predictionSlotMap, resolvedPredictionResultMap, TODAY),
+    [predictionSlotMap, resolvedPredictionResultMap]
   );
 
-  const todaySummary = predictionAggregate.dailySummary;
-  const todayVenueSummaryMap = predictionAggregate.venueSummaryMap ?? {};
+  const todayVenueSummaryMap = useMemo(
+    () => buildMobileTodayVenueSummaryMap(predictionSlotMap, resolvedPredictionResultMap, TODAY),
+    [predictionSlotMap, resolvedPredictionResultMap]
+  );
   const todayHitLogItems = useMemo(
-    () =>
-      Object.values(resolvedPredictionResultMap)
-        .filter((item) => item.date === TODAY && item.hitStatus === "hit")
-        .sort((a, b) => b.savedAt.localeCompare(a.savedAt))
-        .slice(0, 12)
-        .map((item) => ({
-          id: item.raceKey,
-          venue: item.venue,
-          raceNumber: item.raceNumber,
-          hitBetType: item.hitBetType,
-          hitCombination: item.hitCombination,
-          profitLoss: item.profitLoss,
-        })),
+    () => buildMobileHitLogItems(resolvedPredictionResultMap, TODAY),
     [resolvedPredictionResultMap]
   );
-  const totalRaceCount = todayPredictionFeed?.venues.reduce((sum, venue) => sum + venue.races.length, 0) ?? 0;
+  const totalRaceCount = currentTodayPredictionFeed?.venues.reduce((sum, venue) => sum + venue.races.length, 0) ?? 0;
 
   const mobileMonthCalendar = useMemo(() => buildMobileMonthCalendar(TODAY, raceScheduleData), []);
   const mobileCalendarVenuePreview = dashboardTodayRaces.slice(0, 4).map((item) => item.venue);
@@ -2537,25 +2896,34 @@ const resolvedPredictionResultMap = useMemo<PredictionResultMap>(
 
   const selectedCalendarFavoriteEntries = useMemo(() => {
     if (selectedCalendarIsToday) {
-      const todayFeedEntries = findTodayFavoriteEntriesFromPredictionFeed(todayPredictionFeed);
+      const todayFeedEntries = findTodayFavoriteEntriesFromPredictionFeed(currentTodayPredictionFeed);
       if (todayFeedEntries.length > 0) return todayFeedEntries;
     }
 
     return findFavoriteEntriesFromFeedForDate(favoriteRiderFeed, selectedCalendarIso);
-  }, [favoriteRiderFeed, selectedCalendarIsToday, selectedCalendarIso, todayPredictionFeed]);
+  }, [currentTodayPredictionFeed, favoriteRiderFeed, selectedCalendarIsToday, selectedCalendarIso]);
   const todayFavoriteEntries = useMemo(() => {
-    const todayFeedEntries = findTodayFavoriteEntriesFromPredictionFeed(todayPredictionFeed);
+    const todayFeedEntries = findTodayFavoriteEntriesFromPredictionFeed(currentTodayPredictionFeed);
     if (todayFeedEntries.length > 0) return todayFeedEntries;
 
     return findFavoriteEntriesFromFeedForDate(favoriteRiderFeed, TODAY);
-  }, [favoriteRiderFeed, todayPredictionFeed]);
+  }, [currentTodayPredictionFeed, favoriteRiderFeed]);
   const confirmedRaceCount =
-    todayPredictionFeed?.venues.reduce(
+    currentTodayPredictionFeed?.venues.reduce(
       (sum, venue) =>
         sum +
         venue.races.filter((race) => race.resultStatus === "confirmed" || race.result?.status === "confirmed").length,
       0
     ) ?? 0;
+
+  const selectedDashboardVenue = selectedVenueKey
+    ? dashboardTodayRaces.find((race) => normalizePredictionVenueName(race.venue) === selectedVenueKey)
+    : undefined;
+  const selectedPredictionVenue = selectedVenueKey ? predictionVenueMap.get(selectedVenueKey) : undefined;
+  const selectedVenueSummary = selectedVenueKey ? todayVenueSummaryMap[selectedVenueKey] : undefined;
+  const selectedHasFavoriteVenue = selectedVenueKey
+    ? todayFavoriteEntries.some((entry) => normalizePredictionVenueName(entry.venue) === selectedVenueKey)
+    : false;
 
   const profitTone =
     todaySummary?.profitLoss === undefined
@@ -2564,9 +2932,9 @@ const resolvedPredictionResultMap = useMemo<PredictionResultMap>(
         ? "plus"
         : "minus";
 
-  const scrollToMobileVenueCard = (venueKey: string) => {
+  const scrollToTodayVenues = () => {
     window.setTimeout(() => {
-      const target = document.getElementById(`mobile-venue-card-${venueKey}`);
+      const target = document.getElementById("mobile-today-races");
       if (!target) return;
 
       target.scrollIntoView({
@@ -2576,8 +2944,22 @@ const resolvedPredictionResultMap = useMemo<PredictionResultMap>(
     }, 120);
   };
 
+  const handleMobileVenueSelect = (venueKey: string) => {
+    setSelectedVenueKey(venueKey);
+    scrollToTodayVenues();
+  };
+
+  const handleMobileVenueListReturn = () => {
+    setSelectedVenueKey(null);
+    scrollToTodayVenues();
+  };
+
     const handleMobileNavNavigate = (targetId: string) => {
     setActiveMobileSection(targetId);
+
+    if (targetId === "mobile-today-races") {
+      setSelectedVenueKey(null);
+    }
 
     const target = document.getElementById(targetId);
     if (!target) return;
@@ -2968,9 +3350,17 @@ const resolvedPredictionResultMap = useMemo<PredictionResultMap>(
                         );
 
                         return (
-                          <div
+                          <button
+                            type="button"
                             key={`selected-date-venue-${getMobileSelectedVenueKey(venue)}`}
+                            disabled={!selectedCalendarIsToday}
+                            onClick={() => {
+                              if (selectedCalendarIsToday) {
+                                handleMobileVenueSelect(normalizePredictionVenueName(venue.venue));
+                              }
+                            }}
                             style={{
+                              width: "100%",
                               borderRadius: "18px",
                               padding: "11px 12px",
                               background: hasFavoriteVenue
@@ -2983,6 +3373,9 @@ const resolvedPredictionResultMap = useMemo<PredictionResultMap>(
                               display: "grid",
                               gap: "7px",
                               minWidth: 0,
+                              color: "inherit",
+                              textAlign: "left",
+                              cursor: selectedCalendarIsToday ? "pointer" : "default",
                             }}
                           >
                             <div
@@ -3059,7 +3452,7 @@ const resolvedPredictionResultMap = useMemo<PredictionResultMap>(
                                 </span>
                               )}
                             </div>
-                          </div>
+                          </button>
                         );
                       })}
                     </div>
@@ -3273,13 +3666,28 @@ const resolvedPredictionResultMap = useMemo<PredictionResultMap>(
                     zIndex: 2,
                   }}
                 >
-                  会場カードを開くと、レース一覧・保存済み予想・結果をこのページ内で確認できます。
+                  {selectedDashboardVenue
+                    ? `${selectedDashboardVenue.venue}のレースを1Rずつ確認しています。会場一覧へ戻ると別会場を選べます。`
+                    : "会場を選ぶと、レース一覧・保存済み予想・結果を1会場ずつ確認できます。"}
                 </p>
               </div>
             </div>
 
             <div style={{ display: "grid", gap: "12px" }}>
-              {dashboardTodayRaces.length > 0 ? (
+              {selectedDashboardVenue ? (
+                <MobileVenueCard
+                  key={selectedDashboardVenue.id}
+                  race={selectedDashboardVenue}
+                  predictionVenue={selectedPredictionVenue}
+                  savedRaceCount={selectedVenueSummary?.savedRaceCount}
+                  profitLoss={selectedVenueSummary?.profitLoss}
+                  predictionResultMap={resolvedPredictionResultMap}
+                  predictionSlotMap={predictionSlotMap}
+                  hasFavoriteVenue={selectedHasFavoriteVenue}
+                  isOpen
+                  onToggle={handleMobileVenueListReturn}
+                />
+              ) : dashboardTodayRaces.length > 0 ? (
                 dashboardTodayRaces.map((race) => {
                   const venueKey = normalizePredictionVenueName(race.venue);
                   const predictionVenue = predictionVenueMap.get(venueKey);
@@ -3289,27 +3697,13 @@ const resolvedPredictionResultMap = useMemo<PredictionResultMap>(
                   );
 
                   return (
-                    <MobileVenueCard
+                    <MobileVenueListCard
                       key={race.id}
                       race={race}
                       predictionVenue={predictionVenue}
-                      savedRaceCount={venueSummary?.savedRaceCount}
-                      profitLoss={venueSummary?.profitLoss}
-                      predictionResultMap={resolvedPredictionResultMap}
-                      predictionSlotMap={predictionSlotMap}
+                      savedRaceCount={venueSummary?.savedRaceCount ?? 0}
                       hasFavoriteVenue={hasFavoriteVenue}
-                      isOpen={openVenueKey === venueKey}
-                      onToggle={() => {
-                        setOpenVenueKey((current) => {
-                          const nextVenueKey = current === venueKey ? null : venueKey;
-
-                          if (nextVenueKey) {
-                            scrollToMobileVenueCard(nextVenueKey);
-                          }
-
-                          return nextVenueKey;
-                        });
-                      }}
+                      onSelect={() => handleMobileVenueSelect(venueKey)}
                     />
                   );
                 })
