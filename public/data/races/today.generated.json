@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026/9/2 12:02:42",
+  "generatedAt": "2026/9/2 12:22:24",
   "source": {
     "racecard": "https://keirin.kdreams.jp/racecard/",
     "detailPrimary": "https://keirin.netkeiba.com/race/entry/?race_id=[YYYYMMDD][venueCode][raceNo]&rf=racetoplive",
@@ -36,7 +36,7 @@
       "venueOperationLabel": "",
       "venueOperationReason": "",
       "venueOperationSource": "kdreams:racecard",
-      "venueOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+      "venueOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
       "venueOperationRaw": "弥彦競輪 一覧 1R 2R 3R 4R 5R 6R 7R",
       "raceIds": [
         "2120260902010001",
@@ -60,14 +60,14 @@
           "winticketLineupRaw": "",
           "netkeirinLineupRaw": "",
           "kdreamsLineupRaw": "135 42 67",
-          "raceOperationStatus": "scheduled",
-          "raceOperationLabel": "",
+          "raceOperationStatus": "finished",
+          "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
-          "raceOperationRaw": "",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
+          "raceOperationRaw": "result confirmed",
           "isGirls": false,
-          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/yahiko/racedetail/2120260902010001/ / lineFallback: kdreams lineup accepted",
+          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/yahiko/racedetail/2120260902010001/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/yahiko/racedetail/2120260902010001/?pageType=result",
           "lead": "",
           "oddsPreview": [
             {
@@ -1192,24 +1192,213 @@
           "topTrifectaOdds": 9.2,
           "favoriteOdds": 9.2,
           "favoriteCombination": "1-3-5",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
-          "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/yahiko/racedetail/2120260902010001/?pageType=result / resultFallback: oddspark disabled by source policy",
-          "resultStatus": "pending",
-          "resultTop3": [],
-          "payouts": [],
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / odds skipped outside lineup window",
+          "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/yahiko/racedetail/2120260902010001/?pageType=result",
+          "resultStatus": "confirmed",
+          "resultTop3": [
+            {
+              "place": "1",
+              "carNo": "1",
+              "name": "高谷 敏史",
+              "margin": "",
+              "agari": "11.7",
+              "kimarite": "捲",
+              "sMark": false,
+              "hMark": false,
+              "bMark": false
+            },
+            {
+              "place": "2",
+              "carNo": "6",
+              "name": "近内 三孝",
+              "margin": "３車身",
+              "agari": "11.8",
+              "kimarite": "差",
+              "sMark": false,
+              "hMark": false,
+              "bMark": false
+            },
+            {
+              "place": "3",
+              "carNo": "3",
+              "name": "柳 充",
+              "margin": "１/４車輪",
+              "agari": "11.9",
+              "kimarite": "",
+              "sMark": false,
+              "hMark": false,
+              "bMark": false
+            }
+          ],
+          "payouts": [
+            {
+              "betType": "2車複",
+              "combination": "1=6",
+              "payout": "4,870円 (13)",
+              "popularity": "13"
+            },
+            {
+              "betType": "3連複",
+              "combination": "1=3=6",
+              "payout": "4,700円 (15)",
+              "popularity": "15"
+            },
+            {
+              "betType": "ワイド",
+              "combination": "1=3",
+              "payout": "160円 (1)",
+              "popularity": "1"
+            },
+            {
+              "betType": "ワイド",
+              "combination": "1=6",
+              "payout": "1,100円 (14)",
+              "popularity": "14"
+            },
+            {
+              "betType": "ワイド",
+              "combination": "3=6",
+              "payout": "2,250円 (18)",
+              "popularity": "18"
+            },
+            {
+              "betType": "2車単",
+              "combination": "1-6",
+              "payout": "8,850円 (24)",
+              "popularity": "24"
+            },
+            {
+              "betType": "3連単",
+              "combination": "1-6-3",
+              "payout": "28,240円 (67)",
+              "popularity": "67"
+            }
+          ],
           "result": {
-            "status": "pending",
-            "finishOrder": [],
-            "kimarite": "",
-            "secondKimarite": "",
-            "sLeaderCarNo": "",
+            "status": "confirmed",
+            "finishOrder": [
+              {
+                "rank": "1",
+                "carNo": "1",
+                "name": "高谷 敏史",
+                "agari": "11.7",
+                "gap": "",
+                "kimarite": "捲",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "2",
+                "carNo": "6",
+                "name": "近内 三孝",
+                "agari": "11.8",
+                "gap": "３車身",
+                "kimarite": "差",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "3",
+                "carNo": "3",
+                "name": "柳 充",
+                "agari": "11.9",
+                "gap": "１/４車輪",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "4",
+                "carNo": "2",
+                "name": "井上 剛",
+                "agari": "12.1",
+                "gap": "１車身",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "5",
+                "carNo": "5",
+                "name": "亀井 宏佳",
+                "agari": "11.9",
+                "gap": "１/４車輪",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "6",
+                "carNo": "7",
+                "name": "前島 恭平",
+                "agari": "11.8",
+                "gap": "１/４車輪",
+                "kimarite": "",
+                "mark": "S",
+                "status": ""
+              },
+              {
+                "rank": "7",
+                "carNo": "4",
+                "name": "古川 大輔",
+                "agari": "12.3",
+                "gap": "１/２車輪",
+                "kimarite": "",
+                "mark": "B",
+                "status": ""
+              }
+            ],
+            "kimarite": "捲",
+            "secondKimarite": "差",
+            "sLeaderCarNo": "7",
             "hLeaderCarNo": "",
-            "bLeaderCarNo": "",
-            "payout2tan": null,
-            "payout2fuku": [],
-            "payout3tan": null,
-            "payout3fuku": null,
-            "payoutWide": [],
+            "bLeaderCarNo": "4",
+            "payout2tan": {
+              "betType": "2車単",
+              "combination": "1-6",
+              "payout": "8,850円 (24)",
+              "popularity": "24"
+            },
+            "payout2fuku": [
+              {
+                "betType": "2車複",
+                "combination": "1=6",
+                "payout": "4,870円 (13)",
+                "popularity": "13"
+              }
+            ],
+            "payout3tan": {
+              "betType": "3連単",
+              "combination": "1-6-3",
+              "payout": "28,240円 (67)",
+              "popularity": "67"
+            },
+            "payout3fuku": {
+              "betType": "3連複",
+              "combination": "1=3=6",
+              "payout": "4,700円 (15)",
+              "popularity": "15"
+            },
+            "payoutWide": [
+              {
+                "betType": "ワイド",
+                "combination": "1=3",
+                "payout": "160円 (1)",
+                "popularity": "1"
+              },
+              {
+                "betType": "ワイド",
+                "combination": "1=6",
+                "payout": "1,100円 (14)",
+                "popularity": "14"
+              },
+              {
+                "betType": "ワイド",
+                "combination": "3=6",
+                "payout": "2,250円 (18)",
+                "popularity": "18"
+              }
+            ],
             "finalizedAt": ""
           },
           "riders": [
@@ -2095,7 +2284,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/yahiko/racedetail/2120260902010002/ / lineFallback: kdreams lineup accepted",
@@ -3223,8 +3412,8 @@
           "topTrifectaOdds": 10.9,
           "favoriteOdds": 10.9,
           "favoriteCombination": "2-3-1",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
-          "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=0 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/yahiko/racedetail/2120260902010002/?pageType=result / resultFallback: oddspark disabled by source policy",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / odds skipped outside lineup window",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/yahiko/racedetail/2120260902010002/?pageType=result / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -4112,7 +4301,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/yahiko/racedetail/2120260902010003/ / lineFallback: kdreams lineup accepted",
@@ -5240,7 +5429,7 @@
           "topTrifectaOdds": 9.1,
           "favoriteOdds": 9.1,
           "favoriteCombination": "2-1-3",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / odds skipped outside lineup window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=0 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/yahiko/racedetail/2120260902010003/?pageType=result / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -6157,7 +6346,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/yahiko/racedetail/2120260902010004/ / lineFallback: kdreams lineup accepted",
@@ -7285,7 +7474,7 @@
           "topTrifectaOdds": 5.2,
           "favoriteOdds": 5.2,
           "favoriteCombination": "1-3-2",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / odds skipped outside lineup window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=0 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/yahiko/racedetail/2120260902010004/?pageType=result / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -8174,7 +8363,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/yahiko/racedetail/2120260902010005/ / lineFallback: kdreams lineup accepted",
@@ -9302,7 +9491,7 @@
           "topTrifectaOdds": 4.1,
           "favoriteOdds": 4.1,
           "favoriteCombination": "1-2-3",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / odds skipped outside lineup window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=0 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/yahiko/racedetail/2120260902010005/?pageType=result / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -10191,7 +10380,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/yahiko/racedetail/2120260902010006/ / lineFallback: kdreams lineup accepted",
@@ -11319,7 +11508,7 @@
           "topTrifectaOdds": 3.4,
           "favoriteOdds": 3.4,
           "favoriteCombination": "1-2-3",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / odds skipped outside lineup window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=0 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/yahiko/racedetail/2120260902010006/?pageType=result / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -12208,7 +12397,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/yahiko/racedetail/2120260902010007/ / lineFallback: kdreams lineup accepted",
@@ -13336,7 +13525,7 @@
           "topTrifectaOdds": 1.5,
           "favoriteOdds": 1.5,
           "favoriteCombination": "1-2-3",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / odds skipped outside lineup window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=0 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/yahiko/racedetail/2120260902010007/?pageType=result / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -14245,7 +14434,7 @@
       "venueOperationLabel": "",
       "venueOperationReason": "",
       "venueOperationSource": "kdreams:racecard",
-      "venueOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+      "venueOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
       "venueOperationRaw": "宇都宮競輪 一覧 1R 2R 3R 4R 5R 6R 7R 8R 9R 10R 11R 12R",
       "raceIds": [
         "2420260831030001",
@@ -14278,7 +14467,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030001/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030001/?pageType=result / cache: reused finalized race",
@@ -15406,7 +15595,7 @@
           "topTrifectaOdds": 12,
           "favoriteOdds": 12,
           "favoriteCombination": "7-3-5",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030001/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -16611,7 +16800,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030002/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030002/?pageType=result / cache: reused finalized race",
@@ -17739,7 +17928,7 @@
           "topTrifectaOdds": 13.8,
           "favoriteOdds": 13.8,
           "favoriteCombination": "1-5-3",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030002/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -18944,7 +19133,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030003/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030003/?pageType=result / cache: reused finalized race",
@@ -20072,7 +20261,7 @@
           "topTrifectaOdds": 14.7,
           "favoriteOdds": 14.7,
           "favoriteCombination": "7-1-3",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030003/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -21270,7 +21459,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030004/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030004/?pageType=result / cache: reused finalized race",
@@ -22398,7 +22587,7 @@
           "topTrifectaOdds": 5.5,
           "favoriteOdds": 5.5,
           "favoriteCombination": "7-4-1",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030004/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -23603,7 +23792,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030005/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030005/?pageType=result / cache: reused finalized race",
@@ -24281,7 +24470,7 @@
           "topTrifectaOdds": 4.5,
           "favoriteOdds": 4.5,
           "favoriteCombination": "2-4-5",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=120 matrix=120 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=120 matrix=120 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030005/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -25346,7 +25535,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030006/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030006/?pageType=result / cache: reused finalized race",
@@ -26024,7 +26213,7 @@
           "topTrifectaOdds": 6.3,
           "favoriteOdds": 6.3,
           "favoriteCombination": "4-2-5",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=120 matrix=120 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=120 matrix=120 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030006/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -27145,7 +27334,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030007/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030007/?pageType=result / cache: reused finalized race",
@@ -28273,7 +28462,7 @@
           "topTrifectaOdds": 14.5,
           "favoriteOdds": 14.5,
           "favoriteCombination": "5-1-4",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030007/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -29513,7 +29702,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030008/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030008/?pageType=result / cache: reused finalized race",
@@ -30641,7 +30830,7 @@
           "topTrifectaOdds": 10.9,
           "favoriteOdds": 10.9,
           "favoriteCombination": "7-1-4",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030008/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -31881,7 +32070,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030009/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030009/?pageType=result / cache: reused finalized race",
@@ -33009,7 +33198,7 @@
           "topTrifectaOdds": 19,
           "favoriteOdds": 19,
           "favoriteCombination": "2-5-7",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030009/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -34256,10 +34445,10 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
-          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030010/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030010/?pageType=result",
+          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030010/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030010/?pageType=result / cache: reused finalized race",
           "lead": "",
           "oddsPreview": [
             {
@@ -35384,8 +35573,8 @@
           "topTrifectaOdds": 14.7,
           "favoriteOdds": 14.7,
           "favoriteCombination": "5-3-2",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
-          "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030010/?pageType=result",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
+          "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030010/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
             {
@@ -36598,7 +36787,8 @@
             "source": "kdreams",
             "sort": "popular",
             "capturedAt": "2026-09-02T21:01:27"
-          }
+          },
+          "cacheNote": "reused finalized race from previous generated feed"
         },
         {
           "raceNo": 11,
@@ -36616,10 +36806,10 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
-          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030011/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030011/?pageType=result",
+          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030011/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030011/?pageType=result / cache: reused finalized race",
           "lead": "",
           "oddsPreview": [
             {
@@ -37744,8 +37934,8 @@
           "topTrifectaOdds": 23.6,
           "favoriteOdds": 23.6,
           "favoriteCombination": "5-4-2",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
-          "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030011/?pageType=result",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
+          "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030011/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
             {
@@ -38930,7 +39120,8 @@
             "source": "kdreams",
             "sort": "popular",
             "capturedAt": "2026-09-02T21:01:29"
-          }
+          },
+          "cacheNote": "reused finalized race from previous generated feed"
         },
         {
           "raceNo": 12,
@@ -38948,10 +39139,10 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
-          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030012/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030012/?pageType=result",
+          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030012/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030012/?pageType=result / cache: reused finalized race",
           "lead": "",
           "oddsPreview": [
             {
@@ -40076,8 +40267,8 @@
           "topTrifectaOdds": 9.9,
           "favoriteOdds": 9.9,
           "favoriteCombination": "1-4-2",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
-          "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030012/?pageType=result",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
+          "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/utsunomiya/racedetail/2420260831030012/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
             {
@@ -41304,7 +41495,8 @@
             "source": "kdreams",
             "sort": "popular",
             "capturedAt": "2026-09-02T21:01:32"
-          }
+          },
+          "cacheNote": "reused finalized race from previous generated feed"
         }
       ]
     },
@@ -41341,7 +41533,7 @@
       "venueOperationLabel": "",
       "venueOperationReason": "",
       "venueOperationSource": "kdreams:racecard",
-      "venueOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+      "venueOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
       "venueOperationRaw": "西武園競輪 一覧 1R 2R 3R 4R 5R 6R 7R 8R 9R 10R 11R",
       "raceIds": [
         "2620260831030001",
@@ -41373,7 +41565,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030001/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030001/?pageType=result / cache: reused finalized race",
@@ -42501,7 +42693,7 @@
           "topTrifectaOdds": 12.8,
           "favoriteOdds": 12.8,
           "favoriteCombination": "3-7-4",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030001/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -43699,7 +43891,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030002/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030002/?pageType=result / cache: reused finalized race",
@@ -44827,7 +45019,7 @@
           "topTrifectaOdds": 13.3,
           "favoriteOdds": 13.3,
           "favoriteCombination": "7-3-2",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030002/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -46018,7 +46210,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030003/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030003/?pageType=result / cache: reused finalized race",
@@ -47146,7 +47338,7 @@
           "topTrifectaOdds": 5.8,
           "favoriteOdds": 5.8,
           "favoriteCombination": "6-3-1",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030003/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -48330,7 +48522,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": true,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030004/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030004/?pageType=result / cache: reused finalized race",
@@ -49458,7 +49650,7 @@
           "topTrifectaOdds": 10.9,
           "favoriteOdds": 10.9,
           "favoriteCombination": "5-2-3",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030004/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -50663,7 +50855,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030005/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030005/?pageType=result / cache: reused finalized race",
@@ -51791,7 +51983,7 @@
           "topTrifectaOdds": 13.2,
           "favoriteOdds": 13.2,
           "favoriteCombination": "6-2-5",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030005/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -52996,7 +53188,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030006/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030006/?pageType=result / cache: reused finalized race",
@@ -54124,7 +54316,7 @@
           "topTrifectaOdds": 2.5,
           "favoriteOdds": 2.5,
           "favoriteCombination": "2-5-3",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030006/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -55329,7 +55521,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030007/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030007/?pageType=result / cache: reused finalized race",
@@ -56457,7 +56649,7 @@
           "topTrifectaOdds": 7,
           "favoriteOdds": 7,
           "favoriteCombination": "5-2-1",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030007/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -57648,7 +57840,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030008/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030008/?pageType=result / cache: reused finalized race",
@@ -58776,7 +58968,7 @@
           "topTrifectaOdds": 10.7,
           "favoriteOdds": 10.7,
           "favoriteCombination": "4-1-2",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030008/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -59974,7 +60166,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030009/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030009/?pageType=result / cache: reused finalized race",
@@ -61102,7 +61294,7 @@
           "topTrifectaOdds": 7.6,
           "favoriteOdds": 7.6,
           "favoriteCombination": "1-4-3",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030009/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -62307,7 +62499,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": true,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030010/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030010/?pageType=result / cache: reused finalized race",
@@ -63435,7 +63627,7 @@
           "topTrifectaOdds": 5.4,
           "favoriteOdds": 5.4,
           "favoriteCombination": "2-6-7",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030010/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -64633,7 +64825,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030011/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030011/?pageType=result / cache: reused finalized race",
@@ -65761,7 +65953,7 @@
           "topTrifectaOdds": 5.8,
           "favoriteOdds": 5.8,
           "favoriteCombination": "7-4-5",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/seibuen/racedetail/2620260831030011/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -66985,7 +67177,7 @@
       "venueOperationLabel": "",
       "venueOperationReason": "",
       "venueOperationSource": "kdreams:racecard",
-      "venueOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+      "venueOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
       "venueOperationRaw": "松戸競輪 一覧 1R 2R 3R 4R 5R 6R 7R 8R 9R 10R 11R",
       "raceIds": [
         "3120260901020001",
@@ -67017,7 +67209,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020001/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020001/?pageType=result / cache: reused finalized race",
@@ -67695,7 +67887,7 @@
           "topTrifectaOdds": 1.6,
           "favoriteOdds": 1.6,
           "favoriteCombination": "1-4-2",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=120 matrix=120 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=120 matrix=120 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020001/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -68704,7 +68896,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020002/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020002/?pageType=result / cache: reused finalized race",
@@ -69832,7 +70024,7 @@
           "topTrifectaOdds": 9,
           "favoriteOdds": 9,
           "favoriteCombination": "4-7-2",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020002/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -70981,7 +71173,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020003/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020003/?pageType=result / cache: reused finalized race",
@@ -72109,7 +72301,7 @@
           "topTrifectaOdds": 8.9,
           "favoriteOdds": 8.9,
           "favoriteCombination": "4-1-5",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020003/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -73258,7 +73450,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020004/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020004/?pageType=result / cache: reused finalized race",
@@ -74386,7 +74578,7 @@
           "topTrifectaOdds": 1.8,
           "favoriteOdds": 1.8,
           "favoriteCombination": "1-5-3",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020004/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -75535,7 +75727,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": true,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020005/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020005/?pageType=result / cache: reused finalized race",
@@ -76663,7 +76855,7 @@
           "topTrifectaOdds": 2,
           "favoriteOdds": 2,
           "favoriteCombination": "1-3-4",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020005/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -77819,7 +78011,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": true,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020006/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020006/?pageType=result / cache: reused finalized race",
@@ -78947,7 +79139,7 @@
           "topTrifectaOdds": 2.3,
           "favoriteOdds": 2.3,
           "favoriteCombination": "4-6-5",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020006/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -80089,7 +80281,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020007/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020007/?pageType=result / cache: reused finalized race",
@@ -81217,7 +81409,7 @@
           "topTrifectaOdds": 12.4,
           "favoriteOdds": 12.4,
           "favoriteCombination": "3-7-1",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020007/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -82359,7 +82551,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020008/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020008/?pageType=result / cache: reused finalized race",
@@ -83487,7 +83679,7 @@
           "topTrifectaOdds": 5.3,
           "favoriteOdds": 5.3,
           "favoriteCombination": "7-5-1",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020008/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -84643,10 +84835,10 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
-          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020009/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020009/?pageType=result",
+          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020009/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020009/?pageType=result / cache: reused finalized race",
           "lead": "",
           "oddsPreview": [
             {
@@ -85771,8 +85963,8 @@
           "topTrifectaOdds": 9,
           "favoriteOdds": 9,
           "favoriteCombination": "7-1-5",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
-          "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020009/?pageType=result",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
+          "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020009/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
             {
@@ -86908,7 +87100,8 @@
             "source": "kdreams",
             "sort": "popular",
             "capturedAt": "2026-09-02T21:01:52"
-          }
+          },
+          "cacheNote": "reused finalized race from previous generated feed"
         },
         {
           "raceNo": 10,
@@ -86926,10 +87119,10 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
-          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020010/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020010/?pageType=result",
+          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020010/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020010/?pageType=result / cache: reused finalized race",
           "lead": "",
           "oddsPreview": [
             {
@@ -88054,8 +88247,8 @@
           "topTrifectaOdds": 8,
           "favoriteOdds": 8,
           "favoriteCombination": "4-1-6",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
-          "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020010/?pageType=result",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
+          "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020010/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
             {
@@ -89191,7 +89384,8 @@
             "source": "kdreams",
             "sort": "popular",
             "capturedAt": "2026-09-02T21:01:54"
-          }
+          },
+          "cacheNote": "reused finalized race from previous generated feed"
         },
         {
           "raceNo": 11,
@@ -89209,10 +89403,10 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
-          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020011/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020011/?pageType=result",
+          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020011/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020011/?pageType=result / cache: reused finalized race",
           "lead": "",
           "oddsPreview": [
             {
@@ -90337,8 +90531,8 @@
           "topTrifectaOdds": 7,
           "favoriteOdds": 7,
           "favoriteCombination": "1-7-4",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
-          "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020011/?pageType=result",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
+          "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsudo/racedetail/3120260901020011/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
             {
@@ -91474,7 +91668,8 @@
             "source": "kdreams",
             "sort": "popular",
             "capturedAt": "2026-09-02T21:01:56"
-          }
+          },
+          "cacheNote": "reused finalized race from previous generated feed"
         }
       ]
     },
@@ -91507,7 +91702,7 @@
       "venueOperationLabel": "",
       "venueOperationReason": "",
       "venueOperationSource": "kdreams:racecard",
-      "venueOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+      "venueOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
       "venueOperationRaw": "伊東競輪 一覧 1R 2R 3R 4R 5R 6R 7R",
       "raceIds": [
         "3720260902010001",
@@ -91535,10 +91730,10 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
-          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/ito/racedetail/3720260902010001/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/ito/racedetail/3720260902010001/?pageType=result",
+          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/ito/racedetail/3720260902010001/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/ito/racedetail/3720260902010001/?pageType=result / cache: reused finalized race",
           "lead": "",
           "oddsPreview": [
             {
@@ -92663,8 +92858,8 @@
           "topTrifectaOdds": 4.4,
           "favoriteOdds": 4.4,
           "favoriteCombination": "1-2-6",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
-          "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/ito/racedetail/3720260902010001/?pageType=result",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
+          "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/ito/racedetail/3720260902010001/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
             {
@@ -93737,7 +93932,8 @@
             "source": "kdreams",
             "sort": "popular",
             "capturedAt": "2026-09-02T21:01:58"
-          }
+          },
+          "cacheNote": "reused finalized race from previous generated feed"
         },
         {
           "raceNo": 2,
@@ -93751,14 +93947,14 @@
           "winticketLineupRaw": "",
           "netkeirinLineupRaw": "",
           "kdreamsLineupRaw": "124 37 5 6",
-          "raceOperationStatus": "scheduled",
-          "raceOperationLabel": "",
+          "raceOperationStatus": "finished",
+          "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
-          "raceOperationRaw": "",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
+          "raceOperationRaw": "result confirmed",
           "isGirls": false,
-          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/ito/racedetail/3720260902010002/ / lineFallback: kdreams lineup accepted",
+          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/ito/racedetail/3720260902010002/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/ito/racedetail/3720260902010002/?pageType=result",
           "lead": "",
           "oddsPreview": [
             {
@@ -94883,24 +95079,213 @@
           "topTrifectaOdds": 2.8,
           "favoriteOdds": 2.8,
           "favoriteCombination": "1-2-4",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
-          "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=0 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/ito/racedetail/3720260902010002/?pageType=result / resultFallback: oddspark disabled by source policy",
-          "resultStatus": "pending",
-          "resultTop3": [],
-          "payouts": [],
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / odds skipped outside lineup window",
+          "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/ito/racedetail/3720260902010002/?pageType=result",
+          "resultStatus": "confirmed",
+          "resultTop3": [
+            {
+              "place": "1",
+              "carNo": "2",
+              "name": "田中 弘章",
+              "margin": "",
+              "agari": "10.0",
+              "kimarite": "差",
+              "sMark": false,
+              "hMark": false,
+              "bMark": false
+            },
+            {
+              "place": "2",
+              "carNo": "1",
+              "name": "森下 龍之介",
+              "margin": "１/８車輪",
+              "agari": "10.1",
+              "kimarite": "逃",
+              "sMark": true,
+              "hMark": false,
+              "bMark": true
+            },
+            {
+              "place": "3",
+              "carNo": "3",
+              "name": "内田 淳",
+              "margin": "１/４車輪",
+              "agari": "9.9",
+              "kimarite": "",
+              "sMark": false,
+              "hMark": false,
+              "bMark": false
+            }
+          ],
+          "payouts": [
+            {
+              "betType": "2車複",
+              "combination": "1=2",
+              "payout": "120円 (1)",
+              "popularity": "1"
+            },
+            {
+              "betType": "3連複",
+              "combination": "1=2=3",
+              "payout": "400円 (2)",
+              "popularity": "2"
+            },
+            {
+              "betType": "ワイド",
+              "combination": "1=2",
+              "payout": "100円 (1)",
+              "popularity": "1"
+            },
+            {
+              "betType": "ワイド",
+              "combination": "1=3",
+              "payout": "170円 (2)",
+              "popularity": "2"
+            },
+            {
+              "betType": "ワイド",
+              "combination": "2=3",
+              "payout": "230円 (6)",
+              "popularity": "6"
+            },
+            {
+              "betType": "2車単",
+              "combination": "2-1",
+              "payout": "400円 (2)",
+              "popularity": "2"
+            },
+            {
+              "betType": "3連単",
+              "combination": "2-1-3",
+              "payout": "2,150円 (6)",
+              "popularity": "6"
+            }
+          ],
           "result": {
-            "status": "pending",
-            "finishOrder": [],
-            "kimarite": "",
-            "secondKimarite": "",
-            "sLeaderCarNo": "",
+            "status": "confirmed",
+            "finishOrder": [
+              {
+                "rank": "1",
+                "carNo": "2",
+                "name": "田中 弘章",
+                "agari": "10.0",
+                "gap": "",
+                "kimarite": "差",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "2",
+                "carNo": "1",
+                "name": "森下 龍之介",
+                "agari": "10.1",
+                "gap": "１/８車輪",
+                "kimarite": "逃",
+                "mark": "SB",
+                "status": ""
+              },
+              {
+                "rank": "3",
+                "carNo": "3",
+                "name": "内田 淳",
+                "agari": "9.9",
+                "gap": "１/４車輪",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "4",
+                "carNo": "4",
+                "name": "阿部 弘",
+                "agari": "9.8",
+                "gap": "３/４車身",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "5",
+                "carNo": "6",
+                "name": "大沼 孝行",
+                "agari": "9.7",
+                "gap": "１/２車身",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "6",
+                "carNo": "5",
+                "name": "玉村 元気",
+                "agari": "9.5",
+                "gap": "３/４車身",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "7",
+                "carNo": "7",
+                "name": "井上 典善",
+                "agari": "12.0",
+                "gap": "大差",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              }
+            ],
+            "kimarite": "差",
+            "secondKimarite": "逃",
+            "sLeaderCarNo": "1",
             "hLeaderCarNo": "",
-            "bLeaderCarNo": "",
-            "payout2tan": null,
-            "payout2fuku": [],
-            "payout3tan": null,
-            "payout3fuku": null,
-            "payoutWide": [],
+            "bLeaderCarNo": "1",
+            "payout2tan": {
+              "betType": "2車単",
+              "combination": "2-1",
+              "payout": "400円 (2)",
+              "popularity": "2"
+            },
+            "payout2fuku": [
+              {
+                "betType": "2車複",
+                "combination": "1=2",
+                "payout": "120円 (1)",
+                "popularity": "1"
+              }
+            ],
+            "payout3tan": {
+              "betType": "3連単",
+              "combination": "2-1-3",
+              "payout": "2,150円 (6)",
+              "popularity": "6"
+            },
+            "payout3fuku": {
+              "betType": "3連複",
+              "combination": "1=2=3",
+              "payout": "400円 (2)",
+              "popularity": "2"
+            },
+            "payoutWide": [
+              {
+                "betType": "ワイド",
+                "combination": "1=2",
+                "payout": "100円 (1)",
+                "popularity": "1"
+              },
+              {
+                "betType": "ワイド",
+                "combination": "1=3",
+                "payout": "170円 (2)",
+                "popularity": "2"
+              },
+              {
+                "betType": "ワイド",
+                "combination": "2=3",
+                "payout": "230円 (6)",
+                "popularity": "6"
+              }
+            ],
             "finalizedAt": ""
           },
           "riders": [
@@ -95800,7 +96185,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/ito/racedetail/3720260902010003/ / lineFallback: kdreams lineup accepted",
@@ -96928,7 +97313,7 @@
           "topTrifectaOdds": 8.2,
           "favoriteOdds": 8.2,
           "favoriteCombination": "1-3-6",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / odds skipped outside lineup window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=0 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/ito/racedetail/3720260902010003/?pageType=result / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -97845,7 +98230,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/ito/racedetail/3720260902010004/ / lineFallback: kdreams lineup accepted",
@@ -98973,7 +99358,7 @@
           "topTrifectaOdds": 3.4,
           "favoriteOdds": 3.4,
           "favoriteCombination": "1-2-5",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / odds skipped outside lineup window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=0 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/ito/racedetail/3720260902010004/?pageType=result / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -99855,7 +100240,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/ito/racedetail/3720260902010005/ / lineFallback: kdreams lineup accepted",
@@ -100983,7 +101368,7 @@
           "topTrifectaOdds": 4.6,
           "favoriteOdds": 4.6,
           "favoriteCombination": "1-3-5",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / odds skipped outside lineup window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=0 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/ito/racedetail/3720260902010005/?pageType=result / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -101872,7 +102257,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/ito/racedetail/3720260902010006/ / lineFallback: kdreams lineup accepted",
@@ -103000,7 +103385,7 @@
           "topTrifectaOdds": 13.8,
           "favoriteOdds": 13.8,
           "favoriteCombination": "1-6-2",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / odds skipped outside lineup window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=0 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/ito/racedetail/3720260902010006/?pageType=result / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -103910,7 +104295,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/ito/racedetail/3720260902010007/ / lineFallback: kdreams lineup accepted",
@@ -105038,7 +105423,7 @@
           "topTrifectaOdds": 7,
           "favoriteOdds": 7,
           "favoriteCombination": "1-3-2",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / odds skipped outside lineup window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=0 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/ito/racedetail/3720260902010007/?pageType=result / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -105963,7 +106348,7 @@
       "venueOperationLabel": "",
       "venueOperationReason": "",
       "venueOperationSource": "kdreams:racecard",
-      "venueOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+      "venueOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
       "venueOperationRaw": "松阪競輪 一覧 1R 2R 3R 4R 5R 6R 7R",
       "raceIds": [
         "4720260831030001",
@@ -105991,7 +106376,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsusaka/racedetail/4720260831030001/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsusaka/racedetail/4720260831030001/?pageType=result / cache: reused finalized race",
@@ -107119,7 +107504,7 @@
           "topTrifectaOdds": 6.8,
           "favoriteOdds": 6.8,
           "favoriteCombination": "5-2-4",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsusaka/racedetail/4720260831030001/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -108310,7 +108695,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsusaka/racedetail/4720260831030002/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsusaka/racedetail/4720260831030002/?pageType=result / cache: reused finalized race",
@@ -109438,7 +109823,7 @@
           "topTrifectaOdds": 14,
           "favoriteOdds": 14,
           "favoriteCombination": "2-5-1",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsusaka/racedetail/4720260831030002/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -110629,7 +111014,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsusaka/racedetail/4720260831030003/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsusaka/racedetail/4720260831030003/?pageType=result / cache: reused finalized race",
@@ -111757,7 +112142,7 @@
           "topTrifectaOdds": 6.4,
           "favoriteOdds": 6.4,
           "favoriteCombination": "7-1-5",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsusaka/racedetail/4720260831030003/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -112941,7 +113326,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsusaka/racedetail/4720260831030004/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsusaka/racedetail/4720260831030004/?pageType=result / cache: reused finalized race",
@@ -114069,7 +114454,7 @@
           "topTrifectaOdds": 11.5,
           "favoriteOdds": 11.5,
           "favoriteCombination": "1-5-4",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsusaka/racedetail/4720260831030004/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -115274,7 +115659,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsusaka/racedetail/4720260831030005/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsusaka/racedetail/4720260831030005/?pageType=result / cache: reused finalized race",
@@ -116402,7 +116787,7 @@
           "topTrifectaOdds": 12.1,
           "favoriteOdds": 12.1,
           "favoriteCombination": "7-1-3",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsusaka/racedetail/4720260831030005/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -117593,7 +117978,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsusaka/racedetail/4720260831030006/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsusaka/racedetail/4720260831030006/?pageType=result / cache: reused finalized race",
@@ -118721,7 +119106,7 @@
           "topTrifectaOdds": 8.9,
           "favoriteOdds": 8.9,
           "favoriteCombination": "2-5-1",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsusaka/racedetail/4720260831030006/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -119926,7 +120311,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsusaka/racedetail/4720260831030007/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsusaka/racedetail/4720260831030007/?pageType=result / cache: reused finalized race",
@@ -121054,7 +121439,7 @@
           "topTrifectaOdds": 11.8,
           "favoriteOdds": 11.8,
           "favoriteCombination": "4-2-5",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsusaka/racedetail/4720260831030007/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -122274,7 +122659,7 @@
       "venueOperationLabel": "",
       "venueOperationReason": "",
       "venueOperationSource": "kdreams:racecard",
-      "venueOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+      "venueOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
       "venueOperationRaw": "玉野競輪 一覧 1R 2R 3R 4R 5R 6R 7R",
       "raceIds": [
         "6120260902010001",
@@ -122298,14 +122683,14 @@
           "winticketLineupRaw": "",
           "netkeirinLineupRaw": "",
           "kdreamsLineupRaw": "413 72 65",
-          "raceOperationStatus": "scheduled",
-          "raceOperationLabel": "",
+          "raceOperationStatus": "finished",
+          "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
-          "raceOperationRaw": "",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
+          "raceOperationRaw": "result confirmed",
           "isGirls": false,
-          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/tamano/racedetail/6120260902010001/ / lineFallback: kdreams lineup accepted",
+          "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/tamano/racedetail/6120260902010001/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/tamano/racedetail/6120260902010001/?pageType=result",
           "lead": "",
           "oddsPreview": [
             {
@@ -123430,24 +123815,213 @@
           "topTrifectaOdds": 3.4,
           "favoriteOdds": 3.4,
           "favoriteCombination": "1-4-3",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
-          "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/tamano/racedetail/6120260902010001/?pageType=result / resultFallback: oddspark disabled by source policy",
-          "resultStatus": "pending",
-          "resultTop3": [],
-          "payouts": [],
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / odds skipped outside lineup window",
+          "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/tamano/racedetail/6120260902010001/?pageType=result",
+          "resultStatus": "confirmed",
+          "resultTop3": [
+            {
+              "place": "1",
+              "carNo": "6",
+              "name": "川西 康彦",
+              "margin": "",
+              "agari": "11.4",
+              "kimarite": "捲",
+              "sMark": false,
+              "hMark": false,
+              "bMark": true
+            },
+            {
+              "place": "2",
+              "carNo": "5",
+              "name": "小川 圭二",
+              "margin": "２車身",
+              "agari": "11.4",
+              "kimarite": "ク",
+              "sMark": false,
+              "hMark": false,
+              "bMark": false
+            },
+            {
+              "place": "3",
+              "carNo": "1",
+              "name": "工藤 文彦",
+              "margin": "１/８車輪",
+              "agari": "11.4",
+              "kimarite": "",
+              "sMark": true,
+              "hMark": false,
+              "bMark": false
+            }
+          ],
+          "payouts": [
+            {
+              "betType": "2車複",
+              "combination": "5=6",
+              "payout": "3,590円 (10)",
+              "popularity": "10"
+            },
+            {
+              "betType": "3連複",
+              "combination": "1=5=6",
+              "payout": "4,930円 (10)",
+              "popularity": "10"
+            },
+            {
+              "betType": "ワイド",
+              "combination": "1=5",
+              "payout": "1,120円 (9)",
+              "popularity": "9"
+            },
+            {
+              "betType": "ワイド",
+              "combination": "1=6",
+              "payout": "620円 (7)",
+              "popularity": "7"
+            },
+            {
+              "betType": "ワイド",
+              "combination": "5=6",
+              "payout": "1,720円 (15)",
+              "popularity": "15"
+            },
+            {
+              "betType": "2車単",
+              "combination": "6-5",
+              "payout": "6,070円 (16)",
+              "popularity": "16"
+            },
+            {
+              "betType": "3連単",
+              "combination": "6-5-1",
+              "payout": "25,250円 (48)",
+              "popularity": "48"
+            }
+          ],
           "result": {
-            "status": "pending",
-            "finishOrder": [],
-            "kimarite": "",
-            "secondKimarite": "",
-            "sLeaderCarNo": "",
+            "status": "confirmed",
+            "finishOrder": [
+              {
+                "rank": "1",
+                "carNo": "6",
+                "name": "川西 康彦",
+                "agari": "11.4",
+                "gap": "",
+                "kimarite": "捲",
+                "mark": "B",
+                "status": ""
+              },
+              {
+                "rank": "2",
+                "carNo": "5",
+                "name": "小川 圭二",
+                "agari": "11.4",
+                "gap": "２車身",
+                "kimarite": "ク",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "3",
+                "carNo": "1",
+                "name": "工藤 文彦",
+                "agari": "11.4",
+                "gap": "１/８車輪",
+                "kimarite": "",
+                "mark": "S",
+                "status": ""
+              },
+              {
+                "rank": "4",
+                "carNo": "2",
+                "name": "工藤 政志",
+                "agari": "11.2",
+                "gap": "３/４車身",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "5",
+                "carNo": "3",
+                "name": "城戸崎 隆史",
+                "agari": "11.5",
+                "gap": "２車身",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "6",
+                "carNo": "4",
+                "name": "新垣 慶晃",
+                "agari": "11.8",
+                "gap": "３/４車身",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              },
+              {
+                "rank": "7",
+                "carNo": "7",
+                "name": "奈良 基",
+                "agari": "11.8",
+                "gap": "１車身１/２",
+                "kimarite": "",
+                "mark": "",
+                "status": ""
+              }
+            ],
+            "kimarite": "捲",
+            "secondKimarite": "ク",
+            "sLeaderCarNo": "1",
             "hLeaderCarNo": "",
-            "bLeaderCarNo": "",
-            "payout2tan": null,
-            "payout2fuku": [],
-            "payout3tan": null,
-            "payout3fuku": null,
-            "payoutWide": [],
+            "bLeaderCarNo": "6",
+            "payout2tan": {
+              "betType": "2車単",
+              "combination": "6-5",
+              "payout": "6,070円 (16)",
+              "popularity": "16"
+            },
+            "payout2fuku": [
+              {
+                "betType": "2車複",
+                "combination": "5=6",
+                "payout": "3,590円 (10)",
+                "popularity": "10"
+              }
+            ],
+            "payout3tan": {
+              "betType": "3連単",
+              "combination": "6-5-1",
+              "payout": "25,250円 (48)",
+              "popularity": "48"
+            },
+            "payout3fuku": {
+              "betType": "3連複",
+              "combination": "1=5=6",
+              "payout": "4,930円 (10)",
+              "popularity": "10"
+            },
+            "payoutWide": [
+              {
+                "betType": "ワイド",
+                "combination": "1=5",
+                "payout": "1,120円 (9)",
+                "popularity": "9"
+              },
+              {
+                "betType": "ワイド",
+                "combination": "1=6",
+                "payout": "620円 (7)",
+                "popularity": "7"
+              },
+              {
+                "betType": "ワイド",
+                "combination": "5=6",
+                "payout": "1,720円 (15)",
+                "popularity": "15"
+              }
+            ],
             "finalizedAt": ""
           },
           "riders": [
@@ -124347,7 +124921,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/tamano/racedetail/6120260902010002/ / lineFallback: kdreams lineup accepted",
@@ -125475,7 +126049,7 @@
           "topTrifectaOdds": 10.5,
           "favoriteOdds": 10.5,
           "favoriteCombination": "1-3-2",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / odds skipped outside lineup window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=0 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/tamano/racedetail/6120260902010002/?pageType=result / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -126378,7 +126952,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/tamano/racedetail/6120260902010003/ / lineFallback: kdreams lineup accepted",
@@ -127506,7 +128080,7 @@
           "topTrifectaOdds": 16.4,
           "favoriteOdds": 16.4,
           "favoriteCombination": "2-3-4",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / odds skipped outside lineup window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=0 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/tamano/racedetail/6120260902010003/?pageType=result / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -128423,7 +128997,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/tamano/racedetail/6120260902010004/ / lineFallback: kdreams lineup accepted",
@@ -129551,7 +130125,7 @@
           "topTrifectaOdds": 7.5,
           "favoriteOdds": 7.5,
           "favoriteCombination": "1-3-4",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / odds skipped outside lineup window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=0 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/tamano/racedetail/6120260902010004/?pageType=result / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -130468,7 +131042,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/tamano/racedetail/6120260902010005/ / lineFallback: kdreams lineup accepted",
@@ -131596,7 +132170,7 @@
           "topTrifectaOdds": 13.6,
           "favoriteOdds": 13.6,
           "favoriteCombination": "3-2-4",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / odds skipped outside lineup window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=0 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/tamano/racedetail/6120260902010005/?pageType=result / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -132513,7 +133087,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/tamano/racedetail/6120260902010006/ / lineFallback: kdreams lineup accepted",
@@ -133641,7 +134215,7 @@
           "topTrifectaOdds": 11.8,
           "favoriteOdds": 11.8,
           "favoriteCombination": "1-5-3",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / odds skipped outside lineup window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=0 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/tamano/racedetail/6120260902010006/?pageType=result / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -134544,7 +135118,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/tamano/racedetail/6120260902010007/ / lineFallback: kdreams lineup accepted",
@@ -135672,7 +136246,7 @@
           "topTrifectaOdds": 20.8,
           "favoriteOdds": 20.8,
           "favoriteCombination": "1-3-2",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / odds skipped outside lineup window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result pending: no finish order top3=0 payouts=0 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/tamano/racedetail/6120260902010007/?pageType=result / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -136609,7 +137183,7 @@
       "venueOperationLabel": "",
       "venueOperationReason": "",
       "venueOperationSource": "kdreams:racecard",
-      "venueOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+      "venueOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
       "venueOperationRaw": "松山競輪 一覧 1R 2R 3R 4R 5R 6R 7R 8R 9R 10R 11R 12R",
       "raceIds": [
         "7520260831030001",
@@ -136642,7 +137216,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030001/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030001/?pageType=result / cache: reused finalized race",
@@ -137770,7 +138344,7 @@
           "topTrifectaOdds": 14.8,
           "favoriteOdds": 14.8,
           "favoriteCombination": "1-3-4",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030001/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -138954,7 +139528,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030002/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030002/?pageType=result / cache: reused finalized race",
@@ -140082,7 +140656,7 @@
           "topTrifectaOdds": 16.3,
           "favoriteOdds": 16.3,
           "favoriteCombination": "4-2-7",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030002/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -141287,7 +141861,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030003/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030003/?pageType=result / cache: reused finalized race",
@@ -142415,7 +142989,7 @@
           "topTrifectaOdds": 14.2,
           "favoriteOdds": 14.2,
           "favoriteCombination": "3-7-2",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030003/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -143620,7 +144194,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030004/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030004/?pageType=result / cache: reused finalized race",
@@ -144748,7 +145322,7 @@
           "topTrifectaOdds": 9.7,
           "favoriteOdds": 9.7,
           "favoriteCombination": "1-7-4",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030004/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -145939,7 +146513,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": true,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030005/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030005/?pageType=result / cache: reused finalized race",
@@ -147067,7 +147641,7 @@
           "topTrifectaOdds": 13.5,
           "favoriteOdds": 13.5,
           "favoriteCombination": "2-6-1",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030005/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -148272,7 +148846,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030006/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030006/?pageType=result / cache: reused finalized race",
@@ -149400,7 +149974,7 @@
           "topTrifectaOdds": 11.9,
           "favoriteOdds": 11.9,
           "favoriteCombination": "3-5-1",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030006/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -150605,7 +151179,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030007/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030007/?pageType=result / cache: reused finalized race",
@@ -151733,7 +152307,7 @@
           "topTrifectaOdds": 4.3,
           "favoriteOdds": 4.3,
           "favoriteCombination": "5-2-1",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030007/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -152952,7 +153526,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030008/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030008/?pageType=result / cache: reused finalized race",
@@ -154080,7 +154654,7 @@
           "topTrifectaOdds": 16.5,
           "favoriteOdds": 16.5,
           "favoriteCombination": "4-2-5",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030008/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -155313,7 +155887,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030009/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030009/?pageType=result / cache: reused finalized race",
@@ -156441,7 +157015,7 @@
           "topTrifectaOdds": 12.3,
           "favoriteOdds": 12.3,
           "favoriteCombination": "5-2-7",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030009/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -157660,7 +158234,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030010/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030010/?pageType=result / cache: reused finalized race",
@@ -158788,7 +159362,7 @@
           "topTrifectaOdds": 17.6,
           "favoriteOdds": 17.6,
           "favoriteCombination": "3-5-1",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030010/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -159993,7 +160567,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": true,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030011/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030011/?pageType=result / cache: reused finalized race",
@@ -161121,7 +161695,7 @@
           "topTrifectaOdds": 4.5,
           "favoriteOdds": 4.5,
           "favoriteCombination": "3-7-6",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030011/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -162326,7 +162900,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racedetail",
-          "raceOperationUpdatedAt": "2026-09-02T21:01:05+09:00",
+          "raceOperationUpdatedAt": "2026-09-02T21:22:02+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030012/ / lineFallback: kdreams lineup accepted / resultFallback: kdreams result=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030012/?pageType=result / cache: reused finalized race",
@@ -163454,7 +164028,7 @@
           "topTrifectaOdds": 11,
           "favoriteOdds": 11,
           "favoriteCombination": "3-6-2",
-          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50",
+          "oddsNote": "netkeirin odds disabled by source policy / kdreams odds accepted: count=210 matrix=210 popular=50 / cache: reused finalized race",
           "resultNote": "kdreams result accepted: top3=3 payouts=7 exactUrl=true htmlRaceId=true htmlRaceNo=true result=https://keirin.kdreams.jp/matsuyama/racedetail/7520260831030012/?pageType=result / cache: reused finalized race",
           "resultStatus": "confirmed",
           "resultTop3": [
