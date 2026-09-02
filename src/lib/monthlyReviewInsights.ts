@@ -5,6 +5,7 @@ export const MONTHLY_TICKET_POLICY_VERSION = "v2026-09";
 export const MONTHLY_TICKET_MODE = "ABC_8_TO_14_SHADOW_VALUE_TRIFECTA";
 export const MONTHLY_RECOMMENDED_POINTS = 8;
 export const MONTHLY_INVESTMENT_YEN = 800;
+export const MONTHLY_CANDIDATE_COUNT = 18;
 export const MONTHLY_TICKET_REASON_TAGS = [
   "monthly-review-september-rule",
   "abc-race-selection",
@@ -32,6 +33,125 @@ const FALLBACK_DIGEST: MonthlyReviewDigest = {
   mission: "A/B/Cで購入レースを選別し、根拠ある影VALUEを上限内で購入へ入れ替える",
   rawText: "",
 };
+
+export type MonthlyPreRaceSeed = {
+  metaStatus: "PRE_RACE_SEED";
+  ruleVersion: typeof MONTHLY_TICKET_POLICY_VERSION;
+  ticketMode: typeof MONTHLY_TICKET_MODE;
+  candidateCount: typeof MONTHLY_CANDIDATE_COUNT;
+  lineupGroupCount: number;
+  raceSelectGradeSeed: "A" | "B" | "C";
+  purchaseDecisionSeed: "BUY" | "VALUE_BUY" | "SKIP";
+  purchasePointsSeed: 0 | 8 | 10;
+  investmentYenSeed: 0 | 800 | 1000;
+  reasonCodes: string[];
+  finalizationRequired: true;
+};
+
+const normalizeLineupGroup = (value: string) => value
+  .normalize("NFKC")
+  .replace(/[→⇒＞>]/gu, "-")
+  .replace(/[‐‑‒–—―ー−]/gu, "-")
+  .replace(/\s+/gu, "")
+  .trim();
+
+export function countMonthlyLineupGroups(lineup: string): number {
+  const normalized = String(lineup ?? "")
+    .normalize("NFKC")
+    .replace(/^並び\s*[:：]\s*/u, "")
+    .trim();
+  if (!normalized || /未取得|未掲載|並びなし|並び無し|^(?:なし|無し)$/u.test(normalized)) return 0;
+
+  const groups = normalized
+    .split(/[\/／|｜]/u)
+    .map(normalizeLineupGroup)
+    .filter(Boolean);
+  if (groups.length === 0 || groups.some((group) => !/^[1-9](?:-[1-9])*$/u.test(group))) return 0;
+
+  const cars = groups.flatMap((group) => group.split("-"));
+  if (new Set(cars).size !== cars.length) return 0;
+  return groups.length;
+}
+
+export function buildMonthlyPreRaceSeed({
+  lineup = "",
+  raceTitle = "",
+  gradeLabel = "",
+  isCancelled = false,
+  monthlyReviewAvailable = true,
+}: {
+  lineup?: string;
+  raceTitle?: string;
+  gradeLabel?: string;
+  isCancelled?: boolean;
+  monthlyReviewAvailable?: boolean;
+}): MonthlyPreRaceSeed {
+  const lineupGroupCount = countMonthlyLineupGroups(lineup);
+  const sourceText = `${gradeLabel} ${raceTitle}`.normalize("NFKC");
+  const reasonCodes: string[] = [];
+
+  if (!monthlyReviewAvailable) reasonCodes.push("monthly-review-unavailable");
+  if (isCancelled) reasonCodes.push("cancelled");
+  if (lineupGroupCount === 0) reasonCodes.push("lineup-missing");
+  if (lineupGroupCount === 1) reasonCodes.push("lineup-structure-undetermined");
+
+  if (reasonCodes.length > 0) {
+    return {
+      metaStatus: "PRE_RACE_SEED",
+      ruleVersion: MONTHLY_TICKET_POLICY_VERSION,
+      ticketMode: MONTHLY_TICKET_MODE,
+      candidateCount: MONTHLY_CANDIDATE_COUNT,
+      lineupGroupCount,
+      raceSelectGradeSeed: "C",
+      purchaseDecisionSeed: "SKIP",
+      purchasePointsSeed: 0,
+      investmentYenSeed: 0,
+      reasonCodes,
+      finalizationRequired: true,
+    };
+  }
+
+  if (lineupGroupCount >= 4) reasonCodes.push("multi-line-4plus");
+  if (/\b(?:GP|G1|GI|G2|GII|G3|GIII)\b/iu.test(sourceText)) reasonCodes.push("s-or-graded-race");
+  if (/S級/iu.test(sourceText) && !reasonCodes.includes("s-or-graded-race")) reasonCodes.push("s-or-graded-race");
+  if (/新人|アドバンス|男ア|ガールズ新人|ガールズ/iu.test(sourceText)) reasonCodes.push("structure-recheck-required");
+
+  const valueSeed = reasonCodes.length > 0;
+  if (!valueSeed) reasonCodes.push("lineup-structured");
+  const purchasePointsSeed = valueSeed ? 10 : 8;
+
+  return {
+    metaStatus: "PRE_RACE_SEED",
+    ruleVersion: MONTHLY_TICKET_POLICY_VERSION,
+    ticketMode: MONTHLY_TICKET_MODE,
+    candidateCount: MONTHLY_CANDIDATE_COUNT,
+    lineupGroupCount,
+    raceSelectGradeSeed: valueSeed ? "B" : "A",
+    purchaseDecisionSeed: valueSeed ? "VALUE_BUY" : "BUY",
+    purchasePointsSeed,
+    investmentYenSeed: purchasePointsSeed * 100 as 800 | 1000,
+    reasonCodes,
+    finalizationRequired: true,
+  };
+}
+
+export function formatMonthlyPreRaceSeedLines(seed: MonthlyPreRaceSeed): string[] {
+  return [
+    `- metaStatus: ${seed.metaStatus}`,
+    `- ruleVersion: ${seed.ruleVersion}`,
+    `- ticketMode: ${seed.ticketMode}`,
+    `- candidateCount: ${seed.candidateCount}`,
+    `- lineupGroupCount: ${seed.lineupGroupCount}`,
+    `- raceSelectGradeSeed: ${seed.raceSelectGradeSeed}`,
+    `- purchaseDecisionSeed: ${seed.purchaseDecisionSeed}`,
+    `- purchasePointsSeed: ${seed.purchasePointsSeed}`,
+    `- investmentYenSeed: ${seed.investmentYenSeed}`,
+    `- reasonCodes: ${seed.reasonCodes.join(", ") || "none"}`,
+    `- finalizationRequired: ${seed.finalizationRequired}`,
+    "- final fields required from GPT: raceSelectGrade, purchaseDecision, ruleVersion, candidateCount, purchasePoints, investmentYen",
+    "- pre-race seedを最終判定として固定しない。頭候補数・主要展開・KURARI EX・オッズ・影VALUE評価後に最終字段を上書きする。",
+  ];
+}
 
 const toPublicUrl = (path: string) => {
   const base = import.meta.env.BASE_URL || "/";
@@ -161,6 +281,7 @@ export function parseMonthlyReviewDigest(text: string): MonthlyReviewDigest {
 export function buildMonthlyPredictionGuidance({
   digest,
   raceTitle = "",
+  gradeLabel = "",
   lineup = "",
   isCancelled = false,
   hasVenueMaster = false,
@@ -169,16 +290,23 @@ export function buildMonthlyPredictionGuidance({
 }: {
   digest?: MonthlyReviewDigest | null;
   raceTitle?: string;
+  gradeLabel?: string;
   lineup?: string;
   isCancelled?: boolean;
   hasVenueMaster?: boolean;
   hasReviewSummary?: boolean;
   hasRegisteredRiderMemo?: boolean;
 }) {
-  if (!digest) return "";
-
+  const effectiveDigest = digest ?? FALLBACK_DIGEST;
+  const preRaceSeed = buildMonthlyPreRaceSeed({
+    lineup,
+    raceTitle,
+    gradeLabel,
+    isCancelled,
+    monthlyReviewAvailable: Boolean(digest),
+  });
   const flags: string[] = [];
-  const title = `${raceTitle} ${lineup}`.trim();
+  const title = `${gradeLabel} ${raceTitle} ${lineup}`.trim();
   if (!lineup.trim() || /未取得|未掲載|なし/u.test(lineup)) {
     flags.push("ライン未取得: ライン固定で決め打ちしない");
   }
@@ -210,8 +338,8 @@ export function buildMonthlyPredictionGuidance({
     "- 2車単parser/過去照合は残すが、9月新ルールでは新規購入対象外。",
     "- 投資額は保存された購入買い目数 * 100。影買い目は投資額に含めない。",
     "- 買い目ごとに購入順位、購入/影買い目、役割、予想時オッズ、配当帯、展開理由を保存する。",
-    `- 重点回収帯: ${digest.targetRecoveryRate || "5,000〜30,000円帯"}`,
-    `- 現在ミッション: ${digest.mission || FALLBACK_DIGEST.mission}`,
+    `- 重点回収帯: ${effectiveDigest.targetRecoveryRate || "5,000〜30,000円帯"}`,
+    `- 現在ミッション: ${effectiveDigest.mission || FALLBACK_DIGEST.mission}`,
     "",
     "【A/B/Cレース選別】",
     "- A / HIT (BUY): 頭候補2人以内、主要展開2つ以内、主導権ラインと3着候補を整理可能。原則8点、必要時のみ10点。Aだから14点へ広げない。",
@@ -228,21 +356,24 @@ export function buildMonthlyPredictionGuidance({
     "- 昇格を追加購入にしない。Aは8〜10点、Bは10〜14点、Cは0点の上限を必ず守る。",
     "",
     "【予想の処理順序】",
-    "1. raceSelectGradeをA/B/Cで判定し、purchaseDecisionをBUY/VALUE_BUY/SKIPで決める。",
-    "2. 3連単18候補を生成する。",
-    "3. レース上限内で購入8〜14点を選び、残りを影へ分ける。Cは購入0点。",
-    "4. 影候補のVALUE-1〜5を再評価する。",
-    "5. 3条件以上なら最大1〜2点の入れ替え昇格を検討する。",
-    "6. 最終購入点数を確定し、investmentYen=購入買い目数*100で算出する。",
+    "0. Web側pre-race seedを参考値として確認する。seedを最終判定として固定しない。",
+    "1. 頭候補数・主要展開・KURARI EX・オッズ・影VALUEを評価し、raceSelectGradeをA/B/Cで最終判定する。",
+    "2. purchaseDecisionをBUY/VALUE_BUY/SKIPで最終判定する。",
+    "3. 3連単18候補を生成する。",
+    "4. レース上限内で購入候補を選ぶ。A=8〜10点、B=10〜14点、C=0点。",
+    "5. 残りを影買い目へ分ける。",
+    "6. 影候補のVALUE-1〜5を再評価する。",
+    "7. 3条件以上なら最大1〜2点の入れ替え昇格を検討する。",
+    "8. 最終購入点数を確定する。",
+    "9. investmentYen=purchasePoints*100で算出する。影買い目は含めない。",
     "",
-    "【レースごとのメタ情報】",
-    `- ticketMode: ${MONTHLY_TICKET_MODE}`,
-    `- recommendedPoints: ${MONTHLY_RECOMMENDED_POINTS}`,
-    `- investmentYen: ${MONTHLY_INVESTMENT_YEN}`,
-    "- reasonTags:",
-    ...MONTHLY_TICKET_REASON_TAGS.map((tag) => `  - ${tag}`),
-    "- optional race fields: raceSelectGrade, purchaseDecision, ruleVersion, candidateCount, purchasePoints, investmentYen, candidate18Hit, purchaseHit, shadowHit, shadowOnlyHit, purchaseManshuHit, shadowManshuHit, missReason",
+    "【最終出力メタ情報】",
+    "- required race fields: raceSelectGrade, purchaseDecision, ruleVersion, candidateCount, purchasePoints, investmentYen",
+    "- optional post-result fields: candidate18Hit, purchaseHit, shadowHit, shadowOnlyHit, purchaseManshuHit, shadowManshuHit, missReason",
     "- optional ticket fields: rank, purchaseFlag, role, oddsAtPrediction, payoutBand, scenario, valueScore, valueReasons, shadowRank, shadowValueCandidate, upgradedFromShadow, resultHit",
+    "",
+    "【レースごとの可変点数メタ情報】",
+    ...formatMonthlyPreRaceSeedLines(preRaceSeed),
     "",
     "【予想依頼テンプレ】",
     "{会場名}競輪場{グレード}、{日付}、{R}を、9月新ルール（A/B/C選別・8〜14点購入・影18候補・影VALUE昇格）で予想してください。",

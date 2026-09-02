@@ -10,7 +10,12 @@ import {
   loadPlayerCardMarkdown,
   normalizeRegistrationNo,
 } from "../lib/playerCards";
-import { buildMonthlyPredictionGuidance, getActiveMonthlyReview } from "../lib/monthlyReviewInsights";
+import {
+  buildMonthlyPredictionGuidance,
+  buildMonthlyPreRaceSeed,
+  formatMonthlyPreRaceSeedLines,
+  getActiveMonthlyReview,
+} from "../lib/monthlyReviewInsights";
 import {
   buildKeirinPredictionExport,
   downloadKeirinPredictionExport,
@@ -4386,10 +4391,23 @@ const buildPredictionBatchRaceCoreText = (material: string) => {
 const extractPredictionBatchMonthlyMeta = (monthlyGuidanceText: string) => {
   const lines = monthlyGuidanceText.split(/\r?\n/);
   const start = lines.findIndex((line) => line === "【レースごとの可変点数メタ情報】");
-  if (start < 0) return "【R別 可変点数メタ情報】\n未取得";
+  if (start < 0) {
+    const unavailableSeed = buildMonthlyPreRaceSeed({
+      monthlyReviewAvailable: false,
+    });
+    return [
+      "【R別 可変点数メタ情報】",
+      ...formatMonthlyPreRaceSeedLines(unavailableSeed),
+    ].join("\n");
+  }
   const end = lines.findIndex((line, index) => index > start && line === "【予想依頼テンプレ】");
   const body = lines.slice(start + 1, end < 0 ? undefined : end).join("\n").trim();
-  return `【R別 可変点数メタ情報】\n${body || "未取得"}`;
+  return body
+    ? `【R別 可変点数メタ情報】\n${body}`
+    : [
+        "【R別 可変点数メタ情報】",
+        ...formatMonthlyPreRaceSeedLines(buildMonthlyPreRaceSeed({ monthlyReviewAvailable: false })),
+      ].join("\n");
 };
 
 const extractPredictionBatchKurariExRaceMemo = (kurariExGuidanceText: string) => {
@@ -10080,8 +10098,8 @@ if (current.weatherActual) return;
     selectedWeather,
   ]);
 
-  // Warn only for clearly undersized saved bet sets. The current rule is variable:
-  // 14〜20 points, standard 3連単18 points, and 2車単 is exception-only.
+  // Warn only for clearly undersized saved bet sets. The current rule is A/B/C selection:
+  // A=8〜10, B=10〜14, C=0; 18 candidates include non-purchased shadow tickets.
   useEffect(() => {
     if (selectedPredictionTickets.length === 0) return;
     const trifectaCount = selectedPredictionTickets.filter((t) => t.betType === "3連単").length;
@@ -10439,13 +10457,14 @@ if (
     () => buildMonthlyPredictionGuidance({
       digest: monthlyReviewDigest,
       raceTitle: selectedPredictionMaterialRace?.title || selectedPredictionMaterialRace?.sourceNote || "",
+      gradeLabel: selectedVenueGradeLabel,
       lineup: buildPredictionLineupDisplay(selectedPredictionMaterialRace),
       isCancelled: Boolean(selectedPredictionMaterialVenue && selectedPredictionMaterialRace && isPredictionRaceExcludedByOperation(selectedPredictionMaterialVenue, selectedPredictionMaterialRace)),
       hasVenueMaster: selectedVenueSummary.masterDigest?.source === "bank-master",
       hasReviewSummary: selectedVenueSummary.reviewSummaryDigest?.source === "review-summary",
       hasRegisteredRiderMemo: selectedPredictionLinkedPlayerContexts.length > 0,
     }),
-    [monthlyReviewDigest, selectedPredictionLinkedPlayerContexts.length, selectedPredictionMaterialRace, selectedPredictionMaterialVenue, selectedVenueSummary.masterDigest?.source, selectedVenueSummary.reviewSummaryDigest?.source]
+    [monthlyReviewDigest, selectedPredictionLinkedPlayerContexts.length, selectedPredictionMaterialRace, selectedPredictionMaterialVenue, selectedVenueGradeLabel, selectedVenueSummary.masterDigest?.source, selectedVenueSummary.reviewSummaryDigest?.source]
   );
   const selectedKurariExRiderEntries = useMemo(() => {
     void kurariExRiderExactCacheVersion;
@@ -11233,6 +11252,7 @@ if (
       "【共通ルール】",
       "- 月次振り返り: 反映済み / 9月新ルール v2026-09",
       "- 18点固定購入は禁止。3連単8〜14点可変、1点100円固定",
+      "- 各RのWeb側pre-race seedは参考値。頭候補数・主要展開・KURARI EX・オッズ・影VALUE評価後に最終判定で上書きする",
       "- 最初にraceSelectGrade=A/B/C、purchaseDecision=BUY/VALUE_BUY/SKIPを判定する",
       "- A/HITは8〜10点。高信頼選抜群で65〜70%を目標にし、Aだから14点へ広げない",
       "- B/VALUEは10〜14点。中穴〜万車の期待値を優先する",
@@ -11245,6 +11265,7 @@ if (
       "- 2車単は9月新ルールでは新規購入対象外。parser/過去照合は互換のため残す",
       "- investmentYen=購入買い目数*100。影買い目は投資額に含めない",
       "- race/ticketの9月メタ項目は既存schemaを壊さないoptional項目として出力する",
+      "- 処理順: seed確認 → A/B/C最終判定 → 18候補生成 → 上限内購入選定 → 影分離 → VALUE再評価 → 最大1〜2点入れ替え → purchasePoints確定 → investmentYen算出",
       "====================",
       "",
       "====================",
@@ -11267,6 +11288,7 @@ if (
       const monthlyGuidanceText = buildMonthlyPredictionGuidance({
         digest: monthlyReviewDigest,
         raceTitle: race.title || race.sourceNote || "",
+        gradeLabel: selectedVenueGradeLabel,
         lineup: buildPredictionLineupDisplay(race),
         isCancelled: isPredictionRaceExcludedByOperation(selectedPredictionMaterialVenue, race),
         hasVenueMaster: selectedVenueSummary.masterDigest?.source === "bank-master",
