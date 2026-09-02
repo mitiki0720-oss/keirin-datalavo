@@ -16,36 +16,34 @@ const fallbackDigest: MonthlyReviewDigest = {
   hitRate2tan: "未取得",
   thirdOnlyMiss: "未取得",
   headMiss: "未取得",
-  targetHitRateAny: "未取得",
-  targetHitRate3tan: "未取得",
+  targetHitRateAny: "Aランク 65〜70%",
+  targetHitRate3tan: "全購入 45〜55%",
   targetHitRate2tan: "未取得",
-  targetRecoveryRate: "未取得",
-  targetThirdOnlyMiss: "未取得",
+  targetRecoveryRate: "5,000〜30,000円帯を重視",
+  targetThirdOnlyMiss: "18候補内 70%以上",
   fixedFormat: "標準8点 / 最大14点 / 18候補は影買い目 / 1点100円固定",
-  mission: "18点固定を廃止し、回収率80〜90%を狙う8月運用へ切り替える",
+  mission: "A/B/Cで購入レースを選別し、根拠ある影VALUEを上限内で購入へ入れ替える",
   rawText: "",
 };
 const metricCards = (digest: MonthlyReviewDigest) => [
-  { label: "STABLE COHORT", value: digest.stableCohort || "未取得", note: "安定評価対象" },
-  { label: "ANY HIT RATE", value: digest.hitRateAny || "未取得", note: "いずれか的中" },
-  { label: "3TAN HIT RATE", value: digest.hitRate3tan || "未取得", note: "3連単的中" },
-  { label: "THIRD-ONLY MISS", value: digest.thirdOnlyMiss || "未取得", note: "3着抜け" },
+  { label: "A / HIT TARGET", value: digest.targetHitRateAny || "65〜70%", note: "選抜Aランク内の3連単的中率" },
+  { label: "ALL PURCHASE", value: digest.targetHitRate3tan || "45〜55%", note: "全購入レースの安定目標" },
+  { label: "CANDIDATE 18", value: digest.targetThirdOnlyMiss || "70%以上", note: "18候補内的中率" },
+  { label: "SHADOW VALUE", value: "最大1〜2点", note: "3条件以上を満たす候補だけ入れ替え昇格" },
 ];
 
 const playbookItems = [
-  { title: "BASE_8", body: "標準。安め本線2〜4点、中穴2〜4点、3着保護/順番補正2点。3連単8点=800円を基本にする。" },
-  { title: "VALUE_10_12", body: "価値条件あり。S級/G3/価値型会場/5,000〜30,000円帯が複数ある時だけ10〜12点へ拡張する。" },
-  { title: "MAX_14", body: "最大購入。展開シナリオが2つ以内で、追加点を新しい頭ではなく2・3着補正に使える時のみ。" },
-  { title: "SHADOW_18", body: "購入しない研究候補。18候補を生成し、非購入の影買い目として的中監査する。投資額には含めない。" },
+  { title: "BASE_8", body: "本線2 / 逆目2 / 3着保護2 / 別線1 / VALUE1。標準購入は3連単8点=800円。" },
+  { title: "VALUE_10_12", body: "本線・逆目を維持し、3着保護と別線、根拠あるVALUEへ配分する。VALUE枠を大穴頭専用にしない。" },
+  { title: "MAX_14", body: "Bランクで非常に強いVALUE条件がある時だけ最大14点。昇格を理由に購入上限を超えない。" },
+  { title: "SHADOW_18", body: "18候補を生成し、購入外を影として保存・監査する。18候補と18点購入を混同せず、投資額に含めない。" },
+  { title: "SHADOW VALUE", body: "VALUE-1〜5のうち3条件以上なら候補化。低評価の購入候補と入れ替え、最大1〜2点だけ昇格する。" },
 ];
 
 const raceTypeItems = [
-  { title: "LOW_VALUE_4_6", body: "ガールズ、堅いモーニングF2、低効率会場。無理に8点へ広げず、価値が薄ければ4〜6点に抑える。" },
-  { title: "BASE_8", body: "標準。頭候補は2〜4人まで。追加点は2・3着補正へ使い、1点100円の800円運用にする。" },
-  { title: "VALUE_10", body: "価値条件2つ以上。5,000〜30,000円帯に複数の現実味がある時だけ10点へ拡張する。" },
-  { title: "STRONG_VALUE_12", body: "価値条件3つ以上。S級/G3/価値型会場など、回収率を押し上げる根拠が重なる時。" },
-  { title: "MAX_14", body: "G3/S級/価値型会場で展開根拠が明確。頭候補を増やさず、2・3着補正で最大14点まで。" },
-  { title: "SHADOW_ONLY", body: "頭候補5人以上が必要、根拠薄い大穴、展開が散りすぎるレース。購入せず影買い目として研究のみ。" },
+  { title: "A / HIT", body: "頭候補2人以内、主要展開2つ以内、主導権ラインと3着候補を整理できる高信頼レース。原則8点、必要時のみ10点。" },
+  { title: "B / VALUE", body: "S級/Gレース、3〜4分戦、先行競合、番手差しと別線捲りなど根拠ある中穴〜万車を狙う。10〜12点、非常に強い時のみ14点。" },
+  { title: "C / SKIP", body: "頭候補5人以上、並び不明、重大な不確定要素、LOW SAMPLE依存、展開が散るレース。購入0点、可能なら18候補は影として保存。" },
 ];
 export default function MonthlyReviewPage() {
   const isMobile = useIsMobile();
@@ -135,10 +133,12 @@ export default function MonthlyReviewPage() {
               <span style={{ borderRadius: "9999px", padding: "9px 13px", background: status === "ready" ? "#ecfdf5" : "#fff7ed", color: status === "ready" ? "#047857" : "#9a3412", border: status === "ready" ? "1px solid #a7f3d0" : "1px solid #fed7aa", fontSize: "11px", fontWeight: 900 }}>
                 {status === "ready" ? "月次振り返り: 反映済み" : status === "loading" ? "月次振り返り: 読み込み中" : "月次振り返り: 未登録"}
               </span>
-              <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#f4f1ff", color: "#6b57a8", border: "1px solid #ddd3f0", fontSize: "11px", fontWeight: 900 }}>可変点数ルール v2026-08</span>
-              <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#eef6ff", color: "#285e91", border: "1px solid #cfe3fb", fontSize: "11px", fontWeight: 900 }}>標準8点 / 最大14点</span>
+              <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#f4f1ff", color: "#6b57a8", border: "1px solid #ddd3f0", fontSize: "11px", fontWeight: 900 }}>9月新ルール v2026-09</span>
+              <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#eef6ff", color: "#285e91", border: "1px solid #cfe3fb", fontSize: "11px", fontWeight: 900 }}>8〜14点可変購入</span>
+              <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#fff7ed", color: "#9a4f12", border: "1px solid #fed7aa", fontSize: "11px", fontWeight: 900 }}>A/B/Cレース選別</span>
+              <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#fdf4ff", color: "#8a3d8f", border: "1px solid #f0cbed", fontSize: "11px", fontWeight: 900 }}>影VALUE昇格</span>
               <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#f0fdf4", color: "#167047", border: "1px solid #bbf7d0", fontSize: "11px", fontWeight: 900 }}>1点100円固定</span>
-              <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#fff7ed", color: "#9a4f12", border: "1px solid #fed7aa", fontSize: "11px", fontWeight: 900 }}>3連単配当寄せへ更新済み</span>
+              <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#fff7ed", color: "#9a4f12", border: "1px solid #fed7aa", fontSize: "11px", fontWeight: 900 }}>18候補は影買い目</span>
               <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#fef2f2", color: "#b42318", border: "1px solid #fecaca", fontSize: "11px", fontWeight: 900 }}>2車単は原則なし</span>
               <span style={{ borderRadius: "9999px", padding: "9px 13px", background: "#ecfdf5", color: "#047857", border: "1px solid #a7f3d0", fontSize: "11px", fontWeight: 900 }}>GPT素材へ反映済み</span>
             </div>
@@ -177,7 +177,7 @@ export default function MonthlyReviewPage() {
           <div style={{ ...cardStyle, borderRadius: "22px", padding: "20px" }}>
             <div style={{ fontSize: "10px", fontWeight: 950, letterSpacing: "0.16em", color: "#6577c8", marginBottom: "10px" }}>TARGET KPI</div>
             <div style={{ fontSize: "15px", color: "#344358", lineHeight: 1.8, fontWeight: 850 }}>
-              いずれか {digest.targetHitRateAny || "25〜32%でもOK"} / 3連単 {digest.targetHitRate3tan || "22〜28%でもOK"} / 回収率 {digest.targetRecoveryRate || "80%以上"} / 5,000円以上的中率を重視
+              Aランク {digest.targetHitRateAny || "65〜70%"} / 全購入3連単 {digest.targetHitRate3tan || "45〜55%"} / 18候補内 {digest.targetThirdOnlyMiss || "70%以上"} / 5,000〜30,000円帯を重視
             </div>
           </div>
         </section>
@@ -186,11 +186,11 @@ export default function MonthlyReviewPage() {
           <div style={{ display: "flex", alignItems: "end", justifyContent: "space-between", gap: "16px", flexWrap: "wrap", marginBottom: "18px" }}>
             <div>
               <div style={{ fontSize: "10px", fontWeight: 950, letterSpacing: "0.16em", color: "#6577c8", marginBottom: "8px" }}>VARIABLE TICKET PLAYBOOK</div>
-              <h2 style={{ margin: 0, fontSize: isMobile ? "24px" : "32px", lineHeight: 1.18, color: "#071120" }}>14点・18点・20点の役割分担</h2>
+              <h2 style={{ margin: 0, fontSize: isMobile ? "24px" : "32px", lineHeight: 1.18, color: "#071120" }}>8〜14点購入と18候補影運用</h2>
             </div>
             <span style={{ borderRadius: "9999px", padding: "9px 12px", border: "1px solid #d7e7f8", background: "#f4fbff", color: "#285e91", fontSize: "11px", fontWeight: 900 }}>標準: 3連単8点 / 18候補は影買い目</span>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))", gap: "12px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(190px, 1fr))", gap: "12px" }}>
             {playbookItems.map((item) => (
               <div key={item.title} style={{ borderRadius: "18px", border: "1px solid #dfeaf5", background: "#fbfdff", padding: "16px", minHeight: "144px" }}>
                 <div style={{ fontSize: "12px", fontWeight: 950, color: "#172033", marginBottom: "10px" }}>{item.title}</div>
