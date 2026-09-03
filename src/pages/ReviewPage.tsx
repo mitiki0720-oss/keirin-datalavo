@@ -1,15 +1,23 @@
-import { type ChangeEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   SiteHeader,
   fetchPredictionVenueWeather,
   getPredictionOddsUnavailableLabel,
   getPredictionVenueStageLabel,
   normalizeBetTypeLabel,
-  resolvePredictionResultMetrics,
+  parsePayoutAmountYen,
   resolveRacePayoutByBetType,
   type PredictionWeatherData,
 } from "./PageImplementations";
 import { cleanupLegacyReviewSnapshotStorage } from "../lib/legacyReviewSnapshotStorage";
+import {
+  aggregateReviewPerformance,
+  compareReviewRaceReadiness,
+  evaluateReviewRacePerformance,
+  type ReviewPerformanceSummary,
+  type ReviewPredictionJsonLike,
+  type ReviewRacePerformance,
+} from "../lib/reviewPerformanceMetrics";
 type PredictionSlotRecord = {
   raceKey: string;
   raceId: string;
@@ -17,6 +25,7 @@ type PredictionSlotRecord = {
   date: string;
   raceNumber: number;
   predictionText: string;
+  predictionJson?: ReviewPredictionJsonLike;
   savedAt: string;
 };
 
@@ -35,6 +44,7 @@ type PredictionResultRecord = {
   hitBetType?: "3連単" | "2車単";
   hitCombination?: string;
   investment?: number;
+  investmentSource?: "auto" | "manual";
   payout?: number;
   profitLoss?: number;
   roi?: number;
@@ -225,16 +235,6 @@ type PredictionTodayFeed = {
 type ReviewRaceResultSnapshotMap = Record<string, PredictionRaceItem>;
 type ReviewWeatherActualMap = Record<string, PredictionRaceResultWeatherActual>;
 
-type ReviewReportRecord = {
-  id: string;
-  date: string;
-  venue: string;
-  reportText: string;
-  savedAt: string;
-  predictionCopy: string;
-  resultCopy: string;
-};
-
 type ReviewFileIndexItem = {
   date: string;
   venue: string;
@@ -279,10 +279,13 @@ type VenueReviewRace = {
   raceNumber: number;
   raceKey: string;
   predictionText: string;
+  predictionJson?: ReviewPredictionJsonLike;
+  hasPrediction: boolean;
   savedAt?: string;
   predictionSummary: string;
   feedRace?: PredictionRaceItem;
   resultRecord?: PredictionResultRecord;
+  performance: ReviewRacePerformance;
 };
 
 type VenueReviewGroup = {
@@ -294,10 +297,7 @@ type VenueReviewGroup = {
   title?: string;
   startDate?: string;
   endDate?: string;
-  totalInvestment: number;
-  totalPayout: number;
-  settledCount: number;
-  hitCount: number;
+  performance: ReviewPerformanceSummary;
 };
 
 type ReviewCopySection = {
@@ -308,7 +308,6 @@ type ReviewCopySection = {
 const PAGE_MAX_WIDTH = "2040px";
 const PREDICTION_SLOT_STORAGE_KEY = "kurari-data-labo-prediction-slots";
 const PREDICTION_RESULT_STORAGE_KEY = "kurari-data-labo-prediction-results";
-const REVIEW_REPORT_STORAGE_KEY = "kurari-data-labo-review-reports";
 
 const toPublicPath = (path: string) => {
   const base = import.meta.env.BASE_URL || "/";
@@ -317,6 +316,7 @@ const toPublicPath = (path: string) => {
 };
 
 const PREDICTION_TODAY_DATA_URL = toPublicPath("/data/races/today.generated.json");
+const PREDICTION_SAVED_DATA_URL = toPublicPath("/data/predictions/saved-predictions.generated.json");
 const REVIEW_FILE_INDEX_URL = toPublicPath("/data/reviews/index.json");
 const REVIEW_PAGE_BACKGROUND_URL = toPublicPath("/review-page/backgrounds/review-page-bg-sky-water.png");
 
@@ -325,6 +325,27 @@ async function fetchReviewTodayFeed(cacheMode: RequestCache = "no-cache") {
   const response = await fetch(`${PREDICTION_TODAY_DATA_URL}${suffix}`, { cache: cacheMode });
   if (!response.ok) throw new Error(`review-feed-${response.status}`);
   return response.json() as Promise<PredictionTodayFeed>;
+}
+
+type SavedPredictionPayload = {
+  records?: Record<string, Partial<PredictionSlotRecord>>;
+  recordList?: Array<Partial<PredictionSlotRecord>>;
+};
+
+async function fetchReviewSavedPredictions(cacheMode: RequestCache = "no-cache") {
+  const suffix = cacheMode === "no-store" ? `?v=${Date.now()}` : "";
+  const response = await fetch(`${PREDICTION_SAVED_DATA_URL}${suffix}`, { cache: cacheMode });
+  if (!response.ok) throw new Error(`review-saved-predictions-${response.status}`);
+  const payload = await response.json() as SavedPredictionPayload;
+  const sourceRecords = Array.isArray(payload.recordList)
+    ? payload.recordList
+    : Object.values(payload.records ?? {});
+  return Object.fromEntries(
+    sourceRecords
+      .map(normalizeReviewPredictionSlotRecord)
+      .filter((record) => record.date && record.venue && record.raceNumber > 0)
+      .map((record) => [record.raceKey, record]),
+  ) as Record<string, PredictionSlotRecord>;
 }
 
 
@@ -383,17 +404,8 @@ function getJstOperationalDate(base: Date = new Date()) {
   return Number(parts.hour) >= 6 ? parts.isoDate : shiftReviewIsoDateByDays(parts.isoDate, -1);
 }
 
-function getReviewLocalKeepFromDate() {
-  return shiftReviewIsoDateByDays(getJstOperationalDate(), -1);
-}
-
 function getReviewPredictionKeepDate() {
   return getJstOperationalDate();
-}
-
-function shouldKeepRecentReviewDate(date?: string) {
-  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return true;
-  return date >= getReviewLocalKeepFromDate();
 }
 
 function shouldKeepTodayPredictionDate(date?: string) {
@@ -675,8 +687,47 @@ function normalizeReviewPredictionSlotRecord(record: Partial<PredictionSlotRecor
     date,
     raceNumber: Number.isFinite(raceNumber) ? raceNumber : 0,
     predictionText: record.predictionText ?? "",
+    predictionJson: record.predictionJson,
     savedAt: getReviewFallbackSavedAt(date, record.savedAt),
   };
+}
+
+function buildReviewSlotFallbackIdentity(record: PredictionSlotRecord) {
+  return `${record.date}:${normalizeVenueName(record.venue)}:${record.raceNumber}`;
+}
+
+function mergeReviewPredictionSlots(
+  publicRecords: Record<string, PredictionSlotRecord>,
+  localRecords: Record<string, PredictionSlotRecord>,
+) {
+  const merged = new Map<string, PredictionSlotRecord>();
+  const identityKeys = new Map<string, string>();
+  const add = (record: PredictionSlotRecord, preferIncoming: boolean) => {
+    const identities = [
+      record.raceId ? `race-id:${record.raceId}` : "",
+      `fallback:${buildReviewSlotFallbackIdentity(record)}`,
+    ].filter(Boolean);
+    const existingKey = identities.map((identity) => identityKeys.get(identity)).find(Boolean);
+    const existing = existingKey ? merged.get(existingKey) : undefined;
+    const next = existing && preferIncoming
+      ? {
+          ...existing,
+          ...record,
+          predictionText: record.predictionText.trim() ? record.predictionText : existing.predictionText,
+          predictionJson: record.predictionJson ?? existing.predictionJson,
+        }
+      : existing ?? record;
+    const nextKey = next.raceKey || existingKey || buildReviewSlotFallbackIdentity(next);
+    if (existingKey && existingKey !== nextKey) merged.delete(existingKey);
+    merged.set(nextKey, next);
+    identities.forEach((identity) => identityKeys.set(identity, nextKey));
+    if (next.raceId) identityKeys.set(`race-id:${next.raceId}`, nextKey);
+    identityKeys.set(`fallback:${buildReviewSlotFallbackIdentity(next)}`, nextKey);
+  };
+
+  Object.values(publicRecords).forEach((record) => add(record, false));
+  Object.values(localRecords).forEach((record) => add(record, true));
+  return Object.fromEntries(merged);
 }
 
 function normalizeReviewPredictionResultRecord(record: Partial<PredictionResultRecord>): PredictionResultRecord {
@@ -765,21 +816,6 @@ function loadPredictionResults() {
   return records;
 }
 
-function loadReviewReports() {
-  if (typeof window === "undefined") return [] as ReviewReportRecord[];
-  const parsed = safeJsonParse<ReviewReportRecord[] | Record<string, ReviewReportRecord>>(window.localStorage.getItem(REVIEW_REPORT_STORAGE_KEY), []);
-  const records = Array.isArray(parsed) ? parsed : Object.values(parsed ?? {});
-  const activeRecords = records.filter((record) => shouldKeepRecentReviewDate(record.date));
-  if (activeRecords.length !== records.length) {
-    try {
-      window.localStorage.setItem(REVIEW_REPORT_STORAGE_KEY, JSON.stringify(activeRecords));
-    } catch {
-      // localStorage write failure is non-fatal
-    }
-  }
-  return activeRecords;
-}
-
 function normalizeReviewFileIndexItem(record: Partial<ReviewFileIndexItem>): ReviewFileIndexItem | null {
   const date = typeof record.date === "string" ? record.date : "";
   const venue = typeof record.venue === "string" ? record.venue : "";
@@ -812,16 +848,6 @@ async function fetchReviewTextFile(path?: string) {
     return text;
   } catch {
     return "";
-  }
-}
-
-function saveReviewReports(records: ReviewReportRecord[]) {
-  if (typeof window === "undefined") return;
-  const activeRecords = records.filter((record) => shouldKeepRecentReviewDate(record.date));
-  try {
-    window.localStorage.setItem(REVIEW_REPORT_STORAGE_KEY, JSON.stringify(activeRecords));
-  } catch {
-    // localStorage write failure is non-fatal
   }
 }
 
@@ -1602,7 +1628,7 @@ function isPredictionTextReady(value: unknown): boolean {
 }
 
 function isPredictionReviewReady(race?: VenueReviewRace, fallbackText = ""): boolean {
-  return isPredictionTextReady(race?.predictionText) || isPredictionTextReady(fallbackText);
+  return hasReviewPrediction(race) || isPredictionTextReady(fallbackText);
 }
 
 function isResultTextReady(value: unknown): boolean {
@@ -1668,12 +1694,6 @@ function getReviewResultOrderLabel(feedRace?: PredictionRaceItem, resultOrder?: 
   if (isReviewAllRefundRace(feedRace)) return REVIEW_ALL_REFUND_ORDER_LABEL;
   return resultOrder || "--";
 }
-
-function getReviewHitStatusLabelForCopy(feedRace?: PredictionRaceItem, hitStatus?: string) {
-  if (isReviewAllRefundRace(feedRace)) return REVIEW_ALL_REFUND_HIT_LABEL;
-  return hitStatus || "pending";
-}
-
 
 function buildReviewFullResultLines(feedRace?: PredictionRaceItem) {
   if (isReviewAllRefundRace(feedRace)) return ["\u5168\u7740\u9806: \u30ec\u30fc\u30b9\u4e2d\u6b62\u30fb\u5168\u8fd4\u9084\uff08\u7740\u9806\u7167\u5408\u306a\u3057\uff09"];
@@ -1887,6 +1907,53 @@ function sortReviewVenueGroupsForCards(a: VenueReviewGroup, b: VenueReviewGroup)
   return a.venue.localeCompare(b.venue, "ja");
 }
 
+function hasReviewPrediction(record?: Pick<PredictionSlotRecord, "predictionText" | "predictionJson">) {
+  return Boolean(
+    record?.predictionText?.trim() ||
+    record?.predictionJson?.tickets?.length ||
+    record?.predictionJson?.preRaceSnapshot?.ticketSnapshot?.tickets?.length ||
+    record?.predictionJson?.ticketSnapshot?.tickets?.length
+  );
+}
+
+function getReviewPredictionExportText(race: Pick<VenueReviewRace, "predictionText" | "predictionJson">) {
+  if (race.predictionText.trim()) return race.predictionText.trim();
+  return race.predictionJson ? JSON.stringify(race.predictionJson, null, 2) : "";
+}
+
+function resolveReviewRacePerformance(
+  slot: Pick<PredictionSlotRecord, "predictionText" | "predictionJson"> | undefined,
+  resultRecord: PredictionResultRecord | undefined,
+  feedRace: PredictionRaceItem | undefined,
+) {
+  const resultOrder = getResultOrder(resultRecord, feedRace);
+  const settled = isResultReviewReady({
+    venue: "",
+    date: "",
+    raceNumber: feedRace?.raceNo ?? resultRecord?.raceNumber ?? 0,
+    raceKey: "",
+    predictionText: slot?.predictionText ?? "",
+    predictionJson: slot?.predictionJson,
+    hasPrediction: hasReviewPrediction(slot),
+    predictionSummary: "",
+    feedRace,
+    resultRecord,
+    performance: {} as ReviewRacePerformance,
+  });
+  const payoutByBetType = {
+    "3連単": parsePayoutAmountYen(resolveRacePayoutByBetType(feedRace, "3連単")),
+    "2車単": parsePayoutAmountYen(resolveRacePayoutByBetType(feedRace, "2車単")),
+  };
+  return evaluateReviewRacePerformance({
+    predictionJson: slot?.predictionJson,
+    predictionText: slot?.predictionText,
+    settled,
+    resultOrder,
+    payoutByBetType,
+    manualActualInvestment: resultRecord?.investmentSource === "manual" ? resultRecord.investment : undefined,
+  });
+}
+
 function buildVenueGroups(
   date: string,
   slotMap: Record<string, PredictionSlotRecord>,
@@ -1895,7 +1962,7 @@ function buildVenueGroups(
   raceResultSnapshotMap: ReviewRaceResultSnapshotMap,
   fileGroups: ReviewFileVenueGroup[],
 ): VenueReviewGroup[] {
-  const slots = Object.values(slotMap).filter((item) => item.date === date && item.predictionText?.trim());
+  const slots = Object.values(slotMap).filter((item) => item.date === date && hasReviewPrediction(item));
   const feedVenueMap = new Map((feed?.venues ?? []).map((venue) => [normalizeVenueName(venue.venue), venue]));
   const resultValues = Object.values(resultMap).filter((item) => item.date === date);
   const groups = new Map<string, VenueReviewGroup>();
@@ -1926,11 +1993,10 @@ const current = groups.get(key) ?? {
   title: feedVenue?.title,
   startDate: feedVenue?.startDate,
   endDate: feedVenue?.endDate,
-  totalInvestment: 0,
-  totalPayout: 0,
-  settledCount: 0,
-  hitCount: 0,
+  performance: aggregateReviewPerformance([]),
 };
+
+    const performance = resolveReviewRacePerformance(slot, resultRecord, feedRace);
 
     current.races.push({
       venue: slot.venue,
@@ -1938,24 +2004,14 @@ const current = groups.get(key) ?? {
       raceNumber: slot.raceNumber,
       raceKey: slot.raceKey,
       predictionText: slot.predictionText,
+      predictionJson: slot.predictionJson,
+      hasPrediction: true,
       savedAt: slot.savedAt,
       predictionSummary: extractPredictionSummary(slot.predictionText),
       feedRace,
       resultRecord,
+      performance,
     });
-
-    const resolvedMetrics = resolvePredictionResultMetrics({
-      record: resultRecord,
-      race: feedRace,
-      predictionText: slot.predictionText,
-    });
-
-    current.totalInvestment += resolvedMetrics.investment ?? 0;
-    current.totalPayout += resolvedMetrics.payout ?? 0;
-    if (resultRecord?.hitStatus === "hit" || resultRecord?.hitStatus === "miss") {
-      current.settledCount += 1;
-      if (resultRecord.hitStatus === "hit") current.hitCount += 1;
-    }
     if (!current.startDate && feedVenue?.startDate) current.startDate = feedVenue.startDate;
     if (!current.endDate && feedVenue?.endDate) current.endDate = feedVenue.endDate;
 
@@ -1985,20 +2041,20 @@ groups.set(key, current);
         )
         .sort((a, b) => (b.savedAt ?? "").localeCompare(a.savedAt ?? ""))[0];
 
+      const performance = resolveReviewRacePerformance(undefined, resultRecord, feedRace);
       return {
         venue: feedVenue.venue,
         date,
         raceNumber: liveFeedRace.raceNo,
         raceKey: `feed:${date}:${key}:${liveFeedRace.raceNo}`,
         predictionText: "",
+        hasPrediction: false,
         predictionSummary: "",
         feedRace,
         resultRecord,
+        performance,
       };
     });
-    const feedResultRecords = races
-      .map((race) => race.resultRecord)
-      .filter((record): record is PredictionResultRecord => Boolean(record));
 
     groups.set(key, {
       venue: feedVenue.venue,
@@ -2012,12 +2068,7 @@ groups.set(key, current);
       title: feedVenue.title,
       startDate: feedVenue.startDate,
       endDate: feedVenue.endDate,
-      totalInvestment: feedResultRecords.reduce((sum, record) => sum + (record.investment ?? 0), 0),
-      totalPayout: feedResultRecords.reduce((sum, record) => sum + (record.payout ?? 0), 0),
-      settledCount: feedResultRecords.filter(
-        (record) => record.hitStatus === "hit" || record.hitStatus === "miss",
-      ).length,
-      hitCount: feedResultRecords.filter((record) => record.hitStatus === "hit").length,
+      performance: aggregateReviewPerformance(races),
     });
   }
 
@@ -2029,15 +2080,15 @@ groups.set(key, current);
       venue: fileGroup.venue,
       date,
       races: [],
-      totalInvestment: 0,
-      totalPayout: 0,
-      settledCount: 0,
-      hitCount: 0,
+      performance: aggregateReviewPerformance([]),
     });
   }
 
   return Array.from(groups.values())
-    .map((group) => ({ ...group, races: [...group.races].sort(sortRaces) }))
+    .map((group) => {
+      const races = [...group.races].sort(sortRaces);
+      return { ...group, races, performance: aggregateReviewPerformance(races) };
+    })
     .sort((a, b) => a.venue.localeCompare(b.venue, "ja"));
 }
 
@@ -2046,7 +2097,7 @@ function buildPredictionCopy(group: VenueReviewGroup) {
   lines.push("");
   group.races.forEach((race) => {
     lines.push(`■ ${group.venue} ${race.raceNumber}R`);
-    lines.push(race.predictionText.trim());
+    lines.push(getReviewPredictionExportText(race));
     lines.push("");
   });
   return lines.join("\n").trim();
@@ -2084,17 +2135,13 @@ function buildResultCopy(
   ];
 
   group.races.forEach((race) => {
-    const resolvedMetrics = resolvePredictionResultMetrics({
-      record: race.resultRecord,
-      race: race.feedRace,
-      predictionText: race.predictionText,
-    });
+    const resolvedMetrics = race.performance;
     const resultOrder = getResultOrder(race.resultRecord, race.feedRace);
-    const hitStatus = race.resultRecord?.hitStatus ?? "保留";
-    const investment = formatYen(resolvedMetrics.investment);
-    const payout = formatYen(resolvedMetrics.payout);
-    const profit = formatProfit(resolvedMetrics.profitLoss);
-    const roi = formatRate(resolvedMetrics.roi);
+    const hitStatus = resolvedMetrics.status;
+    const investment = formatYen(resolvedMetrics.actualInvestment);
+    const payout = formatYen(resolvedMetrics.actualPayout);
+    const profit = formatProfit(resolvedMetrics.actualProfit);
+    const roi = formatRate(resolvedMetrics.actualRoi);
     const kimarite = getKimarite(race.resultRecord, race.feedRace);
     const secondKimarite = getSecondKimarite(race.feedRace);
     const sbText = getSBMarkText(race.feedRace);
@@ -2107,14 +2154,20 @@ function buildResultCopy(
     const finalOddsReference = resolveReviewFinalOddsReference(latestFeedRace, race.feedRace);
     const resultStatusLabel = getReviewResultStatusLabel(race.feedRace);
     const resultOrderLabel = getReviewResultOrderLabel(race.feedRace, resultOrder);
-    const hitStatusLabel = getReviewHitStatusLabelForCopy(race.feedRace, hitStatus);
-    const hitBetTypeLabel = isReviewAllRefundRace(race.feedRace) ? REVIEW_ALL_REFUND_TEXT : race.resultRecord?.hitBetType ?? "--";
-    const hitCombinationLabel = isReviewAllRefundRace(race.feedRace) ? REVIEW_ALL_REFUND_TEXT : race.resultRecord?.hitCombination ?? "--";
-    const hitMeaning = hitStatusLabel === "hit"
-      ? "的中"
-      : hitStatusLabel === "miss"
-        ? "不的中"
-        : hitStatusLabel;
+    const hitStatusLabel = isReviewAllRefundRace(race.feedRace)
+      ? REVIEW_ALL_REFUND_HIT_LABEL
+      : hitStatus === "purchase-hit"
+        ? "実購入的中"
+        : hitStatus === "shadow-hit"
+          ? "影目のみHIT"
+          : hitStatus === "miss"
+            ? "不的中"
+            : hitStatus === "unknown"
+              ? "購入/影目分類なし"
+              : "結果待ち";
+    const matchedTicket = resolvedMetrics.matchedPurchaseTickets[0] ?? resolvedMetrics.matchedShadowTickets[0];
+    const hitBetTypeLabel = isReviewAllRefundRace(race.feedRace) ? REVIEW_ALL_REFUND_TEXT : matchedTicket?.betType ?? "--";
+    const hitCombinationLabel = isReviewAllRefundRace(race.feedRace) ? REVIEW_ALL_REFUND_TEXT : matchedTicket?.combination ?? "--";
     const finishRows = getReviewFinishOrderRows(race.feedRace);
     const topResultLabel = (index: number) => {
       const entry = finishRows[index];
@@ -2145,7 +2198,7 @@ function buildResultCopy(
     lines.push(`レース名: ${race.feedRace?.title ?? group.title ?? "未取得"}`);
     lines.push(`発走: ${race.feedRace?.time ?? "未取得"}`);
     lines.push("結果確定ステータス: " + resultStatusLabel);
-    lines.push(`最終判定: ${hitStatusLabel}${hitMeaning !== hitStatusLabel ? `（${hitMeaning}）` : ""}`);
+    lines.push(`最終判定: ${hitStatusLabel}`);
     lines.push("的中券種: " + hitBetTypeLabel);
     lines.push("的中組み合わせ: " + hitCombinationLabel);
     lines.push("3連単照合キー: " + (isReviewAllRefundRace(race.feedRace) ? REVIEW_ALL_REFUND_TEXT : resultOrderLabel));
@@ -2153,6 +2206,10 @@ function buildResultCopy(
     lines.push(`払戻: ${payout}`);
     lines.push(`収支: ${profit}`);
     lines.push(`回収率: ${roi}`);
+    lines.push(`購入/影目分類source: ${resolvedMetrics.classification.source}`);
+    if (resolvedMetrics.shadowOnlyHit) {
+      lines.push(`影目参考払戻（実収支対象外）: ${formatYen(resolvedMetrics.shadowReferencePayout)}`);
+    }
     lines.push("");
 
     lines.push("【実際の結果】");
@@ -2303,9 +2360,9 @@ function ReviewVenueMetric({ label, value, sub }: { label: string; value: string
 export default function ReviewPage() {
   const operationalToday = getJstOperationalDate();
   const yesterdayReviewDate = shiftReviewIsoDateByDays(operationalToday, -1);
-  const [slotMap, setSlotMap] = useState<Record<string, PredictionSlotRecord>>({});
+  const [localSlotMap, setLocalSlotMap] = useState<Record<string, PredictionSlotRecord>>({});
+  const [publicSlotMap, setPublicSlotMap] = useState<Record<string, PredictionSlotRecord>>({});
   const [resultMap, setResultMap] = useState<Record<string, PredictionResultRecord>>({});
-  const [reportRecords, setReportRecords] = useState<ReviewReportRecord[]>([]);
   const [todayFeed, setTodayFeed] = useState<PredictionTodayFeed | null>(null);
   const [raceResultSnapshotMap, setRaceResultSnapshotMap] = useState<ReviewRaceResultSnapshotMap>({});
   const [reviewWeatherActualMap, setReviewWeatherActualMap] = useState<ReviewWeatherActualMap>({});
@@ -2316,9 +2373,7 @@ export default function ReviewPage() {
   const [playerQuery, setPlayerQuery] = useState("");
   const [keywordQuery, setKeywordQuery] = useState("");
   const [selectedVenueName, setSelectedVenueName] = useState("");
-  const [reportDraft, setReportDraft] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
-  const [reportStatus, setReportStatus] = useState("");
   const [selectedDate] = useState(operationalToday);
   const isTodaySelected = selectedDate === operationalToday;
   const isYesterdaySelected = selectedDate === yesterdayReviewDate;
@@ -2329,17 +2384,19 @@ export default function ReviewPage() {
   const workbenchLabel = isLocalReviewSelected
     ? (isTodaySelected ? "LIVE WORKBENCH" : "YESTERDAY WORKBENCH")
     : "FILE ARCHIVE";
+  const slotMap = useMemo(
+    () => mergeReviewPredictionSlots(publicSlotMap, localSlotMap),
+    [localSlotMap, publicSlotMap],
+  );
 
   useEffect(() => {
-    setSlotMap(loadPredictionSlots());
+    setLocalSlotMap(loadPredictionSlots());
     setResultMap(loadPredictionResults());
-    setReportRecords(loadReviewReports());
     setRaceResultSnapshotMap(loadReviewRaceResultSnapshots());
 
     const handleStorage = () => {
-  setSlotMap(loadPredictionSlots());
+  setLocalSlotMap(loadPredictionSlots());
   setResultMap(loadPredictionResults());
-  setReportRecords(loadReviewReports());
   setRaceResultSnapshotMap(loadReviewRaceResultSnapshots());
 };
 
@@ -2348,18 +2405,32 @@ export default function ReviewPage() {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    fetchReviewTodayFeed("no-cache")
-      .then((feed) => {
-        if (!cancelled) setTodayFeed(feed);
-      })
-      .catch(() => {
-        if (!cancelled) setTodayFeed(null);
-      });
-    return () => {
-      cancelled = true;
+    if (!isTodaySelected) return;
+    let active = true;
+    const refresh = async () => {
+      const [feedResult, predictionsResult] = await Promise.allSettled([
+        fetchReviewTodayFeed("no-store"),
+        fetchReviewSavedPredictions("no-store"),
+      ]);
+      if (!active) return;
+      if (feedResult.status === "fulfilled") setTodayFeed(feedResult.value);
+      if (predictionsResult.status === "fulfilled") setPublicSlotMap(predictionsResult.value);
     };
-  }, []);
+    const handleFocus = () => void refresh();
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
+    void refresh();
+    const intervalId = window.setInterval(refresh, 60_000);
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [isTodaySelected]);
 
   useEffect(() => {
     let cancelled = false;
@@ -2428,12 +2499,6 @@ export default function ReviewPage() {
     const timer = window.setTimeout(() => setCopyStatus(""), 1800);
     return () => window.clearTimeout(timer);
   }, [copyStatus]);
-
-  useEffect(() => {
-    if (!reportStatus) return;
-    const timer = window.setTimeout(() => setReportStatus(""), 2200);
-    return () => window.clearTimeout(timer);
-  }, [reportStatus]);
 
   const venueGroups = useMemo(
   () =>
@@ -2617,7 +2682,10 @@ export default function ReviewPage() {
       return;
     }
     if (!selectedVenueName || !targetGroups.includes(selectedVenueName)) {
-      setSelectedVenueName(targetGroups[0]);
+      const preferredVenue = isLocalReviewSelected
+        ? filteredVenueGroups.find((group) => group.performance.predictionRaceCount > 0)?.venue
+        : undefined;
+      setSelectedVenueName(preferredVenue ?? targetGroups[0]);
     }
   }, [filteredReviewFileGroups, filteredVenueGroups, isLocalReviewSelected, selectedVenueName]);
 
@@ -2729,6 +2797,8 @@ export default function ReviewPage() {
     const raceNumbers = [...targetRaceNumbers].sort((a, b) => a - b);
     const predictionMissingRaceNumbers: number[] = [];
     const resultMissingRaceNumbers: number[] = [];
+    const predictionRaceNumbers: number[] = [];
+    const resultRaceNumbers: number[] = [];
     let predictionReadyCount = 0;
     let resultReadyCount = 0;
 
@@ -2749,31 +2819,41 @@ export default function ReviewPage() {
               raceNumber,
               raceKey: `readiness:${selectedDate}:${normalizeVenueName(targetVenue)}:${raceNumber}`,
               predictionText: "",
+              hasPrediction: false,
               predictionSummary: "",
               feedRace: latestFeedRace,
               resultRecord: savedResultRecord,
+              performance: resolveReviewRacePerformance(undefined, savedResultRecord, latestFeedRace),
             }
           : undefined;
 
       if (isPredictionReviewReady(race, predictionSectionMap.get(raceNumber))) {
         predictionReadyCount += 1;
+        predictionRaceNumbers.push(raceNumber);
       } else {
         predictionMissingRaceNumbers.push(raceNumber);
       }
 
       if (isResultReviewReady(race, resultSectionMap.get(raceNumber))) {
         resultReadyCount += 1;
+        resultRaceNumbers.push(raceNumber);
       } else {
         resultMissingRaceNumbers.push(raceNumber);
       }
     });
 
+    const comparison = compareReviewRaceReadiness(raceNumbers, predictionRaceNumbers, resultRaceNumbers);
     return {
       totalRaceCount: raceNumbers.length,
       predictionReadyCount,
       resultReadyCount,
       predictionMissingRaceNumbers,
       resultMissingRaceNumbers,
+      predictionRaceNumbers: comparison.predictionRaceNumbers,
+      resultRaceNumbers: comparison.resultRaceNumbers,
+      predictionOnlyRaceNumbers: comparison.predictionOnlyRaceNumbers,
+      resultOnlyRaceNumbers: comparison.resultOnlyRaceNumbers,
+      raceNumbersMatch: comparison.raceNumbersMatch,
     };
   }, [
     isLocalReviewSelected,
@@ -2786,38 +2866,10 @@ export default function ReviewPage() {
     todayFeed,
   ]);
 
-  const selectedReportRecord = useMemo(() => {
-    if (!isLocalReviewSelected) return null;
-    if (!selectedVenueGroup) return null;
-    return reportRecords.find((item) => item.date === selectedVenueGroup.date && item.venue === selectedVenueGroup.venue) ?? null;
-  }, [isLocalReviewSelected, reportRecords, selectedVenueGroup]);
-
-  useEffect(() => {
-    if (!isLocalReviewSelected) {
-      setReportDraft("");
-      return;
-    }
-    setReportDraft(selectedReportRecord?.reportText ?? "");
-  }, [isLocalReviewSelected, selectedReportRecord?.reportText, selectedVenueGroup?.venue, selectedVenueGroup?.date]);
-
   const todaySummary = useMemo(() => {
     const groups = venueGroups;
-    const totalInvestment = groups.reduce((sum, group) => sum + group.totalInvestment, 0);
-    const totalPayout = groups.reduce((sum, group) => sum + group.totalPayout, 0);
-    const settledCount = groups.reduce((sum, group) => sum + group.settledCount, 0);
-    const hitCount = groups.reduce((sum, group) => sum + group.hitCount, 0);
-    const raceCount = groups.reduce((sum, group) => sum + group.races.length, 0);
-    return {
-      venueCount: groups.length,
-      raceCount,
-      totalInvestment,
-      totalPayout,
-      profitLoss: totalPayout - totalInvestment,
-      roi: totalInvestment > 0 ? (totalPayout / totalInvestment) * 100 : undefined,
-      hitRate: settledCount > 0 ? (hitCount / settledCount) * 100 : undefined,
-      hitCount,
-      settledCount,
-    };
+    const performance = aggregateReviewPerformance(groups.flatMap((group) => group.races));
+    return { venueCount: groups.length, raceCount: groups.reduce((sum, group) => sum + group.races.length, 0), ...performance };
   }, [venueGroups]);
 
   const reviewFileSummary = useMemo(() => {
@@ -2851,68 +2903,6 @@ export default function ReviewPage() {
     ),
     [venueGroups],
   );
-  const workbenchSummaryReadyCount = useMemo(
-    () => reviewFileGroups.filter((group) => Boolean(group.summaryText.trim())).length,
-    [reviewFileGroups],
-  );
-  const workbenchMissingCount = Math.max(0, todaySummary.raceCount - workbenchResultReadyCount);
-
-const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-  const file = event.currentTarget.files?.[0];
-  event.currentTarget.value = "";
-
-  if (!file) return;
-
-  const isTextFile =
-    file.type === "text/plain" ||
-    file.name.toLowerCase().endsWith(".txt");
-
-  if (!isTextFile) {
-    setReportStatus("TXTファイルだけ読み込めます");
-    return;
-  }
-
-  try {
-    const text = await file.text();
-    setReportDraft(text);
-    setReportStatus(`${file.name} を読み込みました`);
-  } catch {
-    setReportStatus("TXTファイルを読み込めませんでした");
-  }
-};
-
-  const saveCurrentReport = () => {
-    if (!isLocalReviewSelected) return;
-    if (!selectedVenueGroup) return;
-    const nextRecord: ReviewReportRecord = {
-      id: `${selectedVenueGroup.date}:${selectedVenueGroup.venue}`,
-      date: selectedVenueGroup.date,
-      venue: selectedVenueGroup.venue,
-      reportText: reportDraft,
-      savedAt: new Date().toISOString(),
-      predictionCopy: selectedPredictionCopy,
-      resultCopy: selectedResultCopy,
-    };
-    const next = [
-      nextRecord,
-      ...reportRecords.filter((item) => !(item.date === nextRecord.date && item.venue === nextRecord.venue)),
-    ];
-    setReportRecords(next);
-    saveReviewReports(next);
-    setReportStatus("保存しました");
-  };
-
-  const deleteCurrentReport = () => {
-    if (!isLocalReviewSelected) return;
-    if (!selectedVenueGroup) return;
-    const next = reportRecords
-      .filter((item) => !(item.date === selectedVenueGroup.date && item.venue === selectedVenueGroup.venue));
-    setReportRecords(next);
-    saveReviewReports(next);
-    setReportDraft("");
-    setReportStatus("削除しました");
-  };
-
   const heroTone =
     venueColorMap[selectedDisplayVenueName ?? ""] ?? {
       border: "#d8c9f5",
@@ -3009,8 +2999,8 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
 
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px", marginTop: "260px" }}>
                   <StatCard label="OPERATION DAY" value={formatDateShort(selectedDate)} sub={isTodaySelected ? "本日のレビュー対象日" : isYesterdaySelected ? "昨日のレビュー対象日" : "表示中の保存レビュー日付"} />
-                  <StatCard label="TARGETS" value={isLocalReviewSelected ? `${todaySummary.venueCount}会場 / ${todaySummary.raceCount}R` : `${reviewFileSummary.venueCount}会場`} sub={isTodaySelected ? "予想素材・当日フィード・保存ファイルから構成" : isYesterdaySelected ? "昨日の予想素材・スナップショット・保存ファイルから構成" : "index.json に登録された会場ファイルを表示"} />
-                  <StatCard label="FILE STATUS" value={isLocalReviewSelected ? `${todaySummary.hitCount}的中 / ${todaySummary.settledCount}照合` : `${reviewFileSummary.loadedTextCount}件読込`} sub={isLocalReviewSelected ? `レポート一時保存 ${reportRecords.length}件` : `登録ファイル ${reviewFileSummary.fileCount}件`} />
+                  <StatCard label="TARGETS" value={isLocalReviewSelected ? `${todaySummary.venueCount}会場 / 予想${todaySummary.predictionRaceCount}R` : `${reviewFileSummary.venueCount}会場`} sub={isTodaySelected ? "public Johnson・local保存・当日フィードを統合" : isYesterdaySelected ? "昨日の予想素材・スナップショット・保存ファイルから構成" : "index.json に登録された会場ファイルを表示"} />
+                  <StatCard label="PERFORMANCE" value={isLocalReviewSelected ? `${todaySummary.purchaseHitCount}的中 / ${todaySummary.classifiedSettledRaceCount}分類済` : `${reviewFileSummary.loadedTextCount}件読込`} sub={isLocalReviewSelected ? "購入分類が確認できた確定Rのみ" : `登録ファイル ${reviewFileSummary.fileCount}件`} />
                   <StatCard label="MODE" value={isLocalReviewSelected ? "MERGED SOURCES" : "TXT / FETCH"} sub={isTodaySelected ? "localStorage・today.generated.json・review TXTを統合" : isYesterdaySelected ? "review TXT・summaryを参照" : "過去レビューは localStorage に保存しません"} />
                 </div>
               </div>
@@ -3099,11 +3089,12 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
               {[
                 { label: "対象日", value: formatDateLabel(selectedDate) },
                 { label: "読込モード", value: "MERGED SOURCES" },
-                { label: "読込件数", value: `${todaySummary.raceCount}件` },
-                { label: "対象会場数", value: `${todaySummary.venueCount}会場` },
-                { label: "結果あり件数", value: `${workbenchResultReadyCount}件` },
-                { label: "summaryあり件数", value: `${workbenchSummaryReadyCount}件` },
-                { label: "未取得件数", value: `${workbenchMissingCount}件` },
+                { label: "対象会場", value: `${todaySummary.venueCount}会場` },
+                { label: "対象R", value: `${todaySummary.raceCount}R` },
+                { label: "予想R", value: `${todaySummary.predictionRaceCount}R` },
+                { label: "結果R", value: `${workbenchResultReadyCount}R` },
+                { label: "購入分類済R", value: `${todaySummary.classifiedSettledRaceCount}R` },
+                { label: "分類不明R", value: `${todaySummary.unknownCount}R` },
               ].map((item) => (
                 <div key={item.label} style={{ borderRadius: "17px", border: "1px solid rgba(225,216,240,0.95)", background: "rgba(255,255,255,0.9)", padding: "11px 12px", minWidth: 0 }}>
                   <div style={{ fontSize: "9px", fontWeight: 900, letterSpacing: "0.1em", color: "#9384ae", marginBottom: "5px" }}>{item.label}</div>
@@ -3116,7 +3107,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
               <div style={{ borderRadius: "20px", border: "1px solid rgba(213,201,239,0.92)", background: "linear-gradient(135deg, rgba(250,247,255,0.96) 0%, rgba(247,250,255,0.96) 100%)", padding: "14px" }}>
                 <div style={{ fontSize: "11px", fontWeight: 900, color: "#6f52b2", marginBottom: "8px" }}>コピー素材</div>
                 <div style={{ fontSize: "12px", lineHeight: 1.8, color: "#5f6676" }}>
-                  結果まとめコピー / summary用素材 / 予想差分確認
+                  予想・結果まとめコピー / TXT保存 / R対応確認
                   <br />
                   払戻・全着順・上がり・着差・決まり手・天気・source情報を保持
                 </div>
@@ -3138,6 +3129,42 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
           </article>
         </div>
 
+        {isLocalReviewSelected ? (
+          <section style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.35fr) minmax(360px, 0.65fr)", gap: "18px", marginBottom: "24px" }}>
+            <article style={{ borderRadius: "30px", border: "1px solid rgba(211,228,220,0.95)", background: "linear-gradient(145deg, rgba(250,255,252,0.98), rgba(246,250,255,0.98))", padding: "22px", boxShadow: "0 18px 38px rgba(20,45,38,0.05)" }}>
+              <div style={{ marginBottom: "16px" }}>
+                <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#27815f", marginBottom: "6px" }}>PERFORMANCE</div>
+                <div style={{ fontSize: "24px", fontWeight: 900, color: "#12261f" }}>実購入成績</div>
+                <div style={{ marginTop: "6px", fontSize: "11px", lineHeight: 1.6, color: "#65766f" }}>購入分類が確認できた結果確定Rのみ収支集計。結果待ちの予定購入額は含みません。</div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px" }}>
+                <ReviewVenueMetric label="予想R" value={`${todaySummary.predictionRaceCount}R`} sub="保存予想" />
+                <ReviewVenueMetric label="結果確定R" value={`${todaySummary.settledRaceCount}R`} sub={`${todaySummary.pendingCount}R 結果待ち`} />
+                <ReviewVenueMetric label="実購入的中" value={`${todaySummary.purchaseHitCount}R`} sub={`${todaySummary.classifiedSettledRaceCount}R 分類済`} />
+                <ReviewVenueMetric label="実投資" value={todaySummary.classifiedSettledRaceCount > 0 ? formatYen(todaySummary.actualInvestment) : "--"} sub="確定分のみ" />
+                <ReviewVenueMetric label="実払戻" value={todaySummary.classifiedSettledRaceCount > 0 ? formatYen(todaySummary.actualPayout) : "--"} sub="購入HITのみ" />
+                <ReviewVenueMetric label="実収支" value={todaySummary.classifiedSettledRaceCount > 0 ? formatProfit(todaySummary.actualProfit) : "--"} sub="影目払戻を除外" />
+                <ReviewVenueMetric label="実的中率" value={formatRate(todaySummary.actualHitRate)} sub="分類済確定R母数" />
+                <ReviewVenueMetric label="実回収率" value={formatRate(todaySummary.actualRoi)} sub="実払戻 ÷ 実投資" />
+              </div>
+            </article>
+
+            <article style={{ borderRadius: "30px", border: "1px solid rgba(216,205,244,0.96)", background: "linear-gradient(145deg, rgba(251,248,255,0.98), rgba(246,249,255,0.98))", padding: "22px", boxShadow: "0 18px 38px rgba(50,35,95,0.05)" }}>
+              <div style={{ marginBottom: "16px" }}>
+                <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#7959c7", marginBottom: "6px" }}>SHADOW ANALYSIS</div>
+                <div style={{ fontSize: "24px", fontWeight: 900, color: "#251b42" }}>影目の効果</div>
+                <div style={{ marginTop: "6px", fontSize: "11px", lineHeight: 1.6, color: "#736a83" }}>影目は実投資・実払戻・実収支へ含めません。</div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "10px" }}>
+                <ReviewVenueMetric label="影目のみHIT" value={`${todaySummary.shadowHitCount}R`} sub="参考捕捉" />
+                <ReviewVenueMetric label="購入＋影目捕捉" value={`${todaySummary.capturedHitCount}R`} sub="実的中と影目HIT" />
+                <ReviewVenueMetric label="影目込み捕捉率" value={formatRate(todaySummary.shadowCoverageRate)} sub="分類済確定R母数" />
+                <ReviewVenueMetric label="分類不明" value={`${todaySummary.unknownCount}R`} sub="収支集計対象外" />
+              </div>
+            </article>
+          </section>
+        ) : null}
+
         <section
           style={{
             borderRadius: "34px",
@@ -3155,7 +3182,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
             </div>
             <div style={{ fontSize: "12px", color: "#6d7687", lineHeight: 1.7, textAlign: "right" }}>
               <div>{isLocalReviewSelected ? "予想素材・当日フィード・保存レビューTXTを対象に、" : "選択日付の保存レビューTXTだけを対象に、"}</div>
-              <div>{isLocalReviewSelected ? "会場カードとレポート貼り付け欄を切り替えます。" : "会場カードと表示テキストを切り替えます。"}</div>
+              <div>{isLocalReviewSelected ? "会場カードとコピー素材を切り替えます。" : "会場カードと表示テキストを切り替えます。"}</div>
             </div>
           </div>
 
@@ -3183,7 +3210,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
             </div>
             <div style={{ fontSize: "12px", color: "#6d7687", lineHeight: 1.7, textAlign: "right" }}>
               <div>会場を押すと、左のコピー素材と</div>
-              <div>{isLocalReviewSelected ? "右のレポート保存欄が切り替わります。" : "右の保存ファイル情報が切り替わります。"}</div>
+              <div>{isLocalReviewSelected ? "実購入成績と影目の効果を分けて確認できます。" : "保存ファイル情報が切り替わります。"}</div>
             </div>
           </div>
 
@@ -3220,7 +3247,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
             (item) => normalizeVenueName(item.venue) === normalizeVenueName(group.venue),
           );
           const predictionReady =
-            group.races.some((race) => race.predictionText.trim()) ||
+            group.races.some((race) => race.hasPrediction) ||
             Boolean(fileGroup?.predictionText.trim());
           const resultReady =
             group.races.some((race) =>
@@ -3231,10 +3258,7 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
               )
             ) ||
             Boolean(fileGroup?.resultText.trim());
-          const summaryReady = Boolean(fileGroup?.summaryText.trim());
-          const profitLoss = group.totalPayout - group.totalInvestment;
-          const hitRate = group.settledCount > 0 ? `${((group.hitCount / group.settledCount) * 100).toFixed(1)}%` : "--";
-          const hitSub = group.settledCount > 0 ? `${group.hitCount}-${group.settledCount}` : "接続待ち";
+          const performance = group.performance;
           const stageLabel = getPredictionVenueStageLabel(group, group.date);
 
           return (
@@ -3272,8 +3296,8 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                     <span style={{ fontSize: "10px", fontWeight: 900, color: resultReady ? "#7b5be3" : "#8a8fa1", background: resultReady ? "rgba(123,91,227,0.1)" : "rgba(238, 240, 245, 0.9)", border: `1px solid ${resultReady ? "rgba(196, 181, 253, 0.8)" : "rgba(219, 223, 232, 0.92)"}`, borderRadius: "999px", padding: "4px 8px" }}>
                       {resultReady ? "結果あり" : "結果なし"}
                     </span>
-                    <span style={{ fontSize: "10px", fontWeight: 900, color: summaryReady ? "#bf4f7f" : "#8a8fa1", background: summaryReady ? "rgba(244, 122, 164, 0.1)" : "rgba(238, 240, 245, 0.9)", border: `1px solid ${summaryReady ? "rgba(244, 122, 164, 0.26)" : "rgba(219, 223, 232, 0.92)"}`, borderRadius: "999px", padding: "4px 8px" }}>
-                      {summaryReady ? "まとめあり" : "まとめなし"}
+                    <span style={{ fontSize: "10px", fontWeight: 900, color: performance.predictionRaceCount === 0 ? "#8a8fa1" : performance.unknownCount === 0 ? "#16835b" : "#8a6b20", background: performance.predictionRaceCount === 0 ? "rgba(238,240,245,0.9)" : performance.unknownCount === 0 ? "rgba(22,131,91,0.09)" : "rgba(245,191,72,0.12)", border: `1px solid ${performance.predictionRaceCount === 0 ? "rgba(219,223,232,0.92)" : performance.unknownCount === 0 ? "rgba(22,131,91,0.24)" : "rgba(205,153,42,0.28)"}`, borderRadius: "999px", padding: "4px 8px" }}>
+                      {performance.predictionRaceCount === 0 ? "分類対象なし" : performance.unknownCount === 0 ? "購入分類OK" : `分類不明 ${performance.unknownCount}R`}
                     </span>
                   </div>
                   <div style={{ fontSize: "12px", color: "#6d7687", marginTop: "7px", lineHeight: 1.6 }}>
@@ -3316,10 +3340,11 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "10px" }}>
-                <ReviewVenueMetric label="払戻" value={formatYen(group.totalPayout)} sub={group.settledCount > 0 ? "払い戻し合計" : "結果待ち"} />
-                <ReviewVenueMetric label="収支" value={formatProfit(profitLoss)} sub={profitLoss >= 0 ? "プラス収支" : "マイナス収支"} />
-                <ReviewVenueMetric label="的中率" value={hitRate} sub={hitSub} />
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px" }}>
+                <ReviewVenueMetric label="実購入的中" value={`${performance.purchaseHitCount}/${performance.classifiedSettledRaceCount}R`} sub="分類済確定R" />
+                <ReviewVenueMetric label="実収支" value={performance.classifiedSettledRaceCount > 0 ? formatProfit(performance.actualProfit) : "--"} sub="影目を除外" />
+                <ReviewVenueMetric label="実回収率" value={formatRate(performance.actualRoi)} sub="購入分のみ" />
+                <ReviewVenueMetric label="影目HIT" value={`${performance.shadowHitCount}R`} sub="実収支対象外" />
               </div>
             </button>
           );
@@ -3414,16 +3439,16 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
 
         </section>
 
-        <section style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.16fr) minmax(380px, 0.84fr)", gap: "22px", alignItems: "start", marginBottom: "24px" }}>
+        <section style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: "22px", alignItems: "start", marginBottom: "24px" }}>
           <article style={{ borderRadius: "32px", border: `1px solid ${heroTone.border}`, background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,245,252,0.98) 100%)", boxShadow: "0 20px 40px rgba(17,24,39,0.05)", padding: "26px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", marginBottom: "18px" }}>
               <div>
                 <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "8px" }}>COPY MATERIAL</div>
-                <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>{isTodaySelected ? "会場ごとの GPT 連携素材" : isYesterdaySelected ? "昨日の GPT 連携素材" : "保存ファイルのテキスト表示"}</h2>
+                <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>{isTodaySelected ? "会場ごとのエクスポート素材" : isYesterdaySelected ? "昨日のエクスポート素材" : "保存ファイルのエクスポート"}</h2>
               </div>
               <div style={{ fontSize: "12px", color: "#6d7687", lineHeight: 1.7, textAlign: "right" }}>
-                <div>{isTodaySelected ? "左に予想まとめ、下に結果まとめ。" : isYesterdaySelected ? "昨日分の予想まとめと結果まとめを表示します。" : "保存された予想TXTと結果TXTを表示します。"}</div>
-                <div>コピーボタンですぐ GPT に渡せます。</div>
+                <div>本文は内部生成し、画面には件数とR対応だけを表示します。</div>
+                <div>コピー / TXT は従来どおり利用できます。</div>
               </div>
             </div>
 
@@ -3432,8 +3457,29 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "12px", marginBottom: "18px" }}>
                   <SummaryChip label="対象会場" value={`${selectedDisplayVenueName ?? "--"} / ${formatDateShort(selectedDate)}`} />
                   <SummaryChip label={isLocalReviewSelected ? "対象R数" : "表示モード"} value={isLocalReviewSelected ? `${selectedVenueGroup?.races.length ?? 0}R` : "FILE ARCHIVE"} />
-                  <SummaryChip label={isLocalReviewSelected ? "レポート状態" : "保存方式"} value={isLocalReviewSelected ? selectedReportRecord ? "保存済み" : "未保存" : "fetch only"} />
+                  <SummaryChip label={isLocalReviewSelected ? "R対応" : "保存方式"} value={isLocalReviewSelected ? selectedReviewReadiness.raceNumbersMatch ? "予想・結果一致" : "要確認" : "fetch only"} />
                 </div>
+
+                {isLocalReviewSelected && selectedVenueGroup ? (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "16px" }}>
+                    {selectedVenueGroup.races.filter((race) => race.hasPrediction).map((race) => {
+                      const presentation = race.performance.status === "purchase-hit"
+                        ? { label: "実購入的中", color: "#166b4f", background: "rgba(38,153,106,0.11)", border: "rgba(38,153,106,0.3)" }
+                        : race.performance.status === "shadow-hit"
+                          ? { label: "影目のみHIT", color: "#6b4bb7", background: "rgba(123,91,227,0.11)", border: "rgba(123,91,227,0.28)" }
+                          : race.performance.status === "miss"
+                            ? { label: "不的中", color: "#a24646", background: "rgba(194,82,82,0.09)", border: "rgba(194,82,82,0.24)" }
+                            : race.performance.status === "unknown"
+                              ? { label: "分類不明", color: "#687080", background: "rgba(119,128,145,0.09)", border: "rgba(119,128,145,0.24)" }
+                              : { label: "結果待ち", color: "#687080", background: "rgba(119,128,145,0.07)", border: "rgba(119,128,145,0.2)" };
+                      return (
+                        <span key={race.raceKey} title={race.performance.classification.warnings.join(", ")} style={{ borderRadius: "999px", border: `1px solid ${presentation.border}`, background: presentation.background, color: presentation.color, padding: "7px 11px", fontSize: "11px", fontWeight: 900 }}>
+                          {race.raceNumber}R · {presentation.label}
+                        </span>
+                      );
+                    })}
+                  </div>
+                ) : null}
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px" }}>
                   <div style={{ borderRadius: "24px", border: "1px solid rgba(229,221,241,0.95)", background: "rgba(255,255,255,0.92)", padding: "18px" }}>
@@ -3504,7 +3550,6 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
   </button>
 </div>
                     </div>
-                    <textarea value={selectedPredictionCopy} readOnly style={{ width: "100%", minHeight: "280px", resize: "vertical", borderRadius: "20px", border: "1px solid rgba(224,216,238,0.92)", padding: "18px", fontSize: "13px", lineHeight: 1.8, background: "#ffffff" }} />
                   </div>
 
                   <div style={{ borderRadius: "24px", border: "1px solid rgba(229,221,241,0.95)", background: "rgba(255,255,255,0.92)", padding: "18px" }}>
@@ -3591,8 +3636,16 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
   </button>
 </div>
                     </div>
-                    <textarea value={selectedResultCopy} readOnly style={{ width: "100%", minHeight: "300px", resize: "vertical", borderRadius: "20px", border: "1px solid rgba(224,216,238,0.92)", padding: "18px", fontSize: "13px", lineHeight: 1.8, background: "#ffffff" }} />
                   </div>
+                </div>
+                <div style={{ marginTop: "14px", borderRadius: "18px", border: `1px solid ${selectedReviewReadiness.raceNumbersMatch ? "rgba(22,131,91,0.24)" : "rgba(205,153,42,0.3)"}`, background: selectedReviewReadiness.raceNumbersMatch ? "rgba(236,250,244,0.78)" : "rgba(255,248,230,0.78)", padding: "13px 15px", fontSize: "12px", lineHeight: 1.7, color: "#4b5563" }}>
+                  <div style={{ fontWeight: 900, color: selectedReviewReadiness.raceNumbersMatch ? "#16835b" : "#9a6817" }}>
+                    {selectedReviewReadiness.raceNumbersMatch ? "予想と結果のRが一致" : "R不一致"}
+                  </div>
+                  <div>予想R: {selectedReviewReadiness.predictionRaceNumbers.map((raceNumber) => `${raceNumber}R`).join(", ") || "なし"}</div>
+                  <div>結果R: {selectedReviewReadiness.resultRaceNumbers.map((raceNumber) => `${raceNumber}R`).join(", ") || "なし"}</div>
+                  {selectedReviewReadiness.predictionOnlyRaceNumbers.length > 0 ? <div>予想のみ: {selectedReviewReadiness.predictionOnlyRaceNumbers.map((raceNumber) => `${raceNumber}R`).join(", ")}</div> : null}
+                  {selectedReviewReadiness.resultOnlyRaceNumbers.length > 0 ? <div>結果のみ: {selectedReviewReadiness.resultOnlyRaceNumbers.map((raceNumber) => `${raceNumber}R`).join(", ")}</div> : null}
                 </div>
               </>
             ) : (
@@ -3604,127 +3657,6 @@ const handleReportTextFileUpload = async (event: ChangeEvent<HTMLInputElement>) 
             {copyStatus ? <div style={{ marginTop: "12px", fontSize: "13px", fontWeight: 800, color: heroTone.text }}>{copyStatus}</div> : null}
           </article>
 
-          <article style={{ borderRadius: "32px", border: `1px solid ${heroTone.border}`, background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,245,252,0.98) 100%)", boxShadow: "0 20px 40px rgba(17,24,39,0.05)", padding: "26px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", marginBottom: "18px" }}>
-              <div>
-                <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9a7ad9", marginBottom: "8px" }}>GPT REVIEW</div>
-                <h2 style={{ margin: 0, fontSize: "30px", fontWeight: 900, color: "#101828" }}>{isTodaySelected ? "当日レポート貼り付け欄" : isYesterdaySelected ? "昨日レポート貼り付け欄" : "ファイル保存レビュー"}</h2>
-              </div>
-              <div style={{ fontSize: "12px", color: "#6d7687", lineHeight: 1.7, textAlign: "right" }}>
-                <div>{isTodaySelected ? "当日の振り返りを一時保存します。" : isYesterdaySelected ? "昨日の振り返りを朝まで一時保存します。" : "この日付はTXT/Markdown保存データを表示しています。"}</div>
-                <div>{isLocalReviewSelected ? "保存版はTXT/Markdownで別管理してください。" : "localStorageには保存しません。"}</div>
-              </div>
-            </div>
-
-            {isLocalReviewSelected ? selectedVenueGroup ? (
-              <>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "12px", marginBottom: "18px" }}>
-                  <SummaryChip label="会場" value={selectedVenueGroup.venue} />
-                  <SummaryChip label="日付" value={formatDateLabel(selectedVenueGroup.date)} />
-                  <SummaryChip label="保存日時" value={selectedReportRecord?.savedAt ? new Date(selectedReportRecord.savedAt).toLocaleString("ja-JP") : "未保存"} />
-                </div>
-                
-                <div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "12px",
-    flexWrap: "wrap",
-    marginBottom: "12px",
-  }}
->
-  <div style={{ fontSize: "12px", color: "#6d7687", lineHeight: 1.7 }}>
-    TXTファイルを読み込むか、下の欄に直接貼り付けて保存できます。
-  </div>
-
-  <label
-    style={{
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: "999px",
-      border: "1px solid rgba(122,96,194,0.24)",
-      background: "white",
-      color: "#6542be",
-      fontSize: "12px",
-      fontWeight: 900,
-      padding: "12px 18px",
-      cursor: "pointer",
-      boxShadow: "0 10px 20px rgba(17,24,39,0.04)",
-    }}
-  >
-    TXTを読み込む
-    <input
-      type="file"
-      accept=".txt,text/plain"
-      onChange={handleReportTextFileUpload}
-      style={{ display: "none" }}
-    />
-  </label>
-</div>
-
-                <textarea
-                  value={reportDraft}
-                  onChange={(event) => setReportDraft(event.target.value)}
-                  placeholder="ここに GPT で作成した振り返りレポートを貼り付けます。会場傾向、当たりパターン、外した理由、次回への修正点などを丁寧に残してください。"
-                  style={{
-  width: "100%",
-  minHeight: "420px",
-  resize: "vertical",
-  borderRadius: "22px",
-  border: "1px solid rgba(224,216,238,0.92)",
-  padding: "18px",
-  fontSize: "13px",
-  lineHeight: 1.8,
-  background: "#ffffff",
-  marginBottom: "16px",
-  color: "#1f2937",
-  fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-  whiteSpace: "pre-wrap",
-}}
-                />
-
-                <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-                  <button onClick={saveCurrentReport} style={{ border: "none", cursor: "pointer", borderRadius: "999px", padding: "14px 22px", background: "linear-gradient(135deg, #7b5be3 0%, #5d79e8 100%)", color: "white", fontWeight: 900 }}>レポートを保存</button>
-                  <button onClick={deleteCurrentReport} style={{ border: "1px solid rgba(122,96,194,0.24)", cursor: "pointer", borderRadius: "999px", padding: "14px 22px", background: "white", color: "#6542be", fontWeight: 900 }}>この会場のレポート削除</button>
-                </div>
-              </>
-            ) : (
-              <div style={{ borderRadius: "24px", border: "1px dashed rgba(219,211,236,0.95)", padding: "22px", color: "#6d7687", background: "rgba(255,255,255,0.7)" }}>
-                会場を選ぶとレポート保存欄が使えます。
-              </div>
-            ) : selectedReviewFileGroup ? (
-              <>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "12px", marginBottom: "18px" }}>
-                  <SummaryChip label="会場" value={selectedReviewFileGroup.venue} />
-                  <SummaryChip label="日付" value={formatDateLabel(selectedReviewFileGroup.date)} />
-                  <SummaryChip label="保存方式" value="fetch only" />
-                </div>
-                <div style={{ borderRadius: "24px", border: "1px solid rgba(229,221,241,0.95)", background: "rgba(255,255,255,0.92)", padding: "18px", marginBottom: "14px" }}>
-                  <div style={{ fontSize: "13px", lineHeight: 1.9, color: "#5f6676" }}>
-                    この日付はTXT/Markdown保存データを表示しています。localStorageには保存しません。
-                  </div>
-                </div>
-                <div style={{ display: "grid", gap: "12px" }}>
-                  <div style={{ borderRadius: "22px", border: "1px solid rgba(229,221,241,0.92)", background: "rgba(255,255,255,0.95)", padding: "16px" }}>
-                    <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#9a7ad9", marginBottom: "8px" }}>PREDICTION FILE</div>
-                    <div style={{ fontSize: "13px", lineHeight: 1.8, color: "#374151" }}>{selectedReviewFileGroup.predictionFile ?? "未登録"}</div>
-                  </div>
-                  <div style={{ borderRadius: "22px", border: "1px solid rgba(229,221,241,0.92)", background: "rgba(255,255,255,0.95)", padding: "16px" }}>
-                    <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#9a7ad9", marginBottom: "8px" }}>RESULT FILE</div>
-                    <div style={{ fontSize: "13px", lineHeight: 1.8, color: "#374151" }}>{selectedReviewFileGroup.resultFile ?? "未登録"}</div>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div style={{ borderRadius: "24px", border: "1px dashed rgba(219,211,236,0.95)", padding: "22px", color: "#6d7687", background: "rgba(255,255,255,0.7)" }}>
-                会場を選ぶと保存ファイル情報が表示されます。
-              </div>
-            )}
-
-            {reportStatus ? <div style={{ marginTop: "14px", fontSize: "13px", fontWeight: 800, color: heroTone.text }}>{reportStatus}</div> : null}
-          </article>
         </section>
 
         <div style={{ fontSize: "12px", lineHeight: 1.8, color: "#6d7687", textAlign: "center" }}>
