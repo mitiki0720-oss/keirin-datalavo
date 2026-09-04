@@ -14,6 +14,7 @@ import {
   aggregateReviewPerformance,
   compareReviewRaceReadiness,
   evaluateReviewRacePerformance,
+  getReviewMetricValueFontSize,
   type ReviewPerformanceSummary,
   type ReviewPredictionJsonLike,
   type ReviewRacePerformance,
@@ -2160,6 +2161,8 @@ function buildResultCopy(
         ? "実購入的中"
         : hitStatus === "shadow-hit"
           ? "影目のみHIT"
+          : resolvedMetrics.classification.explicitSkip
+            ? "SKIP / 購入なし"
           : hitStatus === "miss"
             ? "不的中"
             : hitStatus === "unknown"
@@ -2292,6 +2295,7 @@ function buildReviewDownloadFileName(date: string, venue: string, kind: "predict
 }
 
 function StatCard({ label, value, sub }: { label: string; value: string; sub: string }) {
+  const valueFontSize = Array.from(value).length >= 13 ? "18px" : Array.from(value).length >= 9 ? "20px" : "24px";
   return (
     <article
       style={{
@@ -2304,7 +2308,7 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub: st
       }}
     >
       <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9475d3", marginBottom: "6px" }}>{label}</div>
-      <div style={{ fontSize: "24px", fontWeight: 900, color: "#0f172a", marginBottom: "4px", lineHeight: 1.06, letterSpacing: "-0.04em" }}>{value}</div>
+      <div style={{ minWidth: 0, maxWidth: "100%", whiteSpace: "nowrap", fontSize: valueFontSize, fontWeight: 900, fontVariantNumeric: "tabular-nums", color: "#0f172a", marginBottom: "4px", lineHeight: 1.06, letterSpacing: 0 }}>{value}</div>
       <div style={{ fontSize: "12px", lineHeight: 1.7, color: "#687385" }}>{sub}</div>
     </article>
   );
@@ -2328,6 +2332,7 @@ function SummaryChip({ label, value }: { label: string; value: string }) {
 }
 
 function ReviewVenueMetric({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  const valueFontSize = getReviewMetricValueFontSize(value);
   return (
     <div
       style={{
@@ -2335,24 +2340,30 @@ function ReviewVenueMetric({ label, value, sub }: { label: string; value: string
         border: "1px solid rgba(225, 214, 242, 0.96)",
         background: "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,242,252,0.94) 100%)",
         boxShadow: "0 10px 24px rgba(27, 33, 52, 0.04)",
-        padding: "12px 12px 11px",
+        padding: "12px 8px 11px",
         minHeight: "88px",
+        minWidth: 0,
+        maxWidth: "100%",
         overflow: "visible",
       }}
     >
       <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#9a7ad9", marginBottom: "7px" }}>{label}</div>
       <div
         style={{
-          fontSize: "18px",
+          minWidth: 0,
+          maxWidth: "100%",
+          whiteSpace: "nowrap",
+          fontSize: valueFontSize,
           fontWeight: 900,
+          fontVariantNumeric: "tabular-nums",
           color: "#111827",
-          lineHeight: 1.08,
-          letterSpacing: "-0.04em",
+          lineHeight: 1.05,
+          letterSpacing: 0,
         }}
       >
         {value}
       </div>
-      {sub ? <div style={{ marginTop: "7px", fontSize: "10px", lineHeight: 1.45, color: "#6d7687", whiteSpace: "nowrap" }}>{sub}</div> : null}
+      {sub ? <div style={{ marginTop: "7px", minWidth: 0, fontSize: "10px", lineHeight: 1.45, color: "#6d7687" }}>{sub}</div> : null}
     </div>
   );
 }
@@ -3000,7 +3011,7 @@ export default function ReviewPage() {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px", marginTop: "260px" }}>
                   <StatCard label="OPERATION DAY" value={formatDateShort(selectedDate)} sub={isTodaySelected ? "本日のレビュー対象日" : isYesterdaySelected ? "昨日のレビュー対象日" : "表示中の保存レビュー日付"} />
                   <StatCard label="TARGETS" value={isLocalReviewSelected ? `${todaySummary.venueCount}会場 / 予想${todaySummary.predictionRaceCount}R` : `${reviewFileSummary.venueCount}会場`} sub={isTodaySelected ? "public Johnson・local保存・当日フィードを統合" : isYesterdaySelected ? "昨日の予想素材・スナップショット・保存ファイルから構成" : "index.json に登録された会場ファイルを表示"} />
-                  <StatCard label="PERFORMANCE" value={isLocalReviewSelected ? `${todaySummary.purchaseHitCount}的中 / ${todaySummary.classifiedSettledRaceCount}分類済` : `${reviewFileSummary.loadedTextCount}件読込`} sub={isLocalReviewSelected ? "購入分類が確認できた確定Rのみ" : `登録ファイル ${reviewFileSummary.fileCount}件`} />
+                  <StatCard label="PERFORMANCE" value={isLocalReviewSelected ? `${todaySummary.purchaseHitCount}的中 / ${todaySummary.purchasedSettledRaceCount}購入R` : `${reviewFileSummary.loadedTextCount}件読込`} sub={isLocalReviewSelected ? "明示SKIPを除く購入済み確定R" : `登録ファイル ${reviewFileSummary.fileCount}件`} />
                   <StatCard label="MODE" value={isLocalReviewSelected ? "MERGED SOURCES" : "TXT / FETCH"} sub={isTodaySelected ? "localStorage・today.generated.json・review TXTを統合" : isYesterdaySelected ? "review TXT・summaryを参照" : "過去レビューは localStorage に保存しません"} />
                 </div>
               </div>
@@ -3093,7 +3104,7 @@ export default function ReviewPage() {
                 { label: "対象R", value: `${todaySummary.raceCount}R` },
                 { label: "予想R", value: `${todaySummary.predictionRaceCount}R` },
                 { label: "結果R", value: `${workbenchResultReadyCount}R` },
-                { label: "購入分類済R", value: `${todaySummary.classifiedSettledRaceCount}R` },
+                { label: "購入対象R", value: `${todaySummary.purchasedSettledRaceCount}R` },
                 { label: "分類不明R", value: `${todaySummary.unknownCount}R` },
               ].map((item) => (
                 <div key={item.label} style={{ borderRadius: "17px", border: "1px solid rgba(225,216,240,0.95)", background: "rgba(255,255,255,0.9)", padding: "11px 12px", minWidth: 0 }}>
@@ -3140,11 +3151,11 @@ export default function ReviewPage() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px" }}>
                 <ReviewVenueMetric label="予想R" value={`${todaySummary.predictionRaceCount}R`} sub="保存予想" />
                 <ReviewVenueMetric label="結果確定R" value={`${todaySummary.settledRaceCount}R`} sub={`${todaySummary.pendingCount}R 結果待ち`} />
-                <ReviewVenueMetric label="実購入的中" value={`${todaySummary.purchaseHitCount}R`} sub={`${todaySummary.classifiedSettledRaceCount}R 分類済`} />
-                <ReviewVenueMetric label="実投資" value={todaySummary.classifiedSettledRaceCount > 0 ? formatYen(todaySummary.actualInvestment) : "--"} sub="確定分のみ" />
-                <ReviewVenueMetric label="実払戻" value={todaySummary.classifiedSettledRaceCount > 0 ? formatYen(todaySummary.actualPayout) : "--"} sub="購入HITのみ" />
-                <ReviewVenueMetric label="実収支" value={todaySummary.classifiedSettledRaceCount > 0 ? formatProfit(todaySummary.actualProfit) : "--"} sub="影目払戻を除外" />
-                <ReviewVenueMetric label="実的中率" value={formatRate(todaySummary.actualHitRate)} sub="分類済確定R母数" />
+                <ReviewVenueMetric label="実購入的中" value={`${todaySummary.purchaseHitCount}/${todaySummary.purchasedSettledRaceCount}R`} sub="SKIP除外" />
+                <ReviewVenueMetric label="実投資" value={todaySummary.purchasedSettledRaceCount > 0 ? formatYen(todaySummary.actualInvestment) : "--"} sub="購入済み確定分のみ" />
+                <ReviewVenueMetric label="実払戻" value={todaySummary.purchasedSettledRaceCount > 0 ? formatYen(todaySummary.actualPayout) : "--"} sub="購入HITのみ" />
+                <ReviewVenueMetric label="実収支" value={todaySummary.purchasedSettledRaceCount > 0 ? formatProfit(todaySummary.actualProfit) : "--"} sub="影目・SKIPを除外" />
+                <ReviewVenueMetric label="実的中率" value={formatRate(todaySummary.actualHitRate)} sub="購入済み確定R母数" />
                 <ReviewVenueMetric label="実回収率" value={formatRate(todaySummary.actualRoi)} sub="実払戻 ÷ 実投資" />
               </div>
             </article>
@@ -3341,8 +3352,8 @@ export default function ReviewPage() {
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px" }}>
-                <ReviewVenueMetric label="実購入的中" value={`${performance.purchaseHitCount}/${performance.classifiedSettledRaceCount}R`} sub="分類済確定R" />
-                <ReviewVenueMetric label="実収支" value={performance.classifiedSettledRaceCount > 0 ? formatProfit(performance.actualProfit) : "--"} sub="影目を除外" />
+                <ReviewVenueMetric label="実購入的中" value={`${performance.purchaseHitCount}/${performance.purchasedSettledRaceCount}R`} sub="SKIP除外" />
+                <ReviewVenueMetric label="実収支" value={performance.purchasedSettledRaceCount > 0 ? formatProfit(performance.actualProfit) : "--"} sub="影目・SKIPを除外" />
                 <ReviewVenueMetric label="実回収率" value={formatRate(performance.actualRoi)} sub="購入分のみ" />
                 <ReviewVenueMetric label="影目HIT" value={`${performance.shadowHitCount}R`} sub="実収支対象外" />
               </div>
@@ -3467,6 +3478,8 @@ export default function ReviewPage() {
                         ? { label: "実購入的中", color: "#166b4f", background: "rgba(38,153,106,0.11)", border: "rgba(38,153,106,0.3)" }
                         : race.performance.status === "shadow-hit"
                           ? { label: "影目のみHIT", color: "#6b4bb7", background: "rgba(123,91,227,0.11)", border: "rgba(123,91,227,0.28)" }
+                          : race.performance.classification.explicitSkip
+                            ? { label: "SKIP / 購入なし", color: "#685582", background: "rgba(128,101,164,0.09)", border: "rgba(128,101,164,0.24)" }
                           : race.performance.status === "miss"
                             ? { label: "不的中", color: "#a24646", background: "rgba(194,82,82,0.09)", border: "rgba(194,82,82,0.24)" }
                             : race.performance.status === "unknown"

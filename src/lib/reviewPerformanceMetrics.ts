@@ -30,9 +30,13 @@ export type ReviewTicket = {
 export type ReviewTicketClassification = {
   status: "classified" | "unknown";
   source: "prediction-json-bet-plan" | "pre-race-ticket-snapshot" | "ticket-snapshot" | "prediction-text-explicit" | "unknown";
+  purchaseDecision: "buy" | "value-buy" | "skip" | "unknown";
+  explicitSkip: boolean;
   purchaseTickets: ReviewTicket[];
   shadowTickets: ReviewTicket[];
   unitStakeYen?: number;
+  declaredPurchasePoints?: number;
+  declaredInvestmentYen?: number;
   warnings: string[];
 };
 
@@ -56,6 +60,7 @@ export type ReviewPerformanceSummary = {
   predictionRaceCount: number;
   settledRaceCount: number;
   classifiedSettledRaceCount: number;
+  purchasedSettledRaceCount: number;
   purchaseHitCount: number;
   shadowHitCount: number;
   capturedHitCount: number;
@@ -150,6 +155,8 @@ const resolveStructuredPlan = (
   return {
     status: "classified",
     source,
+    purchaseDecision: purchaseTickets.length > 0 ? "buy" : "unknown",
+    explicitSkip: false,
     purchaseTickets,
     shadowTickets,
     unitStakeYen: Number.isFinite(unitStake) && unitStake > 0 ? unitStake : 100,
@@ -157,8 +164,120 @@ const resolveStructuredPlan = (
   };
 };
 
+type ExplicitPredictionMetadata = {
+  purchaseDecision: ReviewTicketClassification["purchaseDecision"];
+  purchasePoints?: number;
+  investmentYen?: number;
+};
+
+const parseExplicitPredictionMetadata = (lines: string[]): ExplicitPredictionMetadata => {
+  let purchaseDecision: ExplicitPredictionMetadata["purchaseDecision"] = "unknown";
+  let purchasePoints: number | undefined;
+  let investmentYen: number | undefined;
+
+  lines.forEach((rawLine) => {
+    const line = rawLine.trim().normalize("NFKC");
+    const decisionMatch = line.match(/^purchaseDecision\s*:\s*(BUY|VALUE[_ -]?BUY|SKIP)\s*$/iu);
+    if (decisionMatch) {
+      const decision = decisionMatch[1].toUpperCase().replace(/[ -]/g, "_");
+      purchaseDecision = decision === "SKIP" ? "skip" : decision === "VALUE_BUY" ? "value-buy" : "buy";
+    }
+
+    const pointsMatch = line.match(/^purchasePoints\s*:\s*([\d,]+)\s*(?:点)?\s*$/iu);
+    if (pointsMatch) {
+      const parsed = Number(pointsMatch[1].replaceAll(",", ""));
+      if (Number.isInteger(parsed) && parsed >= 0) purchasePoints = parsed;
+    }
+
+    const investmentMatch = line.match(/^investmentYen\s*:\s*([\d,]+)\s*(?:円|YEN)?\s*$/iu);
+    if (investmentMatch) {
+      const parsed = Number(investmentMatch[1].replaceAll(",", ""));
+      if (Number.isInteger(parsed) && parsed >= 0) investmentYen = parsed;
+    }
+  });
+
+  return { purchaseDecision, purchasePoints, investmentYen };
+};
+
+const classifyExplicitTextResult = (
+  metadata: ExplicitPredictionMetadata,
+  purchaseTickets: ReviewTicket[],
+  shadowTickets: ReviewTicket[],
+  warnings: string[],
+): ReviewTicketClassification => {
+  const { purchaseDecision, purchasePoints, investmentYen } = metadata;
+  const validationWarnings = [...warnings];
+
+  if (purchaseDecision === "skip") {
+    if (purchaseTickets.length > 0) validationWarnings.push(`skip-has-purchase-tickets:${purchaseTickets.length}`);
+    if (purchasePoints !== undefined && purchasePoints !== 0) validationWarnings.push(`skip-purchase-points:${purchasePoints}`);
+    if (investmentYen !== undefined && investmentYen !== 0) validationWarnings.push(`skip-investment-yen:${investmentYen}`);
+
+    return {
+      status: validationWarnings.length > warnings.length ? "unknown" : "classified",
+      source: "prediction-text-explicit",
+      purchaseDecision,
+      explicitSkip: true,
+      purchaseTickets: [],
+      shadowTickets,
+      unitStakeYen: 100,
+      declaredPurchasePoints: purchasePoints,
+      declaredInvestmentYen: investmentYen,
+      warnings: validationWarnings,
+    };
+  }
+
+  if (purchasePoints !== undefined && purchasePoints !== purchaseTickets.length) {
+    validationWarnings.push(`purchase-count-mismatch:declared=${purchasePoints},parsed=${purchaseTickets.length}`);
+  }
+
+  const stakeDivisor = purchasePoints ?? purchaseTickets.length;
+  let unitStakeYen = 100;
+  if (investmentYen !== undefined) {
+    if (stakeDivisor <= 0) {
+      validationWarnings.push(`investment-without-purchase-points:${investmentYen}`);
+    } else {
+      const derivedUnitStake = investmentYen / stakeDivisor;
+      if (!Number.isInteger(derivedUnitStake) || derivedUnitStake <= 0) {
+        validationWarnings.push(`investment-points-mismatch:investment=${investmentYen},points=${stakeDivisor}`);
+      } else {
+        unitStakeYen = derivedUnitStake;
+      }
+    }
+  }
+
+  if ((purchaseDecision === "buy" || purchaseDecision === "value-buy") && purchaseTickets.length === 0) {
+    validationWarnings.push("purchase-decision-without-tickets");
+  }
+  if (purchaseDecision === "unknown" && purchaseTickets.length === 0 && shadowTickets.length > 0) {
+    validationWarnings.push("shadow-only-without-explicit-skip");
+  }
+
+  const hasValidationError = validationWarnings.some((warning) =>
+    warning.startsWith("purchase-count-mismatch") ||
+    warning.startsWith("investment-without-purchase-points") ||
+    warning.startsWith("investment-points-mismatch") ||
+    warning === "purchase-decision-without-tickets" ||
+    warning === "shadow-only-without-explicit-skip"
+  );
+
+  return {
+    status: hasValidationError ? "unknown" : "classified",
+    source: "prediction-text-explicit",
+    purchaseDecision,
+    explicitSkip: false,
+    purchaseTickets,
+    shadowTickets,
+    unitStakeYen,
+    declaredPurchasePoints: purchasePoints,
+    declaredInvestmentYen: investmentYen,
+    warnings: validationWarnings,
+  };
+};
+
 const parseExplicitTextTickets = (predictionText: string): ReviewTicketClassification | null => {
   const lines = String(predictionText ?? "").replace(/\r\n/g, "\n").split("\n");
+  const metadata = parseExplicitPredictionMetadata(lines);
   let mode: "purchase" | "shadow" | null = null;
   const purchaseTickets: ReviewTicket[] = [];
   const shadowTickets: ReviewTicket[] = [];
@@ -166,21 +285,29 @@ const parseExplicitTextTickets = (predictionText: string): ReviewTicketClassific
   lines.forEach((rawLine, lineIndex) => {
     const line = rawLine.trim().normalize("NFKC");
     if (!line) return;
-    if (/^(?:【|\[)?(?:実購入|購入買い目|購入)(?:】|\])?(?:\s*[:：]\s*)?$/u.test(line)) {
+    const headerMatch = line.match(/^(?:【([^】]+)】|\[([^\]]+)\])(?:\s*:\s*)?$/u);
+    if (headerMatch) {
+      const header = String(headerMatch[1] ?? headerMatch[2] ?? "").replace(/\s+/g, "");
+      if (header === "影目" || header.toUpperCase() === "SHADOW" || header.includes("影買い目") || header.includes("すべて影買い目")) {
+        mode = "shadow";
+      } else if (["買い目", "購入買い目", "実購入", "購入"].includes(header)) {
+        mode = "purchase";
+      } else {
+        mode = null;
+      }
+      return;
+    }
+    if (/^(?:実購入|購入買い目|購入)(?:\s*:\s*)?$/u.test(line)) {
       mode = "purchase";
       return;
     }
-    if (/^(?:【|\[)?(?:影目|影買い目|SHADOW)(?:】|\])?(?:\s*[:：]\s*)?$/iu.test(line)) {
+    if (/^(?:影目|影買い目|SHADOW)(?:\s*:\s*)?$/iu.test(line)) {
       mode = "shadow";
       return;
     }
-    if (/^(?:【[^】]+】|\[[^\]]+\])$/u.test(line)) {
-      mode = null;
-      return;
-    }
 
-    const hasPurchaseToken = /(?:^|[|｜])\s*(?:実購入|購入)\s*(?:[|｜]|$)/u.test(line);
-    const hasShadowToken = /(?:^|[|｜])\s*(?:影目|影買い目|SHADOW)\s*(?:[|｜]|$)/iu.test(line);
+    const hasPurchaseToken = /(?:^|\|)\s*(?:実購入|購入)\s*(?:\||$)/u.test(line);
+    const hasShadowToken = /(?:^|\|)\s*(?:影|影目|影買い目|SHADOW)\s*(?:\||$)/iu.test(line);
     const lineMode = hasPurchaseToken && !hasShadowToken
       ? "purchase"
       : hasShadowToken && !hasPurchaseToken
@@ -203,17 +330,15 @@ const parseExplicitTextTickets = (predictionText: string): ReviewTicketClassific
     (lineMode === "purchase" ? purchaseTickets : shadowTickets).push(ticket);
   });
 
-  if (purchaseTickets.length === 0 && shadowTickets.length === 0) return null;
+  if (purchaseTickets.length === 0 && shadowTickets.length === 0 && metadata.purchaseDecision !== "skip") return null;
   const purchaseKeys = new Set(purchaseTickets.map((ticket) => `${ticket.betType}:${ticket.combination}`));
   const overlap = shadowTickets.filter((ticket) => purchaseKeys.has(`${ticket.betType}:${ticket.combination}`));
-  return {
-    status: "classified",
-    source: "prediction-text-explicit",
+  return classifyExplicitTextResult(
+    metadata,
     purchaseTickets,
-    shadowTickets: shadowTickets.filter((ticket) => !purchaseKeys.has(`${ticket.betType}:${ticket.combination}`)),
-    unitStakeYen: 100,
-    warnings: overlap.length > 0 ? [`purchase-shadow-overlap:${overlap.map((ticket) => ticket.combination).join(",")}`] : [],
-  };
+    shadowTickets.filter((ticket) => !purchaseKeys.has(`${ticket.betType}:${ticket.combination}`)),
+    overlap.length > 0 ? [`purchase-shadow-overlap:${overlap.map((ticket) => ticket.combination).join(",")}`] : [],
+  );
 };
 
 export function classifyReviewTickets(
@@ -251,6 +376,8 @@ export function classifyReviewTickets(
   return parseExplicitTextTickets(predictionText) ?? {
     status: "unknown",
     source: "unknown",
+    purchaseDecision: "unknown",
+    explicitSkip: false,
     purchaseTickets: [],
     shadowTickets: [],
     warnings: [],
@@ -285,9 +412,11 @@ export function evaluateReviewRacePerformance(input: {
 
   const unitStakeYen = classification.unitStakeYen ?? 100;
   const calculatedInvestment = classification.purchaseTickets.length * unitStakeYen;
-  const actualInvestment = Number.isFinite(input.manualActualInvestment) && Number(input.manualActualInvestment) >= 0
-    ? Number(input.manualActualInvestment)
-    : calculatedInvestment;
+  const actualInvestment = classification.explicitSkip
+    ? 0
+    : Number.isFinite(input.manualActualInvestment) && Number(input.manualActualInvestment) >= 0
+      ? Number(input.manualActualInvestment)
+      : calculatedInvestment;
   const matchedPurchaseTickets = classification.purchaseTickets.filter((ticket) => ticketMatchesResult(ticket, input.resultOrder ?? ""));
   const matchedShadowTickets = matchedPurchaseTickets.length === 0
     ? classification.shadowTickets.filter((ticket) => ticketMatchesResult(ticket, input.resultOrder ?? ""))
@@ -327,15 +456,19 @@ export function aggregateReviewPerformance(
   const predictions = races.filter((race) => race.hasPrediction);
   const settled = predictions.filter((race) => race.performance.status !== "pending");
   const classified = settled.filter((race) => race.performance.classification.status === "classified");
-  const purchaseHitCount = classified.filter((race) => race.performance.status === "purchase-hit").length;
+  const purchased = classified.filter((race) =>
+    !race.performance.classification.explicitSkip && race.performance.classification.purchaseTickets.length > 0
+  );
+  const purchaseHitCount = purchased.filter((race) => race.performance.status === "purchase-hit").length;
   const shadowHitCount = classified.filter((race) => race.performance.status === "shadow-hit").length;
-  const actualInvestment = classified.reduce((sum, race) => sum + (race.performance.actualInvestment ?? 0), 0);
-  const actualPayout = classified.reduce((sum, race) => sum + (race.performance.actualPayout ?? 0), 0);
+  const actualInvestment = purchased.reduce((sum, race) => sum + (race.performance.actualInvestment ?? 0), 0);
+  const actualPayout = purchased.reduce((sum, race) => sum + (race.performance.actualPayout ?? 0), 0);
 
   return {
     predictionRaceCount: predictions.length,
     settledRaceCount: settled.length,
     classifiedSettledRaceCount: classified.length,
+    purchasedSettledRaceCount: purchased.length,
     purchaseHitCount,
     shadowHitCount,
     capturedHitCount: purchaseHitCount + shadowHitCount,
@@ -344,10 +477,19 @@ export function aggregateReviewPerformance(
     actualInvestment,
     actualPayout,
     actualProfit: actualPayout - actualInvestment,
-    actualHitRate: classified.length > 0 ? (purchaseHitCount / classified.length) * 100 : undefined,
+    actualHitRate: purchased.length > 0 ? (purchaseHitCount / purchased.length) * 100 : undefined,
     actualRoi: actualInvestment > 0 ? (actualPayout / actualInvestment) * 100 : undefined,
     shadowCoverageRate: classified.length > 0 ? ((purchaseHitCount + shadowHitCount) / classified.length) * 100 : undefined,
   };
+}
+
+export function getReviewMetricValueFontSize(value: string): string {
+  const length = Array.from(String(value ?? "")).length;
+  if (length >= 11) return "11px";
+  if (length >= 9) return "12px";
+  if (length >= 7) return "14px";
+  if (length >= 5) return "16px";
+  return "18px";
 }
 
 const sortedUniqueRaceNumbers = (values: Iterable<number>) => [...new Set([...values].filter(Number.isFinite))].sort((a, b) => a - b);
