@@ -272,6 +272,21 @@ export type KurariExRiderAggregate = {
   differenceWinRate?: KurariExRiderMetric;
 };
 
+export type KurariExRiderRecentForm = {
+  windowSize: 5 | 10 | 20;
+  sampleSize: number;
+  windowComplete: boolean;
+  period: KurariExPeriod;
+  wins: number;
+  seconds: number;
+  thirds: number;
+  outside: number | null;
+  winRate: number | null;
+  top2Rate: number | null;
+  top3Rate: number | null;
+  quality: "ok" | "low-sample" | "unavailable";
+};
+
 export type KurariExRiderExactIndexItem = {
   registrationNo: string;
   name: string;
@@ -329,7 +344,7 @@ export type KurariExRiderExact = {
   generatedAt: string;
   period: KurariExPeriod;
   identity: {
-    status: "registration-no" | "unique-player-card-name" | "same-registration-name" | "manual-override";
+    status: "registration-no" | "parsed-registration-no" | "unique-player-card-name" | "same-registration-name" | "manual-override";
     registrationNoResolved: boolean;
   };
   coverage: {
@@ -340,6 +355,7 @@ export type KurariExRiderExact = {
     venueCount: number;
   };
   overall: KurariExRiderAggregate;
+  recentForm?: KurariExRiderRecentForm[];
   winningMethods: {
     escape: KurariExRiderMetric;
     sprint: KurariExRiderMetric;

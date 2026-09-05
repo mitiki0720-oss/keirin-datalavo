@@ -47,6 +47,8 @@ const FORBIDDEN_PATHS = [
 ];
 const ALLOWED_HISTORY_PATH =
   "public/data/analytics/kurari-ex-result-trend-lab-history";
+const ALLOWED_EXISTING_KURARI_EX_BASELINE_PATH =
+  "public/data/analytics/kurari-ex";
 const COVERAGE_FIELDS = [
   "result",
   "payout",
@@ -64,6 +66,7 @@ function parseArgs(argv) {
     write: false,
     confirmNamespace: "",
     confirmRollingWindow: "",
+    allowExistingKurariExBaseline: false,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
@@ -78,6 +81,8 @@ function parseArgs(argv) {
     } else if (arg === "--confirm-rolling-window") {
       options.confirmRollingWindow = argv[index + 1] ?? "";
       index += 1;
+    } else if (arg === "--allow-existing-kurari-ex-baseline") {
+      options.allowExistingKurariExBaseline = true;
     } else {
       throw new Error(`unknown argument: ${arg}`);
     }
@@ -196,6 +201,21 @@ function isAllowedHistoryGitPath(filePath) {
   const normalized = filePath.replaceAll("\\", "/");
   return normalized === ALLOWED_HISTORY_PATH
     || normalized.startsWith(`${ALLOWED_HISTORY_PATH}/`);
+}
+
+function isAllowedExistingKurariExBaselineGitPath(filePath) {
+  const normalized = filePath.replaceAll("\\", "/");
+  return normalized === ALLOWED_EXISTING_KURARI_EX_BASELINE_PATH
+    || normalized.startsWith(`${ALLOWED_EXISTING_KURARI_EX_BASELINE_PATH}/`);
+}
+
+function isExistingKurariExBaselineAllowed(options, lines) {
+  if (!options.allowExistingKurariExBaseline || lines.length === 0) {
+    return false;
+  }
+  const paths = gitStatusPaths(lines);
+  return paths.length > 0
+    && paths.every(isAllowedExistingKurariExBaselineGitPath);
 }
 
 export function filterProtectedGitStatusLines(lines) {
@@ -456,6 +476,7 @@ async function promoteCandidate({
   targetShard,
   removalDate,
   validator,
+  protectedBaseline,
 }) {
   const targetPath = publicShardFile(options.targetDate);
   const removalPath = publicShardFile(removalDate);
@@ -557,6 +578,13 @@ async function promoteCandidate({
     const forbiddenAfter = await gitStatus(FORBIDDEN_PATHS);
     if (forbiddenAfter.length > 0) {
       throw new Error("forbidden paths changed during promotion");
+    }
+    const protectedAfter = await protectedGitStatus();
+    if (
+      JSON.stringify([...protectedBaseline].sort())
+      !== JSON.stringify([...protectedAfter].sort())
+    ) {
+      throw new Error("protected paths changed during promotion");
     }
     const allowedAfter = await gitStatus([ALLOWED_HISTORY_PATH]);
     const allowedPaths = new Set([
@@ -673,6 +701,8 @@ async function inspectCandidate(options, tempRoot, protectedBefore) {
       options.confirmNamespace !== CONFIRMED_NAMESPACE
       || options.confirmRollingWindow !== String(WINDOW_DAYS)
     );
+  const existingKurariExBaselineAllowed =
+    isExistingKurariExBaselineAllowed(options, protectedBefore);
 
   const initialStopReasons = [];
   if (writeConfirmationMissing) {
@@ -692,7 +722,11 @@ async function inspectCandidate(options, tempRoot, protectedBefore) {
   if (namespaceEscape) {
     initialStopReasons.push("candidate or planned public path escaped the allowed namespace");
   }
-  if (options.write && protectedBefore.length > 0) {
+  if (
+    options.write
+    && protectedBefore.length > 0
+    && !existingKurariExBaselineAllowed
+  ) {
     initialStopReasons.push("protected paths are not clean before execution");
   }
   if (initialStopReasons.length > 0) {
@@ -926,7 +960,7 @@ async function inspectCandidate(options, tempRoot, protectedBefore) {
       `loader production gate failed: ${loaderResult.availability.productionBackfillReadyReason}`,
     );
   }
-  if (protectedBefore.length > 0) {
+  if (protectedBefore.length > 0 && !existingKurariExBaselineAllowed) {
     stopReasons.push("protected paths were not clean before dry-run");
   }
   if (protectedChangedDuringExecution) {
@@ -941,6 +975,7 @@ async function inspectCandidate(options, tempRoot, protectedBefore) {
           targetShard,
           removalDate,
           validator,
+          protectedBaseline: protectedBefore,
         })
       : null;
   if (writeResult && !writeResult.completed) {
@@ -989,6 +1024,7 @@ async function inspectCandidate(options, tempRoot, protectedBefore) {
       namespaceEscape: namespaceEscape || candidatePathEscape,
       protectedPathDiff: protectedDiff.length > 0,
       protectedPathBaselineDirty: protectedBefore.length > 0,
+      protectedPathBaselineAllowed: existingKurariExBaselineAllowed,
       protectedPathChangedDuringExecution: protectedChangedDuringExecution,
       partialStatusOnly:
         rollingIndex.sourceStatus === "partial"

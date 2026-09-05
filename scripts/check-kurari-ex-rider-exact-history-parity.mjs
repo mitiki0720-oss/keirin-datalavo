@@ -26,6 +26,7 @@ function comparable(payload) {
     quality: payload.quality,
     coverage: payload.coverage,
     overall: payload.overall,
+    recentForm: payload.recentForm,
     winningMethods: payload.winningMethods,
     byVenue: payload.byVenue,
     byTimeslot: payload.byTimeslot,
@@ -65,7 +66,9 @@ async function main() {
     if (JSON.stringify(normalizedFiles) !== JSON.stringify(historyFiles)) {
       differences.push("rider file list");
     }
+    const historyFileSet = new Set(historyFiles);
     for (const relativeFile of normalizedFiles) {
+      if (!historyFileSet.has(relativeFile)) continue;
       const [normalized, history] = await Promise.all([
         readFile(path.join(normalizedRoot, relativeFile), "utf8").then(JSON.parse),
         readFile(path.join(historyRoot, relativeFile), "utf8").then(JSON.parse),

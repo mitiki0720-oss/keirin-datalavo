@@ -2,22 +2,22 @@
   "schemaVersion": 1,
   "venueKey": "takeo",
   "venueName": "武雄",
-  "updatedAt": "2026-08-21",
+  "updatedAt": "2026-09-04",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-13",
-    "to": "2026-08-21"
+    "to": "2026-09-04"
   },
   "quality": {
-    "seedSources": 24,
-    "parsedDateSources": 24,
+    "seedSources": 28,
+    "parsedDateSources": 28,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 24,
+    "sourceCount": 28,
     "raceCount": 81,
     "trifectaHits": 66,
     "trifectaHitRate": 81.5,
@@ -25,9 +25,9 @@
     "exactaHitRate": 22.2,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 75200,
-    "returnYen": 33040,
-    "recoveryRate": 43.9,
+    "investmentYen": 80400,
+    "returnYen": 36540,
+    "recoveryRate": 45.4,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,71 +38,77 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 24,
+      "evidenceCount": 28,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 24,
+      "evidenceCount": 28,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 24,
+      "evidenceCount": 28,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 22,
+      "evidenceCount": 26,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 22,
+      "evidenceCount": 26,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 21,
+      "evidenceCount": 25,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 20,
+      "evidenceCount": 24,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 20,
+      "evidenceCount": 24,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 8,
-      "confidence": "medium",
+      "evidenceCount": 12,
+      "confidence": "high",
       "sourceType": "SEED"
     }
   ],
   "seedNotes": {
     "features": [
       "③山原は単騎。単騎3着率は8.6％と高くないので大量には買わず、5-7-3だけのピンポイント保護。",
-      "④は得点94.92で⑥番手。武雄の差し傾向から④頭を強く警戒する。"
+      "④は得点94.92で⑥番手。武雄の差し傾向から④頭を強く警戒する。",
+      "その不確定要素があるぶん⑦押切りを厚くしつつ、武雄の差し傾向から①差しも残す。",
+      "②木村と⑤田代の先行争いがポイント。",
+      "特選で格上自力5が明確な場合、武雄差し傾向だけで1を上にしすぎない。5-1-6と1-5-6の配分を結果オッズや脚質で微調整する。",
+      "4. 結果時の天候は全R「快晴／東／10 km/h／24℃／降水0.0 mm／22:15現在値採用」。風速10km/hでやや風の影響を見たい日だが、決着傾向は全体に差し優勢。",
+      "1は88.79点、差8・マ5。5深瀬を目標に取れるので武雄の差し傾向と噛み合う。年間14勝・2着24で番手戦の安定度が高い。",
+      "番手7は95.23点で最高得点。直近は玉野2→3→決勝4、川崎3→2→決勝2。400m5走で2勝・2着1・3着1、武雄も同数字で安定。武雄の差し傾向なら7頭が第一。"
     ],
     "targets": [
       "武雄 モーニング 二分戦 直線勝負 番手差し スジズレ 中穴狙い 先行争い",

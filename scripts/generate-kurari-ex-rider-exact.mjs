@@ -114,6 +114,53 @@ function aggregateBy(observations, selector, keyBuilder) {
     .map(([key, aggregate]) => summarizeAggregate(aggregate, keyBuilder(key, observations)));
 }
 
+function buildRecentForm(observations) {
+  const settled = observations
+    .filter((item) => item.resultParsed)
+    .sort((left, right) => left.date.localeCompare(right.date));
+
+  return [5, 10, 20].map((windowSize) => {
+    const windowObservations = settled.slice(-windowSize);
+    if (!windowObservations.length) {
+      return {
+        windowSize,
+        sampleSize: 0,
+        windowComplete: false,
+        period: { from: null, to: null },
+        wins: 0,
+        seconds: 0,
+        thirds: 0,
+        outside: null,
+        winRate: null,
+        top2Rate: null,
+        top3Rate: null,
+        quality: "unavailable",
+      };
+    }
+
+    const aggregate = emptyAggregate();
+    for (const observation of windowObservations) addObservation(aggregate, observation);
+    const summary = summarizeAggregate(aggregate);
+    return {
+      windowSize,
+      sampleSize: windowObservations.length,
+      windowComplete: windowObservations.length === windowSize,
+      period: {
+        from: windowObservations[0].date,
+        to: windowObservations.at(-1).date,
+      },
+      wins: summary.wins,
+      seconds: summary.seconds,
+      thirds: summary.thirds,
+      outside: summary.outside,
+      winRate: summary.winRate.rate,
+      top2Rate: summary.top2Rate.rate,
+      top3Rate: summary.top3Rate.rate,
+      quality: windowObservations.length < 5 ? "low-sample" : "ok",
+    };
+  });
+}
+
 const bankLengthByVenueKey = {
   aomori: 400,
   beppu: 400,
@@ -380,6 +427,7 @@ async function main() {
         venueCount: new Set(observations.map((item) => item.venueKey)).size,
       },
       overall: summarizeAggregate(overallAggregate),
+      recentForm: buildRecentForm(observations),
       winningMethods: {
         escape: {
           count: overallAggregate.escapeWins,

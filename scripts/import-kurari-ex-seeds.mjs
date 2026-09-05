@@ -94,6 +94,7 @@ const slugAliases = {
   kisaiwada: "kishiwada",
   komatujima: "komatsushima",
   kouchi: "kochi",
+  mabashi: "maebashi",
   matudo: "matsudo",
   matuzaka: "matsusaka",
   oogaki: "ogaki",

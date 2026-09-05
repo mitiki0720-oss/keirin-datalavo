@@ -26,6 +26,7 @@ function normalizeRegistrationNo(value) {
 function compactStarter(starter) {
   const identityStatus = [
     "registration-no",
+    "parsed-registration-no",
     "unique-player-card-name",
     "same-registration-name",
     "manual-override",

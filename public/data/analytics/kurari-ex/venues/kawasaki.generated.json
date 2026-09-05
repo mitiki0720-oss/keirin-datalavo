@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "kawasaki",
   "venueName": "川崎",
-  "updatedAt": "2026-08-21",
+  "updatedAt": "2026-09-04",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-08-09",
-    "to": "2026-08-21"
+    "to": "2026-09-01"
   },
   "quality": {
-    "seedSources": 6,
-    "parsedDateSources": 6,
+    "seedSources": 9,
+    "parsedDateSources": 9,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 6,
-    "raceCount": 39,
-    "trifectaHits": 14,
-    "trifectaHitRate": 35.9,
+    "sourceCount": 9,
+    "raceCount": 51,
+    "trifectaHits": 19,
+    "trifectaHitRate": 37.3,
     "exactaHits": null,
     "exactaHitRate": null,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 52000,
-    "returnYen": 26150,
-    "recoveryRate": 50.3,
+    "investmentYen": 118600,
+    "returnYen": 72750,
+    "recoveryRate": 61.3,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,56 +38,56 @@
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 6,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 6,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 6,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 6,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 6,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 6,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 6,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 6,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     },
@@ -110,7 +110,9 @@
       "最大の軸は番手7土屋。104.36点で断然トップ、差5・マ6。直近も2着が多く、400m2走は1着1・3着1で着外なし。川崎の番手差し傾向と完全に一致する。",
       "F. B選手の当日残存率をレース途中で更新する。最終日は10/12車券内だったため、過去日のB失速傾向を固定適用しない。",
       "川崎の差し傾向から3-5を最厚にする。",
-      "番手4本田は前日3着、弥彦一般1着あり。川崎の差し傾向なら4-3を第一本線。"
+      "番手4本田は前日3着、弥彦一般1着あり。川崎の差し傾向なら4-3を第一本線。",
+      "5. 当日は捲り1着が8/12R。予想で繰り返し使った『川崎は差し優勢』を当日の1着モデルへ強く適用し過ぎた可能性がある。バンク長期傾向と当日レース構成を分離する必要がある。",
+      "E. 当日決まり手更新：長期の川崎差し傾向を固定しない。数R消化後に当日『差・捲・逃』比率を更新し、以降の補正を弱めたり強めたりする。"
     ],
     "targets": [
       "本レポートは、添付の予想テキストと結果テキストを照合して作成。新しい予想買い目は追加していない。",

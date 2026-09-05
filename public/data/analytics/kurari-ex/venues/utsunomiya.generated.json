@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "venueKey": "utsunomiya",
   "venueName": "宇都宮",
-  "updatedAt": "2026-08-14",
+  "updatedAt": "2026-09-04",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-08",
-    "to": "2026-08-08"
+    "to": "2026-09-02"
   },
   "quality": {
-    "seedSources": 25,
-    "parsedDateSources": 25,
+    "seedSources": 31,
+    "parsedDateSources": 31,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 25,
-    "raceCount": 255,
+    "sourceCount": 31,
+    "raceCount": 312,
     "trifectaHits": 51,
     "trifectaHitRate": 26.3,
     "exactaHits": 11,
     "exactaHitRate": 6.7,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 197000,
-    "returnYen": 225920,
-    "recoveryRate": 114.7,
+    "investmentYen": 274800,
+    "returnYen": 264350,
+    "recoveryRate": 96.2,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,63 +38,63 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 25,
+      "evidenceCount": 31,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 25,
+      "evidenceCount": 31,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 25,
+      "evidenceCount": 30,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 22,
+      "evidenceCount": 28,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 18,
-      "confidence": "high",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "MAKURI_ALERT",
-      "label": "捲り展開を警戒",
-      "evidenceCount": 15,
+      "evidenceCount": 24,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 15,
+      "evidenceCount": 21,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "MAKURI_ALERT",
+      "label": "捲り展開を警戒",
+      "evidenceCount": 20,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 15,
+      "evidenceCount": 20,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 11,
+      "evidenceCount": 17,
       "confidence": "high",
       "sourceType": "SEED"
     }
@@ -110,7 +110,9 @@
       "3會澤は1田原の番手で、差し・捲り・追込みどれも強い。宇都宮の差し傾向を考えると3-1逆目も必要。",
       "点数判断：10点。南関1-2-5が強いが、宇都宮の差し傾向で2-1を最上位評価。",
       "ただし番手7黒田篤は得点79.04で、7固定に寄せすぎるのは危険。3-7-6の完全ラインは押さえるが、宇都宮の差し傾向と別線3着混入を考え、単騎1武田憲祐・2工藤政志・4増田利明の差し込みを強く見る。",
-      "中心は1田中孝彦。競走得点87.34、差5・マ1で宇都宮500mの差し傾向に一番合う。8/7一般でも3着に残っており、ここは総合力上位。"
+      "中心は1田中孝彦。競走得点87.34、差5・マ1で宇都宮500mの差し傾向に一番合う。8/7一般でも3着に残っており、ここは総合力上位。",
+      "宇都宮500mの差し傾向を重視するのは正しいが、弱風時は若手機動型の押し切りを番手差しと同格以上に扱う必要がある。",
+      "宇都宮500mの差し傾向だけで先頭押し切りを削りすぎない。"
     ],
     "targets": [
       "的中組み合わせ：3-1-7（買い目 05）／払戻 3,160円",
@@ -161,8 +163,8 @@
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
     "踏み合い時は単騎の差し込みを3着候補に加える",
     "先行軸だけで固定せず、番手差しの逆目を残す",
-    "先行争いがある場合は別線の捲り筋を残す",
     "本線が崩れた場合の別線頭と別線3着を保護する",
+    "先行争いがある場合は別線の捲り筋を残す",
     "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す"
   ]
 }

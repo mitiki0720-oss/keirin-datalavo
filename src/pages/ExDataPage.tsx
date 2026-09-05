@@ -1153,6 +1153,7 @@ function getRiderIdentityLabel(rider?: KurariExRiderExact) {
   if (!rider.identity.registrationNoResolved) return "紐付け：確認中";
   const labels: Record<KurariExRiderExact["identity"]["status"], string> = {
     "registration-no": "登録番号一致",
+    "parsed-registration-no": "登録番号抽出 / source-backed",
     "unique-player-card-name": "名前一致 / 補助一致",
     "same-registration-name": "名前一致 / 同一登録番号",
     "manual-override": "補助一致 / 手動確認",
@@ -1192,7 +1193,7 @@ function matchesRiderOverviewExactFilter(
   rider: KurariExRiderExact | undefined,
 ) {
   if (!rider) return false;
-  if (filter === "registration-match") return rider.identity.registrationNoResolved && rider.identity.status === "registration-no";
+  if (filter === "registration-match") return rider.identity.registrationNoResolved && ["registration-no", "parsed-registration-no"].includes(rider.identity.status);
   if (filter === "name-match") {
     return rider.identity.registrationNoResolved &&
       (rider.identity.status === "unique-player-card-name" || rider.identity.status === "same-registration-name");
@@ -1226,6 +1227,89 @@ function RiderAggregateCards({ aggregate }: { aggregate: KurariExRiderAggregate 
   );
 }
 
+function RiderRecentForm({ rider }: { rider: KurariExRiderExact }) {
+  const rows = rider.recentForm ?? [];
+  if (!rows.length || rows.every((row) => row.sampleSize === 0)) {
+    return <EmptyState text="直近走は確定結果が蓄積されるまで表示しません。" />;
+  }
+  return (
+    <div className="ex-player-recent-grid">
+      {rows.map((row) => {
+        return (
+          <article className={`ex-player-recent-card${row.quality === "ok" ? " is-usable" : " is-reference"}`} key={row.windowSize}>
+            <div className="ex-player-recent-head">
+              <div>
+                <span>直近{row.windowSize}走</span>
+                <strong>{row.sampleSize} / {row.windowSize}走</strong>
+              </div>
+              <span className={`ex-player-use-label${row.quality === "ok" ? " is-usable" : " is-reference"}`}>
+                {row.quality === "ok" ? "予想に使える" : "LOW SAMPLE / 参考"}
+              </span>
+            </div>
+            {row.sampleSize > 0 ? (
+              <>
+                <div className="ex-player-recent-places">
+                  <span>1着 <b>{row.wins}</b></span>
+                  <span>2着 <b>{row.seconds}</b></span>
+                  <span>3着 <b>{row.thirds}</b></span>
+                  <span>着外 <b>{row.outside ?? "未取得"}</b></span>
+                </div>
+                <div className="ex-player-recent-rates">
+                  <span>1着率 {formatRiderOverviewRate(row.winRate)}</span>
+                  <span>2連対率 {formatRiderOverviewRate(row.top2Rate)}</span>
+                  <span>3連対率 {formatRiderOverviewRate(row.top3Rate)}</span>
+                </div>
+                <small>{row.period.from ?? "--"}〜{row.period.to ?? "--"}{row.windowComplete ? " / window complete" : " / 蓄積中"}</small>
+              </>
+            ) : <span className="ex-muted">確定結果未蓄積</span>}
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
+function RiderEvidenceSummary({
+  rider,
+  matchupCount,
+}: {
+  rider: KurariExRiderExact;
+  matchupCount?: number | null;
+}) {
+  const recent10 = rider.recentForm?.find((row) => row.windowSize === 10);
+  const venue = [...rider.byVenue]
+    .filter((row) => (row.starts ?? 0) >= 5 && row.top3Rate.rate != null)
+    .sort((left, right) => (right.top3Rate.rate ?? -1) - (left.top3Rate.rate ?? -1) || (right.starts ?? 0) - (left.starts ?? 0))[0];
+  const roles = Object.entries(rider.byRole ?? {})
+    .filter((entry): entry is [keyof typeof PLAYER_ROLE_LABELS, KurariExRiderAggregate] => Boolean(entry[1]))
+    .sort((left, right) => (right[1].starts ?? 0) - (left[1].starts ?? 0));
+  const role = roles[0];
+  const notes = [
+    recent10 && recent10.sampleSize > 0
+      ? `直近${recent10.sampleSize}走は1着${recent10.wins}・2着${recent10.seconds}・3着${recent10.thirds}・着外${recent10.outside ?? "未取得"}。`
+      : "直近走は確定結果未蓄積。",
+    venue
+      ? `${venue.venueName || venue.venueKey || "会場未取得"}は保存済み${venue.starts}走、3連対率${formatKurariExRiderMetric(venue.top3Rate)}。`
+      : "会場別は5走以上の比較可能データ未蓄積。",
+    role
+      ? `${PLAYER_ROLE_LABELS[role[0]]}は保存済み${role[1].starts ?? 0}走。役割は安全に解釈できた並びだけを集計。`
+      : "ライン役割別は安全に解釈できるデータ未蓄積。",
+    matchupCount != null
+      ? `保存済み対戦相手${matchupCount}人。詳細はMATCHUP EXで確認。`
+      : "MATCHUPは未蓄積または未取得。",
+  ];
+  return (
+    <div className="ex-note-grid">
+      {notes.map((note, index) => (
+        <article className="ex-note-card" key={note}>
+          <h4>{["直近", "会場", "ライン役割", "対戦"][index]}</h4>
+          <p>{note}</p>
+        </article>
+      ))}
+    </div>
+  );
+}
+
 function getAggregateUsageLabel(aggregate: KurariExRiderAggregate) {
   const starts = aggregate.starts ?? 0;
   if (starts <= 0) return "蓄積中";
@@ -1235,7 +1319,7 @@ function getAggregateUsageLabel(aggregate: KurariExRiderAggregate) {
 
 function getPlayerSourceLabel(rider: KurariExRiderExact) {
   if (rider.quality === "identity-only") return "identity-only";
-  if (rider.identity.status === "registration-no") return "source-backed";
+  if (["registration-no", "parsed-registration-no"].includes(rider.identity.status)) return "source-backed";
   return getRiderIdentityLabel(rider);
 }
 
@@ -3495,6 +3579,17 @@ export default function ExDataPage() {
         .ex-player-position-card span { color: #5f6e85; font-size: 10px; font-weight: 950; letter-spacing: .07em; }
         .ex-player-position-card strong { display: block; margin: 8px 0 6px; color: #51428f; font: 850 27px/1 ${serif}; }
         .ex-player-position-card small { color: #758197; font-size: 10px; line-height: 1.55; font-weight: 780; }
+        .ex-player-recent-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 3},minmax(0,1fr)); gap: 12px; }
+        .ex-player-recent-card { min-width: 0; padding: 17px; border: 1px solid var(--ex-status-reference-border); border-radius: 18px; background: linear-gradient(145deg,var(--ex-status-reference-bg),#fff); box-shadow: 0 10px 24px rgba(55,68,102,.045); }
+        .ex-player-recent-card.is-usable { border-color: var(--ex-status-source-border); background: linear-gradient(145deg,var(--ex-status-source-bg),#fff); }
+        .ex-player-recent-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+        .ex-player-recent-head > div > span { display: block; color: #66758c; font-size: 10px; font-weight: 950; letter-spacing: .06em; }
+        .ex-player-recent-head > div > strong { display: block; margin-top: 5px; color: #273852; font: 850 21px/1.1 ${serif}; }
+        .ex-player-recent-places { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 6px; margin-top: 14px; }
+        .ex-player-recent-places span { padding: 8px 6px; border-radius: 10px; background: rgba(255,255,255,.72); color: #738097; font-size: 9px; font-weight: 850; text-align: center; }
+        .ex-player-recent-places b { display: block; margin-top: 3px; color: #3e4c65; font-size: 15px; }
+        .ex-player-recent-rates { display: grid; gap: 5px; margin-top: 12px; color: #58677e; font-size: 10px; font-weight: 800; line-height: 1.45; }
+        .ex-player-recent-card > small { display: block; margin-top: 11px; color: #7a879a; font-size: 9px; font-weight: 780; }
         .ex-player-condition-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: -2px 0 12px; }
         .ex-player-condition-table { min-width: 980px; }
         .ex-player-condition-table td:first-child { min-width: 160px; }
@@ -8243,6 +8338,16 @@ export default function ExDataPage() {
                     <section className="ex-panel ex-section">
                       <SectionTitle eyebrow="OVERALL" title="全体成績" lead="未取得と0%を区別して表示します。" />
                       <RiderAggregateCards aggregate={selectedRider.overall} />
+                    </section>
+
+                    <section className="ex-panel ex-section">
+                      <SectionTitle eyebrow="RECENT FORM" title="直近5 / 10 / 20走" lead="確定結果のある保存済み出走だけを日付順に集計します。具体的な4着以下順位はsourceにないため、平均着順は表示しません。" />
+                      <RiderRecentForm rider={selectedRider} />
+                    </section>
+
+                    <section className="ex-panel ex-section">
+                      <SectionTitle eyebrow="SOURCE-BACKED NOTES" title="選手別の確認ポイント" lead="保存済みEXACTの事実値を短く整理します。予測や名前だけの補完は行いません。" />
+                      <RiderEvidenceSummary rider={selectedRider} matchupCount={selectedRiderMatchupIndexItem?.distinctOpponentCount} />
                     </section>
 
                     <section className="ex-panel ex-section">

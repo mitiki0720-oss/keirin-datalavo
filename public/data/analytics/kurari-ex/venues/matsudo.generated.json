@@ -2,22 +2,22 @@
   "schemaVersion": 1,
   "venueKey": "matsudo",
   "venueName": "松戸",
-  "updatedAt": "2026-07-24",
+  "updatedAt": "2026-09-04",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-14",
-    "to": "2026-07-21"
+    "to": "2026-09-03"
   },
   "quality": {
-    "seedSources": 16,
-    "parsedDateSources": 16,
+    "seedSources": 23,
+    "parsedDateSources": 23,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 16,
+    "sourceCount": 23,
     "raceCount": 69,
     "trifectaHits": 30,
     "trifectaHitRate": 43.5,
@@ -25,9 +25,9 @@
     "exactaHitRate": 11.6,
     "anyTicketHits": 4,
     "hitRate": 33.3,
-    "investmentYen": 138100,
-    "returnYen": 65600,
-    "recoveryRate": 47.5,
+    "investmentYen": 265200,
+    "returnYen": 167110,
+    "recoveryRate": 63,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,64 +38,64 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 15,
+      "evidenceCount": 22,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 15,
+      "evidenceCount": 22,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 15,
+      "evidenceCount": 22,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 12,
+      "evidenceCount": 19,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 11,
-      "confidence": "high",
-      "sourceType": "SEED"
-    },
-    {
-      "tag": "MAKURI_ALERT",
-      "label": "捲り展開を警戒",
-      "evidenceCount": 11,
+      "evidenceCount": 18,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 11,
+      "evidenceCount": 18,
+      "confidence": "high",
+      "sourceType": "SEED"
+    },
+    {
+      "tag": "MAKURI_ALERT",
+      "label": "捲り展開を警戒",
+      "evidenceCount": 17,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 10,
+      "evidenceCount": 17,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 6,
-      "confidence": "medium",
+      "evidenceCount": 13,
+      "confidence": "high",
       "sourceType": "SEED"
     }
   ],
@@ -108,7 +108,11 @@
       "決まり手傾向（1着）",
       "【全体Summary｜次回に活かす重要ポイント】",
       "主シナリオ：5吉野がB19・逃14で先行意欲は一番。番手1小原は差し8・マーク2で、松戸ミッドの差し傾向に合う。5が主導権なら1小原の差しを中心に、5吉野の残りと6岩橋の3着を押さえる。",
-      "1着軸は2大瀬戸と1諸隈。1の先行力は抜けるが、松戸ミッドの差し傾向を踏まえ2の差しを厚め。"
+      "1着軸は2大瀬戸と1諸隈。1の先行力は抜けるが、松戸ミッドの差し傾向を踏まえ2の差しを厚め。",
+      "短直線なので9押し切りも十分だが、5は差10。松戸の番手差し傾向まで含めると5-9を第一評価。",
+      "ただ松戸では27走2勝に対して3着20回。非常に特徴的で、5頭固定より2・3着での残しも重要。",
+      "能力最上位はSS1阿部。ただし自力先行型ではなくB0。4分戦なので、位置取りから捲り・差しでどこまで前へ出るかがポイント。",
+      "番手9和田は前日1着、差10。松戸22走で3着17回・着外ゼロ。1が主導権なら1-9が本線だが、9の3着傾向を考えれば1-別線-9も厚く必要。"
     ],
     "targets": [
       "2車単：2点（穴狙い）",
@@ -159,8 +163,8 @@
     "開催時間帯ごとの傾向を他時間帯へそのまま転用しない",
     "風向と風速を確認し、先行残りと差し届きを固定評価しない",
     "先行軸だけで固定せず、番手差しの逆目を残す",
-    "先行争いがある場合は別線の捲り筋を残す",
     "本線が崩れた場合の別線頭と別線3着を保護する",
+    "先行争いがある場合は別線の捲り筋を残す",
     "本線ラインの3番手だけに固定せず、別線と単騎を3着候補に残す"
   ]
 }

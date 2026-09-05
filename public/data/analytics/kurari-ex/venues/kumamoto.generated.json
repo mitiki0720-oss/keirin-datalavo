@@ -2,22 +2,22 @@
   "schemaVersion": 1,
   "venueKey": "kumamoto",
   "venueName": "熊本",
-  "updatedAt": "2026-08-14",
+  "updatedAt": "2026-09-04",
   "source": "review-summary-import",
   "sourceType": "SEED",
   "period": {
     "from": "2026-05-07",
-    "to": "2026-08-13"
+    "to": "2026-08-26"
   },
   "quality": {
-    "seedSources": 15,
-    "parsedDateSources": 15,
+    "seedSources": 18,
+    "parsedDateSources": 18,
     "exactRaceCount": 0,
     "status": "seed"
   },
   "seedKpi": {
     "sourceType": "SEED",
-    "sourceCount": 15,
+    "sourceCount": 18,
     "raceCount": 96,
     "trifectaHits": 21,
     "trifectaHitRate": 21.9,
@@ -25,9 +25,9 @@
     "exactaHitRate": 3.1,
     "anyTicketHits": null,
     "hitRate": null,
-    "investmentYen": 144600,
-    "returnYen": 59840,
-    "recoveryRate": 41.4,
+    "investmentYen": 159000,
+    "returnYen": 65700,
+    "recoveryRate": 41.3,
     "kimarite": {
       "escape": null,
       "makuri": null,
@@ -38,63 +38,63 @@
     {
       "tag": "CLASS_CONTEXT",
       "label": "級班条件を分離",
-      "evidenceCount": 15,
+      "evidenceCount": 18,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "TIME_SLOT_BIAS",
       "label": "時間帯差を確認",
-      "evidenceCount": 15,
+      "evidenceCount": 18,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "WIND_SENSITIVE",
       "label": "風条件を確認",
-      "evidenceCount": 13,
+      "evidenceCount": 16,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "SOLO_RIDER_ALERT",
       "label": "単騎の差し込みを警戒",
-      "evidenceCount": 12,
+      "evidenceCount": 15,
       "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "MAKURI_ALERT",
       "label": "捲り展開を警戒",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 12,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "OTHER_LINE_ALERT",
       "label": "別線の浮上を警戒",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 12,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "THIRD_PLACE_SPREAD",
       "label": "3着候補を分散",
-      "evidenceCount": 9,
-      "confidence": "medium",
+      "evidenceCount": 12,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "BANTE_SASHI_ALERT",
       "label": "番手差しを警戒",
-      "evidenceCount": 8,
-      "confidence": "medium",
+      "evidenceCount": 11,
+      "confidence": "high",
       "sourceType": "SEED"
     },
     {
       "tag": "LINE_COHESION",
       "label": "同ライン決着を評価",
-      "evidenceCount": 7,
+      "evidenceCount": 9,
       "confidence": "medium",
       "sourceType": "SEED"
     }
@@ -103,7 +103,9 @@
     "features": [
       "単騎・格上の2着浮上を拾えた ：8Rは2-1-3で的中。ライン番手3より単騎1伊原を2着へ上げた判断は熊本ミッドの差し・捲り傾向と合っていた。",
       "足りなかったポイント",
-      "今回の重要ポイント"
+      "今回の重要ポイント",
+      "【決まり手傾向】",
+      "本線自力や得点上位の頭固定は悪くないが、2着の穴を3着保護に留める傾向がある。"
     ],
     "targets": [
       "決まり手：逃。 3連単1番人気＝結果だが買い目外（低配当回避の裏目）。 的中なし。 B=1は1着。",
