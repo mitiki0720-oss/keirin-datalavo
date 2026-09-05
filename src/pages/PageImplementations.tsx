@@ -9095,6 +9095,7 @@ export function PredictionPage() {
   const [publishedPredictionDates, setPublishedPredictionDates] = useState<string[]>([]);
   const [copyStatus, setCopyStatus] = useState("");
   const [predictionBatchRange, setPredictionBatchRange] = useState<PredictionBatchRangePreset>("1-7");
+  const [pendingPredictionBatchCopyRange, setPendingPredictionBatchCopyRange] = useState<PredictionBatchRangePreset | null>(null);
   const [predictionBatchCopyStatus, setPredictionBatchCopyStatus] = useState("");
   const [savedPredictionSlots, setSavedPredictionSlots] = useState<PredictionSlotMap>(() => loadStoredPredictionSlots());
   const [savedPredictionResults, setSavedPredictionResults] = useState<PredictionResultMap>(() => loadStoredPredictionResults());
@@ -11151,20 +11152,32 @@ if (
   const predictionBatchSessionLabel = selectedPredictionMaterialVenue
     ? getPredictionSessionBadge(selectedPredictionMaterialVenue)
     : "未選択";
+  const predictionBatchCopyRanges = useMemo(() => {
+    const raceNumbers = (selectedPredictionMaterialVenue?.races ?? [])
+      .map((race) => race.raceNo)
+      .filter((raceNo) => Number.isFinite(raceNo) && raceNo > 0)
+      .sort((left, right) => left - right);
+    const maxRaceNumber = raceNumbers.at(-1) ?? 0;
+
+    if (maxRaceNumber === 0) return [];
+    if (maxRaceNumber <= 7) {
+      return [{ id: "1-7" as const, startR: raceNumbers[0] ?? 1, endR: maxRaceNumber }];
+    }
+
+    return [
+      { id: "1-6" as const, startR: raceNumbers[0] ?? 1, endR: Math.min(6, maxRaceNumber) },
+      { id: "7-final" as const, startR: 7, endR: maxRaceNumber },
+    ].filter((range) => raceNumbers.some((raceNo) => raceNo >= range.startR && raceNo <= range.endR));
+  }, [selectedPredictionMaterialVenue]);
   const predictionBatchRecommendedRanges: PredictionBatchRangePreset[] =
-    /モーニング|ミッドナイト/u.test(predictionBatchSessionLabel)
-      ? ["1-7"]
-      : ["1-6", "7-final"];
+    predictionBatchCopyRanges.map((range) => range.id);
 
   useEffect(() => {
     if (!selectedPredictionMaterialVenue) return;
-    setPredictionBatchRange(
-      /モーニング|ミッドナイト/u.test(getPredictionSessionBadge(selectedPredictionMaterialVenue))
-        ? "1-7"
-        : "1-6",
-    );
+    setPredictionBatchRange(predictionBatchCopyRanges[0]?.id ?? "1-7");
+    setPendingPredictionBatchCopyRange(null);
     setPredictionBatchCopyStatus("");
-  }, [selectedPredictionMaterialVenue?.id, selectedPredictionMaterialVenue?.session]);
+  }, [predictionBatchCopyRanges, selectedPredictionMaterialVenue?.id]);
 
   const predictionBatchMaterial = useMemo(() => {
     if (!predictionFeed || !selectedPredictionMaterialVenue) {
@@ -11443,7 +11456,41 @@ if (
     }
   };
 
-  const handlePredictionBatchCopy = async () => {
+  useEffect(() => {
+    if (!pendingPredictionBatchCopyRange || pendingPredictionBatchCopyRange !== predictionBatchRange) return;
+
+    let isActive = true;
+    const copyBatchMaterial = async () => {
+      if (predictionBatchMaterial.raceCount === 0) {
+        setPredictionBatchCopyStatus("対象範囲にレースがありません");
+        setPendingPredictionBatchCopyRange(null);
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(predictionBatchMaterial.text);
+        if (!isActive) return;
+        setPredictionBatchCopyStatus(`${predictionBatchMaterial.startR}R〜${predictionBatchMaterial.endR}Rをコピーしました`);
+      } catch {
+        if (!isActive) return;
+        setPredictionBatchCopyStatus("まとめ素材のコピーに失敗しました");
+      } finally {
+        if (isActive) setPendingPredictionBatchCopyRange(null);
+      }
+    };
+
+    void copyBatchMaterial();
+    return () => {
+      isActive = false;
+    };
+  }, [pendingPredictionBatchCopyRange, predictionBatchMaterial, predictionBatchRange]);
+
+  const handlePredictionBatchCopy = (range: PredictionBatchRangePreset) => {
+    setPredictionBatchCopyStatus("");
+    setPredictionBatchRange(range);
+    setPendingPredictionBatchCopyRange(range);
+  };
+
+  const handleLegacyPredictionBatchCopy = async () => {
     if (predictionBatchMaterial.raceCount === 0) {
       setPredictionBatchCopyStatus("対象範囲にレースがありません");
       return;
@@ -11675,7 +11722,7 @@ if (
         </section>
       ) : (
         <>
-          <section style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "16px" }}>
+          {false && (<section style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "16px" }}>
             {[
               { label: "TODAY VENUES", value: `${todayVenueCount}会場`, sub: "今日の開催会場数" },
               { label: "TARGET RACES", value: `${predictionTargetRaceCount}R`, sub: cancelledRaceCount > 0 ? `全${todayRaceCount}R / 中止 ${cancelledRaceCount}R を除外` : "素材確認の対象レース数" },
@@ -11688,9 +11735,9 @@ if (
                 <div style={{ fontSize: "12px", color: "#64748b", lineHeight: 1.75 }}>{item.sub}</div>
               </article>
             ))}
-          </section>
+          </section>)}
 
-          <section
+          {false && (<section
             style={{
               borderRadius: "30px",
               border: "1px solid #e3d8f4",
@@ -11754,7 +11801,7 @@ if (
             >
               今日の予想JSONをダウンロード
             </button>
-          </section>
+          </section>)}
 
           <section style={{ borderRadius: "38px", border: "1px solid #ebe3f3", background: "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(250,243,255,0.98) 52%, rgba(244,250,255,0.98) 100%)", boxShadow: "0 22px 46px rgba(15, 23, 42, 0.06)", padding: "30px 30px 30px" }}>
             <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: "20px", alignItems: "start", marginBottom: "24px" }}>
@@ -11906,8 +11953,75 @@ if (
           </section>
 
           <section style={{ display: "grid", gap: "24px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: isPredictionCompactLayout ? "1fr" : "minmax(0, 1.58fr) minmax(340px, 1fr)", gap: "24px", alignItems: "start" }}>
-              <article style={{ borderRadius: "34px", border: "1px solid #e7dcf4", background: "linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(252,248,255,0.98) 56%, rgba(246,249,255,0.98) 100%)", boxShadow: "0 24px 52px rgba(15, 23, 42, 0.06)", padding: isPredictionCompactLayout ? "22px" : "28px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isPredictionCompactLayout ? "minmax(0, 1fr)" : "minmax(0, 0.92fr) minmax(420px, 1.08fr)", gap: "24px", alignItems: "start" }}>
+              <article style={{ borderRadius: "34px", border: "1px solid #ded5f0", background: "linear-gradient(145deg, rgba(255,255,255,0.99) 0%, rgba(247,242,255,0.98) 56%, rgba(243,249,255,0.98) 100%)", boxShadow: "0 24px 52px rgba(15, 23, 42, 0.06)", padding: isPredictionCompactLayout ? "22px" : "26px", display: "grid", gap: "18px" }}>
+                <div>
+                  <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7", marginBottom: "7px" }}>GPT MATERIAL</div>
+                  <div style={{ fontSize: isPredictionCompactLayout ? "25px" : "28px", fontWeight: 900, color: "#081224", lineHeight: 1.15 }}>GPT貼り付け用素材</div>
+                  <div style={{ marginTop: "8px", fontSize: "13px", color: "#5f6f84", lineHeight: 1.8 }}>選択会場の完全なまとめ素材を、実在するレース範囲ごとにコピーします。</div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "10px" }}>
+                  {[
+                    { label: "選択会場", value: selectedPredictionMaterialVenue?.venue ?? "未選択" },
+                    { label: "開催種別", value: predictionBatchSessionLabel },
+                    { label: "開催レース", value: selectedPredictionMaterialVenue?.races.length ? `${selectedPredictionMaterialVenue.races.length}R` : "未取得" },
+                    { label: "素材状態", value: predictionMaterialStateLabel },
+                  ].map((item) => (
+                    <div key={item.label} style={{ minWidth: 0, borderRadius: "17px", border: "1px solid #e7def3", background: "rgba(255,255,255,0.86)", padding: "11px 13px" }}>
+                      <div style={{ fontSize: "9px", fontWeight: 900, letterSpacing: "0.12em", color: "#7b8a9d", marginBottom: "5px" }}>{item.label}</div>
+                      <div style={{ fontSize: "13px", fontWeight: 900, color: "#172033", overflowWrap: "anywhere" }}>{item.value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div>
+                  <div style={{ marginBottom: "9px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#745ab4" }}>COPY RANGE</div>
+                  <div style={{ display: "grid", gridTemplateColumns: predictionBatchCopyRanges.length > 1 && !isPredictionCompactLayout ? "repeat(2, minmax(0, 1fr))" : "1fr", gap: "10px" }}>
+                    {predictionBatchCopyRanges.map((range) => (
+                      <button
+                        key={range.id}
+                        type="button"
+                        onClick={() => handlePredictionBatchCopy(range.id)}
+                        disabled={pendingPredictionBatchCopyRange !== null}
+                        style={{ minWidth: 0, border: "none", borderRadius: "9999px", padding: "14px 16px", background: "linear-gradient(135deg, #5f46a8 0%, #405fc5 100%)", color: "#fff", fontSize: "12px", fontWeight: 900, letterSpacing: "0.03em", cursor: pendingPredictionBatchCopyRange ? "wait" : "pointer", opacity: pendingPredictionBatchCopyRange ? 0.64 : 1, boxShadow: "0 14px 26px rgba(73, 64, 153, 0.18)" }}
+                      >
+                        {range.startR}R〜{range.endR}Rをコピー
+                      </button>
+                    ))}
+                  </div>
+                  {predictionBatchCopyStatus ? (
+                    <div role="status" style={{ marginTop: "10px", borderRadius: "13px", border: predictionBatchCopyStatus.includes("失敗") || predictionBatchCopyStatus.includes("ありません") ? "1px solid #fed7aa" : "1px solid #a7f3d0", background: predictionBatchCopyStatus.includes("失敗") || predictionBatchCopyStatus.includes("ありません") ? "#fff7ed" : "#ecfdf5", color: predictionBatchCopyStatus.includes("失敗") || predictionBatchCopyStatus.includes("ありません") ? "#9a3412" : "#047857", padding: "9px 11px", fontSize: "11px", fontWeight: 900 }}>
+                      {predictionBatchCopyStatus}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div style={{ borderTop: "1px solid #ded5f0", paddingTop: "17px", display: "grid", gap: "10px" }}>
+                  <div>
+                    <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.14em", color: "#745ab4", marginBottom: "6px" }}>PREDICTION EXPORT</div>
+                    <div style={{ fontSize: "16px", fontWeight: 900, color: "#081224" }}>当日予想JSONを書き出す</div>
+                    <div style={{ marginTop: "5px", fontSize: "11px", color: "#64748b", lineHeight: 1.7 }}>
+                      保存済み {predictionExportSummary.savedRaceCount}R / export対象 {predictionExportSummary.exportRaceCount}R
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDailyPredictionExport}
+                    disabled={!predictionExportBundle || predictionExportSummary.exportRaceCount === 0}
+                    style={{ width: "100%", border: "1px solid #d8cbed", borderRadius: "9999px", padding: "13px 16px", background: predictionExportSummary.exportRaceCount > 0 ? "linear-gradient(180deg, #fffefe 0%, #fff6fb 48%, #f6fbff 100%)" : "#f5f3f7", color: predictionExportSummary.exportRaceCount > 0 ? "#6d4fc2" : "#9aa1ad", fontWeight: 900, fontSize: "12px", cursor: predictionExportSummary.exportRaceCount > 0 ? "pointer" : "not-allowed" }}
+                  >
+                    当日予想JSONを書き出す
+                  </button>
+                  <div style={{ fontSize: "10px", color: predictionExportSummary.exportRaceCount > 0 ? "#7b8a9d" : "#9a3412", lineHeight: 1.65 }}>
+                    {predictionExportSummary.exportRaceCount > 0
+                      ? `keirin-predictions-${predictionExportSummary.date}.json / ${predictionExportStatus || (isPredictionExportPublished ? "公開JSON反映済み" : "PC側取込待ち")}`
+                      : "当日の保存済み予想がありません"}
+                  </div>
+                </div>
+              </article>
+
+              {false && (<article style={{ borderRadius: "34px", border: "1px solid #e7dcf4", background: "linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(252,248,255,0.98) 56%, rgba(246,249,255,0.98) 100%)", boxShadow: "0 24px 52px rgba(15, 23, 42, 0.06)", padding: isPredictionCompactLayout ? "22px" : "28px" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "14px" }}>
                   <div>
                     <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7", marginBottom: "6px" }}>GPT MATERIAL</div>
@@ -12146,7 +12260,7 @@ if (
                     ))}
                   </div>
                 </div>
-              </article>
+              </article>)}
 
               <div style={{ display: "grid", gap: "18px" }}>
               <article style={{ borderRadius: "34px", border: "1px solid #e7dcf4", background: "linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(252,247,255,0.98) 56%, rgba(247,249,255,0.98) 100%)", boxShadow: "0 24px 52px rgba(15, 23, 42, 0.06)", padding: "24px" }}>
@@ -12254,7 +12368,7 @@ if (
               </div>
             </div>
 
-              <article style={{ borderRadius: "34px", border: "1px solid #dcd5f2", background: "linear-gradient(145deg, rgba(255,255,255,0.99) 0%, rgba(245,240,255,0.98) 48%, rgba(239,248,255,0.98) 100%)", boxShadow: "0 26px 58px rgba(74, 63, 142, 0.09)", padding: isPredictionCompactLayout ? "22px" : "28px 30px", display: "grid", gap: "18px" }}>
+              {false && (<article style={{ borderRadius: "34px", border: "1px solid #dcd5f2", background: "linear-gradient(145deg, rgba(255,255,255,0.99) 0%, rgba(245,240,255,0.98) 48%, rgba(239,248,255,0.98) 100%)", boxShadow: "0 26px 58px rgba(74, 63, 142, 0.09)", padding: isPredictionCompactLayout ? "22px" : "28px 30px", display: "grid", gap: "18px" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
                   <div>
                     <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.2em", color: "#745ab4", marginBottom: "8px" }}>PREDICTION BATCH MATERIAL</div>
@@ -12307,12 +12421,12 @@ if (
                   <textarea readOnly value={predictionBatchMaterial.text} style={{ width: "100%", minHeight: "520px", maxHeight: "760px", borderRadius: "20px", border: "1px solid #e3dcf1", background: "rgba(255,255,255,0.96)", padding: "19px 21px", resize: "vertical", fontSize: "12.5px", lineHeight: 1.95, color: "#334155", outline: "none", fontFamily: '"SFMono-Regular", "Consolas", "BIZ UDPGothic", monospace' }} />
                 </div>
 
-                <button type="button" onClick={handlePredictionBatchCopy} disabled={predictionBatchMaterial.raceCount === 0} style={{ width: "fit-content", minWidth: "190px", border: "none", borderRadius: "9999px", padding: "14px 22px", background: "linear-gradient(135deg, #5f46a8 0%, #405fc5 100%)", color: "#fff", fontSize: "13px", fontWeight: 900, letterSpacing: "0.05em", cursor: predictionBatchMaterial.raceCount > 0 ? "pointer" : "not-allowed", opacity: predictionBatchMaterial.raceCount > 0 ? 1 : 0.5, boxShadow: "0 14px 28px rgba(73, 64, 153, 0.2)" }}>まとめてコピー</button>
-              </article>
+                <button type="button" onClick={handleLegacyPredictionBatchCopy} disabled={predictionBatchMaterial.raceCount === 0} style={{ width: "fit-content", minWidth: "190px", border: "none", borderRadius: "9999px", padding: "14px 22px", background: "linear-gradient(135deg, #5f46a8 0%, #405fc5 100%)", color: "#fff", fontSize: "13px", fontWeight: 900, letterSpacing: "0.05em", cursor: predictionBatchMaterial.raceCount > 0 ? "pointer" : "not-allowed", opacity: predictionBatchMaterial.raceCount > 0 ? 1 : 0.5, boxShadow: "0 14px 28px rgba(73, 64, 153, 0.2)" }}>まとめてコピー</button>
+              </article>)}
 
           </section>
 
-          {resolvedTodayHitNotifications.length > 0 && (
+          {false && resolvedTodayHitNotifications.length > 0 && (
             <section
               style={{
                 borderRadius: "30px",
