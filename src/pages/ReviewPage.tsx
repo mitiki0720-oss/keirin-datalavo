@@ -11,6 +11,10 @@ import {
 } from "./PageImplementations";
 import { cleanupLegacyReviewSnapshotStorage } from "../lib/legacyReviewSnapshotStorage";
 import {
+  buildReviewTextFilename,
+  getReviewVenueSlugFromSourceFiles,
+} from "../lib/reviewTextFilename";
+import {
   aggregateReviewPerformance,
   compareReviewRaceReadiness,
   evaluateReviewRacePerformance,
@@ -218,6 +222,7 @@ type ReviewFinalOddsReference = {
 
 type PredictionVenueItem = {
   venue: string;
+  slug?: string;
   grade?: string;
   session?: string;
   title?: string;
@@ -291,6 +296,7 @@ type VenueReviewRace = {
 
 type VenueReviewGroup = {
   venue: string;
+  venueSlug?: string;
   date: string;
   races: VenueReviewRace[];
   grade?: string;
@@ -1987,6 +1993,7 @@ function buildVenueGroups(
 
 const current = groups.get(key) ?? {
   venue: slot.venue,
+  venueSlug: feedVenue?.slug,
   date: slot.date,
   races: [],
   grade: feedVenue?.grade,
@@ -2059,6 +2066,7 @@ groups.set(key, current);
 
     groups.set(key, {
       venue: feedVenue.venue,
+      venueSlug: feedVenue.slug,
       date,
       races,
       grade: feedVenue.grade,
@@ -2075,10 +2083,20 @@ groups.set(key, current);
 
   for (const fileGroup of fileGroups) {
     const key = normalizeVenueName(fileGroup.venue);
-    if (groups.has(key)) continue;
+    const venueSlug = getReviewVenueSlugFromSourceFiles(
+      fileGroup.predictionFile,
+      fileGroup.resultFile,
+      fileGroup.summaryFile,
+    ) ?? undefined;
+    const existingGroup = groups.get(key);
+    if (existingGroup) {
+      if (!existingGroup.venueSlug && venueSlug) existingGroup.venueSlug = venueSlug;
+      continue;
+    }
 
     groups.set(key, {
       venue: fileGroup.venue,
+      venueSlug,
       date,
       races: [],
       performance: aggregateReviewPerformance([]),
@@ -2286,12 +2304,6 @@ function downloadTextFile(filename: string, text: string) {
   document.body.removeChild(anchor);
 
   window.URL.revokeObjectURL(url);
-}
-
-function buildReviewDownloadFileName(date: string, venue: string, kind: "prediction" | "result") {
-  const kindLabel = kind === "prediction" ? "prediction" : "result";
-  const safeVenue = venue.replace(/[\\/:*?"<>|]/g, "");
-  return `kurari-review-${date}-${safeVenue}-${kindLabel}.txt`;
 }
 
 function StatCard({ label, value, sub }: { label: string; value: string; sub: string }) {
@@ -2728,6 +2740,13 @@ export default function ReviewPage() {
   const selectedDisplayVenueName = isLocalReviewSelected
     ? selectedVenueGroup?.venue
     : selectedReviewFileGroup?.venue;
+  const selectedDisplayVenueSlug = isLocalReviewSelected
+    ? selectedVenueGroup?.venueSlug
+    : getReviewVenueSlugFromSourceFiles(
+        selectedReviewFileGroup?.predictionFile,
+        selectedReviewFileGroup?.resultFile,
+        selectedReviewFileGroup?.summaryFile,
+      );
 
   const selectedPredictionCopy = useMemo(
     () => {
@@ -3542,9 +3561,12 @@ export default function ReviewPage() {
 
   <button
     onClick={() => {
-      if (!selectedDisplayVenueName) return;
+      if (!selectedDisplayVenueSlug) {
+        setCopyStatus("会場slugを取得できませんでした");
+        return;
+      }
       downloadTextFile(
-        buildReviewDownloadFileName(selectedDate, selectedDisplayVenueName, "prediction"),
+        buildReviewTextFilename({ date: selectedDate, venueSlug: selectedDisplayVenueSlug, type: "predictions" }),
         selectedPredictionCopy
       );
       setCopyStatus("予想まとめTXTをダウンロードしました");
@@ -3628,9 +3650,12 @@ export default function ReviewPage() {
 
   <button
     onClick={() => {
-      if (!selectedDisplayVenueName) return;
+      if (!selectedDisplayVenueSlug) {
+        setCopyStatus("会場slugを取得できませんでした");
+        return;
+      }
       downloadTextFile(
-        buildReviewDownloadFileName(selectedDate, selectedDisplayVenueName, "result"),
+        buildReviewTextFilename({ date: selectedDate, venueSlug: selectedDisplayVenueSlug, type: "results" }),
         selectedResultCopy
       );
       setCopyStatus("結果まとめTXTをダウンロードしました");
