@@ -2742,7 +2742,7 @@ const normalizePredictionVenueDigestLine = (value?: string | null, max = PREDICT
     .replace(/^[-*]\s*/u, "")
     .replace(/\*\*/g, "")
     .replace(/\s*\|\s*/g, " / ")
-    .replace(/^\d+(?:[-\s]\d+)*[.)]\s*/u, "")
+    .replace(/^\d+(?:[-\s]\d+)*[.)]\s+/u, "")
     .trim();
   if (!normalized) return "";
   return normalized.length > max ? `${normalized.slice(0, Math.max(0, max - 1)).trim()}…` : normalized;
@@ -3255,6 +3255,16 @@ export const buildPredictionWeatherReferenceText = ({
   if (raceTimeLabel) return `発走時刻基準: ${raceTimeLabel}近辺`;
   return "基準時刻未取得";
 };
+
+export const getPredictionWeatherRaceCacheKey = (
+  date: string,
+  venueName: string,
+  raceNo: number,
+  raceTime?: string | null,
+) => [date, normalizePredictionWeatherLookupName(venueName), raceNo, raceTime?.trim() || "time-missing"].join("|");
+
+export const formatPredictionWeatherReferenceForExport = (value?: string | null) =>
+  normalizePredictionExportValue(value, "時刻情報なし").replace(/^基準時刻\s*[:：]\s*/u, "");
 
 export const getPredictionWeatherMinutesFromIso = (isoText?: string | null) => {
   if (!isoText) return null;
@@ -4336,7 +4346,7 @@ export const buildPredictionExportText = ({
     resolvedPlayerCardInsightText,
     "",
     "[E. 天気 / 風]",
-    `基準時刻: ${normalizePredictionExportValue(weather?.referenceText ?? weatherFallbackText, "時刻情報なし")}`,
+    `基準時刻: ${formatPredictionWeatherReferenceForExport(weather?.referenceText ?? weatherFallbackText)}`,
     `天候: ${normalizePredictionExportValue(weather?.weatherLabel ?? weatherFallbackText, "天気情報なし")}`,
     `気温: ${normalizePredictionExportValue(weather?.temperatureText ?? weatherFallbackText, "気温情報なし")}`,
     `風速: ${normalizePredictionExportValue(weather?.windSpeedText ?? weatherFallbackText, "風速情報なし")}`,
@@ -4418,7 +4428,7 @@ const extractPredictionBatchKurariExRaceMemo = (kurariExGuidanceText: string) =>
       /^-\s*(?:時間帯|級班|分戦数|風速帯|今回条件EX):/u.test(line)
       || /^-\s*.*(?:3着だけ抜け|別線3着混入|単騎3着|同ライン1-2)/u.test(line)
       || line === "母数が少ない指標は過信しないでください。"
-    );
+  );
   const uniqueNotes = [...new Set(notes)];
   return [
     "【R別 KURARI EX注意メモ】",
@@ -8420,12 +8430,18 @@ function buildPredictionSourceSupplementExport(race?: PredictionRaceItem | null)
     Array.from(sourceNote.matchAll(/lineFallback\s*:\s*([^/]+)(?=\s\/\s|$)/gi)).map((match) => match[1]?.trim() ?? "")
   );
   const oddsParts = dedupePredictionNoteParts(splitPredictionNoteParts(oddsNote))
-    .filter((part) => !/netkeirin/i.test(part))
-    .slice(0, 3);
+    .filter((part) => !/netkeirin/i.test(part));
+  const acceptedOddsParts = oddsParts.filter((part) => /\bodds\s+accepted\b/i.test(part)).slice(0, 2);
+  const refreshOddsParts = oddsParts.filter((part) => /\bodds\s+skipped\s+outside\b/i.test(part)).slice(0, 2);
+  const otherOddsParts = oddsParts
+    .filter((part) => !acceptedOddsParts.includes(part) && !refreshOddsParts.includes(part))
+    .slice(0, 2);
 
   if (racedetailUrl) lines.push(`- kdreams racedetail: ${racedetailUrl}`);
   if (lineFallbackParts.length > 0) lines.push(`- lineFallback: ${lineFallbackParts.join(" / ")}`);
-  if (oddsParts.length > 0) lines.push(`- oddsNote: ${oddsParts.join(" / ")}`);
+  if (acceptedOddsParts.length > 0) lines.push(`- oddsStatus: ${acceptedOddsParts.join(" / ")}`);
+  if (refreshOddsParts.length > 0) lines.push(`- oddsRefreshNote: ${refreshOddsParts.join(" / ")}`);
+  if (otherOddsParts.length > 0) lines.push(`- oddsNote: ${otherOddsParts.join(" / ")}`);
 
   return lines.length > 0 ? lines.join("\n") : "- 補足ソース: 情報なし";
 }
@@ -9107,6 +9123,8 @@ export function PredictionPage() {
   const [venueSummaryMap, setVenueSummaryMap] = useState<Record<string, PredictionVenueSummary>>({});
   const [weatherByVenue, setWeatherByVenue] = useState<Record<string, PredictionWeatherData | null>>({});
   const [weatherStatusByVenue, setWeatherStatusByVenue] = useState<Record<string, string>>({});
+  const [weatherByRace, setWeatherByRace] = useState<Record<string, PredictionWeatherData | null>>({});
+  const [weatherStatusByRace, setWeatherStatusByRace] = useState<Record<string, string>>({});
   const [weatherLoadingVenue, setWeatherLoadingVenue] = useState("");
   const [monthlyReviewItem, setMonthlyReviewItem] = useState<MonthlyReviewIndexItem | null>(null);
   const [monthlyReviewDigest, setMonthlyReviewDigest] = useState<MonthlyReviewDigest | null>(null);
@@ -9905,6 +9923,46 @@ if (!nextSlots[currentKey] && nextSlots[legacyKey]) {
   }, [predictionFeed?.date, selectedRace?.time, selectedVenue]);
 
   useEffect(() => {
+    if (!selectedVenue) return;
+
+    let isActive = true;
+    const date = predictionFeed?.date ?? TODAY;
+    const races = selectedVenue.races.filter((race) => Number.isFinite(race.raceNo) && race.raceNo > 0);
+    const loadingEntries = Object.fromEntries(races.map((race) => [
+      getPredictionWeatherRaceCacheKey(date, selectedVenue.venue, race.raceNo, race.time),
+      "取得中",
+    ]));
+    setWeatherStatusByRace((current) => ({ ...current, ...loadingEntries }));
+
+    Promise.all(races.map(async (race) => {
+      const cacheKey = getPredictionWeatherRaceCacheKey(date, selectedVenue.venue, race.raceNo, race.time);
+      try {
+        const weather = await fetchPredictionVenueWeather(selectedVenue.venue, {
+          isoDate: date,
+          raceTime: race.time,
+        });
+        return { cacheKey, weather, status: "" };
+      } catch {
+        return { cacheKey, weather: null, status: "天気情報なし" };
+      }
+    })).then((results) => {
+      if (!isActive) return;
+      setWeatherByRace((current) => ({
+        ...current,
+        ...Object.fromEntries(results.map((result) => [result.cacheKey, result.weather])),
+      }));
+      setWeatherStatusByRace((current) => ({
+        ...current,
+        ...Object.fromEntries(results.map((result) => [result.cacheKey, result.status])),
+      }));
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [predictionFeed?.date, selectedVenue]);
+
+  useEffect(() => {
     if (!copyStatus) return;
     const timeoutId = window.setTimeout(() => setCopyStatus(""), 1800);
     return () => {
@@ -10487,7 +10545,9 @@ if (
       {
         venueKey: selectedPredictionMaterialVenue?.slug,
         venueName: selectedPredictionMaterialVenue?.venue,
-        timeslot: selectedPredictionMaterialVenue?.session,
+        timeslot: selectedPredictionMaterialVenue
+          ? getPredictionSessionGroupKey(selectedPredictionMaterialVenue)
+          : undefined,
         raceTitle: selectedPredictionMaterialRace?.title,
         isGirls: selectedPredictionMaterialRace?.isGirls,
         lineupGroups,
@@ -11012,7 +11072,9 @@ if (
   const selectedKurariExGuidanceText = useMemo(
     () => selectedKurariExAnyReady
       ? buildKurariExPredictionMaterial(selectedKurariExBundle, selectedKurariExExact, {
-          timeslot: selectedPredictionMaterialVenue?.session,
+          timeslot: selectedPredictionMaterialVenue
+            ? getPredictionSessionGroupKey(selectedPredictionMaterialVenue)
+            : undefined,
           raceTime: selectedPredictionMaterialRace?.time,
           raceTitle: selectedPredictionMaterialRace?.title,
           isGirls: selectedPredictionMaterialRace?.isGirls,
@@ -11209,11 +11271,21 @@ if (
     const startR = targetRaces[0]?.raceNo ?? requestedStartR;
     const endR = targetRaces.at(-1)?.raceNo ?? requestedEndR;
 
+    const commonRace = targetRaces[0] ?? venueRaces[0] ?? { raceNo: startR };
     const commonVenueText = buildPredictionVenueSummaryExportLines({
       venue: selectedPredictionMaterialVenue,
-      race: targetRaces[0] ?? venueRaces[0] ?? { raceNo: startR },
+      race: commonRace,
       gradeLabel: selectedVenueGradeLabel,
-      venueSummary: selectedVenueSummary,
+      venueSummary: selectedVenueSummary.masterDigest
+        ? {
+            ...selectedVenueSummary,
+            masterDigest: {
+              ...selectedVenueSummary.masterDigest,
+              matchedCategoryLabel: "",
+              matchedCategoryStats: [],
+            },
+          }
+        : selectedVenueSummary,
     }).join("\n");
     const commonKurariExText = selectedKurariExAnyReady
       ? buildKurariExPredictionMaterial(selectedKurariExBundle, selectedKurariExExact)
@@ -11298,6 +11370,16 @@ if (
     ];
 
     const raceMaterials = targetRaces.map((race) => {
+      const raceWeatherKey = getPredictionWeatherRaceCacheKey(
+        predictionFeed.date,
+        selectedPredictionMaterialVenue.venue,
+        race.raceNo,
+        race.time,
+      );
+      const raceWeather = weatherByRace[raceWeatherKey]
+        ?? (race.raceNo === selectedPredictionMaterialRace?.raceNo ? selectedWeather : null);
+      const raceWeatherFallbackText = weatherStatusByRace[raceWeatherKey]
+        || (race.raceNo === selectedPredictionMaterialRace?.raceNo ? selectedWeatherFallbackText : "天気情報なし");
       const monthlyGuidanceText = buildMonthlyPredictionGuidance({
         digest: monthlyReviewDigest,
         raceTitle: race.title || race.sourceNote || "",
@@ -11313,12 +11395,12 @@ if (
             selectedKurariExBundle,
             selectedKurariExExact,
             {
-              timeslot: selectedPredictionMaterialVenue.session,
+              timeslot: getPredictionSessionGroupKey(selectedPredictionMaterialVenue),
               raceTime: race.time,
               raceTitle: race.title,
               isGirls: race.isGirls,
               lineup: race.lineup,
-              windSpeedKmh: parsePredictionNumber(selectedWeather?.windSpeedText ?? ""),
+              windSpeedKmh: parsePredictionNumber(raceWeather?.windSpeedText ?? ""),
             },
           )
         : selectedKurariExBothMissing
@@ -11351,8 +11433,8 @@ if (
         registrationCandidates: predictionRegistrationIdentityCandidates,
         gradeLabel: selectedVenueGradeLabel,
         venueSummary: selectedVenueSummary,
-        weather: selectedWeather,
-        weatherFallbackText: selectedWeatherFallbackText,
+        weather: raceWeather,
+        weatherFallbackText: raceWeatherFallbackText,
         memo: "",
         riderBasicText: "",
         playerCardInsightText: "",
@@ -11408,6 +11490,8 @@ if (
     selectedVenueSummary,
     selectedWeather,
     selectedWeatherFallbackText,
+    weatherByRace,
+    weatherStatusByRace,
   ]);
   const gptExportLineCount = useMemo(() => gptExportText.split(/\r?\n/).length, [gptExportText]);
   const gptExportCharCount = useMemo(() => gptExportText.length, [gptExportText]);

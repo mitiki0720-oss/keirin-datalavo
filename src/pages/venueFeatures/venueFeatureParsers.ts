@@ -518,7 +518,8 @@ export function parseVenueInsightMarkdown(
   const gptMaterial = gptBlock
     .split(/\r?\n/)
     .map((line) => normalizeVenueMarkdownText(line))
-    .filter(Boolean)
+    .map((line) => line.replace(/^【Summary学習メモ】\s*/u, ""))
+    .filter((line) => Boolean(line) && line !== "【Summary学習メモ】")
     .join("\n");
   const hasContent = [learnedFeature, learnedTarget, learnedCaution, learnedPeriod, gptMaterial].some(Boolean);
 

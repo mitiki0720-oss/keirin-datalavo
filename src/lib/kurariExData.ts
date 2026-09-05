@@ -890,17 +890,12 @@ const racePatternLabels = {
 } as const;
 
 function resolvePredictionDimensionKeys(context?: KurariExPredictionContext | null) {
-  const time = String(context?.raceTime ?? "").match(/^(\d{1,2}):/u);
-  const hour = time ? Number(time[1]) : null;
-  const timeslot = context?.timeslot === "midnight"
-    ? "midnight"
-    : context?.timeslot === "night"
-      ? "night"
-      : context?.timeslot === "morning" || (context?.timeslot === "day" && hour != null && hour < 12)
-        ? "morning"
-        : context?.timeslot === "day"
-          ? "day"
-          : null;
+  const timeslot = context?.timeslot === "morning"
+    || context?.timeslot === "day"
+    || context?.timeslot === "night"
+    || context?.timeslot === "midnight"
+    ? context.timeslot
+    : null;
   const title = String(context?.raceTitle ?? "");
   const raceClass = context?.isGirls || /ガールズ|L級/u.test(title)
     ? "girls"
@@ -948,9 +943,12 @@ function buildExactLines(exact: KurariExVenueExact, context?: KurariExPrediction
     const key = keys[dimension];
     if (!key) continue;
     const entry = exact.dimensions[dimension][key];
-    if (!entry) continue;
     const label = dimensionLabels[dimension].label;
     const name = (dimensionLabels[dimension].names as Record<string, string>)[key] ?? key;
+    if (!entry) {
+      dimensionLines.push(`- ${label}: ${name} / 該当${label}データ未取得`);
+      continue;
+    }
     dimensionLines.push(`- ${label}: ${name} / いずれか的中 ${formatKurariExMetric(entry.predictionKpi.anyHitRate)} / 同ライン1-2 ${formatKurariExMetric(entry.racePattern.sameLineTop2Rate)}`);
   }
   if (dimensionLines.length) lines.push("", "【今回条件に近いカテゴリ】", ...dimensionLines.slice(0, 4));
@@ -1004,9 +1002,14 @@ function buildKurariExPracticalMemo(exact: KurariExVenueExact, context?: KurariE
     const key = keys[dimension];
     if (!key) continue;
     const entry = exact.dimensions[dimension][key];
-    if (!entry) continue;
     const label = dimensionLabels[dimension].label;
     const name = (dimensionLabels[dimension].names as Record<string, string>)[key] ?? key;
+    if (!entry) {
+      if (dimension === "timeslot") {
+        checks.push(`今回条件EX: 時間帯「${name}」は該当時間帯データ未取得。別時間帯へ置換しない。`);
+      }
+      continue;
+    }
     if (isKurariExUsefulMetric(entry.racePattern.sameLineTop2Rate, 8, 60)) {
       checks.push("今回条件EX: " + label + "「" + name + "」は同ライン1-2が強め。ライン決着を軽視しない。");
     }
