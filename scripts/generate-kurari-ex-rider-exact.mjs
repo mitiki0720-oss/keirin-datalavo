@@ -12,6 +12,7 @@ import {
 import {
   isCompleteStarterArray,
   loadRiderIdentitySources,
+  normalizeRiderName,
   resolveLineupRole,
   resolveRiderIdentity,
   riderExactRoot as defaultRiderExactRoot,
@@ -159,6 +160,127 @@ function buildRecentForm(observations) {
       quality: windowObservations.length < 5 ? "low-sample" : "ok",
     };
   });
+}
+
+function summarizeSettledPerformance(observations) {
+  const settled = observations.filter((item) => item.resultParsed);
+  const wins = settled.filter((item) => item.placement === 1).length;
+  const seconds = settled.filter((item) => item.placement === 2).length;
+  const thirds = settled.filter((item) => item.placement === 3).length;
+  const top2 = wins + seconds;
+  const top3 = top2 + thirds;
+  const total = settled.length;
+  const rate = (count) => total > 0
+    ? Number(((count / total) * 100).toFixed(1))
+    : null;
+
+  return {
+    settledStarts: total,
+    wins,
+    seconds,
+    thirds,
+    outside: total > 0 ? total - top3 : null,
+    winRate: rate(wins),
+    top2Rate: rate(top2),
+    top3Rate: rate(top3),
+  };
+}
+
+function venueSampleQuality(settledStarts) {
+  if (settledStarts <= 0) return "unavailable";
+  if (settledStarts < 5) return "low-sample";
+  if (settledStarts < 10) return "limited";
+  if (settledStarts < 20) return "moderate";
+  return "strong";
+}
+
+function rateDelta(value, baseline) {
+  if (value == null || baseline == null) return null;
+  return Number((value - baseline).toFixed(1));
+}
+
+function extractObservationNameKey(value) {
+  const text = String(value ?? "").normalize("NFKC").trim();
+  const structuredName = text.match(/(?:^|\|)\u9078\u624b\u540d=([^|]+)/u)?.[1]?.trim();
+  if (structuredName) return normalizeRiderName(structuredName);
+  const slashName = text.split("/").map((part) => part.trim()).find(Boolean) ?? text;
+  return normalizeRiderName(slashName);
+}
+
+function buildVenueSuitability(observations, generatedAt) {
+  const eligibleObservations = observations.filter((item) => item.venueIdentityConsistent);
+  const excludedIdentityConflictCount = observations.length - eligibleObservations.length;
+  const excludedSettledIdentityConflictCount = observations.filter(
+    (item) => !item.venueIdentityConsistent && item.resultParsed,
+  ).length;
+  const overall = summarizeSettledPerformance(eligibleObservations);
+  const groups = new Map();
+
+  for (const observation of eligibleObservations) {
+    if (!observation.venueKey) continue;
+    const group = groups.get(observation.venueKey) ?? [];
+    group.push(observation);
+    groups.set(observation.venueKey, group);
+  }
+
+  const items = [...groups.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([venueKey, venueObservations]) => {
+      const sorted = [...venueObservations].sort((left, right) => left.date.localeCompare(right.date));
+      const settled = sorted.filter((item) => item.resultParsed);
+      const performance = summarizeSettledPerformance(sorted);
+      const recentObservations = settled.slice(-5);
+      const recent = summarizeSettledPerformance(recentObservations);
+      const dates = sorted.map((item) => item.date).filter(Boolean);
+      const recentDates = recentObservations.map((item) => item.date).filter(Boolean);
+
+      return {
+        venueKey,
+        venueName: sorted.find((item) => item.venueName)?.venueName ?? venueKey,
+        observedStarts: sorted.length,
+        ...performance,
+        period: {
+          from: dates[0] ?? null,
+          to: dates.at(-1) ?? null,
+        },
+        latestRaceDate: dates.at(-1) ?? null,
+        recent: {
+          windowSize: 5,
+          sampleSize: recent.settledStarts,
+          settledStarts: recent.settledStarts,
+          windowComplete: recent.settledStarts === 5,
+          period: {
+            from: recentDates[0] ?? null,
+            to: recentDates.at(-1) ?? null,
+          },
+          wins: recent.wins,
+          seconds: recent.seconds,
+          thirds: recent.thirds,
+          outside: recent.outside,
+          winRate: recent.winRate,
+          top2Rate: recent.top2Rate,
+          top3Rate: recent.top3Rate,
+        },
+        delta: {
+          winRate: rateDelta(performance.winRate, overall.winRate),
+          top2Rate: rateDelta(performance.top2Rate, overall.top2Rate),
+          top3Rate: rateDelta(performance.top3Rate, overall.top3Rate),
+        },
+        sampleQuality: venueSampleQuality(performance.settledStarts),
+      };
+    });
+
+  return {
+    schemaVersion: 1,
+    sourceType: "EXACT",
+    source: "kurari-ex-history",
+    identityKey: "registrationNo",
+    generatedAt,
+    excludedIdentityConflictCount,
+    excludedSettledIdentityConflictCount,
+    overall,
+    items,
+  };
 }
 
 const bankLengthByVenueKey = {
@@ -356,6 +478,8 @@ async function main() {
         identity,
         observations: [],
       };
+      const sourceNameKey = extractObservationNameKey(starter.name);
+      const canonicalNameKey = normalizeRiderName(identity.card?.nameKey ?? identity.card?.name);
       observations.observations.push({
         date: race.date,
         venueKey: race.venueKey,
@@ -371,6 +495,7 @@ async function main() {
         carNo: String(starter.carNo || "unknown"),
         role: resolveLineupRole(race, starter.carNo),
         roleEligible: resolveLineupRole(race, starter.carNo) != null,
+        venueIdentityConsistent: !sourceNameKey || !canonicalNameKey || sourceNameKey === canonicalNameKey,
       });
       observationsByRider.set(identity.registrationNo, observations);
     }
@@ -428,6 +553,7 @@ async function main() {
       },
       overall: summarizeAggregate(overallAggregate),
       recentForm: buildRecentForm(observations),
+      venueSuitability: buildVenueSuitability(observations, generatedAt),
       winningMethods: {
         escape: {
           count: overallAggregate.escapeWins,

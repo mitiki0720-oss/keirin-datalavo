@@ -287,6 +287,49 @@ export type KurariExRiderRecentForm = {
   quality: "ok" | "low-sample" | "unavailable";
 };
 
+export type KurariExRiderVenuePerformance = {
+  settledStarts: number;
+  wins: number;
+  seconds: number;
+  thirds: number;
+  outside: number | null;
+  winRate: number | null;
+  top2Rate: number | null;
+  top3Rate: number | null;
+};
+
+export type KurariExRiderVenueSuitabilityItem = KurariExRiderVenuePerformance & {
+  venueKey: string;
+  venueName: string;
+  observedStarts: number;
+  period: KurariExPeriod;
+  latestRaceDate: string | null;
+  recent: KurariExRiderVenuePerformance & {
+    windowSize: 5;
+    sampleSize: number;
+    windowComplete: boolean;
+    period: KurariExPeriod;
+  };
+  delta: {
+    winRate: number | null;
+    top2Rate: number | null;
+    top3Rate: number | null;
+  };
+  sampleQuality: "unavailable" | "low-sample" | "limited" | "moderate" | "strong";
+};
+
+export type KurariExRiderVenueSuitability = {
+  schemaVersion: 1;
+  sourceType: "EXACT";
+  source: "kurari-ex-history";
+  identityKey: "registrationNo";
+  generatedAt: string;
+  excludedIdentityConflictCount: number;
+  excludedSettledIdentityConflictCount: number;
+  overall: KurariExRiderVenuePerformance;
+  items: KurariExRiderVenueSuitabilityItem[];
+};
+
 export type KurariExRiderExactIndexItem = {
   registrationNo: string;
   name: string;
@@ -356,6 +399,7 @@ export type KurariExRiderExact = {
   };
   overall: KurariExRiderAggregate;
   recentForm?: KurariExRiderRecentForm[];
+  venueSuitability?: KurariExRiderVenueSuitability;
   winningMethods: {
     escape: KurariExRiderMetric;
     sprint: KurariExRiderMetric;

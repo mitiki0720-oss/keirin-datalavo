@@ -105,6 +105,7 @@ import type {
   KurariExRiderExactIndexItem,
   KurariExRiderExactInitialData,
   KurariExRiderQuality,
+  KurariExRiderVenueSuitabilityItem,
   KurariExStartersAvailabilitySummary,
 } from "../types/kurariEx";
 import {
@@ -1422,6 +1423,137 @@ function PlayerConditionTable({ rows }: { rows: PlayerConditionRow[] }) {
         </tbody>
       </table>
     </div>
+  );
+}
+
+function formatSignedRate(value: number | null) {
+  if (value == null) return "比較不可";
+  if (value === 0) return "±0.0pt";
+  return `${value > 0 ? "+" : ""}${value.toFixed(1)}pt`;
+}
+
+function getVenueSampleLabel(item: KurariExRiderVenueSuitabilityItem) {
+  const labels: Record<KurariExRiderVenueSuitabilityItem["sampleQuality"], string> = {
+    unavailable: "未蓄積",
+    "low-sample": "LOW SAMPLE",
+    limited: "LIMITED",
+    moderate: "MODERATE",
+    strong: "STRONG SAMPLE",
+  };
+  return labels[item.sampleQuality];
+}
+
+function getVenueSuitabilityEvaluation(item: KurariExRiderVenueSuitabilityItem) {
+  const top2Delta = item.delta.top2Rate;
+  const top3Delta = item.delta.top3Rate;
+  if (item.sampleQuality === "unavailable" || item.sampleQuality === "low-sample" || top2Delta == null || top3Delta == null) {
+    return { key: "hold", label: "判定保留", note: "5走未満は適性評価に使用しません。" } as const;
+  }
+
+  const recentDelta = item.recent.windowComplete && item.recent.top3Rate != null && item.top3Rate != null
+    ? Number((item.recent.top3Rate - item.top3Rate).toFixed(1))
+    : null;
+  const positive = top2Delta >= 5 && top3Delta >= 10 && (recentDelta == null || recentDelta >= -10);
+  const negative = top2Delta <= -5 && top3Delta <= -10 && (recentDelta == null || recentDelta <= 10);
+  if (item.sampleQuality === "limited") {
+    if (positive) return { key: "positive-reference", label: "上向き参考", note: "全体差はプラスで直近も逆転していませんが、10走未満のため参考扱いです。" } as const;
+    if (negative) return { key: "negative-reference", label: "下向き参考", note: "全体差はマイナスで直近も逆転していませんが、10走未満のため参考扱いです。" } as const;
+    return { key: "neutral", label: "平均圏 / LIMITED", note: "全体差は小さく、追加蓄積が必要です。" } as const;
+  }
+  if (positive) return { key: "positive", label: "得意傾向", note: "10走以上で2連対率・3連対率がともに全体を上回ります。" } as const;
+  if (negative) return { key: "negative", label: "苦手傾向", note: "10走以上で2連対率・3連対率がともに全体を下回ります。" } as const;
+  return { key: "neutral", label: "平均的", note: "全体との差に一方向の強い根拠はありません。" } as const;
+}
+
+function getVenueRecentTrend(item: KurariExRiderVenueSuitabilityItem) {
+  if (!item.recent.windowComplete || item.recent.top3Rate == null || item.top3Rate == null) return "直近5走未満";
+  const delta = Number((item.recent.top3Rate - item.top3Rate).toFixed(1));
+  if (delta >= 10) return `直近上向き ${formatSignedRate(delta)}`;
+  if (delta <= -10) return `直近下向き ${formatSignedRate(delta)}`;
+  return `長期並み ${formatSignedRate(delta)}`;
+}
+
+function RiderVenueSuitability({ rider }: { rider: KurariExRiderExact }) {
+  const data = rider.venueSuitability;
+  if (!data?.items.length) {
+    return <EmptyState text="会場別の確定結果がまだありません。名前一致や全国成績から会場適性を補完しません。" />;
+  }
+
+  const rows = data.items.map((item) => ({ item, evaluation: getVenueSuitabilityEvaluation(item) }));
+  const comparable = rows.filter(({ evaluation }) => evaluation.key !== "hold");
+  const ranked = [...comparable].sort((left, right) =>
+    (right.item.delta.top3Rate ?? -Infinity) - (left.item.delta.top3Rate ?? -Infinity)
+      || (right.item.delta.top2Rate ?? -Infinity) - (left.item.delta.top2Rate ?? -Infinity)
+      || right.item.settledStarts - left.item.settledStarts,
+  );
+  const rankByVenue = new Map(ranked.map(({ item }, index) => [item.venueKey, index + 1]));
+  const best = ranked.find(({ evaluation }) => evaluation.key === "positive")
+    ?? ranked.find(({ evaluation }) => evaluation.key === "positive-reference");
+  const weak = [...ranked].reverse().find(({ evaluation }) => evaluation.key === "negative")
+    ?? [...ranked].reverse().find(({ evaluation }) => evaluation.key === "negative-reference");
+  const lowSampleCount = rows.filter(({ item }) => ["low-sample", "unavailable"].includes(item.sampleQuality)).length;
+
+  return (
+    <>
+      <div className="ex-venue-fit-summary">
+        <article className="is-positive">
+          <span>{best?.evaluation.key === "positive-reference" ? "BEST REFERENCE" : "BEST VENUE"}</span>
+          <strong>{best?.item.venueName ?? "判定保留"}</strong>
+          <small>{best ? `3連対率 全体差 ${formatSignedRate(best.item.delta.top3Rate)}` : "10走以上かつ複数指標が上向く会場なし"}</small>
+        </article>
+        <article className="is-negative">
+          <span>{weak?.evaluation.key === "negative-reference" ? "WEAK REFERENCE" : "WEAK VENUE"}</span>
+          <strong>{weak?.item.venueName ?? "判定保留"}</strong>
+          <small>{weak ? `3連対率 全体差 ${formatSignedRate(weak.item.delta.top3Rate)}` : "10走以上かつ複数指標が下向く会場なし"}</small>
+        </article>
+        <article className="is-reference">
+          <span>LOW SAMPLE</span>
+          <strong>{lowSampleCount} / {rows.length}会場</strong>
+          <small>5走未満は順位・適性ラベルの対象外</small>
+        </article>
+      </div>
+
+      <div className="ex-venue-fit-grid">
+        {rows.map(({ item, evaluation }) => {
+          const rank = rankByVenue.get(item.venueKey);
+          return (
+            <article className={`ex-venue-fit-card is-${evaluation.key}`} key={item.venueKey}>
+              <div className="ex-venue-fit-head">
+                <div>
+                  <span>{item.venueKey}</span>
+                  <h4>{item.venueName}</h4>
+                </div>
+                <span className={`ex-player-use-label${item.settledStarts >= 10 ? " is-usable" : " is-reference"}`}>
+                  {getVenueSampleLabel(item)}
+                </span>
+              </div>
+              <div className="ex-venue-fit-kpis">
+                <span>確定母数 <b>{item.settledStarts}</b><small>全出走 {item.observedStarts}</small></span>
+                <span>1着率 <b>{formatRiderOverviewRate(item.winRate)}</b><small>{item.wins}勝</small></span>
+                <span>2連対率 <b>{formatRiderOverviewRate(item.top2Rate)}</b><small>{item.wins + item.seconds}回</small></span>
+                <span>3連対率 <b>{formatRiderOverviewRate(item.top3Rate)}</b><small>{item.wins + item.seconds + item.thirds}回</small></span>
+              </div>
+              <div className="ex-venue-fit-delta">
+                <span>全体差</span>
+                <strong>2連対 {formatSignedRate(item.delta.top2Rate)} / 3連対 {formatSignedRate(item.delta.top3Rate)}</strong>
+              </div>
+              <div className="ex-venue-fit-meta">
+                <span>{item.period.from ?? "--"}〜{item.period.to ?? "--"}</span>
+                <span>最新 {item.latestRaceDate ?? "未取得"}</span>
+                <span>直近 {item.recent.sampleSize}/5走: {getVenueRecentTrend(item)}</span>
+              </div>
+              <div className="ex-venue-fit-evaluation">
+                <strong>{evaluation.label}{rank ? ` / 比較可能${rank}位` : ""}</strong>
+                <small>{evaluation.note}</small>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+      <p className="ex-player-role-caution">
+        source: {data.source} / identity: {data.identityKey} exact / generated {formatDate(data.generatedAt)}。確定結果だけで率を算出し、登録番号とcanonical名が衝突した観測 {data.excludedIdentityConflictCount}件は除外しています。平均着順・脚質・バンク適性はsource不足のため生成しません。
+      </p>
+    </>
   );
 }
 
@@ -3590,6 +3722,34 @@ export default function ExDataPage() {
         .ex-player-recent-places b { display: block; margin-top: 3px; color: #3e4c65; font-size: 15px; }
         .ex-player-recent-rates { display: grid; gap: 5px; margin-top: 12px; color: #58677e; font-size: 10px; font-weight: 800; line-height: 1.45; }
         .ex-player-recent-card > small { display: block; margin-top: 11px; color: #7a879a; font-size: 9px; font-weight: 780; }
+        .ex-venue-fit-summary { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 3},minmax(0,1fr)); gap: 10px; margin-bottom: 14px; }
+        .ex-venue-fit-summary article { min-width: 0; padding: 15px; border: 1px solid #dde5ef; border-radius: 18px; background: linear-gradient(145deg,#fff,#f6f9fd); }
+        .ex-venue-fit-summary article.is-positive { border-color: #bddfd1; background: linear-gradient(145deg,#f4fbf7,#fff); }
+        .ex-venue-fit-summary article.is-negative { border-color: #e6c9cf; background: linear-gradient(145deg,#fff7f8,#fff); }
+        .ex-venue-fit-summary article.is-reference { border-color: var(--ex-status-reference-border); background: linear-gradient(145deg,var(--ex-status-reference-bg),#fff); }
+        .ex-venue-fit-summary span { color: #738097; font-size: 9px; font-weight: 950; letter-spacing: .08em; }
+        .ex-venue-fit-summary strong { display: block; margin-top: 7px; color: #2c3d55; font: 850 21px/1.2 ${serif}; overflow-wrap: anywhere; }
+        .ex-venue-fit-summary small { display: block; margin-top: 6px; color: #6d798d; font-size: 10px; font-weight: 780; line-height: 1.5; }
+        .ex-venue-fit-grid { display: grid; grid-template-columns: repeat(${isMobile ? 1 : 2},minmax(0,1fr)); gap: 11px; }
+        .ex-venue-fit-card { min-width: 0; padding: 16px; border: 1px solid #e0e6ee; border-radius: 18px; background: rgba(255,255,255,.88); box-shadow: 0 10px 24px rgba(55,68,102,.045); }
+        .ex-venue-fit-card.is-positive { border-color: #bddfd1; background: linear-gradient(145deg,#f5fbf8,#fff); }
+        .ex-venue-fit-card.is-negative { border-color: #e5c9cf; background: linear-gradient(145deg,#fff8f8,#fff); }
+        .ex-venue-fit-card.is-hold, .ex-venue-fit-card.is-positive-reference, .ex-venue-fit-card.is-negative-reference { border-color: var(--ex-status-reference-border); background: linear-gradient(145deg,var(--ex-status-reference-bg),#fff); }
+        .ex-venue-fit-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+        .ex-venue-fit-head > div { min-width: 0; }
+        .ex-venue-fit-head > div > span { color: #7a8699; font-size: 9px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+        .ex-venue-fit-head h4 { margin: 4px 0 0; color: #273852; font: 850 20px/1.2 ${serif}; overflow-wrap: anywhere; }
+        .ex-venue-fit-kpis { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 6px; margin-top: 13px; }
+        .ex-venue-fit-kpis span { min-width: 0; padding: 8px 6px; border-radius: 11px; background: rgba(255,255,255,.76); color: #748096; font-size: 9px; font-weight: 850; text-align: center; }
+        .ex-venue-fit-kpis b { display: block; margin-top: 4px; color: #34435a; font-size: 14px; overflow-wrap: anywhere; }
+        .ex-venue-fit-kpis small { display: block; margin-top: 3px; color: #8993a4; font-size: 8px; }
+        .ex-venue-fit-delta { display: flex; align-items: baseline; justify-content: space-between; gap: 9px; margin-top: 11px; padding: 9px 10px; border-left: 3px solid #8978be; background: #f7f5fc; }
+        .ex-venue-fit-delta span { color: #7b8698; font-size: 9px; font-weight: 900; }
+        .ex-venue-fit-delta strong { color: #4c4569; font-size: 10px; text-align: right; }
+        .ex-venue-fit-meta { display: flex; flex-wrap: wrap; gap: 5px 10px; margin-top: 10px; color: #748096; font-size: 9px; font-weight: 800; line-height: 1.5; }
+        .ex-venue-fit-evaluation { margin-top: 11px; }
+        .ex-venue-fit-evaluation strong { display: block; color: #34435a; font-size: 11px; }
+        .ex-venue-fit-evaluation small { display: block; margin-top: 4px; color: #758197; font-size: 9px; font-weight: 760; line-height: 1.5; }
         .ex-player-condition-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: -2px 0 12px; }
         .ex-player-condition-table { min-width: 980px; }
         .ex-player-condition-table td:first-child { min-width: 160px; }
@@ -8343,6 +8503,11 @@ export default function ExDataPage() {
                     <section className="ex-panel ex-section">
                       <SectionTitle eyebrow="RECENT FORM" title="直近5 / 10 / 20走" lead="確定結果のある保存済み出走だけを日付順に集計します。具体的な4着以下順位はsourceにないため、平均着順は表示しません。" />
                       <RiderRecentForm rider={selectedRider} />
+                    </section>
+
+                    <section className="ex-panel ex-section">
+                      <SectionTitle eyebrow="VENUE SUITABILITY" title="会場別適性" lead="登録番号EXACTで紐付いた確定結果だけを、全体成績との差と直近最大5走で比較します。1〜4走は判定保留です。" />
+                      <RiderVenueSuitability rider={selectedRider} />
                     </section>
 
                     <section className="ex-panel ex-section">

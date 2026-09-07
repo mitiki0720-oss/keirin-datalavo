@@ -230,6 +230,7 @@ async function runCurrentPublicAudits() {
   await runNode("check-kurari-ex-compact-history.mjs");
   await runNode("check-kurari-ex-compact-history-replay.mjs");
   await runNode("check-kurari-ex-rider-exact.mjs");
+  await runNode("check-kurari-ex-rider-venue-suitability.mjs");
   await runNode("check-kurari-ex-matchup-exact.mjs");
   await runNode("check-kurari-ex-size.mjs");
   console.log("[raw-refresh] parity audits deferred until public regeneration");
@@ -253,6 +254,7 @@ async function regeneratePublicData() {
   ]);
   await runNode("check-kurari-ex-rider-exact-history-parity.mjs");
   await runNode("check-kurari-ex-rider-exact.mjs");
+  await runNode("check-kurari-ex-rider-venue-suitability.mjs");
   await runNode("generate-kurari-ex-matchup-exact.mjs");
   await runNode("check-kurari-ex-matchup-exact.mjs");
   await runNode("check-kurari-ex-size.mjs");

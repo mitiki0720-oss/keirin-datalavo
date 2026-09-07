@@ -86,6 +86,7 @@ export async function runNightly(options = {}) {
       `--generated-at=${generatedAt}`,
     ]);
     await runScript("check-kurari-ex-rider-exact.mjs");
+    await runScript("check-kurari-ex-rider-venue-suitability.mjs");
     await runScript("generate-kurari-ex-matchup-exact.mjs");
     await runScript("check-kurari-ex-matchup-exact.mjs");
     await runScript("check-kurari-ex-size.mjs");
@@ -132,6 +133,7 @@ export async function runNightly(options = {}) {
     ]);
     await publishRiderExact(riderTemp);
     await runScript("check-kurari-ex-rider-exact.mjs");
+    await runScript("check-kurari-ex-rider-venue-suitability.mjs");
     await runScript("generate-kurari-ex-matchup-exact.mjs");
     await runScript("check-kurari-ex-matchup-exact.mjs");
     await runScript("check-kurari-ex-size.mjs");
