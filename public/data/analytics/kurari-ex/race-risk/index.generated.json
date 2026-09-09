@@ -1,6 +1,6 @@
 {
   "version": "kurari-ex-race-risk/v1",
-  "generatedAt": "2026-09-09T16:02:47.528Z",
+  "generatedAt": "2026-09-09T22:02:42.683Z",
   "sourceType": "PRE_RACE_SOURCE_BACKED_EX_SIGNAL",
   "period": {
     "date": "2026-09-10",
@@ -11,9 +11,9 @@
   "coverage": {
     "venueCount": 8,
     "officialEntryRaceCount": 83,
-    "officialLineupRaceCount": 65,
-    "insufficientRaceCount": 18,
-    "lowConfidenceRaceCount": 18
+    "officialLineupRaceCount": 74,
+    "insufficientRaceCount": 9,
+    "lowConfidenceRaceCount": 9
   },
   "freshness": {
     "targetDate": "2026-09-10",
@@ -23,22 +23,22 @@
     "warning": "historicalがtargetDate-1より5日古いです"
   },
   "riskLevelCounts": {
-    "INSUFFICIENT": 18,
-    "MEDIUM": 28,
-    "LOW": 17,
+    "LOW": 22,
+    "MEDIUM": 32,
     "HIGH": 18,
-    "VERY_HIGH": 2
+    "VERY_HIGH": 2,
+    "INSUFFICIENT": 9
   },
   "confidenceCounts": {
-    "low": 18,
-    "high": 65
+    "high": 74,
+    "low": 9
   },
   "pointRangeCounts": {
-    "SKIP": 18,
-    "VALUE_10": 28,
-    "BASE_8": 17,
+    "BASE_8": 22,
+    "VALUE_10": 32,
     "STRONG_VALUE_12": 18,
-    "MAX_14": 2
+    "MAX_14": 2,
+    "SKIP": 9
   },
   "records": [
     {
@@ -48,36 +48,36 @@
       "venueName": "京王閣",
       "venueSlug": "keiokaku",
       "raceNo": 1,
-      "title": "2026年09月10日 レース詳細 A級戦チ一般",
+      "title": "2026年09月10日 レース詳細 チャレンジ一般",
       "time": "20:40",
       "timeBand": "midnight",
       "grade": "F2",
       "raceClass": "A3",
       "carCount": 6,
       "line": {
-        "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
+        "source": "today.generated.lineup",
+        "lineup": "1236 54",
+        "lineCount": 2,
         "singleCount": 0,
         "selfPowerCount": 2
       },
-      "riskScore": 0,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskScore": -1,
+      "riskLevel": "LOW",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "8",
+        "min": 8,
+        "max": 8,
+        "action": "BASE_8"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
-          "contribution": 0,
-          "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "value": "2分戦",
+          "contribution": -1,
+          "source": "today.generated.lineup",
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -138,7 +138,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 111,
         "raceNumberHistoricalSampleSize": 469,
         "riderCoverageCount": 5,
@@ -159,36 +159,36 @@
       "venueName": "京王閣",
       "venueSlug": "keiokaku",
       "raceNo": 2,
-      "title": "2026年09月10日 レース詳細 A級戦チ一般",
+      "title": "2026年09月10日 レース詳細 チャレンジ一般",
       "time": "21:00",
       "timeBand": "midnight",
       "grade": "F2",
       "raceClass": "A3",
       "carCount": 7,
       "line": {
-        "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
-        "singleCount": 0,
+        "source": "today.generated.lineup",
+        "lineup": "4352 1 6 7",
+        "lineCount": 4,
+        "singleCount": 3,
         "selfPowerCount": 2
       },
-      "riskScore": 0,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskScore": 2,
+      "riskLevel": "MEDIUM",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "8〜10",
+        "min": 8,
+        "max": 10,
+        "action": "VALUE_10"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
-          "contribution": 0,
-          "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "value": "4分戦",
+          "contribution": 1,
+          "source": "today.generated.lineup",
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -198,6 +198,14 @@
           "source": "keirin-jp-entries.entries.style/stats",
           "confidence": "medium",
           "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "single-line",
+          "label": "単騎/短ライン",
+          "value": "3本",
+          "contribution": 1,
+          "source": "today.generated.lineup",
+          "confidence": "medium"
         },
         {
           "key": "venue-historical-turbulence",
@@ -249,7 +257,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 111,
         "raceNumberHistoricalSampleSize": 465,
         "riderCoverageCount": 7,
@@ -270,36 +278,36 @@
       "venueName": "京王閣",
       "venueSlug": "keiokaku",
       "raceNo": 3,
-      "title": "2026年09月10日 レース詳細 A級戦チ選抜",
+      "title": "2026年09月10日 レース詳細 チャレンジ選抜",
       "time": "21:20",
       "timeBand": "midnight",
       "grade": "F2",
       "raceClass": "A3",
       "carCount": 7,
       "line": {
-        "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
-        "singleCount": 0,
+        "source": "today.generated.lineup",
+        "lineup": "37 1 24 65",
+        "lineCount": 4,
+        "singleCount": 1,
         "selfPowerCount": 3
       },
-      "riskScore": 0,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskScore": 1,
+      "riskLevel": "MEDIUM",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "8〜10",
+        "min": 8,
+        "max": 10,
+        "action": "VALUE_10"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
-          "contribution": 0,
-          "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "value": "4分戦",
+          "contribution": 1,
+          "source": "today.generated.lineup",
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -309,6 +317,14 @@
           "source": "keirin-jp-entries.entries.style/stats",
           "confidence": "medium",
           "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "single-line",
+          "label": "単騎/短ライン",
+          "value": "1本",
+          "contribution": 0,
+          "source": "today.generated.lineup",
+          "confidence": "medium"
         },
         {
           "key": "venue-historical-turbulence",
@@ -360,7 +376,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 111,
         "raceNumberHistoricalSampleSize": 467,
         "riderCoverageCount": 7,
@@ -381,36 +397,36 @@
       "venueName": "京王閣",
       "venueSlug": "keiokaku",
       "raceNo": 4,
-      "title": "2026年09月10日 レース詳細 A級戦特一般",
+      "title": "2026年09月10日 レース詳細 A級特一般",
       "time": "21:40",
       "timeBand": "midnight",
       "grade": "F2",
       "raceClass": "A2",
       "carCount": 7,
       "line": {
-        "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
+        "source": "today.generated.lineup",
+        "lineup": "16 25 734",
+        "lineCount": 3,
         "singleCount": 0,
         "selfPowerCount": 5
       },
       "riskScore": 2,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskLevel": "MEDIUM",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "8〜10",
+        "min": 8,
+        "max": 10,
+        "action": "VALUE_10"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
+          "value": "3分戦",
           "contribution": 0,
-          "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "source": "today.generated.lineup",
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -471,7 +487,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 111,
         "raceNumberHistoricalSampleSize": 466,
         "riderCoverageCount": 7,
@@ -492,36 +508,36 @@
       "venueName": "京王閣",
       "venueSlug": "keiokaku",
       "raceNo": 5,
-      "title": "2026年09月10日 レース詳細 A級戦特一般",
+      "title": "2026年09月10日 レース詳細 A級特一般",
       "time": "22:00",
       "timeBand": "midnight",
       "grade": "F2",
       "raceClass": "A2",
       "carCount": 7,
       "line": {
-        "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
-        "singleCount": 0,
+        "source": "today.generated.lineup",
+        "lineup": "21 53 47 6",
+        "lineCount": 4,
+        "singleCount": 1,
         "selfPowerCount": 3
       },
-      "riskScore": 0,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskScore": 1,
+      "riskLevel": "MEDIUM",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "8〜10",
+        "min": 8,
+        "max": 10,
+        "action": "VALUE_10"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
-          "contribution": 0,
-          "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "value": "4分戦",
+          "contribution": 1,
+          "source": "today.generated.lineup",
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -531,6 +547,14 @@
           "source": "keirin-jp-entries.entries.style/stats",
           "confidence": "medium",
           "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "single-line",
+          "label": "単騎/短ライン",
+          "value": "1本",
+          "contribution": 0,
+          "source": "today.generated.lineup",
+          "confidence": "medium"
         },
         {
           "key": "venue-historical-turbulence",
@@ -582,7 +606,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 111,
         "raceNumberHistoricalSampleSize": 471,
         "riderCoverageCount": 7,
@@ -603,36 +627,36 @@
       "venueName": "京王閣",
       "venueSlug": "keiokaku",
       "raceNo": 6,
-      "title": "2026年09月10日 レース詳細 A級戦特 選",
+      "title": "2026年09月10日 レース詳細 A級特選",
       "time": "22:20",
       "timeBand": "midnight",
       "grade": "F2",
       "raceClass": "A1",
       "carCount": 7,
       "line": {
-        "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
-        "singleCount": 0,
+        "source": "today.generated.lineup",
+        "lineup": "3125 46 7",
+        "lineCount": 3,
+        "singleCount": 1,
         "selfPowerCount": 1
       },
       "riskScore": 0,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskLevel": "LOW",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "8",
+        "min": 8,
+        "max": 8,
+        "action": "BASE_8"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
+          "value": "3分戦",
           "contribution": 0,
-          "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "source": "today.generated.lineup",
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -642,6 +666,14 @@
           "source": "keirin-jp-entries.entries.style/stats",
           "confidence": "medium",
           "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "single-line",
+          "label": "単騎/短ライン",
+          "value": "1本",
+          "contribution": 0,
+          "source": "today.generated.lineup",
+          "confidence": "medium"
         },
         {
           "key": "venue-historical-turbulence",
@@ -693,7 +725,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 111,
         "raceNumberHistoricalSampleSize": 467,
         "riderCoverageCount": 7,
@@ -714,36 +746,36 @@
       "venueName": "京王閣",
       "venueSlug": "keiokaku",
       "raceNo": 7,
-      "title": "2026年09月10日 レース詳細 A級戦特 選",
+      "title": "2026年09月10日 レース詳細 A級特選",
       "time": "22:40",
       "timeBand": "midnight",
       "grade": "F2",
       "raceClass": "A2",
       "carCount": 7,
       "line": {
-        "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
-        "singleCount": 0,
+        "source": "today.generated.lineup",
+        "lineup": "316 2 457",
+        "lineCount": 3,
+        "singleCount": 1,
         "selfPowerCount": 2
       },
       "riskScore": 0,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskLevel": "LOW",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "8",
+        "min": 8,
+        "max": 8,
+        "action": "BASE_8"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
+          "value": "3分戦",
           "contribution": 0,
-          "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "source": "today.generated.lineup",
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -753,6 +785,14 @@
           "source": "keirin-jp-entries.entries.style/stats",
           "confidence": "medium",
           "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "single-line",
+          "label": "単騎/短ライン",
+          "value": "1本",
+          "contribution": 0,
+          "source": "today.generated.lineup",
+          "confidence": "medium"
         },
         {
           "key": "venue-historical-turbulence",
@@ -804,7 +844,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 111,
         "raceNumberHistoricalSampleSize": 467,
         "riderCoverageCount": 7,
@@ -825,36 +865,36 @@
       "venueName": "京王閣",
       "venueSlug": "keiokaku",
       "raceNo": 8,
-      "title": "2026年09月10日 レース詳細 A級戦チ決勝",
+      "title": "2026年09月10日 レース詳細 チャレンジ決勝",
       "time": "23:00",
       "timeBand": "midnight",
       "grade": "F2",
       "raceClass": "A3",
       "carCount": 7,
       "line": {
-        "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
-        "singleCount": 0,
+        "source": "today.generated.lineup",
+        "lineup": "347 125 6",
+        "lineCount": 3,
+        "singleCount": 1,
         "selfPowerCount": 3
       },
       "riskScore": 0,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskLevel": "LOW",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "8",
+        "min": 8,
+        "max": 8,
+        "action": "BASE_8"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
+          "value": "3分戦",
           "contribution": 0,
-          "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "source": "today.generated.lineup",
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -864,6 +904,14 @@
           "source": "keirin-jp-entries.entries.style/stats",
           "confidence": "medium",
           "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "single-line",
+          "label": "単騎/短ライン",
+          "value": "1本",
+          "contribution": 0,
+          "source": "today.generated.lineup",
+          "confidence": "medium"
         },
         {
           "key": "venue-historical-turbulence",
@@ -915,7 +963,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 111,
         "raceNumberHistoricalSampleSize": 328,
         "riderCoverageCount": 7,
@@ -936,36 +984,36 @@
       "venueName": "京王閣",
       "venueSlug": "keiokaku",
       "raceNo": 9,
-      "title": "2026年09月10日 レース詳細 A級戦決 勝",
+      "title": "2026年09月10日 レース詳細 A級決勝",
       "time": "23:20",
       "timeBand": "midnight",
       "grade": "F2",
       "raceClass": "A1",
       "carCount": 7,
       "line": {
-        "source": "keirin-jp-entries.lineup",
-        "lineup": null,
-        "lineCount": null,
+        "source": "today.generated.lineup",
+        "lineup": "36 417 52",
+        "lineCount": 3,
         "singleCount": 0,
         "selfPowerCount": 3
       },
       "riskScore": 0,
-      "riskLevel": "INSUFFICIENT",
-      "confidence": "low",
+      "riskLevel": "LOW",
+      "confidence": "high",
       "pointRange": {
-        "label": "SKIP / 判断材料不足",
-        "min": null,
-        "max": null,
-        "action": "SKIP"
+        "label": "8",
+        "min": 8,
+        "max": 8,
+        "action": "BASE_8"
       },
       "signals": [
         {
           "key": "line-count",
           "label": "分戦数",
-          "value": "未取得分戦",
+          "value": "3分戦",
           "contribution": 0,
-          "source": "keirin-jp-entries.lineup",
-          "confidence": "low"
+          "source": "today.generated.lineup",
+          "confidence": "high"
         },
         {
           "key": "self-power-contest",
@@ -1026,7 +1074,7 @@
       "sourceAvailability": {
         "todayRace": true,
         "officialEntries": true,
-        "officialLineup": false,
+        "officialLineup": true,
         "venueHistoricalSampleSize": 111,
         "raceNumberHistoricalSampleSize": 334,
         "riderCoverageCount": 7,
@@ -6457,7 +6505,7 @@
       "venueName": "玉野",
       "venueSlug": "tamano",
       "raceNo": 1,
-      "title": "2026年09月10日 レース詳細 L級戦ガ一般",
+      "title": "2026年09月10日 レース詳細 ガールズ一般",
       "time": "20:50",
       "timeBand": "midnight",
       "grade": "F2",
@@ -6568,7 +6616,7 @@
       "venueName": "玉野",
       "venueSlug": "tamano",
       "raceNo": 2,
-      "title": "2026年09月10日 レース詳細 A級戦一 般",
+      "title": "2026年09月10日 レース詳細 A級一般",
       "time": "21:10",
       "timeBand": "midnight",
       "grade": "F2",
@@ -6679,7 +6727,7 @@
       "venueName": "玉野",
       "venueSlug": "tamano",
       "raceNo": 3,
-      "title": "2026年09月10日 レース詳細 A級戦一 般",
+      "title": "2026年09月10日 レース詳細 A級一般",
       "time": "21:30",
       "timeBand": "midnight",
       "grade": "F2",
@@ -6790,7 +6838,7 @@
       "venueName": "玉野",
       "venueSlug": "tamano",
       "raceNo": 4,
-      "title": "2026年09月10日 レース詳細 A級戦一 般",
+      "title": "2026年09月10日 レース詳細 A級一般",
       "time": "21:50",
       "timeBand": "midnight",
       "grade": "F2",
@@ -6901,7 +6949,7 @@
       "venueName": "玉野",
       "venueSlug": "tamano",
       "raceNo": 5,
-      "title": "2026年09月10日 レース詳細 A級戦特 選",
+      "title": "2026年09月10日 レース詳細 A級特選",
       "time": "22:10",
       "timeBand": "midnight",
       "grade": "F2",
@@ -7012,7 +7060,7 @@
       "venueName": "玉野",
       "venueSlug": "tamano",
       "raceNo": 6,
-      "title": "2026年09月10日 レース詳細 A級戦特 選",
+      "title": "2026年09月10日 レース詳細 A級特選",
       "time": "22:30",
       "timeBand": "midnight",
       "grade": "F2",
@@ -7123,7 +7171,7 @@
       "venueName": "玉野",
       "venueSlug": "tamano",
       "raceNo": 7,
-      "title": "2026年09月10日 レース詳細 A級戦特 選",
+      "title": "2026年09月10日 レース詳細 A級特選",
       "time": "22:50",
       "timeBand": "midnight",
       "grade": "F2",
@@ -7234,7 +7282,7 @@
       "venueName": "玉野",
       "venueSlug": "tamano",
       "raceNo": 8,
-      "title": "2026年09月10日 レース詳細 L級戦ガ決勝",
+      "title": "2026年09月10日 レース詳細 ガールズ決勝",
       "time": "23:10",
       "timeBand": "midnight",
       "grade": "F2",
@@ -7345,7 +7393,7 @@
       "venueName": "玉野",
       "venueSlug": "tamano",
       "raceNo": 9,
-      "title": "2026年09月10日 レース詳細 A級戦決 勝",
+      "title": "2026年09月10日 レース詳細 A級決勝",
       "time": "23:30",
       "timeBand": "midnight",
       "grade": "F2",
