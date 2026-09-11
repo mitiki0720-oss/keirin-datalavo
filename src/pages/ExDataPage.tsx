@@ -2061,6 +2061,7 @@ export default function ExDataPage() {
   const [riderQuery, setRiderQuery] = useState("");
   const [riderFilterMode, setRiderFilterMode] = useState<"all" | "practical" | "sample" | "identity">("all");
   const [selectedRiderNo, setSelectedRiderNo] = useState<string | null>(null);
+  const [pendingRiderDetailScroll, setPendingRiderDetailScroll] = useState(false);
   const [riderCache, setRiderCache] = useState<Record<string, KurariExRiderExact>>({});
   const [riderStatus, setRiderStatus] = useState<Record<string, "loading" | "ready" | "error">>({});
   const [riderOverviewCache, setRiderOverviewCache] = useState<Record<string, KurariExRiderExact>>({});
@@ -2687,6 +2688,23 @@ export default function ExDataPage() {
         setRiderStatus((current) => ({ ...current, [item.registrationNo]: "error" }));
       });
   };
+
+  const openRiderDetail = (item: KurariExRiderExactIndexItem) => {
+    setPendingRiderDetailScroll(true);
+    setActiveView("player");
+    selectRider(item);
+  };
+
+  useEffect(() => {
+    if (!pendingRiderDetailScroll || activeView !== "player" || !selectedRiderNo) return;
+
+    const timer = window.setTimeout(() => {
+      document.getElementById("ex-player-detail")?.scrollIntoView({ behavior: "auto", block: "start" });
+      setPendingRiderDetailScroll(false);
+    }, 100);
+
+    return () => window.clearTimeout(timer);
+  }, [activeView, pendingRiderDetailScroll, selectedRiderNo]);
 
   const filteredMatchupRiders = useMemo(() => {
     const normalized = normalizeSearchText(matchupQuery);
@@ -3413,6 +3431,9 @@ export default function ExDataPage() {
         .ex-rider-overview-card-block { display: grid; gap: 5px; padding-top: 11px; border-top: 1px solid #edf0f5; color: #435269; font-size: 11px; line-height: 1.65; }
         .ex-rider-overview-card-block b { color: #758197; font-size: 9px; letter-spacing: .08em; }
         .ex-rider-overview-link { display: inline-flex; width: fit-content; padding: 5px 8px; border-radius: 999px; background: #edf3ff; color: #365f99; font-size: 9px; font-weight: 900; }
+        .ex-rider-overview-open { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; padding: 8px 12px; border: 1px solid #b9c9e6; border-radius: 12px; background: linear-gradient(135deg,#f3f7ff,#f5f0ff); color: #425c8e; font: 900 10px/1.3 ${sans}; cursor: pointer; white-space: nowrap; box-shadow: 0 7px 16px rgba(61,79,122,.08); transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease; }
+        .ex-rider-overview-open:hover { transform: translateY(-1px); border-color: #8f79c4; box-shadow: 0 10px 20px rgba(74,67,130,.13); }
+        .ex-rider-overview-open:focus-visible { outline: 3px solid rgba(116,97,181,.22); outline-offset: 2px; }
         .ex-condition-tabs { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; max-width: 100%; padding: 8px; border: 1px solid #e1e6ef; border-radius: 18px; background: rgba(250,252,255,.82); box-shadow: inset 0 1px 0 rgba(255,255,255,.75); }
         .ex-condition-tab { position: relative; min-height: 38px; min-width: 0; cursor: pointer; padding: 9px 13px 9px 15px; border: 1px solid #dfe5ef; border-radius: 13px; background: rgba(255,255,255,.78); color: #67758b; font-size: 10px; font-weight: 900; line-height: 1.25; letter-spacing: .045em; box-shadow: inset 0 0 0 1px rgba(255,255,255,.5); transition: transform .15s ease, border-color .15s ease, background .15s ease, box-shadow .15s ease, color .15s ease; }
         .ex-condition-tab::before { content: ""; position: absolute; inset: 9px auto 9px 7px; width: 2px; border-radius: 99px; background: rgba(143,151,170,.32); }
@@ -6966,6 +6987,7 @@ export default function ExDataPage() {
                     <th>決まり手</th>
                     <th>EX品質</th>
                     <th>紐付け</th>
+                    <th>会場別適性</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -6995,6 +7017,16 @@ export default function ExDataPage() {
                           <span className={`ex-quality is-${item.quality}`}>{getRiderOverviewQualityLabel(item)}</span>
                         </td>
                         <td><span className="ex-rider-overview-link">{getRiderIdentityLabel(rider)}</span></td>
+                        <td>
+                          <button
+                            className="ex-rider-overview-open"
+                            type="button"
+                            onClick={() => openRiderDetail(item)}
+                            aria-label={`${item.name}の会場別適性を見る`}
+                          >
+                            会場別適性を見る
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -7029,6 +7061,14 @@ export default function ExDataPage() {
                       <RiderExactOverviewMethods item={item} rider={rider} />
                     </div>
                     <span className="ex-rider-overview-link">{getRiderIdentityLabel(rider)}</span>
+                    <button
+                      className="ex-rider-overview-open"
+                      type="button"
+                      onClick={() => openRiderDetail(item)}
+                      aria-label={`${item.name}の会場別適性を見る`}
+                    >
+                      会場別適性を見る
+                    </button>
                   </article>
                 );
               })}
@@ -7948,7 +7988,7 @@ export default function ExDataPage() {
               key: "player" as const,
               title: "PLAYER",
               badge: "選手・条件",
-              text: "rider-score、選手別EXACT、周長・時間帯・役割・天候別を確認します。",
+              text: "rider-score、選手別EXACT、会場別適性、周長・時間帯・役割・天候別を確認します。",
               meta: riderScoreAnalysis ? `${riderScoreAnalysis.period.from ?? "--"}〜${riderScoreAnalysis.period.to ?? "--"} / ${valueText(riderScoreAnalysis.riderCount)} riders` : "rider-score loading",
             },
             {
@@ -8373,7 +8413,7 @@ export default function ExDataPage() {
                 </div>
                 <div className="ex-venue-list">
                   {filteredRiders.map((item) => (
-                    <button key={item.registrationNo} className={`ex-venue-button${selectedRiderNo === item.registrationNo ? " is-active" : ""}`} type="button" onClick={() => selectRider(item)}>
+                    <button key={item.registrationNo} className={`ex-venue-button${selectedRiderNo === item.registrationNo ? " is-active" : ""}`} type="button" onClick={() => openRiderDetail(item)}>
                       <div className="ex-detail-head">
                         <div>
                           <strong>{item.name}</strong>
@@ -8388,7 +8428,7 @@ export default function ExDataPage() {
                 </div>
               </aside>
 
-              <div className="ex-detail">
+              <div className="ex-detail" id="ex-player-detail">
                 <section className="ex-panel ex-section">
                   <SectionTitle eyebrow="PLAYER EXACT ANALYTICS" title={selectedRider?.name ?? selectedRiderItem?.name ?? "選手別確定集計"} />
 
@@ -8470,10 +8510,22 @@ export default function ExDataPage() {
                           <strong>{selectedRider.quality === "complete" ? "予想に使える" : selectedRider.quality === "identity-only" ? "identity-only" : "LOW SAMPLE / 参考"}</strong>
                           <small>{getKurariExRiderQualityLabel(selectedRider.quality)}</small>
                         </article>
+                        <article className={(selectedRider.venueSuitability?.items ?? []).some((item) => item.settledStarts >= 5) ? "is-usable" : "is-reference"}>
+                          <span>会場別適性</span>
+                          <strong>{(selectedRider.venueSuitability?.items ?? []).length > 0 ? `${selectedRider.venueSuitability?.items.length ?? 0}会場` : "未蓄積"}</strong>
+                          <small>{(selectedRider.venueSuitability?.items ?? []).some((item) => item.settledStarts >= 5) ? "BEST / WEAK候補を確認" : "LOW SAMPLE / 判定保留"}</small>
+                        </article>
                       </div>
                     </>
                   ) : null}
                 </section>
+
+                {selectedRider ? (
+                  <section className="ex-panel ex-section" id="ex-player-venue-suitability" aria-label="選択選手の会場別適性">
+                    <SectionTitle eyebrow="VENUE SUITABILITY" title="会場別適性" lead="登録番号EXACTで紐付いた確定結果だけを、全体成績との差と直近最大5走で比較します。1〜4走は判定保留です。" />
+                    <RiderVenueSuitability rider={selectedRider} />
+                  </section>
+                ) : null}
 
                 {selectedRider ? (
                   <>
@@ -8503,11 +8555,6 @@ export default function ExDataPage() {
                     <section className="ex-panel ex-section">
                       <SectionTitle eyebrow="RECENT FORM" title="直近5 / 10 / 20走" lead="確定結果のある保存済み出走だけを日付順に集計します。具体的な4着以下順位はsourceにないため、平均着順は表示しません。" />
                       <RiderRecentForm rider={selectedRider} />
-                    </section>
-
-                    <section className="ex-panel ex-section">
-                      <SectionTitle eyebrow="VENUE SUITABILITY" title="会場別適性" lead="登録番号EXACTで紐付いた確定結果だけを、全体成績との差と直近最大5走で比較します。1〜4走は判定保留です。" />
-                      <RiderVenueSuitability rider={selectedRider} />
                     </section>
 
                     <section className="ex-panel ex-section">
