@@ -32,6 +32,7 @@ import type {
   KurariExRiderExactStatus,
   KurariExRiderMetric,
   KurariExRiderQuality,
+  KurariExRiderVenueSuitabilityItem,
   KurariExStarter,
   KurariExStarterRace,
   KurariExStartersAvailabilitySummary,
@@ -1133,7 +1134,10 @@ export function buildKurariExPredictionMaterial(
 ): string {
   const venue = bundle?.venue ?? null;
   const guidance = bundle?.guidance ?? null;
-  const maxLength = conditionMaterial
+  const hasVenueSuitabilityMaterial = riderMaterial.includes("【PLAYER EX / 会場別適性】");
+  const maxLength = hasVenueSuitabilityMaterial
+    ? 14000
+    : conditionMaterial
     ? 9000
     : riderMaterial || matchupMaterial || confidenceMaterial
       ? 6500
@@ -2279,6 +2283,7 @@ export type KurariExRiderExactMatch = {
 export type KurariExRiderPredictionContext = {
   venueKey?: string | null;
   venueName?: string | null;
+  riders?: KurariExRaceRiderLike[];
   timeslot?: string | null;
   raceTitle?: string | null;
   isGirls?: boolean;
@@ -2294,6 +2299,12 @@ export type KurariExRiderPredictionEntry = KurariExRiderExactMatch & {
 export type KurariExRiderPredictionMaterial = {
   text: string;
   reflectedCount: number;
+};
+
+export type KurariExRiderVenueSuitabilityMaterial = {
+  text: string;
+  reflectedCount: number;
+  unavailableCount: number;
 };
 
 export type KurariExConditionContext = {
@@ -3093,6 +3104,198 @@ function buildKurariExRiderSummaryLine(
     : "実戦根拠として買い目検討の補助に使用";
 
   return `- ${entry.carNo}番 ${name}: ${metrics.join(" / ")} / ${suffix}`;
+}
+
+function formatKurariExVenueSuitabilityRate(value: number | null) {
+  return value == null ? "未取得" : `${value.toFixed(1)}%`;
+}
+
+function formatKurariExVenueSuitabilityDelta(value: number | null) {
+  if (value == null) return "比較不可";
+  if (value === 0) return "±0.0pt";
+  return `${value > 0 ? "+" : ""}${value.toFixed(1)}pt`;
+}
+
+function getKurariExVenueSuitabilityEvaluation(item: KurariExRiderVenueSuitabilityItem) {
+  const top2Delta = item.delta.top2Rate;
+  const top3Delta = item.delta.top3Rate;
+  if (
+    item.sampleQuality === "unavailable"
+    || item.sampleQuality === "low-sample"
+    || top2Delta == null
+    || top3Delta == null
+  ) {
+    return {
+      label: item.sampleQuality === "low-sample" ? "LOW SAMPLE" : "REFERENCE HOLD",
+      note: item.sampleQuality === "low-sample"
+        ? "母数不足。参考値としてのみ保持し、予想の加点・減点根拠にはしない。"
+        : "確定母数または全体比較が不足しているため、適性判断には使用しない。",
+    };
+  }
+
+  const recentDelta = item.recent.windowComplete && item.recent.top3Rate != null && item.top3Rate != null
+    ? Number((item.recent.top3Rate - item.top3Rate).toFixed(1))
+    : null;
+  const positive = top2Delta >= 5 && top3Delta >= 10 && (recentDelta == null || recentDelta >= -10);
+  const negative = top2Delta <= -5 && top3Delta <= -10 && (recentDelta == null || recentDelta <= 10);
+
+  if (item.sampleQuality === "limited") {
+    return {
+      label: positive ? "BEST REFERENCE" : negative ? "WEAK REFERENCE" : "REFERENCE HOLD",
+      note: "母数限定。BEST / WEAK判定を含め、予想の補助材料としてのみ利用。",
+    };
+  }
+  return {
+    label: positive ? "BEST REFERENCE" : negative ? "WEAK REFERENCE" : "REFERENCE HOLD",
+    note: "10走以上の比較対象。全体差と直近傾向を併記し、勝率単独では断定しない。",
+  };
+}
+
+function getKurariExVenueSuitabilityTrend(item: KurariExRiderVenueSuitabilityItem) {
+  if (!item.recent.windowComplete || item.recent.top3Rate == null || item.top3Rate == null) {
+    return "直近5走未満。長期傾向との比較は未取得。";
+  }
+  const recentDelta = Number((item.recent.top3Rate - item.top3Rate).toFixed(1));
+  if ((item.delta.top3Rate ?? 0) >= 10 && recentDelta < -10) {
+    return `long-termはプラス傾向だが直近5走は下向き（${formatKurariExVenueSuitabilityDelta(recentDelta)}）。適性評価は保留。`;
+  }
+  if ((item.delta.top3Rate ?? 0) <= -10 && recentDelta > 10) {
+    return `long-termはマイナス傾向だが直近5走は上向き（${formatKurariExVenueSuitabilityDelta(recentDelta)}）。適性評価は保留。`;
+  }
+  if (recentDelta >= 10) return `直近5走はlong-term比で上向き（${formatKurariExVenueSuitabilityDelta(recentDelta)}）。`;
+  if (recentDelta <= -10) return `直近5走はlong-term比で下向き（${formatKurariExVenueSuitabilityDelta(recentDelta)}）。`;
+  return `直近5走はlong-term並み（${formatKurariExVenueSuitabilityDelta(recentDelta)}）。`;
+}
+
+export function buildKurariExRiderVenueSuitabilityMaterial(
+  entries: KurariExRiderPredictionEntry[],
+  context?: KurariExRiderPredictionContext | null,
+  state: "ready" | "missing" | "error" = "ready",
+): KurariExRiderVenueSuitabilityMaterial {
+  const heading = "【PLAYER EX / 会場別適性】";
+  const canonicalVenueKey = String(context?.venueKey ?? "").trim().toLowerCase();
+  const venueName = String(context?.venueName ?? "").trim() || "未取得";
+  const sourceRiders = context?.riders?.length
+    ? context.riders
+    : entries.map((entry) => ({
+        carNo: entry.carNo,
+        name: entry.riderName,
+        registrationNo: entry.registrationNo,
+      }));
+  const ridersByCarNo = new Map<string, KurariExRaceRiderLike>();
+  for (const rider of sourceRiders) {
+    const carNo = String(rider.carNo ?? "").trim();
+    if (carNo && !ridersByCarNo.has(carNo)) ridersByCarNo.set(carNo, rider);
+  }
+  const riders = [...ridersByCarNo.values()].sort((left, right) => Number(left.carNo) - Number(right.carNo));
+  const raceRegistrationCounts = new Map<string, number>();
+  for (const rider of riders) {
+    const registrationNo = normalizeKurariExRiderRegistrationNo(rider.registrationNo);
+    if (registrationNo) raceRegistrationCounts.set(registrationNo, (raceRegistrationCounts.get(registrationNo) ?? 0) + 1);
+  }
+
+  const exactByCarNo = new Map<string, KurariExRiderPredictionEntry | null>();
+  for (const entry of entries) {
+    if (entry.matchMethod !== "registrationNo") continue;
+    const registrationNo = normalizeKurariExRiderRegistrationNo(entry.registrationNo);
+    const exactRegistrationNo = normalizeKurariExRiderRegistrationNo(entry.exact.registrationNo);
+    if (!registrationNo || registrationNo !== exactRegistrationNo || !entry.exact.identity.registrationNoResolved) continue;
+    const carNo = String(entry.carNo).trim();
+    exactByCarNo.set(carNo, exactByCarNo.has(carNo) ? null : entry);
+  }
+
+  const lines = [
+    heading,
+    `- 対象会場: ${venueName} / canonical venue key: ${canonicalVenueKey || "unavailable"}`,
+    "- 接続条件: registrationNo exact + canonical venue key exact。名前・alias・fuzzyでは補完しない。",
+  ];
+  let reflectedCount = 0;
+  let unavailableCount = 0;
+
+  for (const rider of riders) {
+    const carNo = String(rider.carNo).trim();
+    const riderName = String(rider.fullName || rider.name || "未取得").trim();
+    const registrationNo = normalizeKurariExRiderRegistrationNo(rider.registrationNo);
+    const candidateEntry = exactByCarNo.get(carNo) ?? null;
+    const entry = candidateEntry
+      && registrationNo
+      && normalizeKurariExRiderRegistrationNo(candidateEntry.registrationNo) === registrationNo
+      && raceRegistrationCounts.get(registrationNo) === 1
+      ? candidateEntry
+      : null;
+    lines.push("", `■ ${carNo}番 ${riderName} / 登録番号: ${registrationNo || "unavailable"}`);
+
+    if (!registrationNo || state !== "ready" || !entry) {
+      unavailableCount += 1;
+      lines.push(
+        "- status: unavailable",
+        `- reason: ${!registrationNo ? "registrationNo unavailable" : (raceRegistrationCounts.get(registrationNo) ?? 0) > 1 ? "duplicate registrationNo in race; unresolved" : "exact rider identity unavailable"}`,
+        "- source: KURARI EX EXACT / registrationNo exact only",
+      );
+      continue;
+    }
+    if (!canonicalVenueKey) {
+      unavailableCount += 1;
+      lines.push(
+        "- status: unavailable",
+        "- reason: canonical venue identity unavailable",
+        "- source: KURARI EX EXACT / registrationNo exact only",
+      );
+      continue;
+    }
+
+    const venueItems = entry.exact.venueSuitability?.items.filter(
+      (item) => String(item.venueKey ?? "").trim().toLowerCase() === canonicalVenueKey,
+    ) ?? [];
+    if (venueItems.length !== 1) {
+      unavailableCount += 1;
+      lines.push(
+        "- status: unavailable",
+        `- reason: ${venueItems.length === 0 ? "venue suitability unavailable for current venue" : "duplicate canonical venue suitability; unresolved"}`,
+        "- source: KURARI EX EXACT / registrationNo exact only",
+      );
+      continue;
+    }
+
+    const item = venueItems[0];
+    if (item.sampleQuality === "unavailable") {
+      unavailableCount += 1;
+      lines.push(
+        `- 対象会場: ${item.venueName} (${item.venueKey}) / 会場出走数: ${item.observedStarts} / 確定母数: ${item.settledStarts}`,
+        "- status: unavailable",
+        "- reason: settled venue performance unavailable for current venue",
+        "- source: KURARI EX EXACT / registrationNo exact only",
+      );
+      continue;
+    }
+
+    reflectedCount += 1;
+    const evaluation = getKurariExVenueSuitabilityEvaluation(item);
+    const recent = item.recent;
+    lines.push(
+      `- 対象会場: ${item.venueName} (${item.venueKey}) / 会場出走数: ${item.observedStarts} / 確定母数: ${item.settledStarts}`,
+      `- 着順内訳: 1着 ${item.wins} / 2着 ${item.seconds} / 3着 ${item.thirds} / 着外 ${item.outside ?? "未取得"}`,
+      `- 率: 勝率 ${formatKurariExVenueSuitabilityRate(item.winRate)} / 2連対率 ${formatKurariExVenueSuitabilityRate(item.top2Rate)} / 3連対率 ${formatKurariExVenueSuitabilityRate(item.top3Rate)}`,
+      `- 全体平均との差: 勝率 ${formatKurariExVenueSuitabilityDelta(item.delta.winRate)} / 2連対率 ${formatKurariExVenueSuitabilityDelta(item.delta.top2Rate)} / 3連対率 ${formatKurariExVenueSuitabilityDelta(item.delta.top3Rate)}`,
+      `- 対象期間: ${item.period.from ?? "未取得"}〜${item.period.to ?? "未取得"} / 最終出走: ${item.latestRaceDate ?? "未取得"}`,
+      `- 直近会場実績: 対象${recent.sampleSize}走 / 確定${recent.settledStarts}走 / 勝率 ${formatKurariExVenueSuitabilityRate(recent.winRate)} / 2連対率 ${formatKurariExVenueSuitabilityRate(recent.top2Rate)} / 3連対率 ${formatKurariExVenueSuitabilityRate(recent.top3Rate)}`,
+      `- sample quality: ${item.sampleQuality === "low-sample" ? "LOW SAMPLE" : item.sampleQuality.toUpperCase()}`,
+      `- 判定: ${evaluation.label}`,
+      `- trend: ${getKurariExVenueSuitabilityTrend(item)}`,
+      `- note: ${evaluation.note}`,
+      ...(entry.exact.venueSuitability && entry.exact.venueSuitability.excludedIdentityConflictCount > 0
+        ? [`- identity conflict除外: 観測${entry.exact.venueSuitability.excludedIdentityConflictCount} / 確定${entry.exact.venueSuitability.excludedSettledIdentityConflictCount}（適性集計外）`]
+        : []),
+      "- source: KURARI EX EXACT / registrationNo exact",
+    );
+  }
+
+  if (riders.length === 0) {
+    lines.push("", "- status: unavailable", "- reason: race starters unavailable");
+    unavailableCount = 1;
+  }
+  lines.splice(3, 0, `- 反映状況: ${reflectedCount}/${riders.length} / unavailable ${unavailableCount}`);
+  return { text: lines.join("\n"), reflectedCount, unavailableCount };
 }
 
 export function buildKurariExRiderPredictionMaterial(

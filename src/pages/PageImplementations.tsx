@@ -31,6 +31,7 @@ import {
   buildKurariExMatchupPredictionMaterial,
   buildKurariExFailureStructureGuidanceMaterial,
   buildKurariExRiderPredictionMaterial,
+  buildKurariExRiderVenueSuitabilityMaterial,
   buildKurariExRoleStatsMaterial,
   buildKurariExWeatherMaterial,
   KURARI_EX_ACCUMULATION_RULES_UI_SUMMARY,
@@ -9145,6 +9146,7 @@ export function PredictionPage() {
   const [predictionRegistrationIdentityCandidates, setPredictionRegistrationIdentityCandidates] = useState<PredictionRegistrationIdentityCandidate[]>([]);
   const [kurariExRiderExactCacheVersion, setKurariExRiderExactCacheVersion] = useState(0);
   const [selectedKurariExRiderStatus, setSelectedKurariExRiderStatus] = useState<"idle" | "loading" | "ready" | "missing" | "error">("loading");
+  const [predictionBatchKurariExRiderStatus, setPredictionBatchKurariExRiderStatus] = useState<"idle" | "loading" | "ready" | "missing" | "error">("loading");
   const [kurariExMatchupExactIndex, setKurariExMatchupExactIndex] = useState<KurariExMatchupExactIndex | null>(null);
   const [kurariExMatchupExactIndexStatus, setKurariExMatchupExactIndexStatus] = useState<"loading" | "ready" | "error">("loading");
   const [kurariExMatchupExactCacheVersion, setKurariExMatchupExactCacheVersion] = useState(0);
@@ -10324,6 +10326,84 @@ if (
     selectedPredictionMaterialVenue,
   ]);
 
+  const selectedVenueKurariExRiderMatches = useMemo(() => {
+    if (!kurariExRiderExactIndex || !selectedPredictionMaterialVenue) return [];
+    const byRegistrationNo = new Map<string, ReturnType<typeof matchKurariExRidersForRace>[number]>();
+    for (const race of selectedPredictionMaterialVenue.races) {
+      const riders = getPredictionMaterialRidersForKeirinRace(race, selectedPredictionMaterialVenue);
+      const matches = matchKurariExRidersForRace(
+        kurariExRiderExactIndex,
+        riders.map((rider) => ({
+          carNo: rider.carNo,
+          name: rider.name,
+          fullName: rider.fullName,
+          registrationNo: getPredictionRiderRegistrationNo(rider),
+        })),
+      );
+      for (const match of matches) {
+        if (match.matchMethod === "registrationNo" && !byRegistrationNo.has(match.registrationNo)) {
+          byRegistrationNo.set(match.registrationNo, match);
+        }
+      }
+    }
+    return [...byRegistrationNo.values()];
+  }, [kurariExRiderExactIndex, selectedPredictionMaterialVenue]);
+
+  useEffect(() => {
+    if (!selectedPredictionMaterialVenue) {
+      setPredictionBatchKurariExRiderStatus("idle");
+      return;
+    }
+    if (kurariExRiderExactIndexStatus === "loading") {
+      setPredictionBatchKurariExRiderStatus("loading");
+      return;
+    }
+    if (kurariExRiderExactIndexStatus === "error") {
+      setPredictionBatchKurariExRiderStatus("error");
+      return;
+    }
+    if (selectedVenueKurariExRiderMatches.length === 0) {
+      setPredictionBatchKurariExRiderStatus("missing");
+      return;
+    }
+
+    let isActive = true;
+    setPredictionBatchKurariExRiderStatus("loading");
+    const loadVenueRiders = async () => {
+      try {
+        await Promise.all(selectedVenueKurariExRiderMatches.map(async (match) => {
+          if (kurariExRiderExactCacheRef.current.has(match.registrationNo)) return;
+          let pending = kurariExRiderExactLoadingRef.current.get(match.registrationNo);
+          if (!pending) {
+            pending = loadKurariExRiderExactByFile(match.indexItem.file);
+            kurariExRiderExactLoadingRef.current.set(match.registrationNo, pending);
+          }
+          try {
+            const exact = await pending;
+            kurariExRiderExactCacheRef.current.set(match.registrationNo, exact);
+          } finally {
+            kurariExRiderExactLoadingRef.current.delete(match.registrationNo);
+          }
+        }));
+        if (!isActive) return;
+        setKurariExRiderExactCacheVersion((current) => current + 1);
+        setPredictionBatchKurariExRiderStatus("ready");
+      } catch {
+        if (!isActive) return;
+        setPredictionBatchKurariExRiderStatus("error");
+      }
+    };
+
+    void loadVenueRiders();
+    return () => {
+      isActive = false;
+    };
+  }, [
+    kurariExRiderExactIndexStatus,
+    selectedPredictionMaterialVenue,
+    selectedVenueKurariExRiderMatches,
+  ]);
+
   const selectedKurariExMatchupMatches = useMemo(
     () => kurariExMatchupExactIndex
       ? matchKurariExMatchupsForRace(
@@ -10545,6 +10625,12 @@ if (
       {
         venueKey: selectedPredictionMaterialVenue?.slug,
         venueName: selectedPredictionMaterialVenue?.venue,
+        riders: selectedPredictionMaterialRiders.map((rider) => ({
+          carNo: rider.carNo,
+          name: rider.name,
+          fullName: rider.fullName,
+          registrationNo: getPredictionRiderRegistrationNo(rider),
+        })),
         timeslot: selectedPredictionMaterialVenue
           ? getPredictionSessionGroupKey(selectedPredictionMaterialVenue)
           : undefined,
@@ -10564,8 +10650,42 @@ if (
     selectedKurariExRiderEntries,
     selectedKurariExRiderStatus,
     selectedPredictionMaterialRace,
+    selectedPredictionMaterialRiders,
     selectedPredictionMaterialVenue,
   ]);
+  const selectedKurariExVenueSuitabilityMaterial = useMemo(() => {
+    if (selectedKurariExRiderStatus === "idle" || selectedKurariExRiderStatus === "loading") return "";
+    return buildKurariExRiderVenueSuitabilityMaterial(
+      selectedKurariExRiderEntries,
+      {
+        venueKey: selectedPredictionMaterialVenue?.slug,
+        venueName: selectedPredictionMaterialVenue?.venue,
+        riders: selectedPredictionMaterialRiders.map((rider) => ({
+          carNo: rider.carNo,
+          name: rider.name,
+          fullName: rider.fullName,
+          registrationNo: getPredictionRiderRegistrationNo(rider),
+        })),
+      },
+      selectedKurariExRiderStatus === "ready"
+        ? "ready"
+        : selectedKurariExRiderStatus === "missing"
+          ? "missing"
+          : "error",
+    ).text;
+  }, [
+    selectedKurariExRiderEntries,
+    selectedKurariExRiderStatus,
+    selectedPredictionMaterialRiders,
+    selectedPredictionMaterialVenue,
+  ]);
+  const selectedKurariExPlayerMaterialText = useMemo(
+    () => [selectedKurariExRiderMaterial.text, selectedKurariExVenueSuitabilityMaterial]
+      .map((section) => section.trim())
+      .filter(Boolean)
+      .join("\n\n"),
+    [selectedKurariExRiderMaterial.text, selectedKurariExVenueSuitabilityMaterial],
+  );
   const selectedPredictionMaterialRegistrationCandidates = useMemo<
     PredictionRegistrationIdentityCandidate[]
   >(
@@ -11080,11 +11200,11 @@ if (
           isGirls: selectedPredictionMaterialRace?.isGirls,
           lineup: selectedPredictionMaterialRace?.lineup,
           windSpeedKmh: parsePredictionNumber(selectedWeather?.windSpeedText ?? ""),
-        }, selectedKurariExRiderMaterial.text, selectedKurariExMatchupMaterial.text, selectedKurariExConfidenceMaterial, selectedKurariExConditionMaterial.text)
+        }, selectedKurariExPlayerMaterialText, selectedKurariExMatchupMaterial.text, selectedKurariExConfidenceMaterial, selectedKurariExConditionMaterial.text)
       : selectedKurariExBothMissing
-        ? buildKurariExPredictionMaterial(null, null, null, selectedKurariExRiderMaterial.text, selectedKurariExMatchupMaterial.text, selectedKurariExConfidenceMaterial, selectedKurariExConditionMaterial.text)
+        ? buildKurariExPredictionMaterial(null, null, null, selectedKurariExPlayerMaterialText, selectedKurariExMatchupMaterial.text, selectedKurariExConfidenceMaterial, selectedKurariExConditionMaterial.text)
       : "",
-    [selectedKurariExAnyReady, selectedKurariExBothMissing, selectedKurariExBundle, selectedKurariExConditionMaterial.text, selectedKurariExConfidenceMaterial, selectedKurariExExact, selectedKurariExMatchupMaterial.text, selectedKurariExRiderMaterial.text, selectedPredictionMaterialRace, selectedPredictionMaterialVenue?.session, selectedWeather?.windSpeedText],
+    [selectedKurariExAnyReady, selectedKurariExBothMissing, selectedKurariExBundle, selectedKurariExConditionMaterial.text, selectedKurariExConfidenceMaterial, selectedKurariExExact, selectedKurariExMatchupMaterial.text, selectedKurariExPlayerMaterialText, selectedPredictionMaterialRace, selectedPredictionMaterialVenue?.session, selectedWeather?.windSpeedText],
   );
   const selectedKurariExRaceRiskText = useMemo(
     () => buildKurariExPreRaceRiskSignalMaterial(
@@ -11242,6 +11362,7 @@ if (
   }, [predictionBatchCopyRanges, selectedPredictionMaterialVenue?.id]);
 
   const predictionBatchMaterial = useMemo(() => {
+    void kurariExRiderExactCacheVersion;
     if (!predictionFeed || !selectedPredictionMaterialVenue) {
       return {
         text: "対象会場を選択してください。",
@@ -11370,6 +11491,43 @@ if (
     ];
 
     const raceMaterials = targetRaces.map((race) => {
+      const raceRiders = getPredictionMaterialRidersForKeirinRace(race, selectedPredictionMaterialVenue);
+      const raceRiderMatches = kurariExRiderExactIndex
+        ? matchKurariExRidersForRace(
+            kurariExRiderExactIndex,
+            raceRiders.map((rider) => ({
+              carNo: rider.carNo,
+              name: rider.name,
+              fullName: rider.fullName,
+              registrationNo: getPredictionRiderRegistrationNo(rider),
+            })),
+          )
+        : [];
+      const raceRiderEntries = raceRiderMatches.flatMap((match) => {
+        const exact = kurariExRiderExactCacheRef.current.get(match.registrationNo);
+        return exact ? [{ ...match, exact }] : [];
+      });
+      const riderVenueSuitabilityText = predictionBatchKurariExRiderStatus === "loading"
+        || predictionBatchKurariExRiderStatus === "idle"
+        ? ""
+        : buildKurariExRiderVenueSuitabilityMaterial(
+            raceRiderEntries,
+            {
+              venueKey: selectedPredictionMaterialVenue.slug,
+              venueName: selectedPredictionMaterialVenue.venue,
+              riders: raceRiders.map((rider) => ({
+                carNo: rider.carNo,
+                name: rider.name,
+                fullName: rider.fullName,
+                registrationNo: getPredictionRiderRegistrationNo(rider),
+              })),
+            },
+            predictionBatchKurariExRiderStatus === "ready"
+              ? "ready"
+              : predictionBatchKurariExRiderStatus === "missing"
+                ? "missing"
+                : "error",
+          ).text;
       const raceWeatherKey = getPredictionWeatherRaceCacheKey(
         predictionFeed.date,
         selectedPredictionMaterialVenue.venue,
@@ -11453,6 +11611,8 @@ if (
         `【${race.raceNo}R】`,
         material,
         "",
+        riderVenueSuitabilityText,
+        "",
         extractPredictionBatchMonthlyMeta(monthlyGuidanceText),
         "",
         extractPredictionBatchKurariExRaceMemo(kurariExGuidanceText),
@@ -11473,11 +11633,14 @@ if (
     };
   }, [
     monthlyReviewDigest,
+    kurariExRiderExactCacheVersion,
+    kurariExRiderExactIndex,
     kurariExFailureGuidance,
     kurariExFailureGuidanceStatus,
     kurariExRaceRisk,
     kurariExRaceRiskStatus,
     predictionBatchRange,
+    predictionBatchKurariExRiderStatus,
     predictionFeed,
     predictionRegistrationIdentityCandidates,
     selectedKurariExAnyReady,
@@ -11532,6 +11695,10 @@ if (
   const predictionSlotSaveStateLabel = selectedSavedPredictionSlot ? "保存済み" : "未保存";
 
   const handlePredictionCopy = async () => {
+    if (selectedKurariExRiderStatus === "loading" || selectedKurariExRiderStatus === "idle") {
+      setCopyStatus("選手別EXACTを読み込み中です");
+      return;
+    }
     try {
       await navigator.clipboard.writeText(gptExportText);
       setCopyStatus("コピーしました");
@@ -11542,6 +11709,10 @@ if (
 
   useEffect(() => {
     if (!pendingPredictionBatchCopyRange || pendingPredictionBatchCopyRange !== predictionBatchRange) return;
+    if (predictionBatchKurariExRiderStatus === "loading" || predictionBatchKurariExRiderStatus === "idle") {
+      setPredictionBatchCopyStatus("選手別EXACTを読み込み中です");
+      return;
+    }
 
     let isActive = true;
     const copyBatchMaterial = async () => {
@@ -11566,7 +11737,7 @@ if (
     return () => {
       isActive = false;
     };
-  }, [pendingPredictionBatchCopyRange, predictionBatchMaterial, predictionBatchRange]);
+  }, [pendingPredictionBatchCopyRange, predictionBatchKurariExRiderStatus, predictionBatchMaterial, predictionBatchRange]);
 
   const handlePredictionBatchCopy = (range: PredictionBatchRangePreset) => {
     setPredictionBatchCopyStatus("");
@@ -11575,6 +11746,10 @@ if (
   };
 
   const handleLegacyPredictionBatchCopy = async () => {
+    if (predictionBatchKurariExRiderStatus === "loading" || predictionBatchKurariExRiderStatus === "idle") {
+      setPredictionBatchCopyStatus("選手別EXACTを読み込み中です");
+      return;
+    }
     if (predictionBatchMaterial.raceCount === 0) {
       setPredictionBatchCopyStatus("対象範囲にレースがありません");
       return;
@@ -11589,6 +11764,10 @@ if (
 
   const handlePredictionDownload = () => {
     if (!predictionFeed || !selectedVenue || !selectedRace) return;
+    if (selectedKurariExRiderStatus === "loading" || selectedKurariExRiderStatus === "idle") {
+      setCopyStatus("選手別EXACTを読み込み中です");
+      return;
+    }
     const blob = new Blob([gptExportText], { type: "text/plain;charset=utf-8" });
     const url = window.URL.createObjectURL(blob);
     const anchor = document.createElement("a");
