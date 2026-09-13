@@ -1,11 +1,11 @@
 {
   "version": "kurari-ex-race-risk/v1",
-  "generatedAt": "2026-09-12T14:59:34.736Z",
+  "generatedAt": "2026-09-12T11:14:10.644Z",
   "sourceType": "PRE_RACE_SOURCE_BACKED_EX_SIGNAL",
   "period": {
     "date": "2026-09-12",
-    "historicalFrom": "2026-07-07",
-    "historicalTo": "2026-09-04"
+    "historicalFrom": "2026-07-14",
+    "historicalTo": "2026-09-11"
   },
   "raceCount": 71,
   "coverage": {
@@ -17,25 +17,25 @@
   },
   "freshness": {
     "targetDate": "2026-09-12",
-    "historicalTo": "2026-09-04",
-    "lagDays": 7,
-    "status": "stale",
-    "warning": "historicalがtargetDate-1より7日古いです"
+    "historicalTo": "2026-09-11",
+    "lagDays": 0,
+    "status": "fresh",
+    "warning": "historicalはtargetDate-1まで到達しています"
   },
   "riskLevelCounts": {
-    "HIGH": 15,
+    "HIGH": 17,
     "VERY_HIGH": 1,
-    "MEDIUM": 31,
-    "LOW": 24
+    "MEDIUM": 34,
+    "LOW": 19
   },
   "confidenceCounts": {
     "high": 71
   },
   "pointRangeCounts": {
-    "STRONG_VALUE_12": 15,
+    "STRONG_VALUE_12": 17,
     "MAX_14": 1,
-    "VALUE_10": 31,
-    "BASE_8": 24
+    "VALUE_10": 34,
+    "BASE_8": 19
   },
   "records": [
     {
@@ -58,7 +58,7 @@
         "singleCount": 7,
         "selfPowerCount": 2
       },
-      "riskScore": 4,
+      "riskScore": 3,
       "riskLevel": "HIGH",
       "confidence": "high",
       "pointRange": {
@@ -96,11 +96,11 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 40.3%",
-          "contribution": 2,
+          "value": "万車券率 36.9%",
+          "contribution": 1,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 176R / global 27.1% / 過去結果のみ"
+          "note": "sample 149R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
@@ -109,12 +109,12 @@
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 469R / global 27.1% / 過去結果のみ"
+          "note": "sample 468R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
           "label": "rider EX母数",
-          "value": "7/7人 / LOW SAMPLE 2人",
+          "value": "7/7人 / LOW SAMPLE 1人",
           "contribution": 0,
           "source": "kurari-ex-exact-riders-index",
           "confidence": "high",
@@ -123,7 +123,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 18R",
+          "value": "平均比較可能 16.8R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -144,10 +144,10 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 176,
-        "raceNumberHistoricalSampleSize": 469,
+        "venueHistoricalSampleSize": 149,
+        "raceNumberHistoricalSampleSize": 468,
         "riderCoverageCount": 7,
-        "matchupCoverageCount": 5
+        "matchupCoverageCount": 6
       },
       "leakageGuard": {
         "currentResultUsed": false,
@@ -177,7 +177,7 @@
         "singleCount": 7,
         "selfPowerCount": 7
       },
-      "riskScore": 6,
+      "riskScore": 5,
       "riskLevel": "VERY_HIGH",
       "confidence": "high",
       "pointRange": {
@@ -215,813 +215,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 40.3%",
-          "contribution": 2,
+          "value": "万車券率 36.9%",
+          "contribution": 1,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 176R / global 27.1% / 過去結果のみ"
+          "note": "sample 149R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 25.6%",
-          "contribution": 0,
-          "source": "kurari-ex-result-trend-lab-history",
-          "confidence": "high",
-          "note": "sample 465R / global 27.1% / 過去結果のみ"
-        },
-        {
-          "key": "rider-ex-coverage",
-          "label": "rider EX母数",
-          "value": "7/7人 / LOW SAMPLE 1人",
-          "contribution": 0,
-          "source": "kurari-ex-exact-riders-index",
-          "confidence": "high",
-          "note": "LOW SAMPLEはrisk上昇ではなくconfidence低下として扱う"
-        },
-        {
-          "key": "matchup-coverage",
-          "label": "MATCHUP coverage",
-          "value": "平均比較可能 15.8R",
-          "contribution": 0,
-          "source": "kurari-ex-exact-matchups-index",
-          "confidence": "high"
-        }
-      ],
-      "protectionGuide": {
-        "mode": "second-third-correction",
-        "note": "RISKが高い場合も頭数追加ではなく、2着・3着補正と別線3着保護を優先して検討する。",
-        "allowedRoles": [
-          "OTHER_SELF",
-          "OTHER_MARK",
-          "SINGLE",
-          "LINE_THIRD_OUTSIDE",
-          "OTHER_LINE_THIRD"
-        ]
-      },
-      "sourceAvailability": {
-        "todayRace": true,
-        "officialEntries": true,
-        "officialLineup": true,
-        "venueHistoricalSampleSize": 176,
-        "raceNumberHistoricalSampleSize": 465,
-        "riderCoverageCount": 7,
-        "matchupCoverageCount": 5
-      },
-      "leakageGuard": {
-        "currentResultUsed": false,
-        "currentPayoutUsed": false,
-        "oddsUsedAsRiskDriver": false,
-        "fuzzyMatchingUsed": false,
-        "fakeCompletionUsed": false
-      }
-    },
-    {
-      "raceKey": "2026-09-12|22|3",
-      "date": "2026-09-12",
-      "venueCode": "22",
-      "venueName": "前橋",
-      "venueSlug": "maebashi",
-      "raceNo": 3,
-      "title": "2026年09月12日 レース詳細 A級一般",
-      "time": "21:30",
-      "timeBand": "midnight",
-      "grade": "F2",
-      "raceClass": "A2",
-      "carCount": 7,
-      "line": {
-        "source": "today.generated.lineup",
-        "lineup": "32 15 467",
-        "lineCount": 3,
-        "singleCount": 0,
-        "selfPowerCount": 3
-      },
-      "riskScore": 2,
-      "riskLevel": "MEDIUM",
-      "confidence": "high",
-      "pointRange": {
-        "label": "8〜10",
-        "min": 8,
-        "max": 10,
-        "action": "VALUE_10"
-      },
-      "signals": [
-        {
-          "key": "line-count",
-          "label": "分戦数",
-          "value": "3分戦",
-          "contribution": 0,
-          "source": "today.generated.lineup",
-          "confidence": "high"
-        },
-        {
-          "key": "self-power-contest",
-          "label": "自力/先行役の競合",
-          "value": "3人",
-          "contribution": 0,
-          "source": "keirin-jp-entries.entries.style/stats",
-          "confidence": "medium",
-          "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
-        },
-        {
-          "key": "venue-historical-turbulence",
-          "label": "会場historical荒れ",
-          "value": "万車券率 40.3%",
-          "contribution": 2,
-          "source": "kurari-ex-result-trend-lab-history",
-          "confidence": "high",
-          "note": "sample 176R / global 27.1% / 過去結果のみ"
-        },
-        {
-          "key": "race-number-historical-turbulence",
-          "label": "R番号historical荒れ",
-          "value": "万車券率 28.5%",
-          "contribution": 0,
-          "source": "kurari-ex-result-trend-lab-history",
-          "confidence": "high",
-          "note": "sample 467R / global 27.1% / 過去結果のみ"
-        },
-        {
-          "key": "rider-ex-coverage",
-          "label": "rider EX母数",
-          "value": "7/7人 / LOW SAMPLE 1人",
-          "contribution": 0,
-          "source": "kurari-ex-exact-riders-index",
-          "confidence": "high",
-          "note": "LOW SAMPLEはrisk上昇ではなくconfidence低下として扱う"
-        },
-        {
-          "key": "matchup-coverage",
-          "label": "MATCHUP coverage",
-          "value": "平均比較可能 10.7R",
-          "contribution": 0,
-          "source": "kurari-ex-exact-matchups-index",
-          "confidence": "high"
-        }
-      ],
-      "protectionGuide": {
-        "mode": "second-third-correction",
-        "note": "RISKが高い場合も頭数追加ではなく、2着・3着補正と別線3着保護を優先して検討する。",
-        "allowedRoles": [
-          "OTHER_SELF",
-          "OTHER_MARK",
-          "SINGLE",
-          "LINE_THIRD_OUTSIDE",
-          "OTHER_LINE_THIRD"
-        ]
-      },
-      "sourceAvailability": {
-        "todayRace": true,
-        "officialEntries": true,
-        "officialLineup": true,
-        "venueHistoricalSampleSize": 176,
-        "raceNumberHistoricalSampleSize": 467,
-        "riderCoverageCount": 7,
-        "matchupCoverageCount": 6
-      },
-      "leakageGuard": {
-        "currentResultUsed": false,
-        "currentPayoutUsed": false,
-        "oddsUsedAsRiskDriver": false,
-        "fuzzyMatchingUsed": false,
-        "fakeCompletionUsed": false
-      }
-    },
-    {
-      "raceKey": "2026-09-12|22|4",
-      "date": "2026-09-12",
-      "venueCode": "22",
-      "venueName": "前橋",
-      "venueSlug": "maebashi",
-      "raceNo": 4,
-      "title": "2026年09月12日 レース詳細 A級一般",
-      "time": "21:50",
-      "timeBand": "midnight",
-      "grade": "F2",
-      "raceClass": "A2",
-      "carCount": 7,
-      "line": {
-        "source": "today.generated.lineup",
-        "lineup": "427 6 135",
-        "lineCount": 3,
-        "singleCount": 1,
-        "selfPowerCount": 2
-      },
-      "riskScore": 2,
-      "riskLevel": "MEDIUM",
-      "confidence": "high",
-      "pointRange": {
-        "label": "8〜10",
-        "min": 8,
-        "max": 10,
-        "action": "VALUE_10"
-      },
-      "signals": [
-        {
-          "key": "line-count",
-          "label": "分戦数",
-          "value": "3分戦",
-          "contribution": 0,
-          "source": "today.generated.lineup",
-          "confidence": "high"
-        },
-        {
-          "key": "self-power-contest",
-          "label": "自力/先行役の競合",
-          "value": "2人",
-          "contribution": 0,
-          "source": "keirin-jp-entries.entries.style/stats",
-          "confidence": "medium",
-          "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
-        },
-        {
-          "key": "single-line",
-          "label": "単騎/短ライン",
-          "value": "1本",
-          "contribution": 0,
-          "source": "today.generated.lineup",
-          "confidence": "medium"
-        },
-        {
-          "key": "venue-historical-turbulence",
-          "label": "会場historical荒れ",
-          "value": "万車券率 40.3%",
-          "contribution": 2,
-          "source": "kurari-ex-result-trend-lab-history",
-          "confidence": "high",
-          "note": "sample 176R / global 27.1% / 過去結果のみ"
-        },
-        {
-          "key": "race-number-historical-turbulence",
-          "label": "R番号historical荒れ",
-          "value": "万車券率 24.9%",
+          "value": "万車券率 24%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
           "note": "sample 466R / global 27.1% / 過去結果のみ"
-        },
-        {
-          "key": "rider-ex-coverage",
-          "label": "rider EX母数",
-          "value": "7/7人 / LOW SAMPLE 3人",
-          "contribution": 0,
-          "source": "kurari-ex-exact-riders-index",
-          "confidence": "high",
-          "note": "LOW SAMPLEはrisk上昇ではなくconfidence低下として扱う"
-        },
-        {
-          "key": "matchup-coverage",
-          "label": "MATCHUP coverage",
-          "value": "平均比較可能 9.5R",
-          "contribution": 0,
-          "source": "kurari-ex-exact-matchups-index",
-          "confidence": "medium"
-        }
-      ],
-      "protectionGuide": {
-        "mode": "second-third-correction",
-        "note": "RISKが高い場合も頭数追加ではなく、2着・3着補正と別線3着保護を優先して検討する。",
-        "allowedRoles": [
-          "OTHER_SELF",
-          "OTHER_MARK",
-          "SINGLE",
-          "LINE_THIRD_OUTSIDE",
-          "OTHER_LINE_THIRD"
-        ]
-      },
-      "sourceAvailability": {
-        "todayRace": true,
-        "officialEntries": true,
-        "officialLineup": true,
-        "venueHistoricalSampleSize": 176,
-        "raceNumberHistoricalSampleSize": 466,
-        "riderCoverageCount": 7,
-        "matchupCoverageCount": 6
-      },
-      "leakageGuard": {
-        "currentResultUsed": false,
-        "currentPayoutUsed": false,
-        "oddsUsedAsRiskDriver": false,
-        "fuzzyMatchingUsed": false,
-        "fakeCompletionUsed": false
-      }
-    },
-    {
-      "raceKey": "2026-09-12|22|5",
-      "date": "2026-09-12",
-      "venueCode": "22",
-      "venueName": "前橋",
-      "venueSlug": "maebashi",
-      "raceNo": 5,
-      "title": "2026年09月12日 レース詳細 A級選抜",
-      "time": "22:10",
-      "timeBand": "midnight",
-      "grade": "F2",
-      "raceClass": "A2",
-      "carCount": 7,
-      "line": {
-        "source": "today.generated.lineup",
-        "lineup": "713 24 65",
-        "lineCount": 3,
-        "singleCount": 0,
-        "selfPowerCount": 3
-      },
-      "riskScore": 2,
-      "riskLevel": "MEDIUM",
-      "confidence": "high",
-      "pointRange": {
-        "label": "8〜10",
-        "min": 8,
-        "max": 10,
-        "action": "VALUE_10"
-      },
-      "signals": [
-        {
-          "key": "line-count",
-          "label": "分戦数",
-          "value": "3分戦",
-          "contribution": 0,
-          "source": "today.generated.lineup",
-          "confidence": "high"
-        },
-        {
-          "key": "self-power-contest",
-          "label": "自力/先行役の競合",
-          "value": "3人",
-          "contribution": 0,
-          "source": "keirin-jp-entries.entries.style/stats",
-          "confidence": "medium",
-          "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
-        },
-        {
-          "key": "venue-historical-turbulence",
-          "label": "会場historical荒れ",
-          "value": "万車券率 40.3%",
-          "contribution": 2,
-          "source": "kurari-ex-result-trend-lab-history",
-          "confidence": "high",
-          "note": "sample 176R / global 27.1% / 過去結果のみ"
-        },
-        {
-          "key": "race-number-historical-turbulence",
-          "label": "R番号historical荒れ",
-          "value": "万車券率 25.3%",
-          "contribution": 0,
-          "source": "kurari-ex-result-trend-lab-history",
-          "confidence": "high",
-          "note": "sample 471R / global 27.1% / 過去結果のみ"
-        },
-        {
-          "key": "rider-ex-coverage",
-          "label": "rider EX母数",
-          "value": "7/7人 / LOW SAMPLE 0人",
-          "contribution": 0,
-          "source": "kurari-ex-exact-riders-index",
-          "confidence": "high",
-          "note": "LOW SAMPLEはrisk上昇ではなくconfidence低下として扱う"
-        },
-        {
-          "key": "matchup-coverage",
-          "label": "MATCHUP coverage",
-          "value": "平均比較可能 10.9R",
-          "contribution": 0,
-          "source": "kurari-ex-exact-matchups-index",
-          "confidence": "high"
-        }
-      ],
-      "protectionGuide": {
-        "mode": "second-third-correction",
-        "note": "RISKが高い場合も頭数追加ではなく、2着・3着補正と別線3着保護を優先して検討する。",
-        "allowedRoles": [
-          "OTHER_SELF",
-          "OTHER_MARK",
-          "SINGLE",
-          "LINE_THIRD_OUTSIDE",
-          "OTHER_LINE_THIRD"
-        ]
-      },
-      "sourceAvailability": {
-        "todayRace": true,
-        "officialEntries": true,
-        "officialLineup": true,
-        "venueHistoricalSampleSize": 176,
-        "raceNumberHistoricalSampleSize": 471,
-        "riderCoverageCount": 7,
-        "matchupCoverageCount": 7
-      },
-      "leakageGuard": {
-        "currentResultUsed": false,
-        "currentPayoutUsed": false,
-        "oddsUsedAsRiskDriver": false,
-        "fuzzyMatchingUsed": false,
-        "fakeCompletionUsed": false
-      }
-    },
-    {
-      "raceKey": "2026-09-12|22|6",
-      "date": "2026-09-12",
-      "venueCode": "22",
-      "venueName": "前橋",
-      "venueSlug": "maebashi",
-      "raceNo": 6,
-      "title": "2026年09月12日 レース詳細 A級選抜",
-      "time": "22:30",
-      "timeBand": "midnight",
-      "grade": "F2",
-      "raceClass": "A1",
-      "carCount": 7,
-      "line": {
-        "source": "today.generated.lineup",
-        "lineup": "316 7 245",
-        "lineCount": 3,
-        "singleCount": 1,
-        "selfPowerCount": 2
-      },
-      "riskScore": 2,
-      "riskLevel": "MEDIUM",
-      "confidence": "high",
-      "pointRange": {
-        "label": "8〜10",
-        "min": 8,
-        "max": 10,
-        "action": "VALUE_10"
-      },
-      "signals": [
-        {
-          "key": "line-count",
-          "label": "分戦数",
-          "value": "3分戦",
-          "contribution": 0,
-          "source": "today.generated.lineup",
-          "confidence": "high"
-        },
-        {
-          "key": "self-power-contest",
-          "label": "自力/先行役の競合",
-          "value": "2人",
-          "contribution": 0,
-          "source": "keirin-jp-entries.entries.style/stats",
-          "confidence": "medium",
-          "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
-        },
-        {
-          "key": "single-line",
-          "label": "単騎/短ライン",
-          "value": "1本",
-          "contribution": 0,
-          "source": "today.generated.lineup",
-          "confidence": "medium"
-        },
-        {
-          "key": "venue-historical-turbulence",
-          "label": "会場historical荒れ",
-          "value": "万車券率 40.3%",
-          "contribution": 2,
-          "source": "kurari-ex-result-trend-lab-history",
-          "confidence": "high",
-          "note": "sample 176R / global 27.1% / 過去結果のみ"
-        },
-        {
-          "key": "race-number-historical-turbulence",
-          "label": "R番号historical荒れ",
-          "value": "万車券率 23.3%",
-          "contribution": 0,
-          "source": "kurari-ex-result-trend-lab-history",
-          "confidence": "high",
-          "note": "sample 467R / global 27.1% / 過去結果のみ"
-        },
-        {
-          "key": "rider-ex-coverage",
-          "label": "rider EX母数",
-          "value": "7/7人 / LOW SAMPLE 0人",
-          "contribution": 0,
-          "source": "kurari-ex-exact-riders-index",
-          "confidence": "high",
-          "note": "LOW SAMPLEはrisk上昇ではなくconfidence低下として扱う"
-        },
-        {
-          "key": "matchup-coverage",
-          "label": "MATCHUP coverage",
-          "value": "平均比較可能 12.4R",
-          "contribution": 0,
-          "source": "kurari-ex-exact-matchups-index",
-          "confidence": "high"
-        }
-      ],
-      "protectionGuide": {
-        "mode": "second-third-correction",
-        "note": "RISKが高い場合も頭数追加ではなく、2着・3着補正と別線3着保護を優先して検討する。",
-        "allowedRoles": [
-          "OTHER_SELF",
-          "OTHER_MARK",
-          "SINGLE",
-          "LINE_THIRD_OUTSIDE",
-          "OTHER_LINE_THIRD"
-        ]
-      },
-      "sourceAvailability": {
-        "todayRace": true,
-        "officialEntries": true,
-        "officialLineup": true,
-        "venueHistoricalSampleSize": 176,
-        "raceNumberHistoricalSampleSize": 467,
-        "riderCoverageCount": 7,
-        "matchupCoverageCount": 5
-      },
-      "leakageGuard": {
-        "currentResultUsed": false,
-        "currentPayoutUsed": false,
-        "oddsUsedAsRiskDriver": false,
-        "fuzzyMatchingUsed": false,
-        "fakeCompletionUsed": false
-      }
-    },
-    {
-      "raceKey": "2026-09-12|22|7",
-      "date": "2026-09-12",
-      "venueCode": "22",
-      "venueName": "前橋",
-      "venueSlug": "maebashi",
-      "raceNo": 7,
-      "title": "2026年09月12日 レース詳細 A級準決勝",
-      "time": "22:50",
-      "timeBand": "midnight",
-      "grade": "F2",
-      "raceClass": "A1",
-      "carCount": 7,
-      "line": {
-        "source": "today.generated.lineup",
-        "lineup": "14 62 357",
-        "lineCount": 3,
-        "singleCount": 0,
-        "selfPowerCount": 3
-      },
-      "riskScore": 2,
-      "riskLevel": "MEDIUM",
-      "confidence": "high",
-      "pointRange": {
-        "label": "8〜10",
-        "min": 8,
-        "max": 10,
-        "action": "VALUE_10"
-      },
-      "signals": [
-        {
-          "key": "line-count",
-          "label": "分戦数",
-          "value": "3分戦",
-          "contribution": 0,
-          "source": "today.generated.lineup",
-          "confidence": "high"
-        },
-        {
-          "key": "self-power-contest",
-          "label": "自力/先行役の競合",
-          "value": "3人",
-          "contribution": 0,
-          "source": "keirin-jp-entries.entries.style/stats",
-          "confidence": "medium",
-          "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
-        },
-        {
-          "key": "venue-historical-turbulence",
-          "label": "会場historical荒れ",
-          "value": "万車券率 40.3%",
-          "contribution": 2,
-          "source": "kurari-ex-result-trend-lab-history",
-          "confidence": "high",
-          "note": "sample 176R / global 27.1% / 過去結果のみ"
-        },
-        {
-          "key": "race-number-historical-turbulence",
-          "label": "R番号historical荒れ",
-          "value": "万車券率 25.1%",
-          "contribution": 0,
-          "source": "kurari-ex-result-trend-lab-history",
-          "confidence": "high",
-          "note": "sample 467R / global 27.1% / 過去結果のみ"
-        },
-        {
-          "key": "rider-ex-coverage",
-          "label": "rider EX母数",
-          "value": "7/7人 / LOW SAMPLE 2人",
-          "contribution": 0,
-          "source": "kurari-ex-exact-riders-index",
-          "confidence": "high",
-          "note": "LOW SAMPLEはrisk上昇ではなくconfidence低下として扱う"
-        },
-        {
-          "key": "matchup-coverage",
-          "label": "MATCHUP coverage",
-          "value": "平均比較可能 21.4R",
-          "contribution": 0,
-          "source": "kurari-ex-exact-matchups-index",
-          "confidence": "high"
-        }
-      ],
-      "protectionGuide": {
-        "mode": "second-third-correction",
-        "note": "RISKが高い場合も頭数追加ではなく、2着・3着補正と別線3着保護を優先して検討する。",
-        "allowedRoles": [
-          "OTHER_SELF",
-          "OTHER_MARK",
-          "SINGLE",
-          "LINE_THIRD_OUTSIDE",
-          "OTHER_LINE_THIRD"
-        ]
-      },
-      "sourceAvailability": {
-        "todayRace": true,
-        "officialEntries": true,
-        "officialLineup": true,
-        "venueHistoricalSampleSize": 176,
-        "raceNumberHistoricalSampleSize": 467,
-        "riderCoverageCount": 7,
-        "matchupCoverageCount": 5
-      },
-      "leakageGuard": {
-        "currentResultUsed": false,
-        "currentPayoutUsed": false,
-        "oddsUsedAsRiskDriver": false,
-        "fuzzyMatchingUsed": false,
-        "fakeCompletionUsed": false
-      }
-    },
-    {
-      "raceKey": "2026-09-12|22|8",
-      "date": "2026-09-12",
-      "venueCode": "22",
-      "venueName": "前橋",
-      "venueSlug": "maebashi",
-      "raceNo": 8,
-      "title": "2026年09月12日 レース詳細 A級準決勝",
-      "time": "23:10",
-      "timeBand": "midnight",
-      "grade": "F2",
-      "raceClass": "A1",
-      "carCount": 7,
-      "line": {
-        "source": "today.generated.lineup",
-        "lineup": "45 71 236",
-        "lineCount": 3,
-        "singleCount": 0,
-        "selfPowerCount": 3
-      },
-      "riskScore": 2,
-      "riskLevel": "MEDIUM",
-      "confidence": "high",
-      "pointRange": {
-        "label": "8〜10",
-        "min": 8,
-        "max": 10,
-        "action": "VALUE_10"
-      },
-      "signals": [
-        {
-          "key": "line-count",
-          "label": "分戦数",
-          "value": "3分戦",
-          "contribution": 0,
-          "source": "today.generated.lineup",
-          "confidence": "high"
-        },
-        {
-          "key": "self-power-contest",
-          "label": "自力/先行役の競合",
-          "value": "3人",
-          "contribution": 0,
-          "source": "keirin-jp-entries.entries.style/stats",
-          "confidence": "medium",
-          "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
-        },
-        {
-          "key": "venue-historical-turbulence",
-          "label": "会場historical荒れ",
-          "value": "万車券率 40.3%",
-          "contribution": 2,
-          "source": "kurari-ex-result-trend-lab-history",
-          "confidence": "high",
-          "note": "sample 176R / global 27.1% / 過去結果のみ"
-        },
-        {
-          "key": "race-number-historical-turbulence",
-          "label": "R番号historical荒れ",
-          "value": "万車券率 30.5%",
-          "contribution": 0,
-          "source": "kurari-ex-result-trend-lab-history",
-          "confidence": "high",
-          "note": "sample 328R / global 27.1% / 過去結果のみ"
-        },
-        {
-          "key": "rider-ex-coverage",
-          "label": "rider EX母数",
-          "value": "7/7人 / LOW SAMPLE 1人",
-          "contribution": 0,
-          "source": "kurari-ex-exact-riders-index",
-          "confidence": "high",
-          "note": "LOW SAMPLEはrisk上昇ではなくconfidence低下として扱う"
-        },
-        {
-          "key": "matchup-coverage",
-          "label": "MATCHUP coverage",
-          "value": "平均比較可能 21R",
-          "contribution": 0,
-          "source": "kurari-ex-exact-matchups-index",
-          "confidence": "high"
-        }
-      ],
-      "protectionGuide": {
-        "mode": "second-third-correction",
-        "note": "RISKが高い場合も頭数追加ではなく、2着・3着補正と別線3着保護を優先して検討する。",
-        "allowedRoles": [
-          "OTHER_SELF",
-          "OTHER_MARK",
-          "SINGLE",
-          "LINE_THIRD_OUTSIDE",
-          "OTHER_LINE_THIRD"
-        ]
-      },
-      "sourceAvailability": {
-        "todayRace": true,
-        "officialEntries": true,
-        "officialLineup": true,
-        "venueHistoricalSampleSize": 176,
-        "raceNumberHistoricalSampleSize": 328,
-        "riderCoverageCount": 7,
-        "matchupCoverageCount": 6
-      },
-      "leakageGuard": {
-        "currentResultUsed": false,
-        "currentPayoutUsed": false,
-        "oddsUsedAsRiskDriver": false,
-        "fuzzyMatchingUsed": false,
-        "fakeCompletionUsed": false
-      }
-    },
-    {
-      "raceKey": "2026-09-12|22|9",
-      "date": "2026-09-12",
-      "venueCode": "22",
-      "venueName": "前橋",
-      "venueSlug": "maebashi",
-      "raceNo": 9,
-      "title": "2026年09月12日 レース詳細 A級準決勝",
-      "time": "23:30",
-      "timeBand": "midnight",
-      "grade": "F2",
-      "raceClass": "A1",
-      "carCount": 7,
-      "line": {
-        "source": "today.generated.lineup",
-        "lineup": "15 24 736",
-        "lineCount": 3,
-        "singleCount": 0,
-        "selfPowerCount": 3
-      },
-      "riskScore": 2,
-      "riskLevel": "MEDIUM",
-      "confidence": "high",
-      "pointRange": {
-        "label": "8〜10",
-        "min": 8,
-        "max": 10,
-        "action": "VALUE_10"
-      },
-      "signals": [
-        {
-          "key": "line-count",
-          "label": "分戦数",
-          "value": "3分戦",
-          "contribution": 0,
-          "source": "today.generated.lineup",
-          "confidence": "high"
-        },
-        {
-          "key": "self-power-contest",
-          "label": "自力/先行役の競合",
-          "value": "3人",
-          "contribution": 0,
-          "source": "keirin-jp-entries.entries.style/stats",
-          "confidence": "medium",
-          "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
-        },
-        {
-          "key": "venue-historical-turbulence",
-          "label": "会場historical荒れ",
-          "value": "万車券率 40.3%",
-          "contribution": 2,
-          "source": "kurari-ex-result-trend-lab-history",
-          "confidence": "high",
-          "note": "sample 176R / global 27.1% / 過去結果のみ"
-        },
-        {
-          "key": "race-number-historical-turbulence",
-          "label": "R番号historical荒れ",
-          "value": "万車券率 31.7%",
-          "contribution": 0,
-          "source": "kurari-ex-result-trend-lab-history",
-          "confidence": "high",
-          "note": "sample 334R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -1056,7 +263,800 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 176,
+        "venueHistoricalSampleSize": 149,
+        "raceNumberHistoricalSampleSize": 466,
+        "riderCoverageCount": 7,
+        "matchupCoverageCount": 6
+      },
+      "leakageGuard": {
+        "currentResultUsed": false,
+        "currentPayoutUsed": false,
+        "oddsUsedAsRiskDriver": false,
+        "fuzzyMatchingUsed": false,
+        "fakeCompletionUsed": false
+      }
+    },
+    {
+      "raceKey": "2026-09-12|22|3",
+      "date": "2026-09-12",
+      "venueCode": "22",
+      "venueName": "前橋",
+      "venueSlug": "maebashi",
+      "raceNo": 3,
+      "title": "2026年09月12日 レース詳細 A級一般",
+      "time": "21:30",
+      "timeBand": "midnight",
+      "grade": "F2",
+      "raceClass": "A2",
+      "carCount": 7,
+      "line": {
+        "source": "today.generated.lineup",
+        "lineup": "32 15 467",
+        "lineCount": 3,
+        "singleCount": 0,
+        "selfPowerCount": 3
+      },
+      "riskScore": 1,
+      "riskLevel": "MEDIUM",
+      "confidence": "high",
+      "pointRange": {
+        "label": "8〜10",
+        "min": 8,
+        "max": 10,
+        "action": "VALUE_10"
+      },
+      "signals": [
+        {
+          "key": "line-count",
+          "label": "分戦数",
+          "value": "3分戦",
+          "contribution": 0,
+          "source": "today.generated.lineup",
+          "confidence": "high"
+        },
+        {
+          "key": "self-power-contest",
+          "label": "自力/先行役の競合",
+          "value": "3人",
+          "contribution": 0,
+          "source": "keirin-jp-entries.entries.style/stats",
+          "confidence": "medium",
+          "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "venue-historical-turbulence",
+          "label": "会場historical荒れ",
+          "value": "万車券率 36.9%",
+          "contribution": 1,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 149R / global 27.1% / 過去結果のみ"
+        },
+        {
+          "key": "race-number-historical-turbulence",
+          "label": "R番号historical荒れ",
+          "value": "万車券率 28.8%",
+          "contribution": 0,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 468R / global 27.1% / 過去結果のみ"
+        },
+        {
+          "key": "rider-ex-coverage",
+          "label": "rider EX母数",
+          "value": "7/7人 / LOW SAMPLE 1人",
+          "contribution": 0,
+          "source": "kurari-ex-exact-riders-index",
+          "confidence": "high",
+          "note": "LOW SAMPLEはrisk上昇ではなくconfidence低下として扱う"
+        },
+        {
+          "key": "matchup-coverage",
+          "label": "MATCHUP coverage",
+          "value": "平均比較可能 10.5R",
+          "contribution": 0,
+          "source": "kurari-ex-exact-matchups-index",
+          "confidence": "high"
+        }
+      ],
+      "protectionGuide": {
+        "mode": "second-third-correction",
+        "note": "RISKが高い場合も頭数追加ではなく、2着・3着補正と別線3着保護を優先して検討する。",
+        "allowedRoles": [
+          "OTHER_SELF",
+          "OTHER_MARK",
+          "SINGLE",
+          "LINE_THIRD_OUTSIDE",
+          "OTHER_LINE_THIRD"
+        ]
+      },
+      "sourceAvailability": {
+        "todayRace": true,
+        "officialEntries": true,
+        "officialLineup": true,
+        "venueHistoricalSampleSize": 149,
+        "raceNumberHistoricalSampleSize": 468,
+        "riderCoverageCount": 7,
+        "matchupCoverageCount": 6
+      },
+      "leakageGuard": {
+        "currentResultUsed": false,
+        "currentPayoutUsed": false,
+        "oddsUsedAsRiskDriver": false,
+        "fuzzyMatchingUsed": false,
+        "fakeCompletionUsed": false
+      }
+    },
+    {
+      "raceKey": "2026-09-12|22|4",
+      "date": "2026-09-12",
+      "venueCode": "22",
+      "venueName": "前橋",
+      "venueSlug": "maebashi",
+      "raceNo": 4,
+      "title": "2026年09月12日 レース詳細 A級一般",
+      "time": "21:50",
+      "timeBand": "midnight",
+      "grade": "F2",
+      "raceClass": "A2",
+      "carCount": 7,
+      "line": {
+        "source": "today.generated.lineup",
+        "lineup": "427 6 135",
+        "lineCount": 3,
+        "singleCount": 1,
+        "selfPowerCount": 2
+      },
+      "riskScore": 1,
+      "riskLevel": "MEDIUM",
+      "confidence": "high",
+      "pointRange": {
+        "label": "8〜10",
+        "min": 8,
+        "max": 10,
+        "action": "VALUE_10"
+      },
+      "signals": [
+        {
+          "key": "line-count",
+          "label": "分戦数",
+          "value": "3分戦",
+          "contribution": 0,
+          "source": "today.generated.lineup",
+          "confidence": "high"
+        },
+        {
+          "key": "self-power-contest",
+          "label": "自力/先行役の競合",
+          "value": "2人",
+          "contribution": 0,
+          "source": "keirin-jp-entries.entries.style/stats",
+          "confidence": "medium",
+          "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "single-line",
+          "label": "単騎/短ライン",
+          "value": "1本",
+          "contribution": 0,
+          "source": "today.generated.lineup",
+          "confidence": "medium"
+        },
+        {
+          "key": "venue-historical-turbulence",
+          "label": "会場historical荒れ",
+          "value": "万車券率 36.9%",
+          "contribution": 1,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 149R / global 27.1% / 過去結果のみ"
+        },
+        {
+          "key": "race-number-historical-turbulence",
+          "label": "R番号historical荒れ",
+          "value": "万車券率 24.3%",
+          "contribution": 0,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 465R / global 27.1% / 過去結果のみ"
+        },
+        {
+          "key": "rider-ex-coverage",
+          "label": "rider EX母数",
+          "value": "7/7人 / LOW SAMPLE 3人",
+          "contribution": 0,
+          "source": "kurari-ex-exact-riders-index",
+          "confidence": "high",
+          "note": "LOW SAMPLEはrisk上昇ではなくconfidence低下として扱う"
+        },
+        {
+          "key": "matchup-coverage",
+          "label": "MATCHUP coverage",
+          "value": "平均比較可能 9.5R",
+          "contribution": 0,
+          "source": "kurari-ex-exact-matchups-index",
+          "confidence": "medium"
+        }
+      ],
+      "protectionGuide": {
+        "mode": "second-third-correction",
+        "note": "RISKが高い場合も頭数追加ではなく、2着・3着補正と別線3着保護を優先して検討する。",
+        "allowedRoles": [
+          "OTHER_SELF",
+          "OTHER_MARK",
+          "SINGLE",
+          "LINE_THIRD_OUTSIDE",
+          "OTHER_LINE_THIRD"
+        ]
+      },
+      "sourceAvailability": {
+        "todayRace": true,
+        "officialEntries": true,
+        "officialLineup": true,
+        "venueHistoricalSampleSize": 149,
+        "raceNumberHistoricalSampleSize": 465,
+        "riderCoverageCount": 7,
+        "matchupCoverageCount": 6
+      },
+      "leakageGuard": {
+        "currentResultUsed": false,
+        "currentPayoutUsed": false,
+        "oddsUsedAsRiskDriver": false,
+        "fuzzyMatchingUsed": false,
+        "fakeCompletionUsed": false
+      }
+    },
+    {
+      "raceKey": "2026-09-12|22|5",
+      "date": "2026-09-12",
+      "venueCode": "22",
+      "venueName": "前橋",
+      "venueSlug": "maebashi",
+      "raceNo": 5,
+      "title": "2026年09月12日 レース詳細 A級選抜",
+      "time": "22:10",
+      "timeBand": "midnight",
+      "grade": "F2",
+      "raceClass": "A2",
+      "carCount": 7,
+      "line": {
+        "source": "today.generated.lineup",
+        "lineup": "713 24 65",
+        "lineCount": 3,
+        "singleCount": 0,
+        "selfPowerCount": 3
+      },
+      "riskScore": 1,
+      "riskLevel": "MEDIUM",
+      "confidence": "high",
+      "pointRange": {
+        "label": "8〜10",
+        "min": 8,
+        "max": 10,
+        "action": "VALUE_10"
+      },
+      "signals": [
+        {
+          "key": "line-count",
+          "label": "分戦数",
+          "value": "3分戦",
+          "contribution": 0,
+          "source": "today.generated.lineup",
+          "confidence": "high"
+        },
+        {
+          "key": "self-power-contest",
+          "label": "自力/先行役の競合",
+          "value": "3人",
+          "contribution": 0,
+          "source": "keirin-jp-entries.entries.style/stats",
+          "confidence": "medium",
+          "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "venue-historical-turbulence",
+          "label": "会場historical荒れ",
+          "value": "万車券率 36.9%",
+          "contribution": 1,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 149R / global 27.1% / 過去結果のみ"
+        },
+        {
+          "key": "race-number-historical-turbulence",
+          "label": "R番号historical荒れ",
+          "value": "万車券率 24.6%",
+          "contribution": 0,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 471R / global 27.1% / 過去結果のみ"
+        },
+        {
+          "key": "rider-ex-coverage",
+          "label": "rider EX母数",
+          "value": "7/7人 / LOW SAMPLE 0人",
+          "contribution": 0,
+          "source": "kurari-ex-exact-riders-index",
+          "confidence": "high",
+          "note": "LOW SAMPLEはrisk上昇ではなくconfidence低下として扱う"
+        },
+        {
+          "key": "matchup-coverage",
+          "label": "MATCHUP coverage",
+          "value": "平均比較可能 10.7R",
+          "contribution": 0,
+          "source": "kurari-ex-exact-matchups-index",
+          "confidence": "high"
+        }
+      ],
+      "protectionGuide": {
+        "mode": "second-third-correction",
+        "note": "RISKが高い場合も頭数追加ではなく、2着・3着補正と別線3着保護を優先して検討する。",
+        "allowedRoles": [
+          "OTHER_SELF",
+          "OTHER_MARK",
+          "SINGLE",
+          "LINE_THIRD_OUTSIDE",
+          "OTHER_LINE_THIRD"
+        ]
+      },
+      "sourceAvailability": {
+        "todayRace": true,
+        "officialEntries": true,
+        "officialLineup": true,
+        "venueHistoricalSampleSize": 149,
+        "raceNumberHistoricalSampleSize": 471,
+        "riderCoverageCount": 7,
+        "matchupCoverageCount": 7
+      },
+      "leakageGuard": {
+        "currentResultUsed": false,
+        "currentPayoutUsed": false,
+        "oddsUsedAsRiskDriver": false,
+        "fuzzyMatchingUsed": false,
+        "fakeCompletionUsed": false
+      }
+    },
+    {
+      "raceKey": "2026-09-12|22|6",
+      "date": "2026-09-12",
+      "venueCode": "22",
+      "venueName": "前橋",
+      "venueSlug": "maebashi",
+      "raceNo": 6,
+      "title": "2026年09月12日 レース詳細 A級選抜",
+      "time": "22:30",
+      "timeBand": "midnight",
+      "grade": "F2",
+      "raceClass": "A1",
+      "carCount": 7,
+      "line": {
+        "source": "today.generated.lineup",
+        "lineup": "316 7 245",
+        "lineCount": 3,
+        "singleCount": 1,
+        "selfPowerCount": 2
+      },
+      "riskScore": 1,
+      "riskLevel": "MEDIUM",
+      "confidence": "high",
+      "pointRange": {
+        "label": "8〜10",
+        "min": 8,
+        "max": 10,
+        "action": "VALUE_10"
+      },
+      "signals": [
+        {
+          "key": "line-count",
+          "label": "分戦数",
+          "value": "3分戦",
+          "contribution": 0,
+          "source": "today.generated.lineup",
+          "confidence": "high"
+        },
+        {
+          "key": "self-power-contest",
+          "label": "自力/先行役の競合",
+          "value": "2人",
+          "contribution": 0,
+          "source": "keirin-jp-entries.entries.style/stats",
+          "confidence": "medium",
+          "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "single-line",
+          "label": "単騎/短ライン",
+          "value": "1本",
+          "contribution": 0,
+          "source": "today.generated.lineup",
+          "confidence": "medium"
+        },
+        {
+          "key": "venue-historical-turbulence",
+          "label": "会場historical荒れ",
+          "value": "万車券率 36.9%",
+          "contribution": 1,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 149R / global 27.1% / 過去結果のみ"
+        },
+        {
+          "key": "race-number-historical-turbulence",
+          "label": "R番号historical荒れ",
+          "value": "万車券率 23%",
+          "contribution": 0,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 469R / global 27.1% / 過去結果のみ"
+        },
+        {
+          "key": "rider-ex-coverage",
+          "label": "rider EX母数",
+          "value": "7/7人 / LOW SAMPLE 0人",
+          "contribution": 0,
+          "source": "kurari-ex-exact-riders-index",
+          "confidence": "high",
+          "note": "LOW SAMPLEはrisk上昇ではなくconfidence低下として扱う"
+        },
+        {
+          "key": "matchup-coverage",
+          "label": "MATCHUP coverage",
+          "value": "平均比較可能 12.2R",
+          "contribution": 0,
+          "source": "kurari-ex-exact-matchups-index",
+          "confidence": "high"
+        }
+      ],
+      "protectionGuide": {
+        "mode": "second-third-correction",
+        "note": "RISKが高い場合も頭数追加ではなく、2着・3着補正と別線3着保護を優先して検討する。",
+        "allowedRoles": [
+          "OTHER_SELF",
+          "OTHER_MARK",
+          "SINGLE",
+          "LINE_THIRD_OUTSIDE",
+          "OTHER_LINE_THIRD"
+        ]
+      },
+      "sourceAvailability": {
+        "todayRace": true,
+        "officialEntries": true,
+        "officialLineup": true,
+        "venueHistoricalSampleSize": 149,
+        "raceNumberHistoricalSampleSize": 469,
+        "riderCoverageCount": 7,
+        "matchupCoverageCount": 5
+      },
+      "leakageGuard": {
+        "currentResultUsed": false,
+        "currentPayoutUsed": false,
+        "oddsUsedAsRiskDriver": false,
+        "fuzzyMatchingUsed": false,
+        "fakeCompletionUsed": false
+      }
+    },
+    {
+      "raceKey": "2026-09-12|22|7",
+      "date": "2026-09-12",
+      "venueCode": "22",
+      "venueName": "前橋",
+      "venueSlug": "maebashi",
+      "raceNo": 7,
+      "title": "2026年09月12日 レース詳細 A級準決勝",
+      "time": "22:50",
+      "timeBand": "midnight",
+      "grade": "F2",
+      "raceClass": "A1",
+      "carCount": 7,
+      "line": {
+        "source": "today.generated.lineup",
+        "lineup": "14 62 357",
+        "lineCount": 3,
+        "singleCount": 0,
+        "selfPowerCount": 3
+      },
+      "riskScore": 1,
+      "riskLevel": "MEDIUM",
+      "confidence": "high",
+      "pointRange": {
+        "label": "8〜10",
+        "min": 8,
+        "max": 10,
+        "action": "VALUE_10"
+      },
+      "signals": [
+        {
+          "key": "line-count",
+          "label": "分戦数",
+          "value": "3分戦",
+          "contribution": 0,
+          "source": "today.generated.lineup",
+          "confidence": "high"
+        },
+        {
+          "key": "self-power-contest",
+          "label": "自力/先行役の競合",
+          "value": "3人",
+          "contribution": 0,
+          "source": "keirin-jp-entries.entries.style/stats",
+          "confidence": "medium",
+          "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "venue-historical-turbulence",
+          "label": "会場historical荒れ",
+          "value": "万車券率 36.9%",
+          "contribution": 1,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 149R / global 27.1% / 過去結果のみ"
+        },
+        {
+          "key": "race-number-historical-turbulence",
+          "label": "R番号historical荒れ",
+          "value": "万車券率 24.8%",
+          "contribution": 0,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 468R / global 27.1% / 過去結果のみ"
+        },
+        {
+          "key": "rider-ex-coverage",
+          "label": "rider EX母数",
+          "value": "7/7人 / LOW SAMPLE 1人",
+          "contribution": 0,
+          "source": "kurari-ex-exact-riders-index",
+          "confidence": "high",
+          "note": "LOW SAMPLEはrisk上昇ではなくconfidence低下として扱う"
+        },
+        {
+          "key": "matchup-coverage",
+          "label": "MATCHUP coverage",
+          "value": "平均比較可能 18.7R",
+          "contribution": 0,
+          "source": "kurari-ex-exact-matchups-index",
+          "confidence": "high"
+        }
+      ],
+      "protectionGuide": {
+        "mode": "second-third-correction",
+        "note": "RISKが高い場合も頭数追加ではなく、2着・3着補正と別線3着保護を優先して検討する。",
+        "allowedRoles": [
+          "OTHER_SELF",
+          "OTHER_MARK",
+          "SINGLE",
+          "LINE_THIRD_OUTSIDE",
+          "OTHER_LINE_THIRD"
+        ]
+      },
+      "sourceAvailability": {
+        "todayRace": true,
+        "officialEntries": true,
+        "officialLineup": true,
+        "venueHistoricalSampleSize": 149,
+        "raceNumberHistoricalSampleSize": 468,
+        "riderCoverageCount": 7,
+        "matchupCoverageCount": 6
+      },
+      "leakageGuard": {
+        "currentResultUsed": false,
+        "currentPayoutUsed": false,
+        "oddsUsedAsRiskDriver": false,
+        "fuzzyMatchingUsed": false,
+        "fakeCompletionUsed": false
+      }
+    },
+    {
+      "raceKey": "2026-09-12|22|8",
+      "date": "2026-09-12",
+      "venueCode": "22",
+      "venueName": "前橋",
+      "venueSlug": "maebashi",
+      "raceNo": 8,
+      "title": "2026年09月12日 レース詳細 A級準決勝",
+      "time": "23:10",
+      "timeBand": "midnight",
+      "grade": "F2",
+      "raceClass": "A1",
+      "carCount": 7,
+      "line": {
+        "source": "today.generated.lineup",
+        "lineup": "45 71 236",
+        "lineCount": 3,
+        "singleCount": 0,
+        "selfPowerCount": 3
+      },
+      "riskScore": 1,
+      "riskLevel": "MEDIUM",
+      "confidence": "high",
+      "pointRange": {
+        "label": "8〜10",
+        "min": 8,
+        "max": 10,
+        "action": "VALUE_10"
+      },
+      "signals": [
+        {
+          "key": "line-count",
+          "label": "分戦数",
+          "value": "3分戦",
+          "contribution": 0,
+          "source": "today.generated.lineup",
+          "confidence": "high"
+        },
+        {
+          "key": "self-power-contest",
+          "label": "自力/先行役の競合",
+          "value": "3人",
+          "contribution": 0,
+          "source": "keirin-jp-entries.entries.style/stats",
+          "confidence": "medium",
+          "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "venue-historical-turbulence",
+          "label": "会場historical荒れ",
+          "value": "万車券率 36.9%",
+          "contribution": 1,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 149R / global 27.1% / 過去結果のみ"
+        },
+        {
+          "key": "race-number-historical-turbulence",
+          "label": "R番号historical荒れ",
+          "value": "万車券率 30.8%",
+          "contribution": 0,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 328R / global 27.1% / 過去結果のみ"
+        },
+        {
+          "key": "rider-ex-coverage",
+          "label": "rider EX母数",
+          "value": "7/7人 / LOW SAMPLE 1人",
+          "contribution": 0,
+          "source": "kurari-ex-exact-riders-index",
+          "confidence": "high",
+          "note": "LOW SAMPLEはrisk上昇ではなくconfidence低下として扱う"
+        },
+        {
+          "key": "matchup-coverage",
+          "label": "MATCHUP coverage",
+          "value": "平均比較可能 21.2R",
+          "contribution": 0,
+          "source": "kurari-ex-exact-matchups-index",
+          "confidence": "high"
+        }
+      ],
+      "protectionGuide": {
+        "mode": "second-third-correction",
+        "note": "RISKが高い場合も頭数追加ではなく、2着・3着補正と別線3着保護を優先して検討する。",
+        "allowedRoles": [
+          "OTHER_SELF",
+          "OTHER_MARK",
+          "SINGLE",
+          "LINE_THIRD_OUTSIDE",
+          "OTHER_LINE_THIRD"
+        ]
+      },
+      "sourceAvailability": {
+        "todayRace": true,
+        "officialEntries": true,
+        "officialLineup": true,
+        "venueHistoricalSampleSize": 149,
+        "raceNumberHistoricalSampleSize": 328,
+        "riderCoverageCount": 7,
+        "matchupCoverageCount": 6
+      },
+      "leakageGuard": {
+        "currentResultUsed": false,
+        "currentPayoutUsed": false,
+        "oddsUsedAsRiskDriver": false,
+        "fuzzyMatchingUsed": false,
+        "fakeCompletionUsed": false
+      }
+    },
+    {
+      "raceKey": "2026-09-12|22|9",
+      "date": "2026-09-12",
+      "venueCode": "22",
+      "venueName": "前橋",
+      "venueSlug": "maebashi",
+      "raceNo": 9,
+      "title": "2026年09月12日 レース詳細 A級準決勝",
+      "time": "23:30",
+      "timeBand": "midnight",
+      "grade": "F2",
+      "raceClass": "A1",
+      "carCount": 7,
+      "line": {
+        "source": "today.generated.lineup",
+        "lineup": "15 24 736",
+        "lineCount": 3,
+        "singleCount": 0,
+        "selfPowerCount": 3
+      },
+      "riskScore": 1,
+      "riskLevel": "MEDIUM",
+      "confidence": "high",
+      "pointRange": {
+        "label": "8〜10",
+        "min": 8,
+        "max": 10,
+        "action": "VALUE_10"
+      },
+      "signals": [
+        {
+          "key": "line-count",
+          "label": "分戦数",
+          "value": "3分戦",
+          "contribution": 0,
+          "source": "today.generated.lineup",
+          "confidence": "high"
+        },
+        {
+          "key": "self-power-contest",
+          "label": "自力/先行役の競合",
+          "value": "3人",
+          "contribution": 0,
+          "source": "keirin-jp-entries.entries.style/stats",
+          "confidence": "medium",
+          "note": "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用"
+        },
+        {
+          "key": "venue-historical-turbulence",
+          "label": "会場historical荒れ",
+          "value": "万車券率 36.9%",
+          "contribution": 1,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 149R / global 27.1% / 過去結果のみ"
+        },
+        {
+          "key": "race-number-historical-turbulence",
+          "label": "R番号historical荒れ",
+          "value": "万車券率 31.7%",
+          "contribution": 0,
+          "source": "kurari-ex-result-trend-lab-history",
+          "confidence": "high",
+          "note": "sample 334R / global 27.1% / 過去結果のみ"
+        },
+        {
+          "key": "rider-ex-coverage",
+          "label": "rider EX母数",
+          "value": "7/7人 / LOW SAMPLE 1人",
+          "contribution": 0,
+          "source": "kurari-ex-exact-riders-index",
+          "confidence": "high",
+          "note": "LOW SAMPLEはrisk上昇ではなくconfidence低下として扱う"
+        },
+        {
+          "key": "matchup-coverage",
+          "label": "MATCHUP coverage",
+          "value": "平均比較可能 14.4R",
+          "contribution": 0,
+          "source": "kurari-ex-exact-matchups-index",
+          "confidence": "high"
+        }
+      ],
+      "protectionGuide": {
+        "mode": "second-third-correction",
+        "note": "RISKが高い場合も頭数追加ではなく、2着・3着補正と別線3着保護を優先して検討する。",
+        "allowedRoles": [
+          "OTHER_SELF",
+          "OTHER_MARK",
+          "SINGLE",
+          "LINE_THIRD_OUTSIDE",
+          "OTHER_LINE_THIRD"
+        ]
+      },
+      "sourceAvailability": {
+        "todayRace": true,
+        "officialEntries": true,
+        "officialLineup": true,
+        "venueHistoricalSampleSize": 149,
         "raceNumberHistoricalSampleSize": 334,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 5
@@ -1127,11 +1127,11 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 30.9%",
+          "value": "万車券率 30.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 97R / global 27.1% / 過去結果のみ"
+          "note": "sample 119R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
@@ -1140,7 +1140,7 @@
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 469R / global 27.1% / 過去結果のみ"
+          "note": "sample 468R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -1154,7 +1154,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 13.7R",
+          "value": "平均比較可能 14.7R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -1175,8 +1175,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 97,
-        "raceNumberHistoricalSampleSize": 469,
+        "venueHistoricalSampleSize": 119,
+        "raceNumberHistoricalSampleSize": 468,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 6
       },
@@ -1246,20 +1246,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 30.9%",
+          "value": "万車券率 30.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 97R / global 27.1% / 過去結果のみ"
+          "note": "sample 119R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 25.6%",
+          "value": "万車券率 24%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 465R / global 27.1% / 過去結果のみ"
+          "note": "sample 466R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -1273,7 +1273,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 16.8R",
+          "value": "平均比較可能 17R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -1294,8 +1294,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 97,
-        "raceNumberHistoricalSampleSize": 465,
+        "venueHistoricalSampleSize": 119,
+        "raceNumberHistoricalSampleSize": 466,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 5
       },
@@ -1365,20 +1365,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 30.9%",
+          "value": "万車券率 30.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 97R / global 27.1% / 過去結果のみ"
+          "note": "sample 119R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 28.5%",
+          "value": "万車券率 28.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 467R / global 27.1% / 過去結果のみ"
+          "note": "sample 468R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -1392,7 +1392,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 9.3R",
+          "value": "平均比較可能 9.8R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "medium"
@@ -1413,8 +1413,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 97,
-        "raceNumberHistoricalSampleSize": 467,
+        "venueHistoricalSampleSize": 119,
+        "raceNumberHistoricalSampleSize": 468,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 6
       },
@@ -1484,20 +1484,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 30.9%",
+          "value": "万車券率 30.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 97R / global 27.1% / 過去結果のみ"
+          "note": "sample 119R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 24.9%",
+          "value": "万車券率 24.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 466R / global 27.1% / 過去結果のみ"
+          "note": "sample 465R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -1532,8 +1532,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 97,
-        "raceNumberHistoricalSampleSize": 466,
+        "venueHistoricalSampleSize": 119,
+        "raceNumberHistoricalSampleSize": 465,
         "riderCoverageCount": 6,
         "matchupCoverageCount": 3
       },
@@ -1595,16 +1595,16 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 30.9%",
+          "value": "万車券率 30.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 97R / global 27.1% / 過去結果のみ"
+          "note": "sample 119R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 25.3%",
+          "value": "万車券率 24.6%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
@@ -1622,7 +1622,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 15.8R",
+          "value": "平均比較可能 16R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -1643,7 +1643,7 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 97,
+        "venueHistoricalSampleSize": 119,
         "raceNumberHistoricalSampleSize": 471,
         "riderCoverageCount": 6,
         "matchupCoverageCount": 5
@@ -1706,20 +1706,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 30.9%",
+          "value": "万車券率 30.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 97R / global 27.1% / 過去結果のみ"
+          "note": "sample 119R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 23.3%",
+          "value": "万車券率 23%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 467R / global 27.1% / 過去結果のみ"
+          "note": "sample 469R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -1733,7 +1733,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 10.8R",
+          "value": "平均比較可能 10.6R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -1754,8 +1754,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 97,
-        "raceNumberHistoricalSampleSize": 467,
+        "venueHistoricalSampleSize": 119,
+        "raceNumberHistoricalSampleSize": 469,
         "riderCoverageCount": 6,
         "matchupCoverageCount": 5
       },
@@ -1825,20 +1825,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 30.9%",
+          "value": "万車券率 30.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 97R / global 27.1% / 過去結果のみ"
+          "note": "sample 119R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 25.1%",
+          "value": "万車券率 24.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 467R / global 27.1% / 過去結果のみ"
+          "note": "sample 468R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -1873,8 +1873,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 97,
-        "raceNumberHistoricalSampleSize": 467,
+        "venueHistoricalSampleSize": 119,
+        "raceNumberHistoricalSampleSize": 468,
         "riderCoverageCount": 6,
         "matchupCoverageCount": 5
       },
@@ -1944,16 +1944,16 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 30.9%",
+          "value": "万車券率 30.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 97R / global 27.1% / 過去結果のみ"
+          "note": "sample 119R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 30.5%",
+          "value": "万車券率 30.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
@@ -1992,7 +1992,7 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 97,
+        "venueHistoricalSampleSize": 119,
         "raceNumberHistoricalSampleSize": 328,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 6
@@ -2063,11 +2063,11 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 30.9%",
+          "value": "万車券率 30.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 97R / global 27.1% / 過去結果のみ"
+          "note": "sample 119R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
@@ -2111,7 +2111,7 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 97,
+        "venueHistoricalSampleSize": 119,
         "raceNumberHistoricalSampleSize": 334,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 4
@@ -2182,20 +2182,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 30.9%",
+          "value": "万車券率 30.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 97R / global 27.1% / 過去結果のみ"
+          "note": "sample 119R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 30.4%",
+          "value": "万車券率 33.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 250R / global 27.1% / 過去結果のみ"
+          "note": "sample 249R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -2209,10 +2209,10 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 9.7R",
+          "value": "平均比較可能 10.1R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
-          "confidence": "medium"
+          "confidence": "high"
         }
       ],
       "protectionGuide": {
@@ -2230,8 +2230,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 97,
-        "raceNumberHistoricalSampleSize": 250,
+        "venueHistoricalSampleSize": 119,
+        "raceNumberHistoricalSampleSize": 249,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 7
       },
@@ -2263,7 +2263,7 @@
         "singleCount": 1,
         "selfPowerCount": 5
       },
-      "riskScore": 3,
+      "riskScore": 4,
       "riskLevel": "HIGH",
       "confidence": "high",
       "pointRange": {
@@ -2301,20 +2301,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 30.9%",
+          "value": "万車券率 30.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 97R / global 27.1% / 過去結果のみ"
+          "note": "sample 119R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 31.8%",
-          "contribution": 0,
+          "value": "万車券率 35.7%",
+          "contribution": 1,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 245R / global 27.1% / 過去結果のみ"
+          "note": "sample 244R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -2328,7 +2328,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 13R",
+          "value": "平均比較可能 13.2R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -2349,8 +2349,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 97,
-        "raceNumberHistoricalSampleSize": 245,
+        "venueHistoricalSampleSize": 119,
+        "raceNumberHistoricalSampleSize": 244,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 6
       },
@@ -2420,11 +2420,11 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 27.3%",
+          "value": "万車券率 26.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 150R / global 27.1% / 過去結果のみ"
+          "note": "sample 171R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
@@ -2433,7 +2433,7 @@
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 469R / global 27.1% / 過去結果のみ"
+          "note": "sample 468R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -2468,8 +2468,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 150,
-        "raceNumberHistoricalSampleSize": 469,
+        "venueHistoricalSampleSize": 171,
+        "raceNumberHistoricalSampleSize": 468,
         "riderCoverageCount": 6,
         "matchupCoverageCount": 3
       },
@@ -2531,20 +2531,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 27.3%",
+          "value": "万車券率 26.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 150R / global 27.1% / 過去結果のみ"
+          "note": "sample 171R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 25.6%",
+          "value": "万車券率 24%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 465R / global 27.1% / 過去結果のみ"
+          "note": "sample 466R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -2558,7 +2558,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 12.8R",
+          "value": "平均比較可能 12.7R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -2579,10 +2579,10 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 150,
-        "raceNumberHistoricalSampleSize": 465,
+        "venueHistoricalSampleSize": 171,
+        "raceNumberHistoricalSampleSize": 466,
         "riderCoverageCount": 7,
-        "matchupCoverageCount": 5
+        "matchupCoverageCount": 6
       },
       "leakageGuard": {
         "currentResultUsed": false,
@@ -2650,20 +2650,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 27.3%",
+          "value": "万車券率 26.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 150R / global 27.1% / 過去結果のみ"
+          "note": "sample 171R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 28.5%",
+          "value": "万車券率 28.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 467R / global 27.1% / 過去結果のみ"
+          "note": "sample 468R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -2698,8 +2698,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 150,
-        "raceNumberHistoricalSampleSize": 467,
+        "venueHistoricalSampleSize": 171,
+        "raceNumberHistoricalSampleSize": 468,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 5
       },
@@ -2761,20 +2761,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 27.3%",
+          "value": "万車券率 26.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 150R / global 27.1% / 過去結果のみ"
+          "note": "sample 171R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 24.9%",
+          "value": "万車券率 24.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 466R / global 27.1% / 過去結果のみ"
+          "note": "sample 465R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -2788,7 +2788,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 11.2R",
+          "value": "平均比較可能 11.3R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -2809,8 +2809,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 150,
-        "raceNumberHistoricalSampleSize": 466,
+        "venueHistoricalSampleSize": 171,
+        "raceNumberHistoricalSampleSize": 465,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 6
       },
@@ -2880,16 +2880,16 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 27.3%",
+          "value": "万車券率 26.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 150R / global 27.1% / 過去結果のみ"
+          "note": "sample 171R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 25.3%",
+          "value": "万車券率 24.6%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
@@ -2907,7 +2907,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 9.2R",
+          "value": "平均比較可能 8.8R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "medium"
@@ -2928,7 +2928,7 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 150,
+        "venueHistoricalSampleSize": 171,
         "raceNumberHistoricalSampleSize": 471,
         "riderCoverageCount": 6,
         "matchupCoverageCount": 6
@@ -2999,20 +2999,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 27.3%",
+          "value": "万車券率 26.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 150R / global 27.1% / 過去結果のみ"
+          "note": "sample 171R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 23.3%",
+          "value": "万車券率 23%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 467R / global 27.1% / 過去結果のみ"
+          "note": "sample 469R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -3026,7 +3026,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 15.6R",
+          "value": "平均比較可能 16.2R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -3047,8 +3047,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 150,
-        "raceNumberHistoricalSampleSize": 467,
+        "venueHistoricalSampleSize": 171,
+        "raceNumberHistoricalSampleSize": 469,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 5
       },
@@ -3110,20 +3110,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 27.3%",
+          "value": "万車券率 26.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 150R / global 27.1% / 過去結果のみ"
+          "note": "sample 171R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 25.1%",
+          "value": "万車券率 24.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 467R / global 27.1% / 過去結果のみ"
+          "note": "sample 468R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -3158,8 +3158,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 150,
-        "raceNumberHistoricalSampleSize": 467,
+        "venueHistoricalSampleSize": 171,
+        "raceNumberHistoricalSampleSize": 468,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 6
       },
@@ -3229,16 +3229,16 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 27.3%",
+          "value": "万車券率 26.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 150R / global 27.1% / 過去結果のみ"
+          "note": "sample 171R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 30.5%",
+          "value": "万車券率 30.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
@@ -3277,7 +3277,7 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 150,
+        "venueHistoricalSampleSize": 171,
         "raceNumberHistoricalSampleSize": 328,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 6
@@ -3340,11 +3340,11 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 27.3%",
+          "value": "万車券率 26.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 150R / global 27.1% / 過去結果のみ"
+          "note": "sample 171R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
@@ -3388,7 +3388,7 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 150,
+        "venueHistoricalSampleSize": 171,
         "raceNumberHistoricalSampleSize": 334,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 5
@@ -3451,11 +3451,11 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 22.9%",
+          "value": "万車券率 23.1%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 118R / global 27.1% / 過去結果のみ"
+          "note": "sample 147R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
@@ -3464,7 +3464,7 @@
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 469R / global 27.1% / 過去結果のみ"
+          "note": "sample 468R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -3478,7 +3478,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 14R",
+          "value": "平均比較可能 16R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -3499,10 +3499,10 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 118,
-        "raceNumberHistoricalSampleSize": 469,
+        "venueHistoricalSampleSize": 147,
+        "raceNumberHistoricalSampleSize": 468,
         "riderCoverageCount": 5,
-        "matchupCoverageCount": 3
+        "matchupCoverageCount": 4
       },
       "leakageGuard": {
         "currentResultUsed": false,
@@ -3570,25 +3570,25 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 22.9%",
+          "value": "万車券率 23.1%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 118R / global 27.1% / 過去結果のみ"
+          "note": "sample 147R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 25.6%",
+          "value": "万車券率 24%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 465R / global 27.1% / 過去結果のみ"
+          "note": "sample 466R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
           "label": "rider EX母数",
-          "value": "6/6人 / LOW SAMPLE 2人",
+          "value": "6/6人 / LOW SAMPLE 1人",
           "contribution": 0,
           "source": "kurari-ex-exact-riders-index",
           "confidence": "high",
@@ -3597,10 +3597,10 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 0R",
+          "value": "平均比較可能 8R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
-          "confidence": "low"
+          "confidence": "medium"
         }
       ],
       "protectionGuide": {
@@ -3618,10 +3618,10 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 118,
-        "raceNumberHistoricalSampleSize": 465,
+        "venueHistoricalSampleSize": 147,
+        "raceNumberHistoricalSampleSize": 466,
         "riderCoverageCount": 6,
-        "matchupCoverageCount": 1
+        "matchupCoverageCount": 3
       },
       "leakageGuard": {
         "currentResultUsed": false,
@@ -3689,20 +3689,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 22.9%",
+          "value": "万車券率 23.1%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 118R / global 27.1% / 過去結果のみ"
+          "note": "sample 147R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 28.5%",
+          "value": "万車券率 28.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 467R / global 27.1% / 過去結果のみ"
+          "note": "sample 468R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -3716,7 +3716,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 13.8R",
+          "value": "平均比較可能 14R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -3737,8 +3737,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 118,
-        "raceNumberHistoricalSampleSize": 467,
+        "venueHistoricalSampleSize": 147,
+        "raceNumberHistoricalSampleSize": 468,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 5
       },
@@ -3808,25 +3808,25 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 22.9%",
+          "value": "万車券率 23.1%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 118R / global 27.1% / 過去結果のみ"
+          "note": "sample 147R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 24.9%",
+          "value": "万車券率 24.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 466R / global 27.1% / 過去結果のみ"
+          "note": "sample 465R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
           "label": "rider EX母数",
-          "value": "7/7人 / LOW SAMPLE 2人",
+          "value": "7/7人 / LOW SAMPLE 1人",
           "contribution": 0,
           "source": "kurari-ex-exact-riders-index",
           "confidence": "high",
@@ -3835,7 +3835,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 10R",
+          "value": "平均比較可能 10.3R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -3856,10 +3856,10 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 118,
-        "raceNumberHistoricalSampleSize": 466,
+        "venueHistoricalSampleSize": 147,
+        "raceNumberHistoricalSampleSize": 465,
         "riderCoverageCount": 7,
-        "matchupCoverageCount": 6
+        "matchupCoverageCount": 7
       },
       "leakageGuard": {
         "currentResultUsed": false,
@@ -3919,16 +3919,16 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 22.9%",
+          "value": "万車券率 23.1%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 118R / global 27.1% / 過去結果のみ"
+          "note": "sample 147R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 25.3%",
+          "value": "万車券率 24.6%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
@@ -3967,7 +3967,7 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 118,
+        "venueHistoricalSampleSize": 147,
         "raceNumberHistoricalSampleSize": 471,
         "riderCoverageCount": 6,
         "matchupCoverageCount": 6
@@ -4038,20 +4038,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 22.9%",
+          "value": "万車券率 23.1%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 118R / global 27.1% / 過去結果のみ"
+          "note": "sample 147R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 23.3%",
+          "value": "万車券率 23%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 467R / global 27.1% / 過去結果のみ"
+          "note": "sample 469R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -4086,8 +4086,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 118,
-        "raceNumberHistoricalSampleSize": 467,
+        "venueHistoricalSampleSize": 147,
+        "raceNumberHistoricalSampleSize": 469,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 6
       },
@@ -4149,20 +4149,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 22.9%",
+          "value": "万車券率 23.1%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 118R / global 27.1% / 過去結果のみ"
+          "note": "sample 147R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 25.1%",
+          "value": "万車券率 24.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 467R / global 27.1% / 過去結果のみ"
+          "note": "sample 468R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -4197,8 +4197,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 118,
-        "raceNumberHistoricalSampleSize": 467,
+        "venueHistoricalSampleSize": 147,
+        "raceNumberHistoricalSampleSize": 468,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 7
       },
@@ -4268,16 +4268,16 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 22.9%",
+          "value": "万車券率 23.1%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 118R / global 27.1% / 過去結果のみ"
+          "note": "sample 147R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 30.5%",
+          "value": "万車券率 30.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
@@ -4295,7 +4295,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 13.4R",
+          "value": "平均比較可能 11R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -4316,10 +4316,10 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 118,
+        "venueHistoricalSampleSize": 147,
         "raceNumberHistoricalSampleSize": 328,
         "riderCoverageCount": 7,
-        "matchupCoverageCount": 5
+        "matchupCoverageCount": 6
       },
       "leakageGuard": {
         "currentResultUsed": false,
@@ -4379,11 +4379,11 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 22.9%",
+          "value": "万車券率 23.1%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 118R / global 27.1% / 過去結果のみ"
+          "note": "sample 147R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
@@ -4406,7 +4406,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 18.3R",
+          "value": "平均比較可能 18.5R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -4427,7 +4427,7 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 118,
+        "venueHistoricalSampleSize": 147,
         "raceNumberHistoricalSampleSize": 334,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 4
@@ -4498,20 +4498,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 22.9%",
+          "value": "万車券率 23.1%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 118R / global 27.1% / 過去結果のみ"
+          "note": "sample 147R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 30.4%",
+          "value": "万車券率 33.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 250R / global 27.1% / 過去結果のみ"
+          "note": "sample 249R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -4525,7 +4525,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 17.3R",
+          "value": "平均比較可能 19.4R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -4546,10 +4546,10 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 118,
-        "raceNumberHistoricalSampleSize": 250,
+        "venueHistoricalSampleSize": 147,
+        "raceNumberHistoricalSampleSize": 249,
         "riderCoverageCount": 7,
-        "matchupCoverageCount": 3
+        "matchupCoverageCount": 5
       },
       "leakageGuard": {
         "currentResultUsed": false,
@@ -4579,14 +4579,14 @@
         "singleCount": 1,
         "selfPowerCount": 3
       },
-      "riskScore": 0,
-      "riskLevel": "LOW",
+      "riskScore": 1,
+      "riskLevel": "MEDIUM",
       "confidence": "high",
       "pointRange": {
-        "label": "8",
+        "label": "8〜10",
         "min": 8,
-        "max": 8,
-        "action": "BASE_8"
+        "max": 10,
+        "action": "VALUE_10"
       },
       "signals": [
         {
@@ -4617,20 +4617,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 22.9%",
+          "value": "万車券率 23.1%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 118R / global 27.1% / 過去結果のみ"
+          "note": "sample 147R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 31.8%",
-          "contribution": 0,
+          "value": "万車券率 35.7%",
+          "contribution": 1,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 245R / global 27.1% / 過去結果のみ"
+          "note": "sample 244R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -4644,10 +4644,10 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 10.2R",
+          "value": "平均比較可能 9.8R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
-          "confidence": "high"
+          "confidence": "medium"
         }
       ],
       "protectionGuide": {
@@ -4665,8 +4665,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 118,
-        "raceNumberHistoricalSampleSize": 245,
+        "venueHistoricalSampleSize": 147,
+        "raceNumberHistoricalSampleSize": 244,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 5
       },
@@ -4736,11 +4736,11 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 26.5%",
+          "value": "万車券率 29.1%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 189R / global 27.1% / 過去結果のみ"
+          "note": "sample 213R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
@@ -4749,7 +4749,7 @@
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 469R / global 27.1% / 過去結果のみ"
+          "note": "sample 468R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -4792,8 +4792,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 189,
-        "raceNumberHistoricalSampleSize": 469,
+        "venueHistoricalSampleSize": 213,
+        "raceNumberHistoricalSampleSize": 468,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 7
       },
@@ -4855,20 +4855,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 26.5%",
+          "value": "万車券率 29.1%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 189R / global 27.1% / 過去結果のみ"
+          "note": "sample 213R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 25.6%",
+          "value": "万車券率 24%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 465R / global 27.1% / 過去結果のみ"
+          "note": "sample 466R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -4911,8 +4911,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 189,
-        "raceNumberHistoricalSampleSize": 465,
+        "venueHistoricalSampleSize": 213,
+        "raceNumberHistoricalSampleSize": 466,
         "riderCoverageCount": 8,
         "matchupCoverageCount": 5
       },
@@ -4982,20 +4982,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 26.5%",
+          "value": "万車券率 29.1%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 189R / global 27.1% / 過去結果のみ"
+          "note": "sample 213R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 28.5%",
+          "value": "万車券率 28.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 467R / global 27.1% / 過去結果のみ"
+          "note": "sample 468R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -5009,7 +5009,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 12R",
+          "value": "平均比較可能 11.7R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -5038,8 +5038,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 189,
-        "raceNumberHistoricalSampleSize": 467,
+        "venueHistoricalSampleSize": 213,
+        "raceNumberHistoricalSampleSize": 468,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 6
       },
@@ -5109,25 +5109,25 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 26.5%",
+          "value": "万車券率 29.1%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 189R / global 27.1% / 過去結果のみ"
+          "note": "sample 213R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 24.9%",
+          "value": "万車券率 24.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 466R / global 27.1% / 過去結果のみ"
+          "note": "sample 465R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
           "label": "rider EX母数",
-          "value": "9/9人 / LOW SAMPLE 1人",
+          "value": "9/9人 / LOW SAMPLE 0人",
           "contribution": 0,
           "source": "kurari-ex-exact-riders-index",
           "confidence": "high",
@@ -5136,7 +5136,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 12.6R",
+          "value": "平均比較可能 12.8R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -5165,10 +5165,10 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 189,
-        "raceNumberHistoricalSampleSize": 466,
+        "venueHistoricalSampleSize": 213,
+        "raceNumberHistoricalSampleSize": 465,
         "riderCoverageCount": 9,
-        "matchupCoverageCount": 5
+        "matchupCoverageCount": 6
       },
       "leakageGuard": {
         "currentResultUsed": false,
@@ -5228,16 +5228,16 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 26.5%",
+          "value": "万車券率 29.1%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 189R / global 27.1% / 過去結果のみ"
+          "note": "sample 213R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 25.3%",
+          "value": "万車券率 24.6%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
@@ -5255,7 +5255,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 10.9R",
+          "value": "平均比較可能 10.7R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -5284,7 +5284,7 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 189,
+        "venueHistoricalSampleSize": 213,
         "raceNumberHistoricalSampleSize": 471,
         "riderCoverageCount": 9,
         "matchupCoverageCount": 7
@@ -5355,20 +5355,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 26.5%",
+          "value": "万車券率 29.1%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 189R / global 27.1% / 過去結果のみ"
+          "note": "sample 213R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 23.3%",
+          "value": "万車券率 23%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 467R / global 27.1% / 過去結果のみ"
+          "note": "sample 469R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -5382,7 +5382,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 16.1R",
+          "value": "平均比較可能 14.1R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -5411,10 +5411,10 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 189,
-        "raceNumberHistoricalSampleSize": 467,
+        "venueHistoricalSampleSize": 213,
+        "raceNumberHistoricalSampleSize": 469,
         "riderCoverageCount": 9,
-        "matchupCoverageCount": 7
+        "matchupCoverageCount": 8
       },
       "leakageGuard": {
         "currentResultUsed": false,
@@ -5474,20 +5474,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 26.5%",
+          "value": "万車券率 29.1%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 189R / global 27.1% / 過去結果のみ"
+          "note": "sample 213R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 25.1%",
+          "value": "万車券率 24.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 467R / global 27.1% / 過去結果のみ"
+          "note": "sample 468R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -5530,8 +5530,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 189,
-        "raceNumberHistoricalSampleSize": 467,
+        "venueHistoricalSampleSize": 213,
+        "raceNumberHistoricalSampleSize": 468,
         "riderCoverageCount": 9,
         "matchupCoverageCount": 8
       },
@@ -5593,16 +5593,16 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 26.5%",
+          "value": "万車券率 29.1%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 189R / global 27.1% / 過去結果のみ"
+          "note": "sample 213R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 30.5%",
+          "value": "万車券率 30.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
@@ -5649,7 +5649,7 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 189,
+        "venueHistoricalSampleSize": 213,
         "raceNumberHistoricalSampleSize": 328,
         "riderCoverageCount": 9,
         "matchupCoverageCount": 9
@@ -5712,11 +5712,11 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 26.5%",
+          "value": "万車券率 29.1%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 189R / global 27.1% / 過去結果のみ"
+          "note": "sample 213R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
@@ -5730,7 +5730,7 @@
         {
           "key": "rider-ex-coverage",
           "label": "rider EX母数",
-          "value": "9/9人 / LOW SAMPLE 3人",
+          "value": "9/9人 / LOW SAMPLE 2人",
           "contribution": 0,
           "source": "kurari-ex-exact-riders-index",
           "confidence": "high",
@@ -5739,7 +5739,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 18.3R",
+          "value": "平均比較可能 14.9R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -5768,10 +5768,10 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 189,
+        "venueHistoricalSampleSize": 213,
         "raceNumberHistoricalSampleSize": 334,
         "riderCoverageCount": 9,
-        "matchupCoverageCount": 6
+        "matchupCoverageCount": 8
       },
       "leakageGuard": {
         "currentResultUsed": false,
@@ -5839,20 +5839,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 26.5%",
+          "value": "万車券率 29.1%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 189R / global 27.1% / 過去結果のみ"
+          "note": "sample 213R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 30.4%",
+          "value": "万車券率 33.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 250R / global 27.1% / 過去結果のみ"
+          "note": "sample 249R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -5866,7 +5866,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 19.4R",
+          "value": "平均比較可能 19.5R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -5895,8 +5895,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 189,
-        "raceNumberHistoricalSampleSize": 250,
+        "venueHistoricalSampleSize": 213,
+        "raceNumberHistoricalSampleSize": 249,
         "riderCoverageCount": 9,
         "matchupCoverageCount": 8
       },
@@ -5928,7 +5928,7 @@
         "singleCount": 0,
         "selfPowerCount": 4
       },
-      "riskScore": 3,
+      "riskScore": 4,
       "riskLevel": "HIGH",
       "confidence": "high",
       "pointRange": {
@@ -5958,20 +5958,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 26.5%",
+          "value": "万車券率 29.1%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 189R / global 27.1% / 過去結果のみ"
+          "note": "sample 213R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 31.8%",
-          "contribution": 0,
+          "value": "万車券率 35.7%",
+          "contribution": 1,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 245R / global 27.1% / 過去結果のみ"
+          "note": "sample 244R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -6014,8 +6014,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 189,
-        "raceNumberHistoricalSampleSize": 245,
+        "venueHistoricalSampleSize": 213,
+        "raceNumberHistoricalSampleSize": 244,
         "riderCoverageCount": 9,
         "matchupCoverageCount": 9
       },
@@ -6077,20 +6077,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 26.5%",
+          "value": "万車券率 29.1%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 189R / global 27.1% / 過去結果のみ"
+          "note": "sample 213R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 35.3%",
+          "value": "万車券率 34.5%",
           "contribution": 1,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 170R / global 27.1% / 過去結果のみ"
+          "note": "sample 168R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -6133,8 +6133,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 189,
-        "raceNumberHistoricalSampleSize": 170,
+        "venueHistoricalSampleSize": 213,
+        "raceNumberHistoricalSampleSize": 168,
         "riderCoverageCount": 9,
         "matchupCoverageCount": 8
       },
@@ -6166,7 +6166,7 @@
         "singleCount": 1,
         "selfPowerCount": 4
       },
-      "riskScore": 1,
+      "riskScore": 2,
       "riskLevel": "MEDIUM",
       "confidence": "high",
       "pointRange": {
@@ -6204,11 +6204,11 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 32.8%",
-          "contribution": 0,
+          "value": "万車券率 35.3%",
+          "contribution": 1,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 186R / global 27.1% / 過去結果のみ"
+          "note": "sample 153R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
@@ -6217,7 +6217,7 @@
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 469R / global 27.1% / 過去結果のみ"
+          "note": "sample 468R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -6231,7 +6231,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 15.5R",
+          "value": "平均比較可能 19.8R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -6252,10 +6252,10 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 186,
-        "raceNumberHistoricalSampleSize": 469,
+        "venueHistoricalSampleSize": 153,
+        "raceNumberHistoricalSampleSize": 468,
         "riderCoverageCount": 7,
-        "matchupCoverageCount": 4
+        "matchupCoverageCount": 5
       },
       "leakageGuard": {
         "currentResultUsed": false,
@@ -6285,14 +6285,14 @@
         "singleCount": 2,
         "selfPowerCount": 3
       },
-      "riskScore": 2,
-      "riskLevel": "MEDIUM",
+      "riskScore": 3,
+      "riskLevel": "HIGH",
       "confidence": "high",
       "pointRange": {
-        "label": "8〜10",
-        "min": 8,
-        "max": 10,
-        "action": "VALUE_10"
+        "label": "10〜12",
+        "min": 10,
+        "max": 12,
+        "action": "STRONG_VALUE_12"
       },
       "signals": [
         {
@@ -6323,20 +6323,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 32.8%",
-          "contribution": 0,
+          "value": "万車券率 35.3%",
+          "contribution": 1,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 186R / global 27.1% / 過去結果のみ"
+          "note": "sample 153R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 25.6%",
+          "value": "万車券率 24%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 465R / global 27.1% / 過去結果のみ"
+          "note": "sample 466R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -6371,8 +6371,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 186,
-        "raceNumberHistoricalSampleSize": 465,
+        "venueHistoricalSampleSize": 153,
+        "raceNumberHistoricalSampleSize": 466,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 3
       },
@@ -6404,14 +6404,14 @@
         "singleCount": 1,
         "selfPowerCount": 2
       },
-      "riskScore": 0,
-      "riskLevel": "LOW",
+      "riskScore": 1,
+      "riskLevel": "MEDIUM",
       "confidence": "high",
       "pointRange": {
-        "label": "8",
+        "label": "8〜10",
         "min": 8,
-        "max": 8,
-        "action": "BASE_8"
+        "max": 10,
+        "action": "VALUE_10"
       },
       "signals": [
         {
@@ -6442,20 +6442,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 32.8%",
-          "contribution": 0,
+          "value": "万車券率 35.3%",
+          "contribution": 1,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 186R / global 27.1% / 過去結果のみ"
+          "note": "sample 153R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 28.5%",
+          "value": "万車券率 28.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 467R / global 27.1% / 過去結果のみ"
+          "note": "sample 468R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -6469,10 +6469,10 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 11.5R",
+          "value": "平均比較可能 8.5R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
-          "confidence": "high"
+          "confidence": "medium"
         }
       ],
       "protectionGuide": {
@@ -6490,10 +6490,10 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 186,
-        "raceNumberHistoricalSampleSize": 467,
+        "venueHistoricalSampleSize": 153,
+        "raceNumberHistoricalSampleSize": 468,
         "riderCoverageCount": 7,
-        "matchupCoverageCount": 2
+        "matchupCoverageCount": 4
       },
       "leakageGuard": {
         "currentResultUsed": false,
@@ -6523,14 +6523,14 @@
         "singleCount": 1,
         "selfPowerCount": 2
       },
-      "riskScore": 0,
-      "riskLevel": "LOW",
+      "riskScore": 1,
+      "riskLevel": "MEDIUM",
       "confidence": "high",
       "pointRange": {
-        "label": "8",
+        "label": "8〜10",
         "min": 8,
-        "max": 8,
-        "action": "BASE_8"
+        "max": 10,
+        "action": "VALUE_10"
       },
       "signals": [
         {
@@ -6561,20 +6561,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 32.8%",
-          "contribution": 0,
+          "value": "万車券率 35.3%",
+          "contribution": 1,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 186R / global 27.1% / 過去結果のみ"
+          "note": "sample 153R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 24.9%",
+          "value": "万車券率 24.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 466R / global 27.1% / 過去結果のみ"
+          "note": "sample 465R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -6588,7 +6588,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 9.3R",
+          "value": "平均比較可能 9.8R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "medium"
@@ -6609,8 +6609,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 186,
-        "raceNumberHistoricalSampleSize": 466,
+        "venueHistoricalSampleSize": 153,
+        "raceNumberHistoricalSampleSize": 465,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 6
       },
@@ -6642,14 +6642,14 @@
         "singleCount": 1,
         "selfPowerCount": 2
       },
-      "riskScore": 0,
-      "riskLevel": "LOW",
+      "riskScore": 1,
+      "riskLevel": "MEDIUM",
       "confidence": "high",
       "pointRange": {
-        "label": "8",
+        "label": "8〜10",
         "min": 8,
-        "max": 8,
-        "action": "BASE_8"
+        "max": 10,
+        "action": "VALUE_10"
       },
       "signals": [
         {
@@ -6680,16 +6680,16 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 32.8%",
-          "contribution": 0,
+          "value": "万車券率 35.3%",
+          "contribution": 1,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 186R / global 27.1% / 過去結果のみ"
+          "note": "sample 153R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 25.3%",
+          "value": "万車券率 24.6%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
@@ -6707,7 +6707,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 7.3R",
+          "value": "平均比較可能 7.2R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "medium"
@@ -6728,7 +6728,7 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 186,
+        "venueHistoricalSampleSize": 153,
         "raceNumberHistoricalSampleSize": 471,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 6
@@ -6761,14 +6761,14 @@
         "singleCount": 0,
         "selfPowerCount": 2
       },
-      "riskScore": 0,
-      "riskLevel": "LOW",
+      "riskScore": 1,
+      "riskLevel": "MEDIUM",
       "confidence": "high",
       "pointRange": {
-        "label": "8",
+        "label": "8〜10",
         "min": 8,
-        "max": 8,
-        "action": "BASE_8"
+        "max": 10,
+        "action": "VALUE_10"
       },
       "signals": [
         {
@@ -6791,20 +6791,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 32.8%",
-          "contribution": 0,
+          "value": "万車券率 35.3%",
+          "contribution": 1,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 186R / global 27.1% / 過去結果のみ"
+          "note": "sample 153R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 23.3%",
+          "value": "万車券率 23%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 467R / global 27.1% / 過去結果のみ"
+          "note": "sample 469R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -6839,8 +6839,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 186,
-        "raceNumberHistoricalSampleSize": 467,
+        "venueHistoricalSampleSize": 153,
+        "raceNumberHistoricalSampleSize": 469,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 3
       },
@@ -6872,14 +6872,14 @@
         "singleCount": 2,
         "selfPowerCount": 2
       },
-      "riskScore": 2,
-      "riskLevel": "MEDIUM",
+      "riskScore": 3,
+      "riskLevel": "HIGH",
       "confidence": "high",
       "pointRange": {
-        "label": "8〜10",
-        "min": 8,
-        "max": 10,
-        "action": "VALUE_10"
+        "label": "10〜12",
+        "min": 10,
+        "max": 12,
+        "action": "STRONG_VALUE_12"
       },
       "signals": [
         {
@@ -6910,20 +6910,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 32.8%",
-          "contribution": 0,
+          "value": "万車券率 35.3%",
+          "contribution": 1,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 186R / global 27.1% / 過去結果のみ"
+          "note": "sample 153R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 25.1%",
+          "value": "万車券率 24.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 467R / global 27.1% / 過去結果のみ"
+          "note": "sample 468R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -6937,7 +6937,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 3.8R",
+          "value": "平均比較可能 4R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "medium"
@@ -6958,10 +6958,10 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 186,
-        "raceNumberHistoricalSampleSize": 467,
+        "venueHistoricalSampleSize": 153,
+        "raceNumberHistoricalSampleSize": 468,
         "riderCoverageCount": 5,
-        "matchupCoverageCount": 4
+        "matchupCoverageCount": 5
       },
       "leakageGuard": {
         "currentResultUsed": false,
@@ -7021,11 +7021,11 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 22.1%",
+          "value": "万車券率 20.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 163R / global 27.1% / 過去結果のみ"
+          "note": "sample 144R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
@@ -7034,7 +7034,7 @@
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 469R / global 27.1% / 過去結果のみ"
+          "note": "sample 468R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -7048,7 +7048,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 14.6R",
+          "value": "平均比較可能 15.3R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -7069,8 +7069,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 163,
-        "raceNumberHistoricalSampleSize": 469,
+        "venueHistoricalSampleSize": 144,
+        "raceNumberHistoricalSampleSize": 468,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 7
       },
@@ -7132,20 +7132,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 22.1%",
+          "value": "万車券率 20.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 163R / global 27.1% / 過去結果のみ"
+          "note": "sample 144R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 25.6%",
+          "value": "万車券率 24%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 465R / global 27.1% / 過去結果のみ"
+          "note": "sample 466R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -7180,8 +7180,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 163,
-        "raceNumberHistoricalSampleSize": 465,
+        "venueHistoricalSampleSize": 144,
+        "raceNumberHistoricalSampleSize": 466,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 6
       },
@@ -7251,20 +7251,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 22.1%",
+          "value": "万車券率 20.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 163R / global 27.1% / 過去結果のみ"
+          "note": "sample 144R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 28.5%",
+          "value": "万車券率 28.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 467R / global 27.1% / 過去結果のみ"
+          "note": "sample 468R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -7278,7 +7278,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 11.8R",
+          "value": "平均比較可能 11.7R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -7299,8 +7299,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 163,
-        "raceNumberHistoricalSampleSize": 467,
+        "venueHistoricalSampleSize": 144,
+        "raceNumberHistoricalSampleSize": 468,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 6
       },
@@ -7362,25 +7362,25 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 22.1%",
+          "value": "万車券率 20.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 163R / global 27.1% / 過去結果のみ"
+          "note": "sample 144R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 24.9%",
+          "value": "万車券率 24.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 466R / global 27.1% / 過去結果のみ"
+          "note": "sample 465R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
           "label": "rider EX母数",
-          "value": "7/7人 / LOW SAMPLE 1人",
+          "value": "7/7人 / LOW SAMPLE 0人",
           "contribution": 0,
           "source": "kurari-ex-exact-riders-index",
           "confidence": "high",
@@ -7389,7 +7389,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 8R",
+          "value": "平均比較可能 9.1R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "medium"
@@ -7410,10 +7410,10 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 163,
-        "raceNumberHistoricalSampleSize": 466,
+        "venueHistoricalSampleSize": 144,
+        "raceNumberHistoricalSampleSize": 465,
         "riderCoverageCount": 7,
-        "matchupCoverageCount": 6
+        "matchupCoverageCount": 7
       },
       "leakageGuard": {
         "currentResultUsed": false,
@@ -7481,16 +7481,16 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 22.1%",
+          "value": "万車券率 20.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 163R / global 27.1% / 過去結果のみ"
+          "note": "sample 144R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 25.3%",
+          "value": "万車券率 24.6%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
@@ -7508,7 +7508,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 14.7R",
+          "value": "平均比較可能 13.7R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -7529,10 +7529,10 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 163,
+        "venueHistoricalSampleSize": 144,
         "raceNumberHistoricalSampleSize": 471,
         "riderCoverageCount": 7,
-        "matchupCoverageCount": 6
+        "matchupCoverageCount": 7
       },
       "leakageGuard": {
         "currentResultUsed": false,
@@ -7592,20 +7592,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 22.1%",
+          "value": "万車券率 20.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 163R / global 27.1% / 過去結果のみ"
+          "note": "sample 144R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 23.3%",
+          "value": "万車券率 23%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 467R / global 27.1% / 過去結果のみ"
+          "note": "sample 469R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -7648,8 +7648,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 163,
-        "raceNumberHistoricalSampleSize": 467,
+        "venueHistoricalSampleSize": 144,
+        "raceNumberHistoricalSampleSize": 469,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 7
       },
@@ -7711,20 +7711,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 22.1%",
+          "value": "万車券率 20.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 163R / global 27.1% / 過去結果のみ"
+          "note": "sample 144R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 25.1%",
+          "value": "万車券率 24.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 467R / global 27.1% / 過去結果のみ"
+          "note": "sample 468R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -7738,7 +7738,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 14R",
+          "value": "平均比較可能 14.2R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -7767,8 +7767,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 163,
-        "raceNumberHistoricalSampleSize": 467,
+        "venueHistoricalSampleSize": 144,
+        "raceNumberHistoricalSampleSize": 468,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 6
       },
@@ -7838,16 +7838,16 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 22.1%",
+          "value": "万車券率 20.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 163R / global 27.1% / 過去結果のみ"
+          "note": "sample 144R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 30.5%",
+          "value": "万車券率 30.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
@@ -7865,7 +7865,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 11.8R",
+          "value": "平均比較可能 11.7R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -7894,7 +7894,7 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 163,
+        "venueHistoricalSampleSize": 144,
         "raceNumberHistoricalSampleSize": 328,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 6
@@ -7957,11 +7957,11 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 22.1%",
+          "value": "万車券率 20.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 163R / global 27.1% / 過去結果のみ"
+          "note": "sample 144R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
@@ -7975,7 +7975,7 @@
         {
           "key": "rider-ex-coverage",
           "label": "rider EX母数",
-          "value": "6/7人 / LOW SAMPLE 2人",
+          "value": "7/7人 / LOW SAMPLE 2人",
           "contribution": 0,
           "source": "kurari-ex-exact-riders-index",
           "confidence": "high",
@@ -7984,7 +7984,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 14.4R",
+          "value": "平均比較可能 12.3R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -8013,10 +8013,10 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 163,
+        "venueHistoricalSampleSize": 144,
         "raceNumberHistoricalSampleSize": 334,
-        "riderCoverageCount": 6,
-        "matchupCoverageCount": 5
+        "riderCoverageCount": 7,
+        "matchupCoverageCount": 7
       },
       "leakageGuard": {
         "currentResultUsed": false,
@@ -8076,20 +8076,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 22.1%",
+          "value": "万車券率 20.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 163R / global 27.1% / 過去結果のみ"
+          "note": "sample 144R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 30.4%",
+          "value": "万車券率 33.3%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 250R / global 27.1% / 過去結果のみ"
+          "note": "sample 249R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -8132,8 +8132,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 163,
-        "raceNumberHistoricalSampleSize": 250,
+        "venueHistoricalSampleSize": 144,
+        "raceNumberHistoricalSampleSize": 249,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 6
       },
@@ -8165,7 +8165,7 @@
         "singleCount": 0,
         "selfPowerCount": 3
       },
-      "riskScore": 1,
+      "riskScore": 2,
       "riskLevel": "MEDIUM",
       "confidence": "high",
       "pointRange": {
@@ -8195,20 +8195,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 22.1%",
+          "value": "万車券率 20.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 163R / global 27.1% / 過去結果のみ"
+          "note": "sample 144R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 31.8%",
-          "contribution": 0,
+          "value": "万車券率 35.7%",
+          "contribution": 1,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 245R / global 27.1% / 過去結果のみ"
+          "note": "sample 244R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -8222,7 +8222,7 @@
         {
           "key": "matchup-coverage",
           "label": "MATCHUP coverage",
-          "value": "平均比較可能 11.4R",
+          "value": "平均比較可能 11.3R",
           "contribution": 0,
           "source": "kurari-ex-exact-matchups-index",
           "confidence": "high"
@@ -8251,8 +8251,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 163,
-        "raceNumberHistoricalSampleSize": 245,
+        "venueHistoricalSampleSize": 144,
+        "raceNumberHistoricalSampleSize": 244,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 7
       },
@@ -8314,20 +8314,20 @@
         {
           "key": "venue-historical-turbulence",
           "label": "会場historical荒れ",
-          "value": "万車券率 22.1%",
+          "value": "万車券率 20.8%",
           "contribution": 0,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 163R / global 27.1% / 過去結果のみ"
+          "note": "sample 144R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "race-number-historical-turbulence",
           "label": "R番号historical荒れ",
-          "value": "万車券率 35.3%",
+          "value": "万車券率 34.5%",
           "contribution": 1,
           "source": "kurari-ex-result-trend-lab-history",
           "confidence": "high",
-          "note": "sample 170R / global 27.1% / 過去結果のみ"
+          "note": "sample 168R / global 27.1% / 過去結果のみ"
         },
         {
           "key": "rider-ex-coverage",
@@ -8370,8 +8370,8 @@
         "todayRace": true,
         "officialEntries": true,
         "officialLineup": true,
-        "venueHistoricalSampleSize": 163,
-        "raceNumberHistoricalSampleSize": 170,
+        "venueHistoricalSampleSize": 144,
+        "raceNumberHistoricalSampleSize": 168,
         "riderCoverageCount": 7,
         "matchupCoverageCount": 7
       },
