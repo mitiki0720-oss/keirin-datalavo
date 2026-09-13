@@ -383,20 +383,28 @@ function classifyRawInput(inputFile, scanRoot) {
   const relativePath = path.relative(scanRoot, inputFile).replaceAll(path.sep, "/");
   const fileName = path.basename(relativePath).toLowerCase();
   const match = fileName.match(
-    /^(?<slug>[a-z0-9-]+?)-(?<type>prediction|result|summary)(?<suffix>\d{4})?\.(?:txt|md)$/u,
+    /^(?:(?<fileDate>\d{4}-\d{2}-\d{2})-)?(?<slug>[a-z0-9-]+?)-(?<type>predictions?|results?|summary)(?<suffix>\d{4})?\.(?:txt|md)$/u,
   );
   if (!match?.groups) return { relativePath, classified: false };
 
   const canonicalSlug = slugAliases[match.groups.slug] ?? match.groups.slug;
-  const date = relativePath.split("/").find((segment) => /^\d{4}-\d{2}-\d{2}$/u.test(segment)) ?? null;
+  const folderDate = relativePath.split("/").find((segment) => /^\d{4}-\d{2}-\d{2}$/u.test(segment)) ?? null;
+  if (match.groups.fileDate && folderDate && match.groups.fileDate !== folderDate) {
+    return { relativePath, classified: false, reason: "filename-folder-date-mismatch" };
+  }
+  const type = match.groups.type === "predictions"
+    ? "prediction"
+    : match.groups.type === "results"
+      ? "result"
+      : match.groups.type;
   return {
     relativePath,
     classified: true,
     inputFile,
     venueKey: canonicalSlug,
     venueName: venueMap[canonicalSlug] ?? canonicalSlug,
-    type: match.groups.type,
-    date,
+    type,
+    date: match.groups.fileDate ?? folderDate,
     irregular: Boolean(match.groups.suffix),
   };
 }

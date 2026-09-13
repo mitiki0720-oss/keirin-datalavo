@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
   "registrationNo": "014459",
-  "name": "根藤 浩二",
-  "nameKey": "根藤浩二",
+  "name": "根藤 浩二 登録番号014459 千葉 40歳",
+  "nameKey": "根藤浩二登録番号014459千葉40歳",
   "sourceType": "EXACT",
-  "generatedAt": "2026-09-04T23:39:22.838Z",
+  "generatedAt": "2026-09-12T11:03:15.693Z",
   "period": {
     "from": "2026-06-15",
     "to": "2026-08-06"
   },
   "identity": {
-    "status": "manual-override",
+    "status": "parsed-registration-no",
     "registrationNoResolved": true
   },
   "coverage": {
@@ -107,18 +107,18 @@
     "sourceType": "EXACT",
     "source": "kurari-ex-history",
     "identityKey": "registrationNo",
-    "generatedAt": "2026-09-04T23:39:22.838Z",
-    "excludedIdentityConflictCount": 1,
-    "excludedSettledIdentityConflictCount": 1,
+    "generatedAt": "2026-09-12T11:03:15.693Z",
+    "excludedIdentityConflictCount": 0,
+    "excludedSettledIdentityConflictCount": 0,
     "overall": {
-      "settledStarts": 5,
+      "settledStarts": 6,
       "wins": 1,
       "seconds": 1,
       "thirds": 2,
-      "outside": 1,
-      "winRate": 20,
-      "top2Rate": 40,
-      "top3Rate": 80
+      "outside": 2,
+      "winRate": 16.7,
+      "top2Rate": 33.3,
+      "top3Rate": 66.7
     },
     "items": [
       {
@@ -163,6 +163,47 @@
         "sampleQuality": "unavailable"
       },
       {
+        "venueKey": "iwakitaira",
+        "venueName": "いわき平",
+        "observedStarts": 1,
+        "settledStarts": 1,
+        "wins": 0,
+        "seconds": 0,
+        "thirds": 0,
+        "outside": 1,
+        "winRate": 0,
+        "top2Rate": 0,
+        "top3Rate": 0,
+        "period": {
+          "from": "2026-08-06",
+          "to": "2026-08-06"
+        },
+        "latestRaceDate": "2026-08-06",
+        "recent": {
+          "windowSize": 5,
+          "sampleSize": 1,
+          "settledStarts": 1,
+          "windowComplete": false,
+          "period": {
+            "from": "2026-08-06",
+            "to": "2026-08-06"
+          },
+          "wins": 0,
+          "seconds": 0,
+          "thirds": 0,
+          "outside": 1,
+          "winRate": 0,
+          "top2Rate": 0,
+          "top3Rate": 0
+        },
+        "delta": {
+          "winRate": -16.7,
+          "top2Rate": -33.3,
+          "top3Rate": -66.7
+        },
+        "sampleQuality": "low-sample"
+      },
+      {
         "venueKey": "matsudo",
         "venueName": "松戸",
         "observedStarts": 2,
@@ -197,9 +238,9 @@
           "top3Rate": 100
         },
         "delta": {
-          "winRate": -20,
-          "top2Rate": -40,
-          "top3Rate": 20
+          "winRate": -16.7,
+          "top2Rate": -33.3,
+          "top3Rate": 33.3
         },
         "sampleQuality": "low-sample"
       },
@@ -238,9 +279,9 @@
           "top3Rate": 66.7
         },
         "delta": {
-          "winRate": 13.3,
-          "top2Rate": 26.7,
-          "top3Rate": -13.3
+          "winRate": 16.6,
+          "top2Rate": 33.4,
+          "top3Rate": 0
         },
         "sampleQuality": "low-sample"
       }

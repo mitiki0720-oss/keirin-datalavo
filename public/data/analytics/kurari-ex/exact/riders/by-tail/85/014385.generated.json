@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
   "registrationNo": "014385",
-  "name": "山本 淳",
-  "nameKey": "山本淳",
+  "name": "山本 淳 登録番号014385 神奈川 50歳",
+  "nameKey": "山本淳登録番号014385神奈川50歳",
   "sourceType": "EXACT",
-  "generatedAt": "2026-09-04T23:39:22.838Z",
+  "generatedAt": "2026-09-12T11:03:15.693Z",
   "period": {
     "from": "2026-06-10",
     "to": "2026-08-06"
   },
   "identity": {
-    "status": "manual-override",
+    "status": "parsed-registration-no",
     "registrationNoResolved": true
   },
   "coverage": {
@@ -107,18 +107,18 @@
     "sourceType": "EXACT",
     "source": "kurari-ex-history",
     "identityKey": "registrationNo",
-    "generatedAt": "2026-09-04T23:39:22.838Z",
-    "excludedIdentityConflictCount": 1,
-    "excludedSettledIdentityConflictCount": 1,
+    "generatedAt": "2026-09-12T11:03:15.693Z",
+    "excludedIdentityConflictCount": 0,
+    "excludedSettledIdentityConflictCount": 0,
     "overall": {
-      "settledStarts": 4,
+      "settledStarts": 5,
       "wins": 0,
-      "seconds": 0,
+      "seconds": 1,
       "thirds": 0,
       "outside": 4,
       "winRate": 0,
-      "top2Rate": 0,
-      "top3Rate": 0
+      "top2Rate": 20,
+      "top3Rate": 20
     },
     "items": [
       {
@@ -163,6 +163,47 @@
         "sampleQuality": "unavailable"
       },
       {
+        "venueKey": "iwakitaira",
+        "venueName": "いわき平",
+        "observedStarts": 1,
+        "settledStarts": 1,
+        "wins": 0,
+        "seconds": 1,
+        "thirds": 0,
+        "outside": 0,
+        "winRate": 0,
+        "top2Rate": 100,
+        "top3Rate": 100,
+        "period": {
+          "from": "2026-08-06",
+          "to": "2026-08-06"
+        },
+        "latestRaceDate": "2026-08-06",
+        "recent": {
+          "windowSize": 5,
+          "sampleSize": 1,
+          "settledStarts": 1,
+          "windowComplete": false,
+          "period": {
+            "from": "2026-08-06",
+            "to": "2026-08-06"
+          },
+          "wins": 0,
+          "seconds": 1,
+          "thirds": 0,
+          "outside": 0,
+          "winRate": 0,
+          "top2Rate": 100,
+          "top3Rate": 100
+        },
+        "delta": {
+          "winRate": 0,
+          "top2Rate": 80,
+          "top3Rate": 80
+        },
+        "sampleQuality": "low-sample"
+      },
+      {
         "venueKey": "keiokaku",
         "venueName": "京王閣",
         "observedStarts": 3,
@@ -198,8 +239,8 @@
         },
         "delta": {
           "winRate": 0,
-          "top2Rate": 0,
-          "top3Rate": 0
+          "top2Rate": -20,
+          "top3Rate": -20
         },
         "sampleQuality": "low-sample"
       },
@@ -280,8 +321,8 @@
         },
         "delta": {
           "winRate": 0,
-          "top2Rate": 0,
-          "top3Rate": 0
+          "top2Rate": -20,
+          "top3Rate": -20
         },
         "sampleQuality": "low-sample"
       }

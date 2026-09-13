@@ -2,15 +2,15 @@
   "schemaVersion": 1,
   "registrationNo": "015262",
   "name": "内山 雅貴",
-  "nameKey": "内山雅貴",
+  "nameKey": "内山雅貴登録番号015262静岡31歳",
   "sourceType": "EXACT",
-  "generatedAt": "2026-09-04T23:39:22.838Z",
+  "generatedAt": "2026-09-12T11:03:15.693Z",
   "period": {
     "from": "2026-06-09",
     "to": "2026-08-06"
   },
   "identity": {
-    "status": "unique-player-card-name",
+    "status": "parsed-registration-no",
     "registrationNoResolved": true
   },
   "coverage": {
@@ -107,18 +107,18 @@
     "sourceType": "EXACT",
     "source": "kurari-ex-history",
     "identityKey": "registrationNo",
-    "generatedAt": "2026-09-04T23:39:22.838Z",
-    "excludedIdentityConflictCount": 1,
-    "excludedSettledIdentityConflictCount": 1,
+    "generatedAt": "2026-09-12T11:03:15.693Z",
+    "excludedIdentityConflictCount": 0,
+    "excludedSettledIdentityConflictCount": 0,
     "overall": {
-      "settledStarts": 3,
+      "settledStarts": 4,
       "wins": 1,
       "seconds": 0,
-      "thirds": 1,
+      "thirds": 2,
       "outside": 1,
-      "winRate": 33.3,
-      "top2Rate": 33.3,
-      "top3Rate": 66.7
+      "winRate": 25,
+      "top2Rate": 25,
+      "top3Rate": 75
     },
     "items": [
       {
@@ -163,6 +163,47 @@
         "sampleQuality": "unavailable"
       },
       {
+        "venueKey": "iwakitaira",
+        "venueName": "いわき平",
+        "observedStarts": 1,
+        "settledStarts": 1,
+        "wins": 0,
+        "seconds": 0,
+        "thirds": 1,
+        "outside": 0,
+        "winRate": 0,
+        "top2Rate": 0,
+        "top3Rate": 100,
+        "period": {
+          "from": "2026-08-06",
+          "to": "2026-08-06"
+        },
+        "latestRaceDate": "2026-08-06",
+        "recent": {
+          "windowSize": 5,
+          "sampleSize": 1,
+          "settledStarts": 1,
+          "windowComplete": false,
+          "period": {
+            "from": "2026-08-06",
+            "to": "2026-08-06"
+          },
+          "wins": 0,
+          "seconds": 0,
+          "thirds": 1,
+          "outside": 0,
+          "winRate": 0,
+          "top2Rate": 0,
+          "top3Rate": 100
+        },
+        "delta": {
+          "winRate": -25,
+          "top2Rate": -25,
+          "top3Rate": 25
+        },
+        "sampleQuality": "low-sample"
+      },
+      {
         "venueKey": "maebashi",
         "venueName": "前橋",
         "observedStarts": 3,
@@ -197,9 +238,9 @@
           "top3Rate": 66.7
         },
         "delta": {
-          "winRate": 0,
-          "top2Rate": 0,
-          "top3Rate": 0
+          "winRate": 8.3,
+          "top2Rate": 8.3,
+          "top3Rate": -8.3
         },
         "sampleQuality": "low-sample"
       }

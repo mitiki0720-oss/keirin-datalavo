@@ -203,6 +203,8 @@ function extractObservationNameKey(value) {
   const text = String(value ?? "").normalize("NFKC").trim();
   const structuredName = text.match(/(?:^|\|)\u9078\u624b\u540d=([^|]+)/u)?.[1]?.trim();
   if (structuredName) return normalizeRiderName(structuredName);
+  const registrationLabeledName = text.match(/^(.+?)\s+\u767b\u9332\u756a\u53f7\d{5,6}(?:\s|$)/u)?.[1]?.trim();
+  if (registrationLabeledName) return normalizeRiderName(registrationLabeledName);
   const slashName = text.split("/").map((part) => part.trim()).find(Boolean) ?? text;
   return normalizeRiderName(slashName);
 }
@@ -476,10 +478,14 @@ async function main() {
         .findIndex((key) => race.result?.[key]?.carNo === starter.carNo) + 1;
       const observations = observationsByRider.get(identity.registrationNo) ?? {
         identity,
+        identityDate: race.date,
         observations: [],
       };
       const sourceNameKey = extractObservationNameKey(starter.name);
-      const canonicalNameKey = normalizeRiderName(identity.card?.nameKey ?? identity.card?.name);
+      if (race.date >= observations.identityDate) {
+        observations.identity = identity;
+        observations.identityDate = race.date;
+      }
       observations.observations.push({
         date: race.date,
         venueKey: race.venueKey,
@@ -495,7 +501,7 @@ async function main() {
         carNo: String(starter.carNo || "unknown"),
         role: resolveLineupRole(race, starter.carNo),
         roleEligible: resolveLineupRole(race, starter.carNo) != null,
-        venueIdentityConsistent: !sourceNameKey || !canonicalNameKey || sourceNameKey === canonicalNameKey,
+        sourceNameKey,
       });
       observationsByRider.set(identity.registrationNo, observations);
     }
@@ -525,6 +531,16 @@ async function main() {
 
   for (const [registrationNo, entry] of [...observationsByRider.entries()].sort()) {
     const { identity, observations } = entry;
+    const canonicalNameKey = extractObservationNameKey(
+      identity.card?.nameKey ?? identity.card?.name ?? identity.name,
+    );
+    const venueObservations = observations.map((observation) => ({
+      ...observation,
+      venueIdentityConsistent:
+        !observation.sourceNameKey
+        || !canonicalNameKey
+        || observation.sourceNameKey === canonicalNameKey,
+    }));
     const dates = observations.map((item) => item.date).filter(Boolean).sort();
     const overallAggregate = emptyAggregate();
     for (const observation of observations) addObservation(overallAggregate, observation);
@@ -553,7 +569,7 @@ async function main() {
       },
       overall: summarizeAggregate(overallAggregate),
       recentForm: buildRecentForm(observations),
-      venueSuitability: buildVenueSuitability(observations, generatedAt),
+      venueSuitability: buildVenueSuitability(venueObservations, generatedAt),
       winningMethods: {
         escape: {
           count: overallAggregate.escapeWins,

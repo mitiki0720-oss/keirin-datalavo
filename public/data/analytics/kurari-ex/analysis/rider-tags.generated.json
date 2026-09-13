@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-04T23:44:24.097Z",
+  "generatedAt": "2026-09-12T11:20:07.175Z",
   "source": "kurari-ex-rider-score-v1",
   "sourceType": "EXACT_RIDER_SCORE",
   "period": {
     "from": "2026-05-09",
     "to": "2026-09-01"
   },
-  "riderCount": 2379,
+  "riderCount": 2380,
   "qualityCounts": {
     "complete": 6,
     "partial": 1987,
-    "low-sample": 358,
+    "low-sample": 359,
     "identity-only": 28
   },
   "inclusionPolicy": {
@@ -37,13 +37,13 @@
       "tag": "CONFIRMED_START_SHORT",
       "label": "出走数不足",
       "memo": "confirmedStartCount が5未満。",
-      "riderCount": 386
+      "riderCount": 387
     },
     {
       "tag": "LOW_SAMPLE_GROWING",
       "label": "低サンプル育成中",
       "memo": "出走数が少ないため、消さずに育成中として保持する。",
-      "riderCount": 358
+      "riderCount": 359
     },
     {
       "tag": "TOP3_CANDIDATE",
@@ -55,7 +55,7 @@
       "tag": "TOP2_CANDIDATE",
       "label": "2着候補",
       "memo": "2連対率が一定以上で、2着候補に使える。",
-      "riderCount": 115
+      "riderCount": 116
     },
     {
       "tag": "IDENTITY_ONLY_GROWING",
