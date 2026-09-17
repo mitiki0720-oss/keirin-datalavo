@@ -139,7 +139,8 @@ const resolveStructuredPlan = (
   if (!plan || plan.status !== "structured") return null;
   const purchaseIndices = normalizeIndexList(plan.purchaseTicketIndices);
   const shadowIndices = normalizeIndexList(plan.shadowTicketIndices);
-  if (purchaseIndices.length === 0 && shadowIndices.length === 0) return null;
+  const decisionText = String(plan.purchaseDecision ?? "").trim().toUpperCase().replace(/[ -]/g, "_");
+  if (purchaseIndices.length === 0 && shadowIndices.length === 0 && decisionText !== "SKIP") return null;
 
   const byIndex = new Map(tickets.map((ticket) => [ticket.index, ticket]));
   const missing = [...purchaseIndices, ...shadowIndices].filter((index) => !byIndex.has(index));
@@ -151,16 +152,51 @@ const resolveStructuredPlan = (
   const overlap = shadowCandidates.filter((ticket) => purchaseKeys.has(`${ticket.betType}:${ticket.combination}`));
   const shadowTickets = shadowCandidates.filter((ticket) => !purchaseKeys.has(`${ticket.betType}:${ticket.combination}`));
   const unitStake = Number(plan.unitStakeYen ?? 100);
+  const normalizedUnitStake = Number.isFinite(unitStake) && unitStake > 0 ? unitStake : 100;
+  const declaredDecision: ReviewTicketClassification["purchaseDecision"] = decisionText === "SKIP"
+    ? "skip"
+    : decisionText === "VALUE_BUY"
+      ? "value-buy"
+      : decisionText === "BUY"
+        ? "buy"
+        : "unknown";
+  const declaredPurchasePoints = Number(plan.declaredPurchasePoints);
+  const declaredInvestmentYen = Number(plan.declaredInvestmentYen);
+  const warnings = overlap.length > 0 ? [`purchase-shadow-overlap:${overlap.map((ticket) => ticket.index).join(",")}`] : [];
+
+  if (declaredDecision === "skip") {
+    if (purchaseTickets.length > 0) warnings.push(`skip-has-purchase-tickets:${purchaseTickets.length}`);
+    if (Number.isFinite(declaredPurchasePoints) && declaredPurchasePoints !== 0) warnings.push(`skip-purchase-points:${declaredPurchasePoints}`);
+    if (Number.isFinite(declaredInvestmentYen) && declaredInvestmentYen !== 0) warnings.push(`skip-investment-yen:${declaredInvestmentYen}`);
+  } else {
+    if (Number.isFinite(declaredPurchasePoints) && declaredPurchasePoints !== purchaseTickets.length) {
+      warnings.push(`purchase-count-mismatch:declared=${declaredPurchasePoints},parsed=${purchaseTickets.length}`);
+    }
+    if (Number.isFinite(declaredInvestmentYen) && declaredInvestmentYen !== purchaseTickets.length * normalizedUnitStake) {
+      warnings.push(`investment-points-mismatch:investment=${declaredInvestmentYen},points=${purchaseTickets.length}`);
+    }
+  }
+  const hasValidationError = warnings.some((warning) =>
+    warning.startsWith("skip-") ||
+    warning.startsWith("purchase-count-mismatch") ||
+    warning.startsWith("investment-points-mismatch")
+  );
 
   return {
-    status: "classified",
+    status: hasValidationError ? "unknown" : "classified",
     source,
-    purchaseDecision: purchaseTickets.length > 0 ? "buy" : "unknown",
-    explicitSkip: false,
-    purchaseTickets,
+    purchaseDecision: declaredDecision !== "unknown"
+      ? declaredDecision
+      : purchaseTickets.length > 0
+        ? "buy"
+        : "unknown",
+    explicitSkip: declaredDecision === "skip",
+    purchaseTickets: declaredDecision === "skip" ? [] : purchaseTickets,
     shadowTickets,
-    unitStakeYen: Number.isFinite(unitStake) && unitStake > 0 ? unitStake : 100,
-    warnings: overlap.length > 0 ? [`purchase-shadow-overlap:${overlap.map((ticket) => ticket.index).join(",")}`] : [],
+    unitStakeYen: normalizedUnitStake,
+    declaredPurchasePoints: Number.isFinite(declaredPurchasePoints) ? declaredPurchasePoints : undefined,
+    declaredInvestmentYen: Number.isFinite(declaredInvestmentYen) ? declaredInvestmentYen : undefined,
+    warnings,
   };
 };
 

@@ -21,6 +21,10 @@ import {
   downloadKeirinPredictionExport,
 } from "../lib/keirinPredictionExport";
 import {
+  buildKeirinPredictionOutputFormatContract,
+  parseKeirinCanonicalPredictionBlock,
+} from "../lib/keirinPredictionCanonicalFormat";
+import {
   buildPredictionGptMaterialSourceContract,
   type PredictionRegistrationIdentityCandidate,
 } from "../lib/predictionGptSourceContract";
@@ -759,6 +763,9 @@ export type StructuredPredictionBetPlan = {
   declaredHeadCandidates?: string[];
   unitStakeYen: 100;
   actualStakeYen: null;
+  purchaseDecision?: "BUY" | "VALUE_BUY" | "SKIP";
+  declaredPurchasePoints?: number;
+  declaredInvestmentYen?: number;
 };
 
 export type StructuredPrediction = {
@@ -773,6 +780,15 @@ export type StructuredPrediction = {
   };
   tickets: StructuredPredictionTicket[];
   betPlan?: StructuredPredictionBetPlan;
+  raceMetadata?: {
+    date: string;
+    venue: string;
+    raceNumber: number;
+    raceSelectGrade: "A" | "B" | "C";
+    purchaseDecision: "BUY" | "VALUE_BUY" | "SKIP";
+    purchasePoints: number;
+    investmentYen: number;
+  };
 };
 
 export type PredictionResultMap = Record<string, PredictionResultRecord>;
@@ -1858,13 +1874,23 @@ export const normalizePredictionTrifectaText = (value: string) => value.normaliz
 
 export const extractPredictionBetEntries = (predictionText: string): PredictionBetEntry[] => {
   const normalizedText = String(predictionText ?? "").replace(/\r\n/g, "\n").normalize("NFKC");
+  const canonical = parseKeirinCanonicalPredictionBlock(normalizedText);
+  if (canonical.isCanonical) {
+    return canonical.isValid
+      ? canonical.purchaseTickets.map((ticket) => ({
+          index: ticket.displayIndex,
+          betType: ticket.betType,
+          combination: ticket.combination,
+        }))
+      : [];
+  }
   const isPredictionBetBlockStart = (line: string) => {
     const normalizedLine = line.replace(/[【】]/g, "").trim();
     return /^買い目/.test(normalizedLine);
   };
   const isPredictionBetBlockEnd = (line: string) => {
     const normalizedLine = line.replace(/[【】]/g, "").trim();
-    return /^(タグ|結果|メモ|振り返り)/.test(normalizedLine);
+    return /^(影目|影買い目|設計メモ|買目設計メモ|タグ|結果|メモ|振り返り)/.test(normalizedLine);
   };
 
   const blockLines: string[] = [];
@@ -1912,22 +1938,22 @@ export const extractPredictionBetEntries = (predictionText: string): PredictionB
 
     // Numbered ticket line: "NN [betType] combination" or "NN combination"
     // combination can be X-Y-Z (trifecta) or X-Y (exacta)
-    const withType = line.match(/^(\d{1,2})\s+(3連単|2車単)\s+([1-9]\s*[-→＞ー−–]\s*[1-9](?:\s*[-→＞ー−–]\s*[1-9])?)(?:\s|$)/);
+    const withType = line.match(/^(\d{1,2})\s*(?:\|\s*)?(3連単|2車単)\s*(?:\|\s*)?([1-9]\s*[-→＞ー−–]\s*[1-9](?:\s*[-→＞ー−–]\s*[1-9])?)(?:\s*\||\s|$)/);
     if (withType) {
       const betType = withType[2];
       const combination = normalizePredictionTrifectaText(withType[3]);
       const index = withType[1].padStart(2, "0");
-      const key = `${index}:${betType}:${combination}`;
+      const key = `${betType}:${combination}`;
       if (!seen.has(key)) { seen.add(key); entries.push({ index, betType, combination }); }
       continue;
     }
 
-    const noType = line.match(/^(\d{1,2})\s+([1-9]\s*[-→＞ー−–]\s*[1-9](?:\s*[-→＞ー−–]\s*[1-9])?)(?:\s|$)/);
+    const noType = line.match(/^(\d{1,2})\s*(?:\|\s*)?([1-9]\s*[-→＞ー−–]\s*[1-9](?:\s*[-→＞ー−–]\s*[1-9])?)(?:\s*\||\s|$)/);
     if (noType) {
       const betType = currentBetType;
       const combination = normalizePredictionTrifectaText(noType[2]);
       const index = noType[1].padStart(2, "0");
-      const key = `${index}:${betType}:${combination}`;
+      const key = `${betType}:${combination}`;
       if (!seen.has(key)) { seen.add(key); entries.push({ index, betType, combination }); }
     }
   }
@@ -1944,6 +1970,8 @@ export const extractPredictionTrifectaCandidates = (value: string) => {
 export const extractPredictionBetEntriesWithFallback = (predictionText: string): PredictionBetEntry[] => {
   const entries = extractPredictionBetEntries(predictionText);
   if (entries.length > 0) return entries;
+  const normalizedText = String(predictionText ?? "").normalize("NFKC");
+  if (/^\s*【(?:買い目|購入買い目|実購入)】\s*$/mu.test(normalizedText)) return [];
   return extractPredictionTrifectaCandidates(predictionText).map((combination, index) => ({
     index: String(index + 1).padStart(2, "0"),
     betType: "3連単",
@@ -2059,7 +2087,17 @@ export const parsePredictionTextToStructuredPrediction = (
   predictionText: string,
 ): StructuredPrediction => {
   const text = String(predictionText ?? "").replace(/\r\n/g, "\n").normalize("NFKC");
-  const betEntries = extractPredictionBetEntriesWithFallback(text);
+  const canonical = parseKeirinCanonicalPredictionBlock(text);
+  const canonicalTickets = canonical.isValid
+    ? [...canonical.purchaseTickets, ...canonical.shadowTickets]
+    : [];
+  const betEntries = canonicalTickets.length > 0
+    ? canonicalTickets.map((ticket) => ({
+        index: ticket.structuredIndex,
+        betType: ticket.betType,
+        combination: ticket.combination,
+      }))
+    : extractPredictionBetEntriesWithFallback(text);
 
   const lines = text
     .split("\n")
@@ -2067,6 +2105,7 @@ export const parsePredictionTextToStructuredPrediction = (
     .filter(Boolean);
 
   const tickets: StructuredPredictionTicket[] = betEntries.map((entry) => {
+    const canonicalTicket = canonicalTickets.find((ticket) => ticket.structuredIndex === entry.index);
     const relatedLine =
       lines.find((line) => line.includes(entry.combination)) ??
       lines.find((line) => line.includes(entry.index)) ??
@@ -2076,14 +2115,27 @@ export const parsePredictionTextToStructuredPrediction = (
       index: entry.index,
       betType: entry.betType,
       combination: entry.combination,
-      group: detectStructuredPredictionTicketGroup(relatedLine),
-      note: relatedLine.replace(entry.combination, "").trim() || undefined,
+      group: detectStructuredPredictionTicketGroup(canonicalTicket?.role ?? relatedLine),
+      note: canonicalTicket?.role ?? (relatedLine.replace(entry.combination, "").trim() || undefined),
     };
   });
-  const betPlan = extractExplicitStructuredBetPlan(
-    text,
-    new Set(tickets.map((ticket) => ticket.index)),
-  );
+  const betPlan = canonical.isValid
+    ? {
+        version: 1 as const,
+        status: "structured" as const,
+        source: "manual-jsonize-explicit-bet-plan" as const,
+        purchaseTicketIndices: canonical.purchaseTickets.map((ticket) => ticket.structuredIndex),
+        shadowTicketIndices: canonical.shadowTickets.map((ticket) => ticket.structuredIndex),
+        unitStakeYen: 100 as const,
+        actualStakeYen: null,
+        purchaseDecision: canonical.purchaseDecision,
+        declaredPurchasePoints: canonical.purchasePoints,
+        declaredInvestmentYen: canonical.investmentYen,
+      }
+    : extractExplicitStructuredBetPlan(
+        text,
+        new Set(tickets.map((ticket) => ticket.index)),
+      );
 
   return {
     version: 1,
@@ -2092,6 +2144,17 @@ export const parsePredictionTextToStructuredPrediction = (
     summary: extractStructuredPredictionSummary(text),
     tickets,
     ...(betPlan ? { betPlan } : {}),
+    ...(canonical.isValid ? {
+      raceMetadata: {
+        date: canonical.date as string,
+        venue: canonical.venue as string,
+        raceNumber: canonical.metadataRaceNumber as number,
+        raceSelectGrade: canonical.raceSelectGrade as "A" | "B" | "C",
+        purchaseDecision: canonical.purchaseDecision as "BUY" | "VALUE_BUY" | "SKIP",
+        purchasePoints: canonical.purchasePoints as number,
+        investmentYen: canonical.investmentYen as number,
+      },
+    } : {}),
   };
 };
 
@@ -11422,6 +11485,12 @@ if (
       `${selectedPredictionMaterialVenue.venue}競輪場${selectedVenueGradeLabel}、${predictionFeed.date}、対象R: ${startR}R〜${endR}Rを、月次振り返り反映済みの可変点数ルールでまとめて予想してください。`,
       "====================",
       "",
+      buildKeirinPredictionOutputFormatContract({
+        date: predictionFeed.date,
+        venue: selectedPredictionMaterialVenue.venue,
+        targetRaceNumbers: targetRaces.map((race) => race.raceNo),
+      }),
+      "",
       "====================",
       "【まとめ予想依頼テンプレ / 最重要】",
       "{会場名}競輪場{グレード}、{日付}、対象R: {対象R範囲}を、月次振り返り反映済みの可変点数ルールでまとめて予想してください。",
@@ -11447,7 +11516,7 @@ if (
       "13. source種別（official / user-entered-from-official / unknown）",
       "",
       "出力ルール:",
-      "- 各Rごとに【出走表】【並び】【展開予想】【買い目】【買目設計メモ】を分ける",
+      "- 各Rごとに【出走表】【並び】【展開】【買い目】【影目】【設計メモ】を契約どおりの順序で分ける",
       "- 出走表には上記13項目を必ず入れる",
       "- 登録番号が素材内で null / unavailable / 未取得 の場合は、必ず公式サイトや信頼できるネット情報で登録番号を調査して入力する。推測補完は禁止。確認できない場合のみ「未取得」または「null」とする。",
       "- source種別が unknown の場合は unknown のまま出す",
