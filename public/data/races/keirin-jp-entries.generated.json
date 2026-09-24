@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-24T13:00:53.825Z",
+  "generatedAt": "2026-09-24T13:05:37.256Z",
   "source": {
     "provider": "KEIRIN.JP",
     "listType": "JSJ048",
@@ -5048,8 +5048,8 @@
         {
           "raceNumber": 4,
           "entryStatus": "available",
-          "operationStatus": "scheduled",
-          "raceEnded": false,
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
           "lastUpdateTime": "2026/09/24 07:01 更新",
@@ -5069,47 +5069,11 @@
             "backCount1CarNo": "1",
             "backCount2CarNo": "6"
           },
-          "lineup": "1 2 5 3 7 6 4",
+          "lineup": "",
           "officialLineup": {
-            "lineup": "1 2 5 3 7 6 4",
-            "positions": [
-              {
-                "position": 1,
-                "carNo": "1",
-                "className": "base_color_1"
-              },
-              {
-                "position": 2,
-                "carNo": "2",
-                "className": "base_color_2"
-              },
-              {
-                "position": 4,
-                "carNo": "5",
-                "className": "base_color_5"
-              },
-              {
-                "position": 5,
-                "carNo": "3",
-                "className": "base_color_3"
-              },
-              {
-                "position": 6,
-                "carNo": "7",
-                "className": "base_color_7"
-              },
-              {
-                "position": 8,
-                "carNo": "6",
-                "className": "base_color_6"
-              },
-              {
-                "position": 9,
-                "carNo": "4",
-                "className": "base_color_4"
-              }
-            ],
-            "source": "KEIRIN.JP:JSJ005:narabiyoso"
+            "lineup": "",
+            "positions": [],
+            "source": ""
           },
           "entries": [
             {
@@ -5300,8 +5264,10 @@
             "hasEntries": true,
             "hasRegistrationNumbers": true,
             "hasNames": true,
-            "hasLineup": true,
-            "warnings": []
+            "hasLineup": false,
+            "warnings": [
+              "official lineup missing"
+            ]
           }
         },
         {
@@ -6087,7 +6053,7 @@
       "missingRaceCount": 0,
       "errorCount": 0,
       "totalEntryCount": 49,
-      "lineupRaceCount": 4
+      "lineupRaceCount": 3
     },
     {
       "date": "2026-09-24",
@@ -19690,6 +19656,6 @@
   "missingRaceCount": 0,
   "errorCount": 0,
   "totalEntryCount": 594,
-  "lineupRaceCount": 11,
+  "lineupRaceCount": 10,
   "preservedCompleteRaceCount": 0
 }
