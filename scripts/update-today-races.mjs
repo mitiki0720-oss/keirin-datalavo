@@ -2,6 +2,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { load } from "cheerio";
+import { fetchWithRetry } from "./lib/fetch-with-retry.mjs";
 
 const KDREAMS_RACECARD_URL = "https://keirin.kdreams.jp/racecard/";
 const NETKEIRIN_ENTRY_URL = "https://keirin.netkeiba.com/race/entry/";
@@ -2861,12 +2862,24 @@ async function fetchKdreamsRaceDetail(slug, kdreamsRaceId, raceNo, saveSample = 
   }
 
   const url = `${KDREAMS_RACE_DETAIL_BASE_URL}/${slug}/racedetail/${kdreamsRaceId}/`;
-  const response = await fetch(url, {
-    headers: {
-      "user-agent": "Mozilla/5.0",
-      "accept-language": "ja-JP,ja;q=0.9,en;q=0.8",
-    },
-  });
+  let response;
+  try {
+    response = await fetchWithRetry(
+      url,
+      {
+        headers: {
+          "user-agent": "Mozilla/5.0",
+          "accept-language": "ja-JP,ja;q=0.9,en;q=0.8",
+        },
+      },
+      { attempts: 3, timeoutMs: 20_000, label: `kdreams racedetail ${raceNo}R` },
+    );
+  } catch (error) {
+    return createEmptyRaceDetail(
+      raceNo,
+      `kdreams取得失敗: ${error instanceof Error ? error.message : String(error)} racedetail=${url}`,
+    );
+  }
 
   if (!response.ok) {
     return createEmptyRaceDetail(raceNo, `kdreams取得失敗: ${response.status} racedetail=${url}`);
@@ -4172,12 +4185,16 @@ async function main() {
   await fs.mkdir(DEBUG_DIR, { recursive: true });
   await fs.mkdir(DEBUG_ODDS_DIR, { recursive: true });
 
-  const response = await fetch(KDREAMS_RACECARD_URL, {
-    headers: {
-      "user-agent": "Mozilla/5.0",
-      "accept-language": "ja-JP,ja;q=0.9,en;q=0.8",
+  const response = await fetchWithRetry(
+    KDREAMS_RACECARD_URL,
+    {
+      headers: {
+        "user-agent": "Mozilla/5.0",
+        "accept-language": "ja-JP,ja;q=0.9,en;q=0.8",
+      },
     },
-  });
+    { attempts: 3, timeoutMs: 20_000, label: "kdreams racecard" },
+  );
 
   if (!response.ok) {
     throw new Error(`Failed to fetch Kドリームス racecard: ${response.status}`);

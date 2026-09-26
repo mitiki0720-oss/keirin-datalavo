@@ -8,7 +8,7 @@ on:
         required: false
         default: "today"
   schedule:
-    - cron: "5 15 * * *"
+    - cron: "58 23 * * *"
       timezone: "Asia/Tokyo"
 
 permissions:
@@ -35,11 +35,33 @@ jobs:
       - run: npm ci
       - run: git pull --ff-only origin main
 
+      - name: Resolve nightly target date
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            REQUESTED="${{ github.event.inputs.target_date || 'today' }}"
+            case "$REQUESTED" in
+              today) TARGET_DATE="$(TZ=Asia/Tokyo date +%F)" ;;
+              yesterday) TARGET_DATE="$(TZ=Asia/Tokyo date -d yesterday +%F)" ;;
+              ????-??-??) TARGET_DATE="$REQUESTED" ;;
+              *) echo "Invalid target_date: $REQUESTED" >&2; exit 1 ;;
+            esac
+          else
+            JST_HOUR="$(TZ=Asia/Tokyo date +%H)"
+            if [ "$JST_HOUR" -lt 6 ]; then
+              TARGET_DATE="$(TZ=Asia/Tokyo date -d yesterday +%F)"
+            else
+              TARGET_DATE="$(TZ=Asia/Tokyo date +%F)"
+            fi
+          fi
+          echo "TARGET_DATE=$TARGET_DATE" >> "$GITHUB_ENV"
+          echo "KURARI EX target date: $TARGET_DATE"
+
       - name: Update KURARI EX
         run: |
           set +e
           node scripts/run-kurari-ex-nightly-update.mjs \
-            --date="${{ github.event.inputs.target_date || 'today' }}" \
+            --date="$TARGET_DATE" \
             --allow-enrichment-upgrade
           STATUS=$?
           set -e
@@ -57,7 +79,6 @@ jobs:
             exit 0
           fi
 
-          TARGET_DATE="${{ github.event.inputs.target_date || 'today' }}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "Update KURARI EX nightly data ${TARGET_DATE}"

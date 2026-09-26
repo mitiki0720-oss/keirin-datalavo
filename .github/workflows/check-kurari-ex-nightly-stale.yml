@@ -25,6 +25,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
+          fetch-depth: 0
           persist-credentials: true
 
       - uses: actions/setup-node@v4
@@ -35,15 +36,36 @@ jobs:
       - run: npm ci
       - run: git pull --ff-only origin main
 
+      - name: Resolve stale recovery target date
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            REQUESTED="${{ github.event.inputs.target_date || 'yesterday' }}"
+            case "$REQUESTED" in
+              today) TARGET_DATE="$(TZ=Asia/Tokyo date +%F)" ;;
+              yesterday) TARGET_DATE="$(TZ=Asia/Tokyo date -d yesterday +%F)" ;;
+              ????-??-??) TARGET_DATE="$REQUESTED" ;;
+              *) echo "Invalid target_date: $REQUESTED" >&2; exit 1 ;;
+            esac
+          else
+            TARGET_DATE="$(TZ=Asia/Tokyo date -d yesterday +%F)"
+          fi
+          echo "TARGET_DATE=$TARGET_DATE" >> "$GITHUB_ENV"
+          echo "KURARI EX stale target date: $TARGET_DATE"
+
       - name: Check and recover stale KURARI EX
         run: |
-          TARGET_DATE="${{ github.event.inputs.target_date || 'yesterday' }}"
           if node scripts/check-kurari-ex-nightly-stale.mjs --date="$TARGET_DATE"; then
             echo "KURARI EX is current."
             exit 0
           fi
+          FEED_FILE=".tmp/kurari-ex-stale/${TARGET_DATE}.today.generated.json"
+          node scripts/extract-kurari-ex-feed-from-history.mjs \
+            --date="$TARGET_DATE" \
+            --output="$FEED_FILE"
           if ! node scripts/run-kurari-ex-nightly-update.mjs \
             --date="$TARGET_DATE" \
+            --feed="$FEED_FILE" \
             --only-if-missing \
             --allow-enrichment-upgrade; then
             echo "Safe retry failed. The target date feed is unavailable, pending, or mismatched."
@@ -59,7 +81,6 @@ jobs:
             exit 0
           fi
 
-          TARGET_DATE="${{ github.event.inputs.target_date || 'yesterday' }}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "Update KURARI EX nightly data ${TARGET_DATE}"
