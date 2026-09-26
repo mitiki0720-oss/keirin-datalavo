@@ -9,12 +9,18 @@ on:
       - "public/data/races/today.generated.json"
       - "scripts/notify-slack-hits.mjs"
       - ".github/workflows/notify-slack-hits.yml"
+  workflow_run:
+    workflows:
+      - Update today race data
+    types:
+      - completed
 
 permissions:
   contents: write
 
 jobs:
   notify-slack-hits:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     concurrency:
       group: keirin-slack-hit-state

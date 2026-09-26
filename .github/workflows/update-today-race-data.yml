@@ -38,24 +38,14 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: keirin-today-race-data
   cancel-in-progress: false
 
 jobs:
-  update-build-deploy:
+  update-race-data:
     runs-on: ubuntu-latest
-    concurrency:
-      group: keirin-slack-hit-state
-      cancel-in-progress: false
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
 
     steps:
       - name: Checkout
@@ -248,12 +238,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch' || github.event.schedule == '10 21 * * *'
         run: npm run update:schedule:upcoming
 
-      - name: Notify Slack hits
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        run: node scripts/notify-slack-hits.mjs
-
-      - name: Commit updated race and notification data
+      - name: Commit updated race data
         id: commit_updated_data
         run: |
 
@@ -262,7 +247,6 @@ jobs:
 
           git add public/data/races/today.generated.json
           git add public/data/races/upcoming-schedule.generated.json
-          git add public/data/predictions/saved-predictions.generated.json
           git add public/data/races/keirin-jp-results.generated.json
           git add public/data/races/keirin-jp-entries.generated.json
           git add public/data/analytics/kurari-ex/race-risk/index.generated.json
@@ -275,27 +259,12 @@ jobs:
           fi
 
           if git diff --cached --quiet; then
-            echo "No today race data, upcoming schedule, KEIRIN.JP official feeds, Slack notification state, or race-risk archive changes."
+            echo "No today race data, upcoming schedule, KEIRIN.JP official feeds, race-risk archive, or prediction-performance changes."
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          git commit -m "Update race data, schedule, official feeds, and Slack notification state"
+          git commit -m "Update race data, schedule, and official feeds"
           git pull --rebase origin main
           git push
           echo "changed=true" >> "$GITHUB_OUTPUT"
-
-      - name: Build for GitHub Pages
-        if: steps.commit_updated_data.outputs.changed == 'true'
-        run: npm run build:github
-
-      - name: Upload GitHub Pages artifact
-        if: steps.commit_updated_data.outputs.changed == 'true'
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist
-
-      - name: Deploy to GitHub Pages
-        if: steps.commit_updated_data.outputs.changed == 'true'
-        id: deployment
-        uses: actions/deploy-pages@v4
