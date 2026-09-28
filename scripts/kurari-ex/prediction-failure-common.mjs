@@ -184,10 +184,12 @@ function sourceKey(date, venueSlug, raceNo) {
 }
 
 export function isAllowedReviewSourcePath(sourcePath) {
-  return sourcePath === null || (
-    sourcePath.startsWith(REVIEW_SOURCE_PREFIX)
-    && /\/[^/]+-(?:prediction|result)\.txt$/u.test(sourcePath)
-  );
+  return sourcePath === null
+    || (
+      sourcePath.startsWith(REVIEW_SOURCE_PREFIX)
+      && /\/(?:[^/]+-(?:prediction|result)|\d{4}-\d{2}-\d{2}-[^/]+-(?:predictions|results))\.txt$/u.test(sourcePath)
+    )
+    || /^public\/data\/analytics\/kurari-ex\/history\/daily\/\d{4}-\d{2}\/\d{4}-\d{2}-\d{2}\.generated\.json$/u.test(sourcePath);
 }
 
 export async function collectReviewSources({ reviewsRoot, from, to }) {
@@ -205,19 +207,23 @@ export async function collectReviewSources({ reviewsRoot, from, to }) {
     for (const entry of entries) {
       if (!entry.isFile()) continue;
       const filePath = path.join(directory, entry.name);
-      if (entry.name.endsWith("-prediction.txt")) {
+      const legacyPrediction = entry.name.match(/^(.+)-prediction\.txt$/u);
+      const canonicalPrediction = entry.name.match(new RegExp(`^${date}-([a-z0-9-]+)-predictions\\.txt$`, "u"));
+      const legacyResult = entry.name.match(/^(.+)-result\.txt$/u);
+      const canonicalResult = entry.name.match(new RegExp(`^${date}-([a-z0-9-]+)-results\\.txt$`, "u"));
+      if (legacyPrediction || canonicalPrediction) {
         predictionSources.set(sourcePathFor(date, entry.name), {
           date,
           fileName: entry.name,
-          venueSlug: entry.name.replace(/-prediction\.txt$/u, ""),
+          venueSlug: (canonicalPrediction ?? legacyPrediction)[1],
           text: await readFile(filePath, "utf8"),
         });
       }
-      if (entry.name.endsWith("-result.txt")) {
+      if (legacyResult || canonicalResult) {
         resultSources.set(sourcePathFor(date, entry.name), {
           date,
           fileName: entry.name,
-          venueSlug: entry.name.replace(/-result\.txt$/u, ""),
+          venueSlug: (canonicalResult ?? legacyResult)[1],
           text: await readFile(filePath, "utf8"),
         });
       }
@@ -243,8 +249,14 @@ export function parsePredictionSource(sourcePath, source) {
       /【買い目設計メモ】/u,
       /^■\s/gmu,
     ]);
+    const canonicalShadowSection = shadowSection ?? sectionBetween(block.body, /【影目】/u, [
+      /【設計メモ】/u,
+      /【買目設計メモ】/u,
+      /【買い目設計メモ】/u,
+      /^■\s/gmu,
+    ]);
     const buyParse = buySection ? parseTicketsFromSection(buySection, "purchase") : { tickets: [], ambiguous: [] };
-    const shadowParse = shadowSection ? parseTicketsFromSection(shadowSection, "shadow") : { tickets: [], ambiguous: [] };
+    const shadowParse = canonicalShadowSection ? parseTicketsFromSection(canonicalShadowSection, "shadow") : { tickets: [], ambiguous: [] };
     const observedPurchaseHeads = [...new Set(buyParse.tickets.map((ticket) => ticket.split("-")[0]))];
     const declaredHeadCandidates = parseDeclaredHeadCandidates(block.body);
     const venue = block.venue
@@ -262,8 +274,11 @@ export function parsePredictionSource(sourcePath, source) {
       purchaseTicketCount: buyParse.tickets.length,
       shadowTickets: shadowParse.tickets,
       shadowTicketCount: shadowParse.tickets.length,
-      shadowAvailability: shadowSection ? "observed" : "unavailable",
-      explicitPointRange: parsePointRange(block.body),
+      shadowAvailability: canonicalShadowSection ? "observed" : "unavailable",
+      explicitPointRange: (() => {
+        const purchasePoints = Number(block.body.match(/^purchasePoints\s*:\s*(\d{1,2})\s*$/imu)?.[1]);
+        return POINT_RANGES.includes(purchasePoints) ? purchasePoints : parsePointRange(block.body);
+      })(),
       declaredHeadCandidates,
       declaredHeadCandidateCount: declaredHeadCandidates.length,
       observedPurchaseHeads,
@@ -582,6 +597,199 @@ export async function buildPredictionFailureArtifact({
     sourceCoverage: {
       predictionSourceCount: predictions.size,
       resultSourceCount: results.size,
+      shadowObservedCount: records.filter((record) => record.shadowAvailability === "observed").length,
+      pointRangeObservedCount: records.filter((record) => record.explicitPointRange !== null).length,
+      declaredHeadCandidateObservedCount: records.filter((record) => record.declaredHeadCandidateCount > 0).length,
+      stakeObservedCount: records.filter((record) => record.stake !== null).length,
+      returnObservedCount: records.filter((record) => record.return !== null).length,
+    },
+    byPointRange: aggregate.byPointRange,
+    thirdPlaceProtection: aggregate.thirdPlaceProtection,
+    records,
+  };
+}
+
+function dailyHistorySourcePath(date) {
+  return `public/data/analytics/kurari-ex/history/daily/${date.slice(0, 7)}/${date}.generated.json`;
+}
+
+function dailyRacePrediction(race, sourcePath) {
+  const betPlan = race?.prediction?.betPlan;
+  if (betPlan?.sourceStatus !== "source-backed") return null;
+  const purchaseTickets = (Array.isArray(betPlan.purchaseTickets) ? betPlan.purchaseTickets : [])
+    .filter((ticket) => ticket?.betType === "3連単")
+    .map((ticket) => normalizeTicket(ticket.combination))
+    .filter(Boolean);
+  const shadowTickets = (Array.isArray(betPlan.shadowTickets) ? betPlan.shadowTickets : [])
+    .filter((ticket) => ticket?.betType === "3連単")
+    .map((ticket) => normalizeTicket(ticket.combination))
+    .filter(Boolean);
+  const observedPurchaseHeads = [...new Set(purchaseTickets.map((ticket) => ticket.split("-")[0]))];
+  const declaredHeadCandidates = Array.isArray(betPlan.declaredHeadCandidates)
+    ? [...new Set(betPlan.declaredHeadCandidates.map(String).filter(Boolean))]
+    : [];
+  return {
+    key: sourceKey(race.date, race.venueKey, race.raceNumber),
+    date: race.date,
+    venueCode: null,
+    venue: race.venueName,
+    venueSlug: race.venueKey,
+    raceNo: race.raceNumber,
+    purchaseTickets: uniqueTickets(purchaseTickets),
+    purchaseTicketCount: uniqueTickets(purchaseTickets).length,
+    shadowTickets: uniqueTickets(shadowTickets),
+    shadowTicketCount: uniqueTickets(shadowTickets).length,
+    shadowAvailability: "observed",
+    explicitPointRange: POINT_RANGES.includes(Number(betPlan.purchaseTicketCount))
+      ? Number(betPlan.purchaseTicketCount)
+      : null,
+    declaredHeadCandidates,
+    declaredHeadCandidateCount: declaredHeadCandidates.length,
+    observedPurchaseHeads,
+    observedPurchaseHeadCount: observedPurchaseHeads.length,
+    parseWarnings: [],
+    sourcePath,
+  };
+}
+
+function dailyRaceResult(race, sourcePath) {
+  const actualTrifecta = normalizeTicket(race?.result?.trifecta?.combination);
+  const payout = Number(race?.result?.trifecta?.payoutYen);
+  return {
+    key: sourceKey(race.date, race.venueKey, race.raceNumber),
+    date: race.date,
+    venueCode: null,
+    venue: race.venueName,
+    venueSlug: race.venueKey,
+    raceNo: race.raceNumber,
+    actualTrifecta,
+    actualFirst: actualTrifecta?.split("-")[0] ?? null,
+    actualSecond: actualTrifecta?.split("-")[1] ?? null,
+    actualThird: actualTrifecta?.split("-")[2] ?? null,
+    stake: race?.prediction?.betPlan?.plannedStakeYen ?? null,
+    return: null,
+    net: null,
+    payout: Number.isFinite(payout) && payout > 0 ? payout : null,
+    parseWarnings: actualTrifecta ? [] : ["result-trifecta-missing"],
+    sourcePath,
+  };
+}
+
+function failureRecord(prediction, result, targetDate, historicalTo) {
+  const classification = classifyPredictionFailure(prediction, result);
+  const base = prediction ?? result;
+  return {
+    key: base.key,
+    date: base.date,
+    venueCode: base.venueCode,
+    venue: base.venue,
+    raceNo: base.raceNo,
+    primaryClass: classification.primaryClass,
+    actualTrifecta: result?.actualTrifecta ?? null,
+    purchaseTicketCount: prediction?.purchaseTicketCount ?? 0,
+    shadowTicketCount: prediction?.shadowTicketCount ?? 0,
+    shadowAvailability: prediction?.shadowAvailability ?? "unavailable",
+    explicitPointRange: prediction?.explicitPointRange ?? null,
+    declaredHeadCandidateCount: prediction?.declaredHeadCandidateCount ?? 0,
+    observedPurchaseHeadCount: prediction?.observedPurchaseHeadCount ?? 0,
+    correctTop2PairCovered: classification.correctTop2PairCovered ?? false,
+    correctTop2ThirdCandidateCount: classification.correctTop2ThirdCandidateCount ?? 0,
+    actualThirdCoveredForCorrectTop2: classification.actualThirdCoveredForCorrectTop2 ?? false,
+    shadowExactCovered: classification.shadowExactCovered ?? null,
+    shadowActualThirdCoveredForCorrectTop2: classification.shadowActualThirdCoveredForCorrectTop2 ?? null,
+    actualWinnerCovered: classification.actualWinnerCovered ?? false,
+    actualTop3PermutationCovered: classification.actualTop3PermutationCovered ?? false,
+    stake: result?.stake ?? null,
+    return: result?.return ?? null,
+    net: result?.net ?? null,
+    payout: result?.payout ?? null,
+    sourceStatus: {
+      classifiable: classification.primaryClass !== "UNCLASSIFIABLE",
+      reasons: classification.reasons,
+      fakeCompletionUsed: false,
+      fuzzyMatchingUsed: false,
+      resultBackfilledPrediction: false,
+      shadowGeneratedFromResult: false,
+    },
+    parseWarnings: [
+      ...(prediction?.parseWarnings ?? []),
+      ...(result?.parseWarnings ?? []),
+      ...classification.reasons,
+    ],
+    predictionSource: prediction?.sourcePath ?? null,
+    resultSource: result?.sourcePath ?? null,
+    leakageGuard: {
+      recordDateBeforeTargetDate: base.date < targetDate,
+      resultDateBeforeTargetDate: result ? result.date < targetDate : null,
+      resultDateWithinHistoricalWindow: result ? result.date <= historicalTo : null,
+    },
+  };
+}
+
+export function extendPredictionFailureArtifactFromDaily({
+  priorArtifact,
+  dailyPayload,
+  targetDate,
+  generatedAt = new Date().toISOString(),
+}) {
+  const historicalTo = String(dailyPayload?.date ?? "");
+  if (!/^\d{4}-\d{2}-\d{2}$/u.test(historicalTo)) throw new Error("daily history date is invalid");
+  if (!(historicalTo < targetDate)) throw new Error(`daily history must precede targetDate: ${historicalTo} >= ${targetDate}`);
+  if (Number(dailyPayload?.raceCount) !== (dailyPayload?.items ?? []).length) {
+    throw new Error("daily history raceCount mismatch");
+  }
+  if (
+    priorArtifact?.historicalTo
+    && priorArtifact.historicalTo !== historicalTo
+    && addDays(priorArtifact.historicalTo, 1) !== historicalTo
+  ) {
+    throw new Error(`prediction failure history gap: ${priorArtifact.historicalTo} -> ${historicalTo}`);
+  }
+  const sourcePath = dailyHistorySourcePath(historicalTo);
+  const dailyRecords = (dailyPayload.items ?? []).map((race) => {
+    if (race.date !== historicalTo) throw new Error(`daily race date mismatch: ${race.raceKey}`);
+    const prediction = dailyRacePrediction(race, sourcePath);
+    const result = dailyRaceResult(race, sourcePath);
+    return failureRecord(prediction, result, targetDate, historicalTo);
+  });
+  const records = [
+    ...(priorArtifact?.records ?? []).filter((record) => record.date < historicalTo),
+    ...dailyRecords,
+  ].sort((left, right) => left.key.localeCompare(right.key));
+  const duplicateRaceKeys = records
+    .map((record) => record.key)
+    .filter((key, index, all) => all.indexOf(key) !== index);
+  const aggregate = summarize(records);
+  return {
+    version: "kurari-ex-prediction-failure/v1",
+    generatedAt,
+    targetDate,
+    historicalFrom: priorArtifact?.historicalFrom ?? records[0]?.date ?? historicalTo,
+    historicalTo,
+    sourcePolicy: {
+      primarySource: "review text baseline + compact history daily source-backed betPlan increments",
+      reviewsRootMode: priorArtifact?.sourcePolicy?.reviewsRootMode ?? "baseline-artifact",
+      incrementalSource: sourcePath,
+      fakeCompletionUsed: false,
+      fuzzyMatchingUsed: false,
+      resultBackfilledPrediction: false,
+      shadowGeneratedFromResult: false,
+      pointRangeInferredFromTicketCount: false,
+      stakeInferredFromTicketCount: false,
+    },
+    leakageGuard: {
+      targetDate,
+      resultDataAllowedThrough: historicalTo,
+      resultDateBeforeTargetDate: historicalTo < targetDate,
+      currentOrFutureResultUsed: records.some((record) => record.date >= targetDate),
+    },
+    duplicateRaceKeys: [...new Set(duplicateRaceKeys)].sort(),
+    raceCount: records.length,
+    classifiableRaceCount: records.length - aggregate.summary.unclassifiable,
+    summary: aggregate.summary,
+    sourceCoverage: {
+      predictionSourceCount: records.filter((record) => record.predictionSource).length,
+      resultSourceCount: records.filter((record) => record.resultSource).length,
       shadowObservedCount: records.filter((record) => record.shadowAvailability === "observed").length,
       pointRangeObservedCount: records.filter((record) => record.explicitPointRange !== null).length,
       declaredHeadCandidateObservedCount: records.filter((record) => record.declaredHeadCandidateCount > 0).length,

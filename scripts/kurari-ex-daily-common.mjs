@@ -264,6 +264,58 @@ export function parsePrediction(record) {
   const confidence = text.match(/自信度\s*[:：]?\s*([^\n]+)/u)?.[1]?.trim() ?? "";
   const raceType = text.match(/レース(?:タイプ|型)\s*[:：]?\s*([^\n]+)/u)?.[1]?.trim() ?? "";
   const tags = [...text.matchAll(/#[^\s#]+/gu)].map((match) => match[0]);
+  const ticketSnapshot = record?.predictionJson?.preRaceSnapshot?.ticketSnapshot;
+  const rawBetPlan = ticketSnapshot?.betPlan;
+  const snapshotTickets = new Map(
+    (Array.isArray(ticketSnapshot?.tickets) ? ticketSnapshot.tickets : []).map((ticket) => [
+      String(ticket?.index ?? "").trim(),
+      ticket,
+    ]),
+  );
+  const normalizePlanTickets = (indices) => (Array.isArray(indices) ? indices : [])
+    .map((index) => snapshotTickets.get(String(index ?? "").trim()))
+    .filter(Boolean)
+    .map((ticket) => ({
+      index: String(ticket.index ?? "").trim(),
+      betType: String(ticket.betType ?? "").trim(),
+      combination: /3連単/u.test(String(ticket.betType ?? ""))
+        ? canonicalCombination(ticket.combination, 3)
+        : /2車単/u.test(String(ticket.betType ?? ""))
+          ? canonicalCombination(ticket.combination, 2)
+          : "",
+    }))
+    .filter((ticket) => ticket.index && ticket.combination);
+  const purchasePlanTickets = normalizePlanTickets(rawBetPlan?.purchaseTicketIndices);
+  const shadowPlanTickets = normalizePlanTickets(rawBetPlan?.shadowTicketIndices);
+  const planIndexSet = new Set([
+    ...purchasePlanTickets.map((ticket) => ticket.index),
+    ...shadowPlanTickets.map((ticket) => ticket.index),
+  ]);
+  const sourceBackedBetPlan =
+    ticketSnapshot?.purchaseClassification === "structured"
+    && rawBetPlan?.status === "structured"
+    && rawBetPlan?.sourceStatus === "source-backed"
+    && planIndexSet.size === purchasePlanTickets.length + shadowPlanTickets.length
+    && Number(rawBetPlan?.structuredPurchaseCount) === purchasePlanTickets.length
+    && Number(rawBetPlan?.structuredShadowCount) === shadowPlanTickets.length
+    && Number(rawBetPlan?.plannedStakeYen) === purchasePlanTickets.length * Number(rawBetPlan?.unitStakeYen ?? 100)
+      ? {
+          source: "preRaceSnapshot.ticketSnapshot.betPlan",
+          sourceStatus: "source-backed",
+          purchaseTickets: purchasePlanTickets,
+          shadowTickets: shadowPlanTickets,
+          purchaseTicketCount: purchasePlanTickets.length,
+          shadowTicketCount: shadowPlanTickets.length,
+          purchaseDerivedHeads: Array.isArray(rawBetPlan.purchaseDerivedHeads)
+            ? rawBetPlan.purchaseDerivedHeads.map(String)
+            : [],
+          declaredHeadCandidates: Array.isArray(rawBetPlan.declaredHeadCandidates)
+            ? rawBetPlan.declaredHeadCandidates.map(String)
+            : [],
+          unitStakeYen: Number(rawBetPlan.unitStakeYen ?? 100),
+          plannedStakeYen: Number(rawBetPlan.plannedStakeYen),
+        }
+      : null;
   return {
     trifectaTickets: [...new Set(trifectaTickets)].sort(),
     exactaTickets: [...new Set(exactaTickets)].sort(),
@@ -276,6 +328,7 @@ export function parsePrediction(record) {
         : []),
     ].filter(Boolean))].sort(),
     isSpecialRace: record?.predictionMetadata?.isSpecialRace === true,
+    ...(sourceBackedBetPlan ? { betPlan: sourceBackedBetPlan } : {}),
   };
 }
 

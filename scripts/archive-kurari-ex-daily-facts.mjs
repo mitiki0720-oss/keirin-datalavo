@@ -82,9 +82,14 @@ export function mergeDailyFacts(existingPayload, candidatePayload) {
   }
   const mergedItems = existingItems.map((existing) => {
     const candidate = candidateByKey.get(existing.raceKey);
+    const hasSourceBackedBetPlan = candidate.prediction?.betPlan?.sourceStatus === "source-backed";
+    const existingHasSourceBackedBetPlan = existing.prediction?.betPlan?.sourceStatus === "source-backed";
     if (
       candidate.predictionEnrichment?.status === "matched"
-      && existing.predictionEnrichment?.status !== "matched"
+      && (
+        existing.predictionEnrichment?.status !== "matched"
+        || (hasSourceBackedBetPlan && !existingHasSourceBackedBetPlan)
+      )
     ) {
       return {
         ...existing,
@@ -154,7 +159,10 @@ export async function enrichExistingDailyFacts(options = {}) {
   const existingCoverage = existing.payload.predictionCoverage
     ?? predictionCoverageForRaces(existingItems);
   const items = existingItems.map((race) => {
-    if (race.predictionEnrichment?.status === "matched") return race;
+    if (
+      race.predictionEnrichment?.status === "matched"
+      && race.prediction?.betPlan?.sourceStatus === "source-backed"
+    ) return race;
     let record = lookup.byRaceId.get(String(race.raceId ?? "").trim()) ?? null;
     let matchedBy = record ? "raceId" : null;
     if (!record) {

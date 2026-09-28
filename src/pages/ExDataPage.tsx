@@ -20,6 +20,7 @@ import {
   loadKurariExRaceRiskIndex,
   loadKurariExRiderExactByFile,
   loadKurariExRiderExactInitialData,
+  loadKurariExSourceFreshnessSummary,
   loadKurariExVenueBundle,
   loadKurariExVenueExact,
   summarizeKurariExHistoryDaily,
@@ -33,6 +34,7 @@ import type {
   KurariExPredictionFailurePointRange,
   KurariExRaceRiskLevel,
   KurariExRaceRiskRecord,
+  KurariExSourceFreshnessSummary,
 } from "../lib/kurariExData";
 import {
   KURARI_EX_ANALYSIS_INVENTORY,
@@ -2045,6 +2047,7 @@ export default function ExDataPage() {
   const [initialStatus, setInitialStatus] = useState<"loading" | "ready" | "error">("loading");
   const [raceRiskIndex, setRaceRiskIndex] = useState<KurariExRaceRiskIndex | null>(null);
   const [raceRiskStatus, setRaceRiskStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [sourceFreshnessSummary, setSourceFreshnessSummary] = useState<KurariExSourceFreshnessSummary | null>(null);
   const [exactInitialData, setExactInitialData] = useState<KurariExExactInitialData | null>(null);
   const [exactInitialStatus, setExactInitialStatus] = useState<"loading" | "ready" | "error">("loading");
   const [activeSectionTab, setActiveSectionTab] = useState<ExSectionTab>("overview");
@@ -2216,6 +2219,20 @@ export default function ExDataPage() {
         if (!active) return;
         setRaceRiskIndex(null);
         setRaceRiskStatus("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    loadKurariExSourceFreshnessSummary()
+      .then((summary) => {
+        if (active) setSourceFreshnessSummary(summary);
+      })
+      .catch(() => {
+        if (active) setSourceFreshnessSummary(null);
       });
     return () => {
       active = false;
@@ -3238,6 +3255,15 @@ export default function ExDataPage() {
     role: roleReflected ? "一部反映" : riderCategoryStatus === "error" ? "取得失敗" : "読込中",
     weather: hasCategoryData("weather") ? "一部反映" : riderCategoryStatus === "error" ? "取得失敗" : "読込中",
   };
+  const freshnessDisplaySources = sourceFreshnessSummary
+    ? [
+        sourceFreshnessSummary.sources.today,
+        sourceFreshnessSummary.sources.exact,
+        sourceFreshnessSummary.sources.resultTrend,
+        sourceFreshnessSummary.sources.failureGuidance,
+        sourceFreshnessSummary.sources.identity,
+      ]
+    : [];
 
   return (
     <div className="ex-page">
@@ -3329,6 +3355,15 @@ export default function ExDataPage() {
         .ex-usage-pill.is-reference { border-color: var(--ex-status-reference-border); background: var(--ex-status-reference-bg); }
         .ex-usage-pill.is-building { border-color: var(--ex-status-unavailable-border); background: var(--ex-status-unavailable-bg); }
         .ex-usage-pill.is-blocked { border-color: var(--ex-status-error-border); background: var(--ex-status-error-bg); }
+        .ex-freshness-strip { display: grid; grid-template-columns: repeat(${isMobile ? 2 : 5},minmax(0,1fr)); gap: 9px; width: min(100%, 1360px); margin: -8px auto 0; }
+        .ex-freshness-item { min-width: 0; display: grid; gap: 4px; padding: 11px 13px; border: 1px solid var(--ex-status-unavailable-border); border-radius: 16px; background: rgba(255,255,255,.72); box-shadow: 0 8px 20px rgba(53,67,96,.045); }
+        .ex-freshness-item strong { color: #34425b; font-size: 10px; font-weight: 950; letter-spacing: .07em; }
+        .ex-freshness-item span { color: #59677d; font-size: 11px; font-weight: 900; }
+        .ex-freshness-item small { color: #7a8698; font-size: 9px; font-weight: 760; line-height: 1.35; }
+        .ex-freshness-item.is-latest, .ex-freshness-item.is-fresh { border-color: var(--ex-status-success-border); background: var(--ex-status-success-bg); }
+        .ex-freshness-item.is-reference { border-color: var(--ex-status-reference-border); background: var(--ex-status-reference-bg); }
+        .ex-freshness-item.is-stale { border-color: var(--ex-status-caution-border); background: var(--ex-status-caution-bg); }
+        .ex-freshness-item.is-unavailable { border-color: var(--ex-status-error-border); background: var(--ex-status-error-bg); }
         .ex-overview-status { display: flex; flex-wrap: wrap; gap: 8px; }
         .ex-summary-shell { display: grid; gap: 12px; }
         .ex-summary-primary-grid { display: grid; grid-template-columns: repeat(${isMobile ? 2 : 4}, minmax(0,1fr)); gap: 12px; }
@@ -4051,6 +4086,21 @@ export default function ExDataPage() {
               <span>{item.note}</span>
             </div>
           ))}
+        </div>
+        <div className="ex-freshness-strip" aria-label="KURARI EX source freshness" data-testid="ex-source-freshness">
+          {freshnessDisplaySources.length > 0 ? freshnessDisplaySources.map((item) => (
+            <div className={`ex-freshness-item is-${item.status.toLowerCase()}`} key={item.label}>
+              <strong>{item.label}</strong>
+              <span>{item.status}</span>
+              <small>{item.date ?? "unavailable"}{item.targetDate ? ` → ${item.targetDate}` : ""}</small>
+            </div>
+          )) : (
+            <div className="ex-freshness-item is-unavailable">
+              <strong>SOURCE FRESHNESS</strong>
+              <span>UNAVAILABLE</span>
+              <small>source dateを取得できません</small>
+            </div>
+          )}
         </div>
 
         <section

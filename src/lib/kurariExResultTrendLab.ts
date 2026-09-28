@@ -703,7 +703,7 @@ export type KurariExTrifectaTrendV1 = {
   sourceFetchedAt: string;
   sourceDate: string;
   sourceSummary?: {
-    label: "historical 60日 + current";
+    label: "historical 60日 + current" | "historical 60日 confirmed only";
     historical: KurariExHistoricalAvailabilitySummary;
     sourceRejectedCount: number;
     refundNoTrifectaExcludedCount: number;
@@ -3074,6 +3074,61 @@ export function buildKurariExTrifectaTrendV1(
 }
 
 let trendLoadPromise: Promise<KurariExTrifectaTrendV1> | null = null;
+let historicalTrendLoadPromise: Promise<KurariExTrifectaTrendV1> | null = null;
+
+export function loadKurariExHistoricalTrifectaTrendV1() {
+  if (!historicalTrendLoadPromise) {
+    historicalTrendLoadPromise = loadKurariExHistoricalTrifectaTrendV1Uncached().catch((error: unknown) => {
+      historicalTrendLoadPromise = null;
+      throw error;
+    });
+  }
+  return historicalTrendLoadPromise;
+}
+
+async function loadKurariExHistoricalTrifectaTrendV1Uncached() {
+  const history = await loadKurariExHistoricalResultTrendLabHistory();
+  const historicalTrendRaces = history.races.filter(isHistoricalTrendEligible);
+  const historicalVenueGroups = new Map<string, OfficialResultVenue>();
+  historicalTrendRaces.forEach((race) => {
+    const grade = clean(race.category.grade);
+    const groupKey = `${race.date}|${race.venueCode}|${grade}`;
+    const venue = historicalVenueGroups.get(groupKey) ?? {
+      date: race.date,
+      venueCode: race.venueCode,
+      venueName: race.venue,
+      grade,
+      races: [],
+    };
+    venue.races?.push(historicalRaceToOfficialRace(race));
+    historicalVenueGroups.set(groupKey, venue);
+  });
+  const historicalTo = history.availability.dateRange.to ?? "";
+  const feed: OfficialResultFeed = {
+    date: historicalTo,
+    generatedAt: clean(history.index?.generatedAt),
+    source: { provider: "KEIRIN.JP", listType: "JSJ048" },
+    venues: [...historicalVenueGroups.values()],
+  };
+  const trend = buildKurariExTrifectaTrendV1(feed, {
+    todayFlowBaselineFeed: feed,
+  });
+  const classificationCount = history.index?.summary?.classificationCount ?? {};
+  trend.sourceName = "historical 60日 confirmed only";
+  trend.sourceSummary = {
+    label: "historical 60日 confirmed only",
+    historical: history.availability,
+    sourceRejectedCount: history.index?.summary?.sourceRejectedCount ?? 0,
+    refundNoTrifectaExcludedCount: classificationCount["refund-no-trifecta"] ?? 0,
+    notFinalizedExcludedCount: classificationCount["not-finalized"] ?? 0,
+    currentRaceCount: 0,
+    currentIncludedRaceCount: 0,
+    currentExcludedRaceCount: 0,
+    crossSourceDuplicateCount: 0,
+    analysisRaceCount: trend.eligibleRaceCount,
+  };
+  return trend;
+}
 
 export function loadKurariExTrifectaTrendV1() {
   if (!trendLoadPromise) {

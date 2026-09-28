@@ -1,4 +1,5 @@
 import path from "node:path";
+import { readFile } from "node:fs/promises";
 import {
   addDays,
   buildPredictionFailureArtifact,
@@ -8,6 +9,7 @@ import {
   projectRoot,
   sampleDistribution,
   writePredictionFailureArtifact,
+  extendPredictionFailureArtifactFromDaily,
 } from "./prediction-failure-common.mjs";
 
 async function main() {
@@ -20,18 +22,38 @@ async function main() {
     : path.join(projectRoot, "public", "data", "reviews");
   const write = Boolean(args.write);
 
-  const artifact = await buildPredictionFailureArtifact({
-    reviewsRoot,
-    historicalFrom,
-    historicalTo,
-    targetDate,
-  });
+  const incrementalHistoryDate = args["incremental-history-date"] ?? "";
+  let artifact;
+  if (incrementalHistoryDate) {
+    const priorArtifact = JSON.parse(await readFile(outputPath, "utf8"));
+    const dailyPath = path.join(
+      projectRoot,
+      "public",
+      "data",
+      "analytics",
+      "kurari-ex",
+      "history",
+      "daily",
+      incrementalHistoryDate.slice(0, 7),
+      `${incrementalHistoryDate}.generated.json`,
+    );
+    const dailyPayload = JSON.parse(await readFile(dailyPath, "utf8"));
+    artifact = extendPredictionFailureArtifactFromDaily({ priorArtifact, dailyPayload, targetDate });
+  } else {
+    artifact = await buildPredictionFailureArtifact({
+      reviewsRoot,
+      historicalFrom,
+      historicalTo,
+      targetDate,
+    });
+  }
   const sample = sampleDistribution(artifact, "2026-08-14", "2026-08-21");
 
   console.log("[kurari-ex-prediction-failure] mode:", write ? "write" : "dry-run");
   console.log("[kurari-ex-prediction-failure] targetDate:", targetDate);
   console.log("[kurari-ex-prediction-failure] historical:", `${historicalFrom}..${historicalTo}`);
   console.log("[kurari-ex-prediction-failure] reviewsRoot:", reviewsRoot);
+  console.log("[kurari-ex-prediction-failure] incrementalHistoryDate:", incrementalHistoryDate || "none");
   console.log("[kurari-ex-prediction-failure] raceCount:", artifact.raceCount);
   console.log("[kurari-ex-prediction-failure] classifiableRaceCount:", artifact.classifiableRaceCount);
   console.log("[kurari-ex-prediction-failure] summary:", JSON.stringify(artifact.summary));

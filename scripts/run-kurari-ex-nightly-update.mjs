@@ -18,15 +18,168 @@ import {
 } from "./kurari-ex-daily-common.mjs";
 
 const execFileAsync = promisify(execFile);
+const resultTrendIndexPath = path.join(
+  projectRoot,
+  "public",
+  "data",
+  "analytics",
+  "kurari-ex-result-trend-lab-history",
+  "index.generated.json",
+);
+const predictionFailureIndexPath = path.join(
+  projectRoot,
+  "public",
+  "data",
+  "analytics",
+  "kurari-ex",
+  "prediction-failure",
+  "index.generated.json",
+);
+
+function addDays(isoDate, days) {
+  const date = new Date(`${isoDate}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+async function readJson(file) {
+  return JSON.parse(await readFile(file, "utf8"));
+}
 
 async function runScript(script, args = []) {
-  const { stdout, stderr } = await execFileAsync(
+  const result = await execFileAsync(
     process.execPath,
     [path.join(projectRoot, "scripts", script), ...args],
     { cwd: projectRoot, maxBuffer: 20 * 1024 * 1024 },
   );
+  const { stdout, stderr } = result;
   if (stdout.trim()) console.log(stdout.trim());
   if (stderr.trim()) console.error(stderr.trim());
+  return result;
+}
+
+function parseJsonReport(stdout, label) {
+  try {
+    return JSON.parse(stdout);
+  } catch (error) {
+    throw new Error(`${label} did not return a JSON report: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+function assertResultTrendReport(report, expectedDecision, targetDate) {
+  const summary = report?.candidateSummary ?? {};
+  const target = report?.targetSummary ?? {};
+  const failures = [];
+  if (report?.targetDate !== targetDate) failures.push(`targetDate=${report?.targetDate}`);
+  if (report?.promotion?.decision !== expectedDecision) failures.push(`decision=${report?.promotion?.decision}`);
+  if (target.sourceRejectedCount !== 0) failures.push(`targetSourceRejected=${target.sourceRejectedCount}`);
+  if (target.notFinalizedCount !== 0) failures.push(`targetNotFinalized=${target.notFinalizedCount}`);
+  if (summary.sourceRejectedCount !== 0) failures.push(`sourceRejected=${summary.sourceRejectedCount}`);
+  if (summary.rejectedRaceCount !== 0) failures.push(`loaderRejected=${summary.rejectedRaceCount}`);
+  if (summary.validatorIssueCount !== 0) failures.push(`validatorIssues=${summary.validatorIssueCount}`);
+  if (summary.duplicateRaceKeyCount !== 0) failures.push(`duplicateRaceKeys=${summary.duplicateRaceKeyCount}`);
+  if (summary.dateSourceDateMismatchCount !== 0) failures.push(`dateSourceDateMismatch=${summary.dateSourceDateMismatchCount}`);
+  if (summary.loadedShardCount !== 60) failures.push(`loadedShards=${summary.loadedShardCount}`);
+  if (summary.productionBackfillReady !== true) failures.push("productionBackfillReady=false");
+  if (report?.windowAudit?.missingDates?.length) failures.push(`missingDates=${report.windowAudit.missingDates.length}`);
+  if (report?.windowAudit?.unexpectedDates?.length) failures.push(`unexpectedDates=${report.windowAudit.unexpectedDates.length}`);
+  if (expectedDecision === "PROMOTION_READY" && report?.publicDataWritePerformed !== false) {
+    failures.push("dry-run wrote public data");
+  }
+  if (expectedDecision === "PROMOTED" && report?.publicDataWritePerformed !== true) {
+    failures.push("write did not update public data");
+  }
+  if (failures.length) {
+    throw new Error(`Result Trend ${targetDate} safety gate failed: ${failures.join(", ")}`);
+  }
+}
+
+async function updateResultTrendThrough(targetDate) {
+  let index = await readJson(resultTrendIndexPath);
+  while (index.range?.to < targetDate) {
+    const nextDate = addDays(index.range.to, 1);
+    const baseArgs = [
+      "--target-date",
+      nextDate,
+      "--allow-existing-kurari-ex-baseline",
+    ];
+    const dryRun = await runScript(
+      "kurari-ex/update-keirin-jp-historical-result-window.mjs",
+      baseArgs,
+    );
+    assertResultTrendReport(parseJsonReport(dryRun.stdout, "Result Trend dry-run"), "PROMOTION_READY", nextDate);
+
+    const writeRun = await runScript(
+      "kurari-ex/update-keirin-jp-historical-result-window.mjs",
+      [
+        ...baseArgs,
+        "--write",
+        "--confirm-namespace",
+        "kurari-ex-result-trend-lab-history",
+        "--confirm-rolling-window",
+        "60",
+      ],
+    );
+    assertResultTrendReport(parseJsonReport(writeRun.stdout, "Result Trend write"), "PROMOTED", nextDate);
+    index = await readJson(resultTrendIndexPath);
+    if (index.range?.to !== nextDate) {
+      throw new Error(`Result Trend index did not advance to ${nextDate}`);
+    }
+  }
+  if (index.range?.to !== targetDate) {
+    throw new Error(`Result Trend is ahead of compact history: ${index.range?.to} > ${targetDate}`);
+  }
+  return index;
+}
+
+async function updatePredictionFailureGuidance(historyDate) {
+  let failure = await readJson(predictionFailureIndexPath);
+  while (failure.historicalTo < historyDate) {
+    const nextHistoryDate = addDays(failure.historicalTo, 1);
+    await runScript("kurari-ex/generate-kurari-ex-prediction-failure.mjs", [
+      "--target-date",
+      addDays(nextHistoryDate, 1),
+      "--incremental-history-date",
+      nextHistoryDate,
+      "--write",
+    ]);
+    failure = await readJson(predictionFailureIndexPath);
+    if (failure.historicalTo !== nextHistoryDate) {
+      throw new Error(`prediction failure did not advance to ${nextHistoryDate}`);
+    }
+  }
+  if (failure.historicalTo !== historyDate) {
+    throw new Error(`prediction failure is ahead of compact history: ${failure.historicalTo} > ${historyDate}`);
+  }
+  await runScript("check-kurari-ex-prediction-failure.mjs");
+  const targetDate = addDays(historyDate, 1);
+  await runScript("kurari-ex/generate-kurari-ex-prediction-failure-guidance.mjs", [
+    "--target-date",
+    targetDate,
+    "--write",
+  ]);
+  await runScript("check-kurari-ex-prediction-failure-guidance.mjs");
+}
+
+async function updatePreRaceArtifacts(historyDate) {
+  const todayFeed = await readJson(todayFeedPath);
+  if (typeof todayFeed.date !== "string") {
+    throw new Error("today feed date is unavailable");
+  }
+  if (todayFeed.date > historyDate) {
+    await runScript("kurari-ex/generate-kurari-ex-race-risk.mjs");
+    await runScript("check-kurari-ex-race-risk.mjs");
+    await runScript("kurari-ex/archive-kurari-ex-race-risk.mjs");
+    await runScript("check-kurari-ex-race-risk-history.mjs");
+  } else {
+    console.log(`[nightly] race-risk deferred: today=${todayFeed.date} historicalTo=${historyDate}`);
+  }
+  await runScript("check-kurari-ex-freshness.mjs", [
+    "--historical-date",
+    historyDate,
+    "--target-date",
+    todayFeed.date,
+  ]);
 }
 
 async function publishVenueExact(tempRoot) {
@@ -77,6 +230,8 @@ export async function runNightly(options = {}) {
       await readFile(path.join(compactHistoryRoot, "index.generated.json"), "utf8"),
     );
     const generatedAt = historyIndex.generatedAt;
+    const historyDate = historyIndex.period.to;
+    await updateResultTrendThrough(historyDate);
 
     await runScript("update-kurari-ex-official-rider-supplement.mjs");
     await runScript("update-kurari-ex-rider-master.mjs");
@@ -96,10 +251,8 @@ export async function runNightly(options = {}) {
     await runScript("generate-kurari-ex-rider-category-analysis.mjs");
     await runScript("generate-kurari-ex-rider-tags-guidance.mjs");
     await runScript("generate-kurari-ex-today-recommendation.mjs");
-    await runScript("kurari-ex/generate-kurari-ex-race-risk.mjs");
-    await runScript("check-kurari-ex-race-risk.mjs");
-    await runScript("kurari-ex/archive-kurari-ex-race-risk.mjs");
-    await runScript("check-kurari-ex-race-risk-history.mjs");
+    await updatePredictionFailureGuidance(historyDate);
+    await updatePreRaceArtifacts(historyDate);
     return { status: archive.status, archive };
   }
 
@@ -108,6 +261,8 @@ export async function runNightly(options = {}) {
     await readFile(path.join(compactHistoryRoot, "index.generated.json"), "utf8"),
   );
   const generatedAt = historyIndex.generatedAt;
+  const historyDate = historyIndex.period.to;
+  await updateResultTrendThrough(historyDate);
   const tempRoot = path.join(projectRoot, ".tmp", "kurari-ex-nightly");
   const venueTemp = path.join(tempRoot, "exact");
   const riderTemp = path.join(tempRoot, "riders");
@@ -143,10 +298,8 @@ export async function runNightly(options = {}) {
     await runScript("generate-kurari-ex-rider-category-analysis.mjs");
     await runScript("generate-kurari-ex-rider-tags-guidance.mjs");
     await runScript("generate-kurari-ex-today-recommendation.mjs");
-    await runScript("kurari-ex/generate-kurari-ex-race-risk.mjs");
-    await runScript("check-kurari-ex-race-risk.mjs");
-    await runScript("kurari-ex/archive-kurari-ex-race-risk.mjs");
-    await runScript("check-kurari-ex-race-risk-history.mjs");
+    await updatePredictionFailureGuidance(historyDate);
+    await updatePreRaceArtifacts(historyDate);
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }

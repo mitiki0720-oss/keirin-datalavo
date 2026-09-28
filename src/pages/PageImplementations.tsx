@@ -30,8 +30,10 @@ import {
 } from "../lib/predictionGptSourceContract";
 import {
   buildKurariExConditionMaterial,
+  buildKurariExFreshnessMaterial,
   buildKurariExPreRaceRiskSignalMaterial,
   buildKurariExPredictionMaterial,
+  buildKurariExTrendPredictionMaterial,
   buildKurariExMatchupPredictionMaterial,
   buildKurariExFailureStructureGuidanceMaterial,
   buildKurariExRiderPredictionMaterial,
@@ -42,6 +44,7 @@ import {
   KURARI_EX_DATA_INVENTORY_UI_SUMMARY,
   KURARI_EX_TACTIC_EVENT_RULES_UI_SUMMARY,
   type KurariExRaceRiskIndex,
+  type KurariExSourceFreshnessSummary,
   type KurariExPredictionFailureGuidanceArtifact,
   findKurariExExactVenueEntryByVenueName,
   findKurariExVenueEntryByVenueName,
@@ -53,11 +56,16 @@ import {
   loadKurariExPredictionFailureGuidanceIndex,
   loadKurariExRaceRiskIndex,
   loadKurariExRiderExactIndex,
+  loadKurariExSourceFreshnessSummary,
   loadKurariExVenueBundle,
   loadKurariExVenueExact,
   matchKurariExMatchupsForRace,
   matchKurariExRidersForRace,
 } from "../lib/kurariExData";
+import {
+  loadKurariExHistoricalTrifectaTrendV1,
+  type KurariExTrifectaTrendV1,
+} from "../lib/kurariExResultTrendLab";
 import {
   findVenueInsightGroup,
   formatVenueInsightMemo,
@@ -9202,6 +9210,10 @@ export function PredictionPage() {
   const [kurariExRaceRisk, setKurariExRaceRisk] = useState<KurariExRaceRiskIndex | null>(null);
   const [kurariExRaceRiskStatus, setKurariExRaceRiskStatus] =
     useState<"loading" | "ready" | "error">("loading");
+  const [kurariExSourceFreshness, setKurariExSourceFreshness] =
+    useState<KurariExSourceFreshnessSummary | null>(null);
+  const [kurariExHistoricalTrend, setKurariExHistoricalTrend] =
+    useState<KurariExTrifectaTrendV1 | null>(null);
   const [kurariExFailureGuidance, setKurariExFailureGuidance] =
     useState<KurariExPredictionFailureGuidanceArtifact | null>(null);
   const [kurariExFailureGuidanceStatus, setKurariExFailureGuidanceStatus] =
@@ -9424,6 +9436,27 @@ useEffect(() => {
         if (!isActive) return;
         setKurariExRaceRisk(null);
         setKurariExRaceRiskStatus("error");
+      });
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+    Promise.all([
+      loadKurariExSourceFreshnessSummary(),
+      loadKurariExHistoricalTrifectaTrendV1(),
+    ])
+      .then(([freshness, trend]) => {
+        if (!isActive) return;
+        setKurariExSourceFreshness(freshness);
+        setKurariExHistoricalTrend(trend);
+      })
+      .catch(() => {
+        if (!isActive) return;
+        setKurariExSourceFreshness(null);
+        setKurariExHistoricalTrend(null);
       });
     return () => {
       isActive = false;
@@ -11252,6 +11285,24 @@ if (
       selectedPredictionMaterialRiders.length,
     ],
   );
+  const selectedKurariExFreshnessMaterial = useMemo(
+    () => buildKurariExFreshnessMaterial(kurariExSourceFreshness),
+    [kurariExSourceFreshness],
+  );
+  const selectedKurariExTrendMaterial = useMemo(
+    () => buildKurariExTrendPredictionMaterial(
+      kurariExHistoricalTrend,
+      selectedPredictionMaterialVenue?.venueCode,
+      selectedPredictionMaterialVenue?.venue,
+      selectedPredictionMaterialRace?.raceNo,
+    ),
+    [
+      kurariExHistoricalTrend,
+      selectedPredictionMaterialRace?.raceNo,
+      selectedPredictionMaterialVenue?.venue,
+      selectedPredictionMaterialVenue?.venueCode,
+    ],
+  );
   const selectedKurariExGuidanceText = useMemo(
     () => selectedKurariExAnyReady
       ? buildKurariExPredictionMaterial(selectedKurariExBundle, selectedKurariExExact, {
@@ -11263,11 +11314,11 @@ if (
           isGirls: selectedPredictionMaterialRace?.isGirls,
           lineup: selectedPredictionMaterialRace?.lineup,
           windSpeedKmh: parsePredictionNumber(selectedWeather?.windSpeedText ?? ""),
-        }, selectedKurariExPlayerMaterialText, selectedKurariExMatchupMaterial.text, selectedKurariExConfidenceMaterial, selectedKurariExConditionMaterial.text)
+        }, selectedKurariExPlayerMaterialText, selectedKurariExMatchupMaterial.text, selectedKurariExConfidenceMaterial, selectedKurariExConditionMaterial.text, selectedKurariExFreshnessMaterial, selectedKurariExTrendMaterial)
       : selectedKurariExBothMissing
-        ? buildKurariExPredictionMaterial(null, null, null, selectedKurariExPlayerMaterialText, selectedKurariExMatchupMaterial.text, selectedKurariExConfidenceMaterial, selectedKurariExConditionMaterial.text)
+        ? buildKurariExPredictionMaterial(null, null, null, selectedKurariExPlayerMaterialText, selectedKurariExMatchupMaterial.text, selectedKurariExConfidenceMaterial, selectedKurariExConditionMaterial.text, selectedKurariExFreshnessMaterial, selectedKurariExTrendMaterial)
       : "",
-    [selectedKurariExAnyReady, selectedKurariExBothMissing, selectedKurariExBundle, selectedKurariExConditionMaterial.text, selectedKurariExConfidenceMaterial, selectedKurariExExact, selectedKurariExMatchupMaterial.text, selectedKurariExPlayerMaterialText, selectedPredictionMaterialRace, selectedPredictionMaterialVenue?.session, selectedWeather?.windSpeedText],
+    [selectedKurariExAnyReady, selectedKurariExBothMissing, selectedKurariExBundle, selectedKurariExConditionMaterial.text, selectedKurariExConfidenceMaterial, selectedKurariExExact, selectedKurariExFreshnessMaterial, selectedKurariExMatchupMaterial.text, selectedKurariExPlayerMaterialText, selectedKurariExTrendMaterial, selectedPredictionMaterialRace, selectedPredictionMaterialVenue?.session, selectedWeather?.windSpeedText],
   );
   const selectedKurariExRaceRiskText = useMemo(
     () => buildKurariExPreRaceRiskSignalMaterial(
@@ -11472,9 +11523,9 @@ if (
         : selectedVenueSummary,
     }).join("\n");
     const commonKurariExText = selectedKurariExAnyReady
-      ? buildKurariExPredictionMaterial(selectedKurariExBundle, selectedKurariExExact)
+      ? buildKurariExPredictionMaterial(selectedKurariExBundle, selectedKurariExExact, null, "", "", "", "", selectedKurariExFreshnessMaterial)
       : selectedKurariExBothMissing
-        ? buildKurariExPredictionMaterial(null, null, null)
+        ? buildKurariExPredictionMaterial(null, null, null, "", "", "", "", selectedKurariExFreshnessMaterial)
         : "[P. KURARI EX DATA / 独自展開指標]\n\n未取得";
     const commonKurariExWithAccumulation = commonKurariExText.includes("【KURARI EX 蓄積ルール】")
       ? commonKurariExText
@@ -11652,6 +11703,12 @@ if (
           raceNo: race.raceNo,
         },
       );
+      const raceTrendMaterial = buildKurariExTrendPredictionMaterial(
+        kurariExHistoricalTrend,
+        selectedPredictionMaterialVenue.venueCode,
+        selectedPredictionMaterialVenue.venue,
+        race.raceNo,
+      );
       const material = buildPredictionBatchRaceCoreText(buildPredictionExportText({
         date: predictionFeed.date,
         feed: predictionFeed,
@@ -11686,6 +11743,8 @@ if (
         "",
         extractPredictionBatchKurariExRaceMemo(kurariExGuidanceText),
         "",
+        raceTrendMaterial,
+        "",
         failureGuidanceText,
         "====================",
       ].join("\n");
@@ -11708,6 +11767,7 @@ if (
     kurariExFailureGuidanceStatus,
     kurariExRaceRisk,
     kurariExRaceRiskStatus,
+    kurariExHistoricalTrend,
     predictionBatchRange,
     predictionBatchKurariExRiderStatus,
     predictionFeed,
@@ -11717,6 +11777,7 @@ if (
     selectedKurariExBundle,
     selectedKurariExEntry?.venueKey,
     selectedKurariExExact,
+    selectedKurariExFreshnessMaterial,
     selectedPredictionMaterialVenue,
     selectedVenueGradeLabel,
     selectedVenueSummary,

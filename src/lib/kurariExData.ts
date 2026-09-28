@@ -49,6 +49,7 @@ import {
   isKurariForeignRiderAliasStrictAdoptionApproved,
   KURARI_FOREIGN_RIDER_ALIAS_PLANNED_SOURCE_DESIGN,
 } from "./kurariForeignRiderAliases";
+import type { KurariExTrifectaTrendV1 } from "./kurariExResultTrendLab";
 
 const EX_ROOT = "/data/analytics/kurari-ex";
 const EXACT_ROOT = `${EX_ROOT}/exact`;
@@ -58,6 +59,8 @@ const HISTORY_INDEX_PATH = `${EX_ROOT}/history/index.generated.json`;
 const RACE_RISK_INDEX_PATH = `${EX_ROOT}/race-risk/index.generated.json`;
 const PREDICTION_FAILURE_INDEX_PATH = `${EX_ROOT}/prediction-failure/index.generated.json`;
 const PREDICTION_FAILURE_GUIDANCE_INDEX_PATH = `${EX_ROOT}/prediction-failure-guidance/index.generated.json`;
+const RESULT_TREND_HISTORY_INDEX_PATH = "/data/analytics/kurari-ex-result-trend-lab-history/index.generated.json";
+const SEED_GLOBAL_KPI_PATH = `${EX_ROOT}/global/prediction-kpi.generated.json`;
 const STARTERS_SOURCE_INDEX_PATH = `${EX_ROOT}/source/starters/index.generated.json`;
 const TODAY_RACES_PATH = "/data/races/today.generated.json";
 const OFFICIAL_ENTRIES_PATH = "/data/races/keirin-jp-entries.generated.json";
@@ -144,6 +147,33 @@ export type KurariExRaceRiskIndex = {
   confidenceCounts: Partial<Record<KurariExRaceRiskConfidence, number>>;
   pointRangeCounts: Record<string, number>;
   records: KurariExRaceRiskRecord[];
+};
+
+export type KurariExFreshnessStatus = "LATEST" | "FRESH" | "STALE" | "REFERENCE" | "UNAVAILABLE";
+
+export type KurariExSourceFreshnessItem = {
+  label: string;
+  date: string | null;
+  targetDate?: string | null;
+  status: KurariExFreshnessStatus;
+  note: string;
+};
+
+export type KurariExSourceFreshnessSummary = {
+  targetDate: string | null;
+  historicalTo: string | null;
+  sources: {
+    today: KurariExSourceFreshnessItem;
+    history: KurariExSourceFreshnessItem;
+    exact: KurariExSourceFreshnessItem;
+    resultTrend: KurariExSourceFreshnessItem;
+    riderExact: KurariExSourceFreshnessItem;
+    matchup: KurariExSourceFreshnessItem;
+    failureGuidance: KurariExSourceFreshnessItem;
+    raceRisk: KurariExSourceFreshnessItem;
+    seedKpi: KurariExSourceFreshnessItem;
+    identity: KurariExSourceFreshnessItem;
+  };
 };
 
 export type KurariExPredictionFailurePrimaryClass =
@@ -631,6 +661,220 @@ export async function loadKurariExHistoryIndex(): Promise<KurariExHistoryIndex> 
   return fetchJson<KurariExHistoryIndex>(HISTORY_INDEX_PATH);
 }
 
+function settledValue<T>(result: PromiseSettledResult<T>): T | null {
+  return result.status === "fulfilled" ? result.value : null;
+}
+
+function dateDiffDays(from: string | null, to: string | null) {
+  if (!from || !to) return null;
+  const fromTime = Date.parse(`${from}T00:00:00Z`);
+  const toTime = Date.parse(`${to}T00:00:00Z`);
+  if (!Number.isFinite(fromTime) || !Number.isFinite(toTime)) return null;
+  return Math.round((toTime - fromTime) / 86400000);
+}
+
+function shiftIsoDate(date: string | null, days: number) {
+  if (!date) return null;
+  const value = new Date(`${date}T00:00:00Z`);
+  if (!Number.isFinite(value.getTime())) return null;
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+
+function freshnessItem(
+  label: string,
+  date: string | null | undefined,
+  expectedDate: string | null,
+  options: {
+    targetDate?: string | null;
+    expectedTargetDate?: string | null;
+    referenceOnly?: boolean;
+    latest?: boolean;
+    note?: string;
+  } = {},
+): KurariExSourceFreshnessItem {
+  const normalizedDate = date || null;
+  if (!normalizedDate) {
+    return { label, date: null, targetDate: options.targetDate, status: "UNAVAILABLE", note: "source date unavailable" };
+  }
+  const diff = dateDiffDays(normalizedDate, expectedDate);
+  const targetMismatch = options.expectedTargetDate !== undefined
+    && options.targetDate !== options.expectedTargetDate;
+  const status: KurariExFreshnessStatus = targetMismatch
+    ? "STALE"
+    : options.referenceOnly
+    ? "REFERENCE"
+    : options.latest && diff === 0
+      ? "LATEST"
+      : diff === 0
+        ? "FRESH"
+        : "STALE";
+  return {
+    label,
+    date: normalizedDate,
+    targetDate: options.targetDate,
+    status,
+    note: targetMismatch
+      ? `target expected ${options.expectedTargetDate ?? "unknown"}`
+      : options.note ?? (status === "STALE" ? `expected ${expectedDate ?? "unknown"}` : "source-backed"),
+  };
+}
+
+export async function loadKurariExSourceFreshnessSummary(): Promise<KurariExSourceFreshnessSummary> {
+  type ResultTrendIndex = { range?: { to?: string | null } };
+  type TodayFeed = { date?: string | null };
+  type SeedKpi = { period?: { to?: string | null } };
+  const results = await Promise.allSettled([
+    fetchJson<TodayFeed>(TODAY_RACES_PATH),
+    loadKurariExHistoryIndex(),
+    loadKurariExExactIndex(),
+    loadKurariExRiderExactIndex(),
+    loadKurariExMatchupExactIndex(),
+    fetchJson<ResultTrendIndex>(RESULT_TREND_HISTORY_INDEX_PATH),
+    loadKurariExPredictionFailureGuidanceIndex(),
+    loadKurariExRaceRiskIndex(),
+    fetchJson<KurariExStartersSourceIndex>(STARTERS_SOURCE_INDEX_PATH),
+    fetchJson<SeedKpi>(SEED_GLOBAL_KPI_PATH),
+  ] as const);
+  const today = settledValue(results[0]);
+  const history = settledValue(results[1]);
+  const exact = settledValue(results[2]);
+  const riders = settledValue(results[3]);
+  const matchups = settledValue(results[4]);
+  const resultTrend = settledValue(results[5]);
+  const failureGuidance = settledValue(results[6]);
+  const raceRisk = settledValue(results[7]);
+  const starters = settledValue(results[8]);
+  const seedKpi = settledValue(results[9]);
+  const targetDate = today?.date ?? raceRisk?.period?.date ?? null;
+  const historicalTo = history?.period?.to ?? null;
+  const expectedHistorical = shiftIsoDate(targetDate, -1) ?? historicalTo;
+
+  return {
+    targetDate,
+    historicalTo,
+    sources: {
+      today: freshnessItem("Today", today?.date, targetDate, { latest: true }),
+      history: freshnessItem("History", historicalTo, expectedHistorical),
+      exact: freshnessItem("EXACT", exact?.period?.to, expectedHistorical),
+      resultTrend: freshnessItem("Result Trend", resultTrend?.range?.to, expectedHistorical),
+      riderExact: freshnessItem("Rider EXACT", riders?.period?.to, expectedHistorical),
+      matchup: freshnessItem("MATCHUP", matchups?.period?.to, expectedHistorical),
+      failureGuidance: freshnessItem(
+        "Failure Guidance",
+        failureGuidance?.historicalTo,
+        expectedHistorical,
+        {
+          targetDate: failureGuidance?.targetDate ?? null,
+          expectedTargetDate: targetDate,
+        },
+      ),
+      raceRisk: freshnessItem(
+        "Race Risk",
+        raceRisk?.period?.historicalTo,
+        expectedHistorical,
+        {
+          targetDate: raceRisk?.period?.date ?? null,
+          expectedTargetDate: targetDate,
+          note: raceRisk?.period?.date === targetDate ? "pre-race source-backed" : `target mismatch: ${raceRisk?.period?.date ?? "unavailable"}`,
+        },
+      ),
+      seedKpi: freshnessItem("SEED KPI", seedKpi?.period?.to, expectedHistorical, {
+        referenceOnly: seedKpi?.period?.to !== expectedHistorical,
+        note: "review-summary SEED; EXACTとは別source",
+      }),
+      identity: freshnessItem("Identity historical", starters?.latest?.date, targetDate, {
+        referenceOnly: starters?.latest?.date !== targetDate,
+        note: "legacy snapshot; current official entriesは別経路",
+      }),
+    },
+  };
+}
+
+export function buildKurariExFreshnessMaterial(summary: KurariExSourceFreshnessSummary | null) {
+  if (!summary) {
+    return [
+      "【KURARI EX SOURCE FRESHNESS】",
+      "- UNAVAILABLE: source freshnessを取得できないため、最新扱いしない。",
+    ].join("\n");
+  }
+  const { sources } = summary;
+  return [
+    "【KURARI EX SOURCE FRESHNESS】",
+    `- targetDate: ${summary.targetDate ?? "unavailable"}`,
+    `- historyTo: ${summary.historicalTo ?? "unavailable"} / ${sources.history.status}`,
+    `- resultTrendTo: ${sources.resultTrend.date ?? "unavailable"} / ${sources.resultTrend.status}`,
+    `- riderExactTo: ${sources.riderExact.date ?? "unavailable"} / ${sources.riderExact.status}`,
+    `- matchupTo: ${sources.matchup.date ?? "unavailable"} / ${sources.matchup.status}`,
+    `- failureGuidanceTo: ${sources.failureGuidance.date ?? "unavailable"} / target ${sources.failureGuidance.targetDate ?? "unavailable"} / ${sources.failureGuidance.status}`,
+    `- raceRisk: historicalTo ${sources.raceRisk.date ?? "unavailable"} / target ${sources.raceRisk.targetDate ?? "unavailable"} / ${sources.raceRisk.status}`,
+    `- identity: ${sources.identity.date ?? "unavailable"} / ${sources.identity.status} (${sources.identity.note})`,
+    "- STALE / REFERENCE / UNAVAILABLEは強い根拠に使わない。",
+  ].join("\n");
+}
+
+export function buildKurariExTrendPredictionMaterial(
+  trend: KurariExTrifectaTrendV1 | null,
+  venueCode?: string | number | null,
+  venueName?: string | null,
+  raceNo?: number | string | null,
+) {
+  const historical = trend?.sourceSummary?.historical;
+  if (!trend || !historical?.dateRange?.to) {
+    return "【KURARI EX TREND MATERIAL】\n- UNAVAILABLE: historical confirmed trendを取得できない。";
+  }
+  const normalizedVenueCode = String(venueCode ?? "").trim();
+  const normalizedVenueName = String(venueName ?? "").replace(/競輪場$/u, "").trim();
+  const matchesVenue = (item: { venueCode?: string; venueName?: string }) =>
+    Boolean(
+      (normalizedVenueCode && item.venueCode === normalizedVenueCode)
+      || (normalizedVenueName && String(item.venueName ?? "").replace(/競輪場$/u, "").trim() === normalizedVenueName),
+    );
+  const ranking = trend.rankingSegments.byVenue.find(matchesVenue);
+  const turbulence = trend.turbulence.byVenue.find((item) =>
+    Boolean(normalizedVenueName && item.label.replace(/競輪場$/u, "").trim() === normalizedVenueName)
+  );
+  const venueBias = trend.venueBias.byVenue.find(matchesVenue);
+  const weather = trend.weather.byVenue.find(matchesVenue);
+  const chain = trend.chain.byVenue.find(matchesVenue);
+  const selectedRaceNo = Number(String(raceNo ?? "").replace(/R$/iu, ""));
+  const raceTurbulence = Number.isInteger(selectedRaceNo)
+    ? trend.turbulence.byRaceNumber.find((item) => item.key === String(selectedRaceNo))
+    : null;
+  const lines = [
+    "【KURARI EX TREND MATERIAL / historical confirmed only】",
+    `- historical range: ${historical.dateRange.from ?? "unavailable"}〜${historical.dateRange.to}`,
+    `- accepted/trendEligible: ${historical.acceptedRaceCount}/${historical.trendEligibleRaceCount}`,
+    "- current-day result / 今日の流れはPRE-RACE素材へ含めない。",
+  ];
+  if (ranking) {
+    const top = ranking.topTrifectaResults.slice(0, 3).map((item) => `${item.label} ${item.count}件`).join(" / ");
+    const first = ranking.firstCarRanking.slice(0, 3).map((item) => `${item.label} ${item.rate.toFixed(1)}%`).join(" / ");
+    lines.push(`- 会場3連単傾向 (${ranking.sampleStatus}, n=${ranking.sampleSize}): ${top || "データなし"}`);
+    lines.push(`- 会場1着車番傾向: ${first || "データなし"}`);
+  }
+  if (turbulence) {
+    lines.push(`- 会場荒れ分布 (${turbulence.sampleLabel}, n=${turbulence.sampleSize}): 平均${Math.round(turbulence.averagePayoutYen).toLocaleString()}円 / 中央${Math.round(turbulence.medianPayoutYen).toLocaleString()}円`);
+  }
+  if (raceTurbulence) {
+    lines.push(`- ${selectedRaceNo}R荒れ分布 (${raceTurbulence.sampleLabel}, n=${raceTurbulence.sampleSize}): 平均${Math.round(raceTurbulence.averagePayoutYen).toLocaleString()}円`);
+  }
+  if (venueBias) {
+    lines.push(`- 会場クセ (${venueBias.sampleLabel}, n=${venueBias.sampleSize}): 外枠絡み${venueBias.outsideInvolvementRate.toFixed(1)}% / 1番車飛び${venueBias.oneCarOutRate.toFixed(1)}%`);
+  }
+  if (weather) {
+    lines.push(`- WEATHER (${weather.sampleLabel}, n=${weather.sampleSize}): 主風速帯 ${weather.leadingWindBucketLabel} / 主決まり手 ${weather.leadingDecisionMethodLabel}`);
+  }
+  if (chain) {
+    lines.push(`- レース連鎖 (${chain.sampleStatus}, n=${chain.sampleSize}): 荒れ継続${chain.turbulenceContinueRate.toFixed(1)}% / 本命戻り${chain.favoriteReturnRate.toFixed(1)}%`);
+  }
+  if (!ranking && !turbulence && !venueBias && !weather && !chain) {
+    lines.push("- 選択会場のsource-backed trend segmentは未蓄積。全体値で補完しない。");
+  }
+  lines.push("- LOW SAMPLE / weakは強い根拠にしない。fake/fuzzy補完禁止。");
+  return lines.join("\n");
+}
+
 export async function loadKurariExHistoryDailyByPath(
   publicPath: string,
 ): Promise<KurariExHistoryDaily> {
@@ -1033,10 +1277,12 @@ function buildKurariExPredictionMaterialText(
   matchupMaterial: string,
   confidenceMaterial: string,
   conditionMaterial: string,
+  freshnessMaterial: string,
+  trendMaterial: string,
   insightLimit: number,
   guidanceLimit: number,
 ) {
-  if (!venue && !exact && !riderMaterial && !matchupMaterial && !confidenceMaterial && !conditionMaterial) {
+  if (!venue && !exact && !riderMaterial && !matchupMaterial && !confidenceMaterial && !conditionMaterial && !freshnessMaterial && !trendMaterial) {
     return [
       "[P. KURARI EX DATA / 独自展開指標]",
       "",
@@ -1054,6 +1300,8 @@ function buildKurariExPredictionMaterialText(
     ...(exact ? ["EXACTは正規化履歴からの集計。LOW SAMPLEは参考扱い。"] : []),
     ...(venue ? ["SEEDは過去Summary由来の補助知識。"] : []),
   ];
+  if (freshnessMaterial) lines.push("", freshnessMaterial);
+  if (trendMaterial) lines.push("", trendMaterial);
   if (confidenceMaterial) lines.push("", confidenceMaterial);
   if (exact) {
     lines.push("", ...buildExactLines(exact, context));
@@ -1131,23 +1379,26 @@ export function buildKurariExPredictionMaterial(
   matchupMaterial = "",
   confidenceMaterial = "",
   conditionMaterial = "",
+  freshnessMaterial = "",
+  trendMaterial = "",
 ): string {
   const venue = bundle?.venue ?? null;
   const guidance = bundle?.guidance ?? null;
   const hasVenueSuitabilityMaterial = riderMaterial.includes("【PLAYER EX / 会場別適性】");
+  const freshnessAllowance = freshnessMaterial.length + trendMaterial.length;
   const maxLength = hasVenueSuitabilityMaterial
-    ? 14000
+    ? 14000 + freshnessAllowance
     : conditionMaterial
-    ? 9000
+    ? 9000 + freshnessAllowance
     : riderMaterial || matchupMaterial || confidenceMaterial
-      ? 6500
-      : 3200;
+      ? 6500 + freshnessAllowance
+      : 3200 + freshnessAllowance;
   for (let insightLimit = Math.min(8, venue?.seedInsights.length ?? 0); insightLimit >= 0; insightLimit -= 1) {
-    const text = buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, matchupMaterial, confidenceMaterial, conditionMaterial, insightLimit, 8);
+    const text = buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, matchupMaterial, confidenceMaterial, conditionMaterial, freshnessMaterial, trendMaterial, insightLimit, 8);
     if (text.length <= maxLength) return text;
   }
   for (let guidanceLimit = 7; guidanceLimit >= 1; guidanceLimit -= 1) {
-    const text = buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, matchupMaterial, confidenceMaterial, conditionMaterial, 0, guidanceLimit);
+    const text = buildKurariExPredictionMaterialText(venue, guidance, exact, context, riderMaterial, matchupMaterial, confidenceMaterial, conditionMaterial, freshnessMaterial, trendMaterial, 0, guidanceLimit);
     if (text.length <= maxLength) return text;
   }
   const fallbackText = buildKurariExPredictionMaterialText(
@@ -1159,6 +1410,8 @@ export function buildKurariExPredictionMaterial(
     matchupMaterial,
     confidenceMaterial,
     conditionMaterial,
+    freshnessMaterial,
+    trendMaterial,
     0,
     1,
   );

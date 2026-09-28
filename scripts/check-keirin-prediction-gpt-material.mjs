@@ -16,9 +16,13 @@ const addIssue = (venue, raceNo, field, expected, actual) => {
 const today = readJson("public/data/races/today.generated.json");
 const entries = readJson("public/data/races/keirin-jp-entries.generated.json");
 const risk = readJson("public/data/analytics/kurari-ex/race-risk/index.generated.json");
+const exHistory = readJson("public/data/analytics/kurari-ex/history/index.generated.json");
+const resultTrend = readJson("public/data/analytics/kurari-ex-result-trend-lab-history/index.generated.json");
+const failureGuidance = readJson("public/data/analytics/kurari-ex/prediction-failure-guidance/index.generated.json");
 const insightIndex = readJson("public/data/venues/bank-insights/index.json");
 const pageSource = readText("src/pages/PageImplementations.tsx");
 const exSource = readText("src/lib/kurariExData.ts");
+const trendSource = readText("src/lib/kurariExResultTrendLab.ts");
 const parserSource = readText("src/pages/venueFeatures/venueFeatureParsers.ts");
 
 const races = today.venues.flatMap((venue) => venue.races.map((race) => ({ venue, race })));
@@ -119,6 +123,12 @@ if (risk.period?.date !== today.date || risk.freshness?.targetDate !== today.dat
 if (risk.freshness?.historicalTo && risk.freshness.historicalTo >= today.date) {
   addIssue("ALL", 0, "risk historicalTo", `< ${today.date}`, risk.freshness.historicalTo);
 }
+if (resultTrend.range?.to !== exHistory.period?.to) {
+  addIssue("ALL", 0, "Result Trend freshness", exHistory.period?.to, resultTrend.range?.to);
+}
+if (failureGuidance.historicalTo !== exHistory.period?.to || failureGuidance.targetDate !== today.date) {
+  addIssue("ALL", 0, "Failure Guidance freshness", `${exHistory.period?.to}/${today.date}`, `${failureGuidance.historicalTo}/${failureGuidance.targetDate}`);
+}
 
 const normalizeDigestLegacy = (value) => String(value ?? "")
   .replace(/^[-*]\s*/u, "")
@@ -210,6 +220,10 @@ const sourceAssertions = [
   ["odds status is separated", pageSource.includes("oddsStatus:") && pageSource.includes("oddsRefreshNote:")],
   ["summary heading is stripped", parserSource.includes('replace(/^【Summary学習メモ】\\s*/u, "")')],
   ["batch common venue omits race-specific category", pageSource.includes('matchedCategoryLabel: ""') && pageSource.includes("matchedCategoryStats: []")],
+  ["EX freshness is loaded into GPT material", pageSource.includes("loadKurariExSourceFreshnessSummary") && pageSource.includes("selectedKurariExFreshnessMaterial")],
+  ["historical-only trend is loaded into GPT material", pageSource.includes("loadKurariExHistoricalTrifectaTrendV1") && pageSource.includes("raceTrendMaterial")],
+  ["trend material excludes current-day flow", exSource.includes("current-day result / 今日の流れはPRE-RACE素材へ含めない")],
+  ["historical trend loader does not fetch current result", trendSource.includes("loadKurariExHistoricalTrifectaTrendV1Uncached") && trendSource.includes("historical 60日 confirmed only")],
 ];
 for (const [label, passed] of sourceAssertions) {
   if (!passed) addIssue("SOURCE", 0, label, true, passed);
