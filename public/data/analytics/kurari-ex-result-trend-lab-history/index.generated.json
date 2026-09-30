@@ -1,27 +1,14 @@
 {
   "version": "kurari-ex-result-trend-lab-history/v1",
-  "generatedAt": "2026-09-29T20:05:02.067Z",
+  "generatedAt": "2026-09-30T20:11:26.103Z",
   "sourceStatus": "partial",
   "range": {
-    "from": "2026-08-01",
-    "to": "2026-09-29"
+    "from": "2026-08-02",
+    "to": "2026-09-30"
   },
   "shardCount": 60,
-  "raceCount": 4559,
+  "raceCount": 4523,
   "shards": [
-    {
-      "date": "2026-08-01",
-      "path": "/data/analytics/kurari-ex-result-trend-lab-history/daily/2026-08/2026-08-01.generated.json",
-      "raceCount": 94,
-      "status": "ready",
-      "sourceSummary": {
-        "providers": [
-          "KEIRIN.JP"
-        ],
-        "fetchedAtFrom": "2026-08-01T22:29:13.428Z",
-        "fetchedAtTo": "2026-08-01T22:29:33.869Z"
-      }
-    },
     {
       "date": "2026-08-02",
       "path": "/data/analytics/kurari-ex-result-trend-lab-history/daily/2026-08/2026-08-02.generated.json",
@@ -788,72 +775,85 @@
         "fetchedAtFrom": "2026-09-29T20:05:03.764Z",
         "fetchedAtTo": "2026-09-29T20:05:48.430Z"
       }
+    },
+    {
+      "date": "2026-09-30",
+      "path": "/data/analytics/kurari-ex-result-trend-lab-history/daily/2026-09/2026-09-30.generated.json",
+      "raceCount": 58,
+      "status": "ready",
+      "sourceSummary": {
+        "providers": [
+          "KEIRIN.JP"
+        ],
+        "fetchedAtFrom": "2026-09-30T20:11:28.679Z",
+        "fetchedAtTo": "2026-09-30T20:12:14.064Z"
+      }
     }
   ],
   "provenance": {
     "provider": "KEIRIN.JP",
     "generator": "scripts/kurari-ex/update-keirin-jp-historical-result-window.mjs",
     "parserVersion": "kurari-ex-keirin-jp-historical-shard/v1",
-    "generatedAt": "2026-09-29T20:05:02.067Z"
+    "generatedAt": "2026-09-30T20:11:26.103Z"
   },
   "coverage": {
     "result": {
       "status": "partial",
-      "availableRaceCount": 4558,
-      "totalRaceCount": 4559
+      "availableRaceCount": 4522,
+      "totalRaceCount": 4523
     },
     "payout": {
       "status": "partial",
-      "availableRaceCount": 4558,
-      "totalRaceCount": 4559
+      "availableRaceCount": 4522,
+      "totalRaceCount": 4523
     },
     "kimarite": {
       "status": "partial",
-      "availableRaceCount": 4519,
-      "totalRaceCount": 4559
+      "availableRaceCount": 4483,
+      "totalRaceCount": 4523
     },
     "weather": {
       "status": "implemented",
-      "availableRaceCount": 4559,
-      "totalRaceCount": 4559
+      "availableRaceCount": 4523,
+      "totalRaceCount": 4523
     },
     "odds": {
       "status": "partial",
-      "availableRaceCount": 4558,
-      "totalRaceCount": 4559
+      "availableRaceCount": 4522,
+      "totalRaceCount": 4523
     },
     "entries": {
       "status": "implemented",
-      "availableRaceCount": 4559,
-      "totalRaceCount": 4559
+      "availableRaceCount": 4523,
+      "totalRaceCount": 4523
     },
     "lineup": {
       "status": "unavailable",
       "availableRaceCount": 0,
-      "totalRaceCount": 4559
+      "totalRaceCount": 4523
     },
     "bSb": {
       "status": "partial",
-      "availableRaceCount": 4558,
-      "totalRaceCount": 4559
+      "availableRaceCount": 4522,
+      "totalRaceCount": 4523
     }
   },
   "summary": {
     "sourceRejectedCount": 0,
     "sourceRejectByReason": [],
     "statusCount": {
-      "confirmed": 4558,
+      "confirmed": 4522,
       "unavailable": 1
     },
     "classificationCount": {
-      "confirmed-accepted": 4519,
+      "confirmed-accepted": 4483,
       "confirmed-dead-heat": 39,
       "refund-no-trifecta": 1
     },
     "deadHeatRaceCount": 39,
     "deadHeatTrendExcludedCount": 39,
-    "storageEligibleRaceCount": 4559,
-    "trendEligibleRaceCount": 4519,
+    "storageEligibleRaceCount": 4523,
+    "trendEligibleRaceCount": 4483,
     "nonTrendRaceCount": 40,
     "partialReason": "dead heat excluded from trend: 39",
     "blockedReason": [],
