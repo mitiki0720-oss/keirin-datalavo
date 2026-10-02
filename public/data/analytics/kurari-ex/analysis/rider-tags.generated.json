@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-01T20:41:22.354Z",
+  "generatedAt": "2026-10-02T20:01:47.055Z",
   "source": "kurari-ex-rider-score-v1",
   "sourceType": "EXACT_RIDER_SCORE",
   "period": {
     "from": "2026-05-09",
-    "to": "2026-10-01"
+    "to": "2026-10-02"
   },
-  "riderCount": 2401,
+  "riderCount": 2404,
   "qualityCounts": {
-    "complete": 21,
-    "partial": 2101,
-    "low-sample": 268,
-    "identity-only": 11
+    "complete": 23,
+    "partial": 2120,
+    "low-sample": 248,
+    "identity-only": 13
   },
   "inclusionPolicy": {
     "riders": "include-all-known-riders",
@@ -25,31 +25,31 @@
       "tag": "ROLE_MISSING",
       "label": "役割欠損あり",
       "memo": "ライン・役割情報が一部不足している。",
-      "riderCount": 2304
+      "riderCount": 2305
     },
     {
       "tag": "PARTIAL_DATA",
       "label": "部分データ",
       "memo": "一部データ不足があるため評価を弱めて扱う。",
-      "riderCount": 2101
+      "riderCount": 2120
     },
     {
       "tag": "CONFIRMED_START_SHORT",
       "label": "出走数不足",
       "memo": "confirmedStartCount が5未満。",
-      "riderCount": 279
+      "riderCount": 261
     },
     {
       "tag": "LOW_SAMPLE_GROWING",
       "label": "低サンプル育成中",
       "memo": "出走数が少ないため、消さずに育成中として保持する。",
-      "riderCount": 268
+      "riderCount": 248
     },
     {
       "tag": "TOP3_CANDIDATE",
       "label": "3着候補",
       "memo": "3連対率が高く、3着保護候補に使える。",
-      "riderCount": 152
+      "riderCount": 156
     },
     {
       "tag": "TOP2_CANDIDATE",
@@ -61,13 +61,13 @@
       "tag": "COMPLETE_PROFILE",
       "label": "分析可能",
       "memo": "出走実績があり、条件別評価に使いやすい。",
-      "riderCount": 21
+      "riderCount": 23
     },
     {
       "tag": "IDENTITY_ONLY_GROWING",
       "label": "IDのみ育成中",
       "memo": "選手IDのみ保持。出走実績が入ったら評価を育てる。",
-      "riderCount": 11
+      "riderCount": 13
     }
   ]
 }
