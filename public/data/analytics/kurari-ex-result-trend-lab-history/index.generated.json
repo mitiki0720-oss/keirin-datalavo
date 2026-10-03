@@ -1,27 +1,14 @@
 {
   "version": "kurari-ex-result-trend-lab-history/v1",
-  "generatedAt": "2026-10-02T20:00:22.298Z",
+  "generatedAt": "2026-10-03T18:44:14.456Z",
   "sourceStatus": "partial",
   "range": {
-    "from": "2026-08-04",
-    "to": "2026-10-02"
+    "from": "2026-08-05",
+    "to": "2026-10-03"
   },
   "shardCount": 60,
-  "raceCount": 4564,
+  "raceCount": 4557,
   "shards": [
-    {
-      "date": "2026-08-04",
-      "path": "/data/analytics/kurari-ex-result-trend-lab-history/daily/2026-08/2026-08-04.generated.json",
-      "raceCount": 82,
-      "status": "ready",
-      "sourceSummary": {
-        "providers": [
-          "KEIRIN.JP"
-        ],
-        "fetchedAtFrom": "2026-08-14T05:47:00.115Z",
-        "fetchedAtTo": "2026-08-14T05:47:20.706Z"
-      }
-    },
     {
       "date": "2026-08-05",
       "path": "/data/analytics/kurari-ex-result-trend-lab-history/daily/2026-08/2026-08-05.generated.json",
@@ -788,74 +775,87 @@
         "fetchedAtFrom": "2026-10-02T20:00:24.227Z",
         "fetchedAtTo": "2026-10-02T20:01:23.324Z"
       }
+    },
+    {
+      "date": "2026-10-03",
+      "path": "/data/analytics/kurari-ex-result-trend-lab-history/daily/2026-10/2026-10-03.generated.json",
+      "raceCount": 75,
+      "status": "ready",
+      "sourceSummary": {
+        "providers": [
+          "KEIRIN.JP"
+        ],
+        "fetchedAtFrom": "2026-10-03T18:44:15.722Z",
+        "fetchedAtTo": "2026-10-03T18:45:20.687Z"
+      }
     }
   ],
   "provenance": {
     "provider": "KEIRIN.JP",
     "generator": "scripts/kurari-ex/update-keirin-jp-historical-result-window.mjs",
     "parserVersion": "kurari-ex-keirin-jp-historical-shard/v1",
-    "generatedAt": "2026-10-02T20:00:22.298Z"
+    "generatedAt": "2026-10-03T18:44:14.456Z"
   },
   "coverage": {
     "result": {
       "status": "partial",
-      "availableRaceCount": 4563,
-      "totalRaceCount": 4564
+      "availableRaceCount": 4556,
+      "totalRaceCount": 4557
     },
     "payout": {
       "status": "partial",
-      "availableRaceCount": 4563,
-      "totalRaceCount": 4564
+      "availableRaceCount": 4556,
+      "totalRaceCount": 4557
     },
     "kimarite": {
       "status": "partial",
-      "availableRaceCount": 4524,
-      "totalRaceCount": 4564
+      "availableRaceCount": 4518,
+      "totalRaceCount": 4557
     },
     "weather": {
       "status": "implemented",
-      "availableRaceCount": 4564,
-      "totalRaceCount": 4564
+      "availableRaceCount": 4557,
+      "totalRaceCount": 4557
     },
     "odds": {
       "status": "partial",
-      "availableRaceCount": 4563,
-      "totalRaceCount": 4564
+      "availableRaceCount": 4556,
+      "totalRaceCount": 4557
     },
     "entries": {
       "status": "implemented",
-      "availableRaceCount": 4564,
-      "totalRaceCount": 4564
+      "availableRaceCount": 4557,
+      "totalRaceCount": 4557
     },
     "lineup": {
       "status": "unavailable",
       "availableRaceCount": 0,
-      "totalRaceCount": 4564
+      "totalRaceCount": 4557
     },
     "bSb": {
       "status": "partial",
-      "availableRaceCount": 4563,
-      "totalRaceCount": 4564
+      "availableRaceCount": 4556,
+      "totalRaceCount": 4557
     }
   },
   "summary": {
     "sourceRejectedCount": 0,
     "sourceRejectByReason": [],
     "statusCount": {
-      "confirmed": 4563,
+      "confirmed": 4556,
       "unavailable": 1
     },
     "classificationCount": {
-      "confirmed-accepted": 4524,
-      "confirmed-dead-heat": 39,
+      "confirmed-accepted": 4518,
+      "confirmed-dead-heat": 38,
       "refund-no-trifecta": 1
     },
-    "deadHeatRaceCount": 39,
-    "deadHeatTrendExcludedCount": 39,
-    "storageEligibleRaceCount": 4564,
-    "trendEligibleRaceCount": 4524,
-    "nonTrendRaceCount": 40,
-    "partialReason": "dead heat excluded from trend: 39",
+    "deadHeatRaceCount": 38,
+    "deadHeatTrendExcludedCount": 38,
+    "storageEligibleRaceCount": 4557,
+    "trendEligibleRaceCount": 4518,
+    "nonTrendRaceCount": 39,
+    "partialReason": "dead heat excluded from trend: 38",
     "blockedReason": [],
     "productionBackfillReady": true,
     "productionBackfillReadyReason": "all production gates passed"

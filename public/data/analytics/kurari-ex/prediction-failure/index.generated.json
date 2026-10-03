@@ -1,13 +1,13 @@
 {
   "version": "kurari-ex-prediction-failure/v1",
-  "generatedAt": "2026-10-02T20:01:47.246Z",
-  "targetDate": "2026-10-03",
+  "generatedAt": "2026-10-03T18:45:44.849Z",
+  "targetDate": "2026-10-04",
   "historicalFrom": "2026-07-14",
-  "historicalTo": "2026-10-02",
+  "historicalTo": "2026-10-03",
   "sourcePolicy": {
     "primarySource": "review text baseline + compact history daily source-backed betPlan increments",
     "reviewsRootMode": "external-read-only",
-    "incrementalSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-02.generated.json",
+    "incrementalSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
     "fakeCompletionUsed": false,
     "fuzzyMatchingUsed": false,
     "resultBackfilledPrediction": false,
@@ -16,16 +16,16 @@
     "stakeInferredFromTicketCount": false
   },
   "leakageGuard": {
-    "targetDate": "2026-10-03",
-    "resultDataAllowedThrough": "2026-10-02",
+    "targetDate": "2026-10-04",
+    "resultDataAllowedThrough": "2026-10-03",
     "resultDateBeforeTargetDate": true,
     "currentOrFutureResultUsed": false
   },
   "duplicateRaceKeys": [],
-  "raceCount": 6198,
+  "raceCount": 6273,
   "classifiableRaceCount": 4258,
   "summary": {
-    "unclassifiable": 1940,
+    "unclassifiable": 2015,
     "exactHit": 1753,
     "thirdPlaceShadowDrop": 40,
     "shadowOnlyHit": 24,
@@ -36,7 +36,7 @@
   },
   "sourceCoverage": {
     "predictionSourceCount": 5922,
-    "resultSourceCount": 6190,
+    "resultSourceCount": 6265,
     "shadowObservedCount": 1410,
     "pointRangeObservedCount": 1316,
     "declaredHeadCandidateObservedCount": 3278,
@@ -105,7 +105,7 @@
       "thirdProtectionRate": 0.4962
     },
     "unknown": {
-      "raceCount": 4882,
+      "raceCount": 4957,
       "classifiableRaceCount": 2949,
       "exactHit": 1197,
       "thirdPlaceMiss": 645,
@@ -114,8 +114,8 @@
       "headMiss": 265,
       "top3OrderMiss": 349,
       "otherMiss": 471,
-      "unclassifiable": 1933,
-      "observedPurchaseHeadAverage": 2.737,
+      "unclassifiable": 2008,
+      "observedPurchaseHeadAverage": 2.695,
       "correctTop2ThirdCandidateAverage": 2.351,
       "thirdProtectionRate": 0.6439
     }
@@ -269822,6 +269822,3456 @@
       ],
       "predictionSource": null,
       "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-02.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|hiratsuka|1",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "平塚",
+      "raceNo": 1,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "1-3-2",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 570,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|hiratsuka|2",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "平塚",
+      "raceNo": 2,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "1-2-4",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 560,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|hiratsuka|3",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "平塚",
+      "raceNo": 3,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "5-3-2",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 3250,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|hiratsuka|4",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "平塚",
+      "raceNo": 4,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "4-1-5",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 1880,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|hiratsuka|5",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "平塚",
+      "raceNo": 5,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "2-1-7",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 460,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|hiratsuka|6",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "平塚",
+      "raceNo": 6,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "1-2-3",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 480,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|hiratsuka|7",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "平塚",
+      "raceNo": 7,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "1-2-6",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 440,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|kawasaki|1",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "川崎",
+      "raceNo": 1,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "3-1-5",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 19960,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|kawasaki|10",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "川崎",
+      "raceNo": 10,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "2-5-1",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 5050,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|kawasaki|11",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "川崎",
+      "raceNo": 11,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "7-4-3",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 17050,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|kawasaki|12",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "川崎",
+      "raceNo": 12,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "5-1-2",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 15620,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|kawasaki|2",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "川崎",
+      "raceNo": 2,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "2-4-1",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 2180,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|kawasaki|3",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "川崎",
+      "raceNo": 3,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "7-1-2",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 5090,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|kawasaki|4",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "川崎",
+      "raceNo": 4,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "7-4-2",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 280,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|kawasaki|5",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "川崎",
+      "raceNo": 5,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "4-3-6",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 2780,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|kawasaki|6",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "川崎",
+      "raceNo": 6,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "7-3-4",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 14210,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|kawasaki|7",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "川崎",
+      "raceNo": 7,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "7-2-4",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 2870,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|kawasaki|8",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "川崎",
+      "raceNo": 8,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "3-4-1",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 5840,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|kawasaki|9",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "川崎",
+      "raceNo": 9,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "1-6-5",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 19200,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|komatsushima|1",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "小松島",
+      "raceNo": 1,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "4-2-5",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 1680,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|komatsushima|2",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "小松島",
+      "raceNo": 2,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "4-1-2",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 4770,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|komatsushima|3",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "小松島",
+      "raceNo": 3,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "2-3-7",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 5990,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|komatsushima|4",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "小松島",
+      "raceNo": 4,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "1-3-2",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 900,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|komatsushima|5",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "小松島",
+      "raceNo": 5,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "4-2-1",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 11830,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|komatsushima|6",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "小松島",
+      "raceNo": 6,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "2-4-1",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 2230,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|komatsushima|7",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "小松島",
+      "raceNo": 7,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "3-4-6",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 7170,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|kurume|1",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "久留米",
+      "raceNo": 1,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "4-3-2",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 23140,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|kurume|10",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "久留米",
+      "raceNo": 10,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "1-3-6",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 5250,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|kurume|11",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "久留米",
+      "raceNo": 11,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "4-1-2",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 8160,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|kurume|2",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "久留米",
+      "raceNo": 2,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "1-6-2",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 26310,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|kurume|3",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "久留米",
+      "raceNo": 3,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "3-6-5",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 33800,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|kurume|4",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "久留米",
+      "raceNo": 4,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "4-5-7",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 3090,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|kurume|5",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "久留米",
+      "raceNo": 5,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "4-5-7",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 32060,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|kurume|6",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "久留米",
+      "raceNo": 6,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "5-4-7",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 7580,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|kurume|7",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "久留米",
+      "raceNo": 7,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "5-1-7",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 44130,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|kurume|8",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "久留米",
+      "raceNo": 8,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "3-4-1",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 6110,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|kurume|9",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "久留米",
+      "raceNo": 9,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "2-1-5",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 2150,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|matsudo|1",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "松戸",
+      "raceNo": 1,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "1-5-6",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 24200,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|matsudo|2",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "松戸",
+      "raceNo": 2,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "3-7-2",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 690,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|matsudo|3",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "松戸",
+      "raceNo": 3,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "1-2-7",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 2100,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|matsudo|4",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "松戸",
+      "raceNo": 4,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "5-4-1",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 590,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|matsudo|5",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "松戸",
+      "raceNo": 5,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "4-7-1",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 170,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|matsudo|6",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "松戸",
+      "raceNo": 6,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "5-2-1",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 680,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|matsudo|7",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "松戸",
+      "raceNo": 7,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "4-2-6",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 13170,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|matsusaka|1",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "松阪",
+      "raceNo": 1,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "4-8-5",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 51180,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|matsusaka|10",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "松阪",
+      "raceNo": 10,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "9-7-2",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 5070,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|matsusaka|11",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "松阪",
+      "raceNo": 11,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "5-1-4",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 6550,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|matsusaka|12",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "松阪",
+      "raceNo": 12,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "5-1-6",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 1040,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|matsusaka|2",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "松阪",
+      "raceNo": 2,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "2-7-5",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 6580,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|matsusaka|3",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "松阪",
+      "raceNo": 3,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "7-2-1",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 7540,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|matsusaka|4",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "松阪",
+      "raceNo": 4,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "9-7-5",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 36890,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|matsusaka|5",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "松阪",
+      "raceNo": 5,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "3-2-1",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 85620,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|matsusaka|6",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "松阪",
+      "raceNo": 6,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "7-9-4",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 54870,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|matsusaka|7",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "松阪",
+      "raceNo": 7,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "1-8-7",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 5540,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|matsusaka|8",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "松阪",
+      "raceNo": 8,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "7-1-9",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 10620,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|matsusaka|9",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "松阪",
+      "raceNo": 9,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "7-1-2",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 7820,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|omiya|1",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "大宮",
+      "raceNo": 1,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "5-3-1",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 114000,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|omiya|10",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "大宮",
+      "raceNo": 10,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "1-2-4",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 11060,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|omiya|11",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "大宮",
+      "raceNo": 11,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "7-1-4",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 1140,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|omiya|12",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "大宮",
+      "raceNo": 12,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "4-3-1",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 5830,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|omiya|2",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "大宮",
+      "raceNo": 2,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "4-3-1",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 470,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|omiya|3",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "大宮",
+      "raceNo": 3,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "4-1-3",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 6320,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|omiya|4",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "大宮",
+      "raceNo": 4,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "2-7-6",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 3350,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|omiya|5",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "大宮",
+      "raceNo": 5,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "2-3-6",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 7610,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|omiya|6",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "大宮",
+      "raceNo": 6,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "3-4-5",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 11480,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|omiya|7",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "大宮",
+      "raceNo": 7,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "3-2-4",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 1510,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|omiya|8",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "大宮",
+      "raceNo": 8,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "5-1-6",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 1370,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|omiya|9",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "大宮",
+      "raceNo": 9,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "7-4-6",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 3200,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|takeo|1",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "武雄",
+      "raceNo": 1,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "4-1-2",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 15600,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|takeo|2",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "武雄",
+      "raceNo": 2,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "3-2-7",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 1160,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|takeo|3",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "武雄",
+      "raceNo": 3,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "1-3-2",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 610,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|takeo|4",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "武雄",
+      "raceNo": 4,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "1-3-5",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 3710,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|takeo|5",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "武雄",
+      "raceNo": 5,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "3-6-2",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 4360,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|takeo|6",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "武雄",
+      "raceNo": 6,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "2-1-6",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 900,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
+      "leakageGuard": {
+        "recordDateBeforeTargetDate": true,
+        "resultDateBeforeTargetDate": true,
+        "resultDateWithinHistoricalWindow": true
+      }
+    },
+    {
+      "key": "2026-10-03|takeo|7",
+      "date": "2026-10-03",
+      "venueCode": null,
+      "venue": "武雄",
+      "raceNo": 7,
+      "primaryClass": "UNCLASSIFIABLE",
+      "actualTrifecta": "4-6-3",
+      "purchaseTicketCount": 0,
+      "shadowTicketCount": 0,
+      "shadowAvailability": "unavailable",
+      "explicitPointRange": null,
+      "declaredHeadCandidateCount": 0,
+      "observedPurchaseHeadCount": 0,
+      "correctTop2PairCovered": false,
+      "correctTop2ThirdCandidateCount": 0,
+      "actualThirdCoveredForCorrectTop2": false,
+      "shadowExactCovered": null,
+      "shadowActualThirdCoveredForCorrectTop2": null,
+      "actualWinnerCovered": false,
+      "actualTop3PermutationCovered": false,
+      "stake": null,
+      "return": null,
+      "net": null,
+      "payout": 29740,
+      "sourceStatus": {
+        "classifiable": false,
+        "reasons": [
+          "missing-prediction"
+        ],
+        "fakeCompletionUsed": false,
+        "fuzzyMatchingUsed": false,
+        "resultBackfilledPrediction": false,
+        "shadowGeneratedFromResult": false
+      },
+      "parseWarnings": [
+        "missing-prediction"
+      ],
+      "predictionSource": null,
+      "resultSource": "public/data/analytics/kurari-ex/history/daily/2026-10/2026-10-03.generated.json",
       "leakageGuard": {
         "recordDateBeforeTargetDate": true,
         "resultDateBeforeTargetDate": true,
