@@ -23,6 +23,7 @@ import {
   type ReviewPredictionJsonLike,
   type ReviewRacePerformance,
 } from "../lib/reviewPerformanceMetrics";
+import { buildReviewRaceSourceUnion } from "../lib/reviewRaceSourceUnion";
 type PredictionSlotRecord = {
   raceKey: string;
   raceId: string;
@@ -1974,111 +1975,100 @@ function buildVenueGroups(
   const resultValues = Object.values(resultMap).filter((item) => item.date === date);
   const groups = new Map<string, VenueReviewGroup>();
 
-  for (const slot of slots) {
-    const key = normalizeVenueName(slot.venue);
-    const feedVenue = feedVenueMap.get(key);
-    const liveFeedRace = feedVenue?.races?.find((item) => item.raceNo === slot.raceNumber);
-    const snapshotKey = buildReviewRaceResultSnapshotKey(date, slot.venue, slot.raceNumber);
-    const snapshotRace = raceResultSnapshotMap[snapshotKey];
-    const feedRace = mergeReviewRaceWithSnapshot(liveFeedRace, snapshotRace);
-    const matchedResults = resultValues
-      .filter((item) => normalizeVenueName(item.venue) === key && item.raceNumber === slot.raceNumber)
-      .sort((a, b) => (b.savedAt ?? "").localeCompare(a.savedAt ?? ""));
-    const resultRecord = matchedResults[0];
+  const latestResults = new Map<string, PredictionResultRecord>();
+  [...resultValues]
+    .sort((a, b) => (a.savedAt ?? "").localeCompare(b.savedAt ?? ""))
+    .forEach((result) => {
+      latestResults.set(
+        `${normalizeVenueName(result.venue)}:${result.raceNumber}`,
+        result,
+      );
+    });
 
-    const feedVenueSession = resolveReviewVenueSession(
-  feedVenue?.session,
-  feedVenue?.races?.map((race) => race.time) ?? [],
-);
+  const fileGroupMap = new Map(
+    fileGroups.map((fileGroup) => [normalizeVenueName(fileGroup.venue), fileGroup]),
+  );
+  const reviewPredictions = fileGroups.flatMap((fileGroup) =>
+    parseReviewCopySections(fileGroup.predictionText).map((section) => ({
+      venueKey: normalizeVenueName(fileGroup.venue),
+      raceNumber: section.raceNumber,
+    })),
+  );
+  const reviewResults = fileGroups.flatMap((fileGroup) =>
+    parseReviewCopySections(fileGroup.resultText).map((section) => ({
+      venueKey: normalizeVenueName(fileGroup.venue),
+      raceNumber: section.raceNumber,
+    })),
+  );
+  const raceSources = buildReviewRaceSourceUnion({
+    predictions: slots.map((slot) => ({
+      venueKey: normalizeVenueName(slot.venue),
+      raceNumber: slot.raceNumber,
+      value: slot,
+    })),
+    feedRaces: (feed?.venues ?? []).flatMap((venue) =>
+      (venue.races ?? []).map((race) => ({
+        venueKey: normalizeVenueName(venue.venue),
+        raceNumber: race.raceNo,
+        value: race,
+      })),
+    ),
+    results: [...latestResults.values()].map((result) => ({
+      venueKey: normalizeVenueName(result.venue),
+      raceNumber: result.raceNumber,
+      value: result,
+    })),
+    reviewPredictions,
+    reviewResults,
+  });
 
-const current = groups.get(key) ?? {
-  venue: slot.venue,
-  venueSlug: feedVenue?.slug,
-  date: slot.date,
-  races: [],
-  grade: feedVenue?.grade,
-  session: feedVenueSession,
-  title: feedVenue?.title,
-  startDate: feedVenue?.startDate,
-  endDate: feedVenue?.endDate,
-  performance: aggregateReviewPerformance([]),
-};
-
-    const performance = resolveReviewRacePerformance(slot, resultRecord, feedRace);
+  for (const source of raceSources) {
+    const slot = source.prediction;
+    const resultRecord = source.result;
+    const feedVenue = feedVenueMap.get(source.venueKey);
+    const fileGroup = fileGroupMap.get(source.venueKey);
+    const venue = feedVenue?.venue ?? slot?.venue ?? resultRecord?.venue ?? fileGroup?.venue ?? source.venueKey;
+    const snapshotKey = buildReviewRaceResultSnapshotKey(date, venue, source.raceNumber);
+    const feedRace = mergeReviewRaceWithSnapshot(
+      source.feed,
+      raceResultSnapshotMap[snapshotKey],
+    );
+    const current = groups.get(source.venueKey) ?? {
+      venue,
+      venueSlug: feedVenue?.slug ?? getReviewVenueSlugFromSourceFiles(
+        fileGroup?.predictionFile,
+        fileGroup?.resultFile,
+        fileGroup?.summaryFile,
+      ) ?? undefined,
+      date,
+      races: [],
+      grade: feedVenue?.grade,
+      session: resolveReviewVenueSession(
+        feedVenue?.session,
+        feedVenue?.races?.map((race) => race.time) ?? [],
+      ),
+      title: feedVenue?.title,
+      startDate: feedVenue?.startDate,
+      endDate: feedVenue?.endDate,
+      performance: aggregateReviewPerformance([]),
+    };
+    const hasPrediction = Boolean(slot && hasReviewPrediction(slot));
 
     current.races.push({
-      venue: slot.venue,
-      date: slot.date,
-      raceNumber: slot.raceNumber,
-      raceKey: slot.raceKey,
-      predictionText: slot.predictionText,
-      predictionJson: slot.predictionJson,
-      hasPrediction: true,
-      savedAt: slot.savedAt,
-      predictionSummary: extractPredictionSummary(slot.predictionText),
+      venue,
+      date,
+      raceNumber: source.raceNumber,
+      raceKey: slot?.raceKey ?? resultRecord?.raceKey ?? `feed:${date}:${source.venueKey}:${source.raceNumber}`,
+      predictionText: slot?.predictionText ?? "",
+      predictionJson: slot?.predictionJson,
+      hasPrediction,
+      savedAt: slot?.savedAt,
+      predictionSummary: slot ? extractPredictionSummary(slot.predictionText) : "",
       feedRace,
       resultRecord,
-      performance,
+      performance: resolveReviewRacePerformance(slot, resultRecord, feedRace),
     });
-    if (!current.startDate && feedVenue?.startDate) current.startDate = feedVenue.startDate;
-    if (!current.endDate && feedVenue?.endDate) current.endDate = feedVenue.endDate;
-
-const resolvedCurrentSession = resolveReviewVenueSession(
-  current.session ?? feedVenue?.session,
-  current.races.map((race) => race.feedRace?.time),
-);
-
-if (resolvedCurrentSession) current.session = resolvedCurrentSession;
-
-if (!current.title && feedVenue?.title) current.title = feedVenue.title;
-groups.set(key, current);
-  }
-
-  for (const feedVenue of feed?.venues ?? []) {
-    const key = normalizeVenueName(feedVenue.venue);
-    if (groups.has(key)) continue;
-
-    const races = (feedVenue.races ?? []).map((liveFeedRace) => {
-      const snapshotKey = buildReviewRaceResultSnapshotKey(date, feedVenue.venue, liveFeedRace.raceNo);
-      const feedRace = mergeReviewRaceWithSnapshot(liveFeedRace, raceResultSnapshotMap[snapshotKey]);
-      const resultRecord = resultValues
-        .filter(
-          (item) =>
-            normalizeVenueName(item.venue) === key &&
-            item.raceNumber === liveFeedRace.raceNo
-        )
-        .sort((a, b) => (b.savedAt ?? "").localeCompare(a.savedAt ?? ""))[0];
-
-      const performance = resolveReviewRacePerformance(undefined, resultRecord, feedRace);
-      return {
-        venue: feedVenue.venue,
-        date,
-        raceNumber: liveFeedRace.raceNo,
-        raceKey: `feed:${date}:${key}:${liveFeedRace.raceNo}`,
-        predictionText: "",
-        hasPrediction: false,
-        predictionSummary: "",
-        feedRace,
-        resultRecord,
-        performance,
-      };
-    });
-
-    groups.set(key, {
-      venue: feedVenue.venue,
-      venueSlug: feedVenue.slug,
-      date,
-      races,
-      grade: feedVenue.grade,
-      session: resolveReviewVenueSession(
-        feedVenue.session,
-        feedVenue.races?.map((race) => race.time) ?? [],
-      ),
-      title: feedVenue.title,
-      startDate: feedVenue.startDate,
-      endDate: feedVenue.endDate,
-      performance: aggregateReviewPerformance(races),
-    });
+    groups.set(source.venueKey, current);
   }
 
   for (const fileGroup of fileGroups) {
@@ -2112,9 +2102,12 @@ groups.set(key, current);
 }
 
 function buildPredictionCopy(group: VenueReviewGroup) {
+  const predictionRaces = group.races.filter((race) => isPredictionReviewReady(race));
+  if (predictionRaces.length === 0) return "";
+
   const lines = [`${group.venue}｜${formatDateLabel(group.date)}｜予想まとめ`];
   lines.push("");
-  group.races.forEach((race) => {
+  predictionRaces.forEach((race) => {
     lines.push(`■ ${group.venue} ${race.raceNumber}R`);
     lines.push(getReviewPredictionExportText(race));
     lines.push("");
@@ -2137,7 +2130,10 @@ function buildResultCopy(
   reviewWeatherActualMap: ReviewWeatherActualMap = {},
   latestFeed?: PredictionTodayFeed | null,
 ) {
-  const raceNumbers = group.races.map((race) => race.raceNumber);
+  const resultRaces = group.races.filter((race) => isResultReviewReady(race));
+  if (resultRaces.length === 0) return "";
+
+  const raceNumbers = resultRaces.map((race) => race.raceNumber);
   const targetRaceLabel = raceNumbers.length > 0
     ? raceNumbers.map((raceNumber) => `${raceNumber}R`).join(", ")
     : "対象なし";
@@ -2153,7 +2149,7 @@ function buildResultCopy(
     "",
   ];
 
-  group.races.forEach((race) => {
+  resultRaces.forEach((race) => {
     const resolvedMetrics = race.performance;
     const resultOrder = getResultOrder(race.resultRecord, race.feedRace);
     const hitStatus = resolvedMetrics.status;
@@ -2317,11 +2313,12 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub: st
         boxShadow: "0 16px 34px rgba(40, 32, 76, 0.06)",
         padding: "13px 14px",
         minHeight: "96px",
+        overflow: "hidden",
       }}
     >
       <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#9475d3", marginBottom: "6px" }}>{label}</div>
-      <div style={{ minWidth: 0, maxWidth: "100%", whiteSpace: "nowrap", fontSize: valueFontSize, fontWeight: 900, fontVariantNumeric: "tabular-nums", color: "#0f172a", marginBottom: "4px", lineHeight: 1.06, letterSpacing: 0 }}>{value}</div>
-      <div style={{ fontSize: "12px", lineHeight: 1.7, color: "#687385" }}>{sub}</div>
+      <div style={{ minWidth: 0, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: valueFontSize, fontWeight: 900, fontVariantNumeric: "tabular-nums", color: "#0f172a", marginBottom: "4px", lineHeight: 1.06, letterSpacing: 0 }}>{value}</div>
+      <div style={{ fontSize: "12px", lineHeight: 1.7, color: "#687385", overflowWrap: "anywhere" }}>{sub}</div>
     </article>
   );
 }
@@ -2356,7 +2353,7 @@ function ReviewVenueMetric({ label, value, sub }: { label: string; value: string
         minHeight: "88px",
         minWidth: 0,
         maxWidth: "100%",
-        overflow: "visible",
+        overflow: "hidden",
       }}
     >
       <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.16em", color: "#9a7ad9", marginBottom: "7px" }}>{label}</div>
@@ -2364,6 +2361,8 @@ function ReviewVenueMetric({ label, value, sub }: { label: string; value: string
         style={{
           minWidth: 0,
           maxWidth: "100%",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
           whiteSpace: "nowrap",
           fontSize: valueFontSize,
           fontWeight: 900,
@@ -2751,10 +2750,11 @@ export default function ReviewPage() {
   const selectedPredictionCopy = useMemo(
     () => {
       if (isLocalReviewSelected) {
-        if (selectedVenueGroup?.races.some((race) => race.predictionText.trim())) {
-          return buildPredictionCopy(selectedVenueGroup);
-        }
-        return selectedReviewFileGroup?.predictionText ?? "";
+        const structuredCopy = selectedVenueGroup ? buildPredictionCopy(selectedVenueGroup) : "";
+        const fileCopy = selectedReviewFileGroup?.predictionText ?? "";
+        const structuredCount = selectedVenueGroup?.races.filter((race) => isPredictionReviewReady(race)).length ?? 0;
+        const fileCount = parseReviewCopySections(fileCopy).length;
+        return fileCount > structuredCount ? fileCopy : structuredCopy || fileCopy;
       }
       return selectedReviewFileGroup?.predictionText ?? "";
     },
@@ -2763,14 +2763,13 @@ export default function ReviewPage() {
   const selectedResultCopy = useMemo(
     () => {
       if (isLocalReviewSelected) {
-        if (selectedVenueGroup?.races.length) {
-          return buildResultCopy(
-            selectedVenueGroup,
-            reviewWeatherActualMap,
-            todayFeed,
-          );
-        }
-        return selectedReviewFileGroup?.resultText ?? "";
+        const structuredCopy = selectedVenueGroup
+          ? buildResultCopy(selectedVenueGroup, reviewWeatherActualMap, todayFeed)
+          : "";
+        const fileCopy = selectedReviewFileGroup?.resultText ?? "";
+        const structuredCount = selectedVenueGroup?.races.filter((race) => isResultReviewReady(race)).length ?? 0;
+        const fileCount = parseReviewCopySections(fileCopy).length;
+        return fileCount > structuredCount ? fileCopy : structuredCopy || fileCopy;
       }
 
       const fileResultText = selectedReviewFileGroup?.resultText ?? "";
@@ -2960,8 +2959,8 @@ export default function ReviewPage() {
 <SiteHeader activeKey="review" />
 
 
-      <main style={{ width: "100%", maxWidth: PAGE_MAX_WIDTH, margin: "0 auto", padding: "18px 24px 96px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.18fr) minmax(360px, 460px)", gap: "22px", alignItems: "stretch", marginBottom: "22px" }}>
+      <main style={{ width: "100%", maxWidth: PAGE_MAX_WIDTH, margin: "0 auto", padding: "18px 24px 96px", boxSizing: "border-box" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 420px), 1fr))", gap: "22px", alignItems: "stretch", marginBottom: "22px" }}>
           <article
             style={{
               borderRadius: "36px",
@@ -2991,7 +2990,7 @@ export default function ReviewPage() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "minmax(360px, 0.95fr) minmax(420px, 1.05fr)",
+                gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 420px), 1fr))",
                 alignItems: "stretch",
                 gap: "24px",
                 marginBottom: "6px",
@@ -3160,7 +3159,7 @@ export default function ReviewPage() {
         </div>
 
         {isLocalReviewSelected ? (
-          <section style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.35fr) minmax(360px, 0.65fr)", gap: "18px", marginBottom: "24px" }}>
+          <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 360px), 1fr))", gap: "18px", marginBottom: "24px" }}>
             <article style={{ borderRadius: "30px", border: "1px solid rgba(211,228,220,0.95)", background: "linear-gradient(145deg, rgba(250,255,252,0.98), rgba(246,250,255,0.98))", padding: "22px", boxShadow: "0 18px 38px rgba(20,45,38,0.05)" }}>
               <div style={{ marginBottom: "16px" }}>
                 <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#27815f", marginBottom: "6px" }}>PERFORMANCE</div>
@@ -3216,7 +3215,7 @@ export default function ReviewPage() {
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "14px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "14px" }}>
             <label style={{ display: "grid", gap: "8px" }}>
               <span style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.14em", color: "#8f72ca" }}>会場検索</span>
               <input value={venueQuery} onChange={(event) => setVenueQuery(event.target.value)} placeholder="例：別府 / 熊本 / 豊橋" style={{ borderRadius: "18px", border: "1px solid rgba(224,216,238,0.92)", padding: "16px 18px", fontSize: "14px", outline: "none", background: "rgba(255,255,255,0.95)" }} />
@@ -3257,14 +3256,14 @@ export default function ReviewPage() {
       fontSize: "14px",
     }}
   >
-    <div style={{ fontWeight: 900, color: "#4b5563", marginBottom: "8px" }}>{isLocalReviewSelected ? (isTodaySelected ? "本日の保存済み予想はまだありません" : "昨日の保存済み予想はまだありません") : "この日付の保存レビューTXTはまだ登録されていません"}</div>
-    <div>{isLocalReviewSelected ? "PredictionPageで予想を保存すると、ここにレビュー素材が表示されます。" : "public/data/reviews/index.json に対象日付と TXT ファイルを登録すると表示されます。"}</div>
+    <div style={{ fontWeight: 900, color: "#4b5563", marginBottom: "8px" }}>{isLocalReviewSelected ? "この日付の対象会場データはまだありません" : "この日付の保存レビューTXTはまだ登録されていません"}</div>
+    <div>{isLocalReviewSelected ? "予想・公式feed・保存結果のいずれかが入ると、ここにレビュー素材が表示されます。" : "public/data/reviews/index.json に対象日付と TXT ファイルを登録すると表示されます。"}</div>
   </div>
 ) : (
   <div
     style={{
       display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
+      gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 360px), 1fr))",
       gap: "14px",
       alignItems: "stretch",
     }}
@@ -3276,18 +3275,22 @@ export default function ReviewPage() {
           const fileGroup = reviewFileGroups.find(
             (item) => normalizeVenueName(item.venue) === normalizeVenueName(group.venue),
           );
+          const predictionSectionMap = new Map(
+            parseReviewCopySections(fileGroup?.predictionText ?? "").map((section) => [section.raceNumber, section.text]),
+          );
+          const resultSectionMap = new Map(
+            parseReviewCopySections(fileGroup?.resultText ?? "").map((section) => [section.raceNumber, section.text]),
+          );
+          const predictionReadyCount = group.races.filter((race) =>
+            isPredictionReviewReady(race, predictionSectionMap.get(race.raceNumber)),
+          ).length;
+          const resultReadyCount = group.races.filter((race) =>
+            isResultReviewReady(race, resultSectionMap.get(race.raceNumber)),
+          ).length;
           const predictionReady =
-            group.races.some((race) => race.hasPrediction) ||
-            Boolean(fileGroup?.predictionText.trim());
+            predictionReadyCount > 0 || Boolean(fileGroup?.predictionText.trim());
           const resultReady =
-            group.races.some((race) =>
-              Boolean(
-                race.resultRecord ||
-                race.feedRace?.resultStatus === "confirmed" ||
-                race.feedRace?.result?.status === "confirmed"
-              )
-            ) ||
-            Boolean(fileGroup?.resultText.trim());
+            resultReadyCount > 0 || Boolean(fileGroup?.resultText.trim());
           const performance = group.performance;
           const stageLabel = getPredictionVenueStageLabel(group, group.date);
 
@@ -3321,10 +3324,10 @@ export default function ReviewPage() {
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "9px" }}>
                     <span style={{ fontSize: "10px", fontWeight: 900, color: predictionReady ? "#7b5be3" : "#8a8fa1", background: predictionReady ? "rgba(123,91,227,0.1)" : "rgba(238, 240, 245, 0.9)", border: `1px solid ${predictionReady ? "rgba(196, 181, 253, 0.8)" : "rgba(219, 223, 232, 0.92)"}`, borderRadius: "999px", padding: "4px 8px" }}>
-                      {predictionReady ? "予想あり" : "予想未登録"}
+                      {predictionReady ? `予想 ${predictionReadyCount}/${group.races.length}` : "予想未登録"}
                     </span>
                     <span style={{ fontSize: "10px", fontWeight: 900, color: resultReady ? "#7b5be3" : "#8a8fa1", background: resultReady ? "rgba(123,91,227,0.1)" : "rgba(238, 240, 245, 0.9)", border: `1px solid ${resultReady ? "rgba(196, 181, 253, 0.8)" : "rgba(219, 223, 232, 0.92)"}`, borderRadius: "999px", padding: "4px 8px" }}>
-                      {resultReady ? "結果あり" : "結果なし"}
+                      {resultReady ? `結果 ${resultReadyCount}/${group.races.length}` : "結果なし"}
                     </span>
                     <span style={{ fontSize: "10px", fontWeight: 900, color: performance.predictionRaceCount === 0 ? "#8a8fa1" : performance.unknownCount === 0 ? "#16835b" : "#8a6b20", background: performance.predictionRaceCount === 0 ? "rgba(238,240,245,0.9)" : performance.unknownCount === 0 ? "rgba(22,131,91,0.09)" : "rgba(245,191,72,0.12)", border: `1px solid ${performance.predictionRaceCount === 0 ? "rgba(219,223,232,0.92)" : performance.unknownCount === 0 ? "rgba(22,131,91,0.24)" : "rgba(205,153,42,0.28)"}`, borderRadius: "999px", padding: "4px 8px" }}>
                       {performance.predictionRaceCount === 0 ? "分類対象なし" : performance.unknownCount === 0 ? "購入分類OK" : `分類不明 ${performance.unknownCount}R`}
@@ -3538,9 +3541,13 @@ export default function ReviewPage() {
                             未入力: {selectedReviewReadiness.predictionMissingRaceNumbers.map((raceNumber) => `${raceNumber}R`).join(", ")}
                           </div>
                         ) : null}
+                        {selectedReviewReadiness.totalRaceCount > 0 && selectedReviewReadiness.predictionMissingRaceNumbers.length === 0 ? (
+                          <div style={{ marginTop: "6px", fontSize: "12px", fontWeight: 700, color: "#16835b" }}>全Rあり</div>
+                        ) : null}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
   <button
+    disabled={!selectedPredictionCopy.trim()}
     onClick={() =>
       copyText(selectedPredictionCopy)
         .then(() => setCopyStatus("予想まとめをコピーしました"))
@@ -3548,7 +3555,8 @@ export default function ReviewPage() {
     }
     style={{
       border: "none",
-      cursor: "pointer",
+      cursor: selectedPredictionCopy.trim() ? "pointer" : "not-allowed",
+      opacity: selectedPredictionCopy.trim() ? 1 : 0.5,
       borderRadius: "999px",
       padding: "12px 18px",
       background: "linear-gradient(135deg, #15233b 0%, #0a1330 100%)",
@@ -3560,6 +3568,7 @@ export default function ReviewPage() {
   </button>
 
   <button
+    disabled={!selectedPredictionCopy.trim()}
     onClick={() => {
       if (!selectedDisplayVenueSlug) {
         setCopyStatus("会場slugを取得できませんでした");
@@ -3573,7 +3582,8 @@ export default function ReviewPage() {
     }}
     style={{
       border: "1px solid rgba(122,96,194,0.24)",
-      cursor: "pointer",
+      cursor: selectedPredictionCopy.trim() ? "pointer" : "not-allowed",
+      opacity: selectedPredictionCopy.trim() ? 1 : 0.5,
       borderRadius: "999px",
       padding: "12px 18px",
       background: "white",
@@ -3611,19 +3621,23 @@ export default function ReviewPage() {
                             未反映: {selectedReviewReadiness.resultMissingRaceNumbers.map((raceNumber) => `${raceNumber}R`).join(", ")}
                           </div>
                         ) : null}
+                        {selectedReviewReadiness.totalRaceCount > 0 && selectedReviewReadiness.resultMissingRaceNumbers.length === 0 ? (
+                          <div style={{ marginTop: "6px", fontSize: "12px", fontWeight: 700, color: "#16835b" }}>全Rあり</div>
+                        ) : null}
                         <div style={{ marginTop: "6px", fontSize: "11px", lineHeight: 1.6, color: "#6d7687" }}>
                           summary用・重要結果情報を保持。内部JSONを除外し、払戻・全着順・上がり・天気を残します。
                         </div>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
   <button
+    disabled={!selectedResultCopy.trim()}
     onClick={async () => {
       try {
         let copyValue = selectedResultCopy;
         const latestFeed = isTodaySelected ? await fetchReviewTodayFeed("no-store").catch(() => null) : null;
         if (latestFeed) setTodayFeed(latestFeed);
 
-        if (isLocalReviewSelected && selectedVenueGroup) {
+        if (!copyValue.trim() && isLocalReviewSelected && selectedVenueGroup) {
           copyValue = buildResultCopy(selectedVenueGroup, reviewWeatherActualMap, latestFeed ?? todayFeed);
         } else if (!copyValue.trim() && selectedFileFallbackVenueGroup) {
           copyValue = buildResultCopy(selectedFileFallbackVenueGroup, reviewWeatherActualMap, latestFeed ?? todayFeed);
@@ -3637,7 +3651,8 @@ export default function ReviewPage() {
     }}
     style={{
       border: "1px solid rgba(122,96,194,0.24)",
-      cursor: "pointer",
+      cursor: selectedResultCopy.trim() ? "pointer" : "not-allowed",
+      opacity: selectedResultCopy.trim() ? 1 : 0.5,
       borderRadius: "999px",
       padding: "12px 18px",
       background: "white",
@@ -3649,6 +3664,7 @@ export default function ReviewPage() {
   </button>
 
   <button
+    disabled={!selectedResultCopy.trim()}
     onClick={() => {
       if (!selectedDisplayVenueSlug) {
         setCopyStatus("会場slugを取得できませんでした");
@@ -3662,7 +3678,8 @@ export default function ReviewPage() {
     }}
     style={{
       border: "none",
-      cursor: "pointer",
+      cursor: selectedResultCopy.trim() ? "pointer" : "not-allowed",
+      opacity: selectedResultCopy.trim() ? 1 : 0.5,
       borderRadius: "999px",
       padding: "12px 18px",
       background: "linear-gradient(135deg, #15233b 0%, #0a1330 100%)",
@@ -3678,12 +3695,12 @@ export default function ReviewPage() {
                 </div>
                 <div style={{ marginTop: "14px", borderRadius: "18px", border: `1px solid ${selectedReviewReadiness.raceNumbersMatch ? "rgba(22,131,91,0.24)" : "rgba(205,153,42,0.3)"}`, background: selectedReviewReadiness.raceNumbersMatch ? "rgba(236,250,244,0.78)" : "rgba(255,248,230,0.78)", padding: "13px 15px", fontSize: "12px", lineHeight: 1.7, color: "#4b5563" }}>
                   <div style={{ fontWeight: 900, color: selectedReviewReadiness.raceNumbersMatch ? "#16835b" : "#9a6817" }}>
-                    {selectedReviewReadiness.raceNumbersMatch ? "予想と結果のRが一致" : "R不一致"}
+                    {selectedReviewReadiness.raceNumbersMatch ? "予想と結果のRが一致" : "予想と結果のRを確認"}
                   </div>
                   <div>予想R: {selectedReviewReadiness.predictionRaceNumbers.map((raceNumber) => `${raceNumber}R`).join(", ") || "なし"}</div>
                   <div>結果R: {selectedReviewReadiness.resultRaceNumbers.map((raceNumber) => `${raceNumber}R`).join(", ") || "なし"}</div>
-                  {selectedReviewReadiness.predictionOnlyRaceNumbers.length > 0 ? <div>予想のみ: {selectedReviewReadiness.predictionOnlyRaceNumbers.map((raceNumber) => `${raceNumber}R`).join(", ")}</div> : null}
-                  {selectedReviewReadiness.resultOnlyRaceNumbers.length > 0 ? <div>結果のみ: {selectedReviewReadiness.resultOnlyRaceNumbers.map((raceNumber) => `${raceNumber}R`).join(", ")}</div> : null}
+                  {selectedReviewReadiness.predictionMissingRaceNumbers.length > 0 ? <div>予想不足: {selectedReviewReadiness.predictionMissingRaceNumbers.map((raceNumber) => `${raceNumber}R`).join(", ")}</div> : null}
+                  {selectedReviewReadiness.resultMissingRaceNumbers.length > 0 ? <div>結果不足: {selectedReviewReadiness.resultMissingRaceNumbers.map((raceNumber) => `${raceNumber}R`).join(", ")}</div> : null}
                 </div>
               </>
             ) : (
