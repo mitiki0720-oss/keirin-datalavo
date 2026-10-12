@@ -15,6 +15,7 @@ import {
   buildMonthlyPreRaceSeed,
   formatMonthlyPreRaceSeedLines,
   getActiveMonthlyReview,
+  MONTHLY_TICKET_POLICY_VERSION,
 } from "../lib/monthlyReviewInsights";
 import {
   buildKeirinPredictionExport,
@@ -11546,7 +11547,7 @@ if (
       "【まとめ予想依頼テンプレ / 最重要】",
       "{会場名}競輪場{グレード}、{日付}、対象R: {対象R範囲}を、月次振り返り反映済みの可変点数ルールでまとめて予想してください。",
       "",
-      "※オッズは記載されているオッズをそのまま使うのではなく、展開・並び・近況・KURARI EX・月次振り返りを重視して買い目を作成してください。",
+      "※事前オッズは取得時刻・sourceが確認できる場合だけ採算判断に使い、展開・並び・近況・KURARI EXと併せて評価してください。",
       "※対象Rごとに、1Rずつコピーしやすい形で分けて出力してください。",
       "※素材にない情報は未取得として扱い、fake補完しないでください。",
       "※登録番号・source情報は各Rの【EX source contract】と【出走表】を優先してください。",
@@ -11576,21 +11577,24 @@ if (
       "",
       "====================",
       "【共通ルール】",
-      "- 月次振り返り: 反映済み / 9月新ルール v2026-09",
+      `- 月次振り返り: ${monthlyReviewStatus === "ready" ? "反映済み" : "未取得・参考ルールのみ"} / 10月運用 ${MONTHLY_TICKET_POLICY_VERSION}`,
+      "- 改善根拠は9月実績: 購入的中率40.68%、購入回収率69.27%、3着だけ抜け502R。10月の達成値ではない",
       "- 18点固定購入は禁止。3連単8〜14点可変、1点100円固定",
       "- 各RのWeb側pre-race seedは参考値。頭候補数・主要展開・KURARI EX・オッズ・影VALUE評価後に最終判定で上書きする",
       "- 最初にraceSelectGrade=A/B/C、purchaseDecision=BUY/VALUE_BUY/SKIPを判定する",
-      "- A/HITは8〜10点。高信頼選抜群で65〜70%を目標にし、Aだから14点へ広げない",
-      "- B/VALUEは10〜14点。中穴〜万車の期待値を優先する",
+      "- A/HITは8〜10点。2〜3分戦だけでAとせず、頭2人以内、主要1/2着枝、3着接続、追走不安、事前オッズ、購入採算を検査する。65〜70%は未達目標",
+      "- B/VALUEは10〜12点中心。異なる展開と3着への接続を説明できる強い根拠がある場合のみ14点",
       "- C/SKIPは購入0点。可能なら18候補を影として保存する",
       "- 18候補を生成後、購入候補と影買い目へ分ける。18候補と18点購入を混同しない",
-      "- 影候補はVALUE-1〜5を再評価し、3条件以上なら最大1〜2点の入れ替え昇格を検討する",
+      "- 主要1着-2着の枝ごとに本線3番手、別線自力・別線番手の3着、単騎・追込、番手差しと先行残り、同じ3車の順序入替、別線頭＋本線の自然順を確認する",
+      "- 影候補はVALUE-1〜5を再評価し、3条件以上でも購入確定とせず、最大1〜2点の入れ替え昇格だけを検討する",
       "- 昇格は低評価購入候補との入れ替えのみ。A/Bの購入上限を超えない",
       "- 頭候補は原則2〜4人。5人以上必要ならC/SKIPを検討する",
       "- 追加点は新しい頭ではなく2着・3着補正を優先。根拠の薄い大穴固定枠は置かない",
-      "- 2車単は9月新ルールでは新規購入対象外。parser/過去照合は互換のため残す",
+      "- 2車単は10月運用では新規購入対象外。parser/過去照合は互換のため残す",
       "- investmentYen=購入買い目数*100。影買い目は投資額に含めない",
-      "- race/ticketの9月メタ項目は既存schemaを壊さないoptional項目として出力する",
+      "- 予想時のrace/ticket証跡は可能な範囲で本文に記録する。詳細メタ項目は簡易JSONに全件構造化保存される仕様ではない",
+      "- purchaseFinalizedAtとoddsSourceTimeは実際に確認できる時刻だけ記す。発走後なら警告し、source取得時刻で買い目確定時刻を代用しない",
       "- 処理順: seed確認 → A/B/C最終判定 → 18候補生成 → 上限内購入選定 → 影分離 → VALUE再評価 → 最大1〜2点入れ替え → purchasePoints確定 → investmentYen算出",
       "====================",
       "",
@@ -11768,6 +11772,7 @@ if (
     kurariExRaceRisk,
     kurariExRaceRiskStatus,
     kurariExHistoricalTrend,
+    monthlyReviewStatus,
     predictionBatchRange,
     predictionBatchKurariExRiderStatus,
     predictionFeed,
@@ -11800,7 +11805,7 @@ if (
       ? "素材生成済み"
       : "素材補完中";
   const monthlyReviewStateLabel = monthlyReviewStatus === "ready"
-    ? "月次振り返り: 反映済み / A/B/C + 影VALUE v2026-09"
+    ? `月次振り返り: 反映済み / A/B/C + 影VALUE ${MONTHLY_TICKET_POLICY_VERSION}`
     : monthlyReviewStatus === "loading"
       ? "月次振り返り: 読み込み中"
       : "月次振り返り: 未登録";

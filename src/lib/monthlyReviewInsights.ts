@@ -1,13 +1,13 @@
 import type { MonthlyReviewDigest, MonthlyReviewIndexItem } from "../types/monthlyReview";
 
 const MONTHLY_REVIEW_INDEX_URL = "/data/monthly-review/index.json";
-export const MONTHLY_TICKET_POLICY_VERSION = "v2026-09";
+export const MONTHLY_TICKET_POLICY_VERSION = "v2026-10";
 export const MONTHLY_TICKET_MODE = "ABC_8_TO_14_SHADOW_VALUE_TRIFECTA";
 export const MONTHLY_RECOMMENDED_POINTS = 8;
 export const MONTHLY_INVESTMENT_YEN = 800;
 export const MONTHLY_CANDIDATE_COUNT = 18;
 export const MONTHLY_TICKET_REASON_TAGS = [
-  "monthly-review-september-rule",
+  "monthly-review-october-rule",
   "abc-race-selection",
   "base-8",
   "max-14",
@@ -18,19 +18,19 @@ export const MONTHLY_TICKET_REASON_TAGS = [
 ] as const;
 
 const FALLBACK_DIGEST: MonthlyReviewDigest = {
-  stableCohort: "2026-05-01〜2026-08-04",
+  stableCohort: "2026-09-02〜2026-09-30（直接照合対象）",
   hitRateAny: "監査レポート参照",
   hitRate3tan: "監査レポート参照",
-  hitRate2tan: "9月新ルールでは新規購入対象外",
-  thirdOnlyMiss: "2・3着補正で監査",
-  headMiss: "頭候補は2〜4人まで",
-  targetHitRateAny: "Aランク 65〜70%",
-  targetHitRate3tan: "全購入 45〜55%",
+  hitRate2tan: "10月運用では新規購入対象外",
+  thirdOnlyMiss: "9月 502R",
+  headMiss: "A候補は頭2人以内を検査",
+  targetHitRateAny: "未達目標 65〜70%",
+  targetHitRate3tan: "未設定",
   targetHitRate2tan: "原則購入対象外",
-  targetRecoveryRate: "5,000〜30,000円帯を重視",
-  targetThirdOnlyMiss: "18候補内 70%以上",
-  fixedFormat: "標準8点 / 最大14点 / 18候補は影買い目 / 1点100円固定",
-  mission: "A/B/Cで購入レースを選別し、根拠ある影VALUEを上限内で購入へ入れ替える",
+  targetRecoveryRate: "事前オッズと購入採算を確認",
+  targetThirdOnlyMiss: "9月の3着だけ抜け 502R",
+  fixedFormat: "A 8〜10点 / B 10〜14点 / C 0点 / 影18候補 / 1点100円",
+  mission: "A選別を厳格化し、本線1・2着からの3着接続と影VALUE入れ替えの根拠を残す",
   rawText: "",
 };
 
@@ -118,6 +118,7 @@ export function buildMonthlyPreRaceSeed({
 
   const valueSeed = reasonCodes.length > 0;
   if (!valueSeed) reasonCodes.push("lineup-structured");
+  if (!valueSeed) reasonCodes.push("a-confidence-unverified");
   const purchasePointsSeed = valueSeed ? 10 : 8;
 
   return {
@@ -149,7 +150,7 @@ export function formatMonthlyPreRaceSeedLines(seed: MonthlyPreRaceSeed): string[
     `- reasonCodes: ${seed.reasonCodes.join(", ") || "none"}`,
     `- finalizationRequired: ${seed.finalizationRequired}`,
     "- final fields required from GPT: raceSelectGrade, purchaseDecision, ruleVersion, candidateCount, purchasePoints, investmentYen",
-    "- pre-race seedを最終判定として固定しない。頭候補数・主要展開・KURARI EX・オッズ・影VALUE評価後に最終字段を上書きする。",
+    "- pre-race seedは参考値。2〜3分戦だけでAを確定しない。頭候補・1/2着枝・3着接続・追走不安・事前オッズ・採算を評価し、GPTが最終判定する。",
   ];
 }
 
@@ -205,6 +206,7 @@ export function parseMonthlyReviewDigest(text: string): MonthlyReviewDigest {
   const rawText = String(text ?? "");
   const digest: MonthlyReviewDigest = {
     stableCohort: matchFirst(rawText, [
+      /監査対象\s*[:：]\s*([^\n]+)/u,
       /STABLE COHORT\s*[:：]\s*([^\n]+)/i,
       /対象期間\s*[:：]\s*([^\n]+)/u,
       /scope\s*[:：]\s*([^\n]+)/i,
@@ -223,6 +225,7 @@ export function parseMonthlyReviewDigest(text: string): MonthlyReviewDigest {
       /2車単(?:的中率)?\s*[:：]\s*([^\n]+)/u,
     ]),
     thirdOnlyMiss: matchFirst(rawText, [
+      /3着だけ抜け\s*[:：]\s*([^\n]+)/u,
       /THIRD-ONLY MISS\s*[:：]\s*([^\n]+)/i,
       /3着(?:抜け|補正)\s*[:：]\s*([^\n]+)/u,
     ]),
@@ -246,7 +249,7 @@ export function parseMonthlyReviewDigest(text: string): MonthlyReviewDigest {
     ]),
     targetRecoveryRate: matchFirst(rawText, [
       /TARGET RECOVERY RATE\s*[:：]\s*([^\n]+)/i,
-      /回収率\s*[:：]\s*([^\n]+)/u,
+      /目標回収率\s*[:：]\s*([^\n]+)/u,
       /回収率80[〜～-]90%/u,
     ]),
     targetThirdOnlyMiss: matchFirst(rawText, [
@@ -255,11 +258,13 @@ export function parseMonthlyReviewDigest(text: string): MonthlyReviewDigest {
       /影買い目\s*[:：]\s*([^\n]+)/u,
     ]),
     fixedFormat: matchFirst(rawText, [
+      /固定形式\s*[:：]\s*([^\n]+)/u,
       /FIXED FORMAT\s*[:：]\s*([^\n]+)/i,
       /標準8点[^\n]*/u,
       /最大14点[^\n]*/u,
     ]),
     mission: matchFirst(rawText, [
+      /現在ミッション\s*[:：]\s*([^\n]+)/u,
       /CURRENT MISSION\s*[:：]\s*([^\n]+)/i,
       /次の主戦場は候補生成ではなく購入順位。/u,
       /9月はレース選抜を導入[^\n]*/u,
@@ -322,7 +327,10 @@ export function buildMonthlyPredictionGuidance({
   if (isCancelled) flags.push("中止: 予想対象から除外する");
 
   return [
-    "[N. 月次振り返り反映 / 2026年9月 4か月深掘り監査ルール]",
+    "[N. 月次振り返り反映 / 2026年10月 5か月深掘り監査ルール]",
+    "",
+    "【改善根拠 / 9月実績（10月の達成値ではない）】",
+    "- 購入的中率40.68%、購入回収率69.27%、3着だけ抜け502R。Aの65〜70%は未達目標。",
     "",
     `【可変点数ルール ${MONTHLY_TICKET_POLICY_VERSION}】`,
     "- 18点固定購入は禁止。購入は3連単8〜14点可変、1点100円固定。",
@@ -335,15 +343,15 @@ export function buildMonthlyPredictionGuidance({
     "- 頭候補5人以上が必要ならC / SKIPを検討する。",
     "- 追加点は新しい頭ではなく2着・3着補正へ使う。",
     "- 大穴頭は最後。根拠の薄い大穴固定枠は置かない。",
-    "- 2車単parser/過去照合は残すが、9月新ルールでは新規購入対象外。",
-    "- 投資額は保存された購入買い目数 * 100。影買い目は投資額に含めない。",
-    "- 買い目ごとに購入順位、購入/影買い目、役割、予想時オッズ、配当帯、展開理由を保存する。",
-    `- 重点回収帯: ${effectiveDigest.targetRecoveryRate || "5,000〜30,000円帯"}`,
+    "- 2車単parser/過去照合は残すが、10月運用では新規購入対象外。",
+    "- 投資額は確定した実購入券面数 * 100。影買い目は投資額に含めない。",
+    "- 買い目ごとに購入順位、購入/影買い目、役割、予想時オッズ・取得時刻、展開理由を予想本文へ記録する。未取得は推測しない。",
+    `- 採算確認: ${effectiveDigest.targetRecoveryRate || FALLBACK_DIGEST.targetRecoveryRate}`,
     `- 現在ミッション: ${effectiveDigest.mission || FALLBACK_DIGEST.mission}`,
     "",
     "【A/B/Cレース選別】",
-    "- A / HIT (BUY): 頭候補2人以内、主要展開2つ以内、主導権ラインと3着候補を整理可能。原則8点、必要時のみ10点。Aだから14点へ広げない。",
-    "- B / VALUE (VALUE_BUY): S級/Gレース、3〜4分戦、先行競合、番手差しと別線捲りなど、根拠ある中穴〜万車を狙う。10〜12点、非常に強い時のみ14点。",
+    "- A / HIT (BUY): 2〜3分戦だけでA確定にしない。頭候補2人以内、主要1/2着枝と3着接続、追走不安、事前オッズ、購入採算を確認。8〜10点。65〜70%は未達目標。",
+    "- B / VALUE (VALUE_BUY): 異なる展開と3着の別線・単騎混入を説明できる場合に10〜12点。独立した強い根拠がある時だけ14点。",
     "- C / SKIP (SKIP): 頭候補5人以上、並び不明、重大な不確定要素、LOW SAMPLE依存、展開分散。購入0点、可能なら18候補は影として保存。",
     "",
     "【SHADOW VALUE SCORE】",
@@ -354,6 +362,11 @@ export function buildMonthlyPredictionGuidance({
     "- VALUE-5: 会場EX、時間帯、グレード、級班、分戦数、当日風/バンク条件、KURARI EXのうち2条件以上が支持する。",
     "- VALUE-1〜5のうち3条件以上ならshadowValueCandidate=true。購入上限内で低評価候補と入れ替え、最大1〜2点のみupgradedFromShadow=trueにできる。",
     "- 昇格を追加購入にしない。Aは8〜10点、Bは10〜14点、Cは0点の上限を必ず守る。",
+    "- 昇格判断には予想時の根拠だけを使う。結果から影の当たり券を後知恵で昇格させない。",
+    "",
+    "【3着接続監査】",
+    "- 主要な1着-2着の各枝ごとに、本線3番手の残り、別線自力・別線番手の3着、単騎・追込の差し込みを確認する。",
+    "- 同じ3車の順序入替、番手差しと先行残り、別線頭＋本線の自然な着順を確認する。根拠のない固定大穴枠は作らない。",
     "",
     "【予想の処理順序】",
     "0. Web側pre-race seedを参考値として確認する。seedを最終判定として固定しない。",
@@ -369,14 +382,17 @@ export function buildMonthlyPredictionGuidance({
     "",
     "【最終出力メタ情報】",
     "- required race fields: raceSelectGrade, purchaseDecision, ruleVersion, candidateCount, purchasePoints, investmentYen",
-    "- optional post-result fields: candidate18Hit, purchaseHit, shadowHit, shadowOnlyHit, purchaseManshuHit, shadowManshuHit, missReason",
-    "- optional ticket fields: rank, purchaseFlag, role, oddsAtPrediction, payoutBand, scenario, valueScore, valueReasons, shadowRank, shadowValueCandidate, upgradedFromShadow, resultHit",
+    "- 予想時のレース情報: raceSelectGradeSeed, raceSelectGrade, purchaseDecisionSeed, purchaseDecision, ruleVersion, candidateCount, purchasePoints, investmentYen, gradeReasonCodes, purchaseFinalizedAt（確認できる場合のみ）",
+    "- 予想時の買い目情報: rank, purchaseFlag, role, oddsAtPrediction, oddsSourceTime, valueScore, valueReasons, shadowRank, shadowValueCandidate, upgradedFromShadow, replacedTicket",
+    "- 上記の詳細証跡はGPT出力指示であり、現在の簡易StructuredPrediction JSONに全項目が永続保存されることを意味しない。保存済み予想テキストの事前記録を確認する。",
+    "- 結果TXTの的中/pendingより購入券面と3連単払戻の直接照合を優先する。発走後のsource取得は警告し、取得時刻不明は未取得のまま扱う。",
+    "- unknown sourceを公式扱いしない。気象近傍予報をバンク実測風速と呼ばない。EXのstale / LOW SAMPLE / usage prohibitedを強い購入根拠にしない。",
     "",
     "【レースごとの可変点数メタ情報】",
     ...formatMonthlyPreRaceSeedLines(preRaceSeed),
     "",
     "【予想依頼テンプレ】",
-    "{会場名}競輪場{グレード}、{日付}、{R}を、9月新ルール（A/B/C選別・8〜14点購入・影18候補・影VALUE昇格）で予想してください。",
+    "{会場名}競輪場{グレード}、{日付}、{R}を、10月運用（A/B/C選別・A8〜10点/B10〜14点/C0点・影18候補）で予想してください。",
     "購入買い目と影買い目を分け、各買い目に購入順位・役割・予想時オッズ・配当帯・展開理由・VALUE判定を必ず付けてください。",
     "登録番号など不明な項目はsource contractを優先し、推測補完しないでください。",
     "",
