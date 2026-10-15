@@ -2,8 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 
 const ROOT = process.cwd();
-const RIDER_DIR = path.join(ROOT, "public", "data", "analytics", "kurari-ex", "exact", "riders");
-const OUT_DIR = path.join(ROOT, "public", "data", "analytics", "kurari-ex", "analysis");
+const getArg = (name) => process.argv.find((arg) => arg.startsWith(`${name}=`))?.slice(name.length + 1);
+const RIDER_DIR = path.resolve(getArg("--rider-root") || path.join(ROOT, "public", "data", "analytics", "kurari-ex", "exact", "riders"));
+const OUT_DIR = path.resolve(getArg("--output-root") || path.join(ROOT, "public", "data", "analytics", "kurari-ex", "analysis"));
 const OUT_FILE = path.join(OUT_DIR, "rider-category-analysis.generated.json");
 
 function walk(dir) {
@@ -25,7 +26,7 @@ function rate(count, total) {
 }
 
 function bucket(key, label) {
-  return { key, label, starts: 0, wins: 0, seconds: 0, thirds: 0, outside: 0 };
+  return { key, label, starts: 0, observedStarts: 0, wins: 0, seconds: 0, thirds: 0, outside: 0 };
 }
 
 function add(map, key, label, item) {
@@ -34,7 +35,8 @@ function add(map, key, label, item) {
   if (!map.has(k)) map.set(k, bucket(k, label || k));
 
   const b = map.get(k);
-  b.starts += Number(safeItem.starts || 0);
+  b.starts += Number(safeItem.evaluableStarts ?? safeItem.top3Rate?.total ?? 0);
+  b.observedStarts += Number(safeItem.starts || 0);
   b.wins += Number(safeItem.wins || 0);
   b.seconds += Number(safeItem.seconds || 0);
   b.thirds += Number(safeItem.thirds || 0);
@@ -85,12 +87,15 @@ const role = new Map();
 let read = 0;
 let skipped = 0;
 let confirmedStarts = 0;
+let evaluableStarts = 0;
 
 for (const file of walk(RIDER_DIR)) {
+  if (!/by-tail[/\\]\d{2}[/\\]\d{6}\.generated\.json$/u.test(file)) continue;
   try {
     const rider = JSON.parse(fs.readFileSync(file, "utf8"));
     read += 1;
     confirmedStarts += Number(rider.coverage?.confirmedStartCount || 0);
+    evaluableStarts += Number(rider.coverage?.evaluableStartCount ?? rider.coverage?.resultParsedCount ?? 0);
 
     for (const item of rider.byVenue || []) {
       add(venue, item.venueKey, item.venueName, item);
@@ -137,6 +142,7 @@ const output = {
     riderFilesRead: read,
     riderFilesSkipped: skipped,
     confirmedStartCount: confirmedStarts,
+    evaluableStartCount: evaluableStarts,
   },
   dimensions: {
     venue: {

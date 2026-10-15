@@ -15,7 +15,6 @@ import {
   getPredictionSessionGroupKey,
   getPredictionTimeMinutes,
   getPredictionVenueStageLabel,
-  getSessionLabel,
   loadCachedFavoriteRiderFeed,
   loadStoredPredictionResults,
   loadStoredPredictionSlots,
@@ -1224,6 +1223,7 @@ function MobileVenueCard({
   const venueResultLabel = getVenueResultLabel(predictionVenue);
   const raceCountLabel = getVenueRaceCountLabel(predictionVenue);
   const firstRaceTimeLabel = getFirstRaceTimeLabel(predictionVenue);
+  const timeBandLabel = getMobileVenueTimeBandLabel(race, predictionVenue);
   const normalizedVenue = normalizePredictionVenueName(race.venue);
   const mobileVenueCardDomId = `mobile-venue-card-${normalizedVenue}`;
   const venueRaceRows = predictionVenue?.races ?? [];
@@ -1501,7 +1501,7 @@ const selectedResolvedHitBetType =
           >
             {isOpen
               ? race.title
-              : `${getSessionLabel(race.session)} ・ ${firstRaceTimeLabel} ・ ${raceCountLabel}`}
+              : `${timeBandLabel} ・ ${firstRaceTimeLabel} ・ ${raceCountLabel}`}
           </p>
         </div>
 
@@ -1541,7 +1541,7 @@ const selectedResolvedHitBetType =
           }}
         >
           {[
-  { label: "時間帯", value: getSessionLabel(race.session) },
+  { label: "時間帯", value: timeBandLabel },
   { label: "開催", value: getPredictionVenueStageLabel(race, TODAY) },
   { label: "開始", value: firstRaceTimeLabel },
   { label: "レース", value: raceCountLabel },

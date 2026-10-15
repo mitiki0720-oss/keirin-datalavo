@@ -1,5 +1,7 @@
 import { readFile, unlink } from "node:fs/promises";
 import path from "node:path";
+import { officialFinishForStarter } from "./kurari-ex-official-finish.mjs";
+import { loadLegacyOfficialFinishByRace } from "./kurari-ex-legacy-official-evidence.mjs";
 import {
   collectFiles,
   exactOutputRoot,
@@ -25,12 +27,18 @@ const getArg = (name, fallback = "") => (
 );
 const source = getArg("--source", "history");
 const riderExactRoot = path.resolve(getArg("--output-root", defaultRiderExactRoot));
+const historyDailyRoot = getArg("--history-root")
+  ? path.join(path.resolve(getArg("--history-root")), "daily")
+  : undefined;
 const requestedGeneratedAt = getArg("--generated-at");
+const useLegacyOfficialHistory = args.includes("--legacy-official-git-history");
 const riderMasterPath = path.join(exactOutputRoot, "rider-master.generated.json");
 
 function emptyAggregate() {
   return {
     starts: 0,
+    evaluableStarts: 0,
+    unknownRankStarts: 0,
     wins: 0,
     seconds: 0,
     thirds: 0,
@@ -43,7 +51,13 @@ function emptyAggregate() {
 
 function addObservation(aggregate, observation) {
   aggregate.starts += 1;
-  if (observation.resultParsed) aggregate.resultParsedCount += 1;
+  if (observation.resultParsed) {
+    aggregate.resultParsedCount += 1;
+    aggregate.evaluableStarts += 1;
+  } else {
+    aggregate.unknownRankStarts += 1;
+    return;
+  }
   if (observation.placement === 1) aggregate.wins += 1;
   if (observation.placement === 2) aggregate.seconds += 1;
   if (observation.placement === 3) aggregate.thirds += 1;
@@ -70,28 +84,30 @@ function unavailableMetric(count) {
 
 function summarizeAggregate(aggregate, key = {}) {
   const podiums = aggregate.wins + aggregate.seconds + aggregate.thirds;
-  const completeResults = aggregate.resultParsedCount === aggregate.starts;
-  const outside = completeResults ? aggregate.starts - podiums : null;
+  const evaluable = aggregate.evaluableStarts;
+  const outside = evaluable ? evaluable - podiums : null;
   return {
     ...key,
     starts: aggregate.starts,
+    evaluableStarts: evaluable,
+    unknownRankStarts: aggregate.unknownRankStarts,
     wins: aggregate.wins,
     seconds: aggregate.seconds,
     thirds: aggregate.thirds,
     outside,
-    winRate: completeResults
+    winRate: evaluable
       ? rateMetric([
           ...Array(aggregate.wins).fill(true),
-          ...Array(aggregate.starts - aggregate.wins).fill(false),
+          ...Array(evaluable - aggregate.wins).fill(false),
         ])
       : unavailableMetric(aggregate.wins),
-    top2Rate: completeResults
+    top2Rate: evaluable
       ? rateMetric([
           ...Array(aggregate.wins + aggregate.seconds).fill(true),
-          ...Array(aggregate.starts - aggregate.wins - aggregate.seconds).fill(false),
+          ...Array(evaluable - aggregate.wins - aggregate.seconds).fill(false),
         ])
       : unavailableMetric(aggregate.wins + aggregate.seconds),
-    top3Rate: completeResults
+    top3Rate: evaluable
       ? rateMetric([
           ...Array(podiums).fill(true),
           ...Array(outside).fill(false),
@@ -370,7 +386,7 @@ function buildRoleMetric(observations, role) {
   const metric = summarizeAggregate(aggregate);
   if (role === "bante") {
     metric.differenceWinRate = rateMetric(
-      roleObservations.map(
+      roleObservations.filter((item) => item.resultParsed).map(
         (item) => item.placement === 1 && item.winningMethod === "差",
       ),
     );
@@ -380,7 +396,7 @@ function buildRoleMetric(observations, role) {
 
 function qualityFor(observations) {
   if (!observations.length) return "identity-only";
-  if (observations.length < 5) return "low-sample";
+  if (observations.filter((item) => item.resultParsed).length < 5) return "low-sample";
   const completeResults = observations.every((item) => item.resultParsed);
   const roleEligible = observations.every((item) => item.roleEligible);
   return completeResults && roleEligible ? "complete" : "partial";
@@ -458,24 +474,36 @@ function addRiderMasterIdentityOnlyEntries(observationsByRider, riderMasterItems
 
 async function main() {
   const [{ races, errors }, identitySources, riderMasterItems] = await Promise.all([
-    readKurariExRaces(source),
-    loadRiderIdentitySources(),
+    readKurariExRaces(source, { historyDailyRoot }),
+    loadRiderIdentitySources({ includeCurrentFeed: false }),
     loadRiderMasterItems(),
   ]);
   if (errors.length) {
     throw new Error(`${source} contains ${errors.length} parse errors`);
   }
 
+  const legacyOfficial = loadLegacyOfficialFinishByRace(races,
+    { fromGitHistory: useLegacyOfficialHistory });
+  console.log(`legacy official evidence: ${legacyOfficial.evidence.size}/${legacyOfficial.candidateCount} races`);
+
   const observationsByRider = new Map();
   for (const race of races) {
+    if (race.result?.status === "cancelled" || race.operationStatus === "cancelled") continue;
     if (!isCompleteStarterArray(race)) continue;
+    const verifiedResult = legacyOfficial.evidence.get(race.raceKey) ?? race.result;
     for (const starter of race.starters) {
+      const officialFinish = officialFinishForStarter(verifiedResult, starter);
+      if (officialFinish && !officialFinish.observed) continue;
       const identity = resolveRiderIdentity(starter, identitySources, race);
       if (!identity.registrationNo || ["unresolved", "ambiguous"].includes(identity.status)) {
         continue;
       }
-      const placement = ["first", "second", "third"]
+      const legacyPlacement = ["first", "second", "third"]
         .findIndex((key) => race.result?.[key]?.carNo === starter.carNo) + 1;
+      const placement = officialFinish ? officialFinish.rank : (legacyPlacement || null);
+      const resultParsed = officialFinish
+        ? officialFinish.rank != null && verifiedResult?.status === "finished"
+        : race.quality?.resultParsed === true;
       const observations = observationsByRider.get(identity.registrationNo) ?? {
         identity,
         identityDate: race.date,
@@ -495,9 +523,11 @@ async function main() {
         raceClass: race.raceClass || "unknown",
         raceStage: classifyRaceStage(race),
         weatherCondition: normalizeWeatherCondition(race.weather?.condition),
-        resultParsed: race.quality?.resultParsed === true,
-        placement: placement || null,
-        winningMethod: placement === 1 ? race.result.first.winningMethod : "",
+        resultParsed,
+        placement,
+        winningMethod: placement === 1
+          ? (officialFinish?.winningMethod ?? race.result.first.winningMethod)
+          : "",
         carNo: String(starter.carNo || "unknown"),
         role: resolveLineupRole(race, starter.carNo),
         roleEligible: resolveLineupRole(race, starter.carNo) != null,
@@ -564,6 +594,11 @@ async function main() {
         observedRaceCount: observations.length,
         confirmedStartCount: observations.length,
         resultParsedCount: observations.filter((item) => item.resultParsed).length,
+        evaluableStartCount: observations.filter((item) => item.resultParsed).length,
+        unknownRankStartCount: observations.filter((item) => !item.resultParsed).length,
+        latestObservedRaceDate: dates.at(-1) ?? null,
+        latestEvaluableRaceDate: observations.filter((item) => item.resultParsed)
+          .map((item) => item.date).sort().at(-1) ?? null,
         roleEligibleCount,
         venueCount: new Set(observations.map((item) => item.venueKey)).size,
       },
@@ -654,7 +689,8 @@ async function main() {
       },
       quality,
       warnings: [
-        ...(observations.length < 5 ? ["confirmedStartCount below 5"] : []),
+        ...(overallAggregate.evaluableStarts < 5 ? ["evaluableStartCount below 5"] : []),
+        ...(overallAggregate.unknownRankStarts ? ["rank unavailable for some starts"] : []),
         ...(roleEligibleCount < observations.length ? ["role unavailable for some starts"] : []),
       ],
     };
@@ -676,6 +712,10 @@ async function main() {
       file: `/data/analytics/kurari-ex/exact/riders/${relativeFile}`,
       observedRaceCount: observations.length,
       confirmedStartCount: observations.length,
+      evaluableStartCount: overallAggregate.evaluableStarts,
+      latestObservedRaceDate: dates.at(-1) ?? null,
+      latestEvaluableRaceDate: observations.filter((item) => item.resultParsed)
+        .map((item) => item.date).sort().at(-1) ?? null,
       roleEligibleCount,
       quality,
     });

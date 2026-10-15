@@ -2,13 +2,15 @@
 import path from "node:path";
 
 const ROOT = process.cwd();
+const getArg = (name) => process.argv.find((arg) => arg.startsWith(`${name}=`))?.slice(name.length + 1);
+const riderRoot = path.resolve(getArg("--rider-root") || path.join(ROOT, "public/data/analytics/kurari-ex/exact/riders"));
 
 const riderIndexPath = path.join(
-  ROOT,
-  "public/data/analytics/kurari-ex/exact/riders/index.generated.json"
+  riderRoot,
+  "index.generated.json"
 );
 
-const outDir = path.join(
+const outDir = getArg("--output-root") ? path.resolve(getArg("--output-root")) : path.join(
   ROOT,
   "public/data/analytics/kurari-ex/analysis"
 );
@@ -91,11 +93,11 @@ function makeTags(quality, confirmedStartCount, top2Rate, top3Rate, warnings) {
 }
 
 function buildItem(indexItem) {
-  const detailPath = path.join(
-    ROOT,
-    "public",
-    String(indexItem.file || "").replace(/^\/+/, "")
-  );
+  const riderPrefix = "/data/analytics/kurari-ex/exact/riders/";
+  if (!String(indexItem.file || "").startsWith(riderPrefix)) {
+    throw new Error(`invalid rider detail path: ${indexItem.file}`);
+  }
+  const detailPath = path.join(riderRoot, indexItem.file.slice(riderPrefix.length));
 
   const detail = fs.existsSync(detailPath) ? readJson(detailPath) : null;
 
@@ -107,6 +109,10 @@ function buildItem(indexItem) {
   const confirmedStartCount = safeNumber(
     coverage.confirmedStartCount,
     safeNumber(indexItem.confirmedStartCount, 0)
+  );
+  const evaluableStartCount = safeNumber(
+    coverage.evaluableStartCount,
+    safeNumber(coverage.resultParsedCount, confirmedStartCount)
   );
 
   const observedRaceCount = safeNumber(
@@ -125,7 +131,7 @@ function buildItem(indexItem) {
   const top2Rate = rateValue(overall.top2Rate);
   const top3Rate = rateValue(overall.top3Rate);
 
-  const volumeScore = Math.min(confirmedStartCount, 12) * 2.2;
+  const volumeScore = Math.min(evaluableStartCount, 12) * 2.2;
   const venueScore = Math.min(venueCount, 5) * 2.2;
   const roleScore = Math.min(roleEligibleCount, 8) * 1.4;
 
@@ -159,6 +165,7 @@ function buildItem(indexItem) {
     coverage: {
       observedRaceCount,
       confirmedStartCount,
+      evaluableStartCount,
       roleEligibleCount,
       venueCount
     },
@@ -171,7 +178,7 @@ function buildItem(indexItem) {
 
     tags: makeTags(
       quality,
-      confirmedStartCount,
+      evaluableStartCount,
       top2Rate,
       top3Rate,
       detail?.warnings ?? []
@@ -189,7 +196,7 @@ const items = riderIndex.items.map(buildItem);
 
 items.sort((a, b) => {
   if (b.score !== a.score) return b.score - a.score;
-  return b.coverage.confirmedStartCount - a.coverage.confirmedStartCount;
+  return b.coverage.evaluableStartCount - a.coverage.evaluableStartCount;
 });
 
 items.forEach((item, index) => {

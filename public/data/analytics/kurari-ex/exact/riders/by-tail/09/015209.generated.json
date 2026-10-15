@@ -4,48 +4,54 @@
   "name": "中野 真吾",
   "nameKey": "中野真吾",
   "sourceType": "EXACT",
-  "generatedAt": "2026-10-03T18:42:56.349Z",
+  "generatedAt": "2026-10-13T16:44:49.682Z",
   "period": {
     "from": "2026-06-12",
-    "to": "2026-09-29"
+    "to": "2026-10-06"
   },
   "identity": {
-    "status": "unique-player-card-name",
+    "status": "registration-no",
     "registrationNoResolved": true
   },
   "coverage": {
-    "observedRaceCount": 17,
-    "confirmedStartCount": 17,
-    "resultParsedCount": 11,
-    "roleEligibleCount": 11,
-    "venueCount": 5
+    "observedRaceCount": 20,
+    "confirmedStartCount": 20,
+    "resultParsedCount": 14,
+    "evaluableStartCount": 14,
+    "unknownRankStartCount": 6,
+    "latestObservedRaceDate": "2026-10-06",
+    "latestEvaluableRaceDate": "2026-10-06",
+    "roleEligibleCount": 14,
+    "venueCount": 6
   },
   "overall": {
-    "starts": 17,
+    "starts": 20,
+    "evaluableStarts": 14,
+    "unknownRankStarts": 6,
     "wins": 0,
     "seconds": 2,
     "thirds": 1,
-    "outside": null,
+    "outside": 11,
     "winRate": {
       "count": 0,
-      "total": null,
-      "rate": null,
+      "total": 14,
+      "rate": 0,
       "sourceType": "EXACT",
-      "quality": "unavailable"
+      "quality": "ok"
     },
     "top2Rate": {
       "count": 2,
-      "total": null,
-      "rate": null,
+      "total": 14,
+      "rate": 14.3,
       "sourceType": "EXACT",
-      "quality": "unavailable"
+      "quality": "ok"
     },
     "top3Rate": {
       "count": 3,
-      "total": null,
-      "rate": null,
+      "total": 14,
+      "rate": 21.4,
       "sourceType": "EXACT",
-      "quality": "unavailable"
+      "quality": "ok"
     },
     "sourceType": "EXACT"
   },
@@ -55,16 +61,16 @@
       "sampleSize": 5,
       "windowComplete": true,
       "period": {
-        "from": "2026-06-25",
-        "to": "2026-09-29"
+        "from": "2026-09-28",
+        "to": "2026-10-06"
       },
       "wins": 0,
-      "seconds": 1,
+      "seconds": 0,
       "thirds": 1,
-      "outside": 3,
+      "outside": 4,
       "winRate": 0,
-      "top2Rate": 20,
-      "top3Rate": 40,
+      "top2Rate": 0,
+      "top3Rate": 20,
       "quality": "ok"
     },
     {
@@ -72,8 +78,8 @@
       "sampleSize": 10,
       "windowComplete": true,
       "period": {
-        "from": "2026-06-13",
-        "to": "2026-09-29"
+        "from": "2026-06-19",
+        "to": "2026-10-06"
       },
       "wins": 0,
       "seconds": 1,
@@ -86,19 +92,19 @@
     },
     {
       "windowSize": 20,
-      "sampleSize": 11,
+      "sampleSize": 14,
       "windowComplete": false,
       "period": {
         "from": "2026-06-12",
-        "to": "2026-09-29"
+        "to": "2026-10-06"
       },
       "wins": 0,
       "seconds": 2,
       "thirds": 1,
-      "outside": 8,
+      "outside": 11,
       "winRate": 0,
-      "top2Rate": 18.2,
-      "top3Rate": 27.3,
+      "top2Rate": 14.3,
+      "top3Rate": 21.4,
       "quality": "ok"
     }
   ],
@@ -107,18 +113,18 @@
     "sourceType": "EXACT",
     "source": "kurari-ex-history",
     "identityKey": "registrationNo",
-    "generatedAt": "2026-10-03T18:42:56.349Z",
+    "generatedAt": "2026-10-13T16:44:49.682Z",
     "excludedIdentityConflictCount": 0,
     "excludedSettledIdentityConflictCount": 0,
     "overall": {
-      "settledStarts": 11,
+      "settledStarts": 14,
       "wins": 0,
       "seconds": 2,
       "thirds": 1,
-      "outside": 8,
+      "outside": 11,
       "winRate": 0,
-      "top2Rate": 18.2,
-      "top3Rate": 27.3
+      "top2Rate": 14.3,
+      "top3Rate": 21.4
     },
     "items": [
       {
@@ -204,6 +210,47 @@
         "sampleQuality": "unavailable"
       },
       {
+        "venueKey": "hofu",
+        "venueName": "防府",
+        "observedStarts": 3,
+        "settledStarts": 3,
+        "wins": 0,
+        "seconds": 0,
+        "thirds": 0,
+        "outside": 3,
+        "winRate": 0,
+        "top2Rate": 0,
+        "top3Rate": 0,
+        "period": {
+          "from": "2026-10-04",
+          "to": "2026-10-06"
+        },
+        "latestRaceDate": "2026-10-06",
+        "recent": {
+          "windowSize": 5,
+          "sampleSize": 3,
+          "settledStarts": 3,
+          "windowComplete": false,
+          "period": {
+            "from": "2026-10-04",
+            "to": "2026-10-06"
+          },
+          "wins": 0,
+          "seconds": 0,
+          "thirds": 0,
+          "outside": 3,
+          "winRate": 0,
+          "top2Rate": 0,
+          "top3Rate": 0
+        },
+        "delta": {
+          "winRate": 0,
+          "top2Rate": -14.3,
+          "top3Rate": -21.4
+        },
+        "sampleQuality": "low-sample"
+      },
+      {
         "venueKey": "kokura",
         "venueName": "小倉",
         "observedStarts": 3,
@@ -239,8 +286,8 @@
         },
         "delta": {
           "winRate": 0,
-          "top2Rate": -18.2,
-          "top3Rate": -27.3
+          "top2Rate": -14.3,
+          "top3Rate": -21.4
         },
         "sampleQuality": "low-sample"
       },
@@ -280,8 +327,8 @@
         },
         "delta": {
           "winRate": 0,
-          "top2Rate": 31.8,
-          "top3Rate": 22.7
+          "top2Rate": 35.7,
+          "top3Rate": 28.6
         },
         "sampleQuality": "low-sample"
       },
@@ -321,8 +368,8 @@
         },
         "delta": {
           "winRate": 0,
-          "top2Rate": -1.5,
-          "top3Rate": 6
+          "top2Rate": 2.4,
+          "top3Rate": 11.9
         },
         "sampleQuality": "limited"
       }
@@ -353,6 +400,8 @@
       "venueKey": "gifu",
       "venueName": "岐阜",
       "starts": 1,
+      "evaluableStarts": 0,
+      "unknownRankStarts": 1,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -384,6 +433,8 @@
       "venueKey": "hiroshima",
       "venueName": "広島",
       "starts": 3,
+      "evaluableStarts": 0,
+      "unknownRankStarts": 3,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -412,9 +463,44 @@
       "sourceType": "EXACT"
     },
     {
+      "venueKey": "hofu",
+      "venueName": "防府",
+      "starts": 3,
+      "evaluableStarts": 3,
+      "unknownRankStarts": 0,
+      "wins": 0,
+      "seconds": 0,
+      "thirds": 0,
+      "outside": 3,
+      "winRate": {
+        "count": 0,
+        "total": 3,
+        "rate": 0,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "top2Rate": {
+        "count": 0,
+        "total": 3,
+        "rate": 0,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "top3Rate": {
+        "count": 0,
+        "total": 3,
+        "rate": 0,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "sourceType": "EXACT"
+    },
+    {
       "venueKey": "kokura",
       "venueName": "小倉",
       "starts": 3,
+      "evaluableStarts": 3,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -446,6 +532,8 @@
       "venueKey": "komatsushima",
       "venueName": "小松島",
       "starts": 2,
+      "evaluableStarts": 2,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 1,
       "thirds": 0,
@@ -477,30 +565,32 @@
       "venueKey": "takeo",
       "venueName": "武雄",
       "starts": 8,
+      "evaluableStarts": 6,
+      "unknownRankStarts": 2,
       "wins": 0,
       "seconds": 1,
       "thirds": 1,
-      "outside": null,
+      "outside": 4,
       "winRate": {
         "count": 0,
-        "total": null,
-        "rate": null,
+        "total": 6,
+        "rate": 0,
         "sourceType": "EXACT",
-        "quality": "unavailable"
+        "quality": "ok"
       },
       "top2Rate": {
         "count": 1,
-        "total": null,
-        "rate": null,
+        "total": 6,
+        "rate": 16.7,
         "sourceType": "EXACT",
-        "quality": "unavailable"
+        "quality": "ok"
       },
       "top3Rate": {
         "count": 2,
-        "total": null,
-        "rate": null,
+        "total": 6,
+        "rate": 33.3,
         "sourceType": "EXACT",
-        "quality": "unavailable"
+        "quality": "ok"
       },
       "sourceType": "EXACT"
     }
@@ -509,6 +599,8 @@
     {
       "timeslot": "day",
       "starts": 3,
+      "evaluableStarts": 3,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 1,
@@ -539,6 +631,8 @@
     {
       "timeslot": "midnight",
       "starts": 5,
+      "evaluableStarts": 5,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 2,
       "thirds": 0,
@@ -569,6 +663,8 @@
     {
       "timeslot": "night",
       "starts": 3,
+      "evaluableStarts": 3,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -598,31 +694,33 @@
     },
     {
       "timeslot": "unknown",
-      "starts": 6,
+      "starts": 9,
+      "evaluableStarts": 3,
+      "unknownRankStarts": 6,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
-      "outside": null,
+      "outside": 3,
       "winRate": {
         "count": 0,
-        "total": null,
-        "rate": null,
+        "total": 3,
+        "rate": 0,
         "sourceType": "EXACT",
-        "quality": "unavailable"
+        "quality": "low-sample"
       },
       "top2Rate": {
         "count": 0,
-        "total": null,
-        "rate": null,
+        "total": 3,
+        "rate": 0,
         "sourceType": "EXACT",
-        "quality": "unavailable"
+        "quality": "low-sample"
       },
       "top3Rate": {
         "count": 0,
-        "total": null,
-        "rate": null,
+        "total": 3,
+        "rate": 0,
         "sourceType": "EXACT",
-        "quality": "unavailable"
+        "quality": "low-sample"
       },
       "sourceType": "EXACT"
     }
@@ -632,6 +730,8 @@
       "carNo": "1",
       "carNoLabel": "1番車",
       "starts": 1,
+      "evaluableStarts": 1,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 1,
       "thirds": 0,
@@ -660,9 +760,44 @@
       "sourceType": "EXACT"
     },
     {
+      "carNo": "2",
+      "carNoLabel": "2番車",
+      "starts": 1,
+      "evaluableStarts": 1,
+      "unknownRankStarts": 0,
+      "wins": 0,
+      "seconds": 0,
+      "thirds": 0,
+      "outside": 1,
+      "winRate": {
+        "count": 0,
+        "total": 1,
+        "rate": 0,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "top2Rate": {
+        "count": 0,
+        "total": 1,
+        "rate": 0,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "top3Rate": {
+        "count": 0,
+        "total": 1,
+        "rate": 0,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "sourceType": "EXACT"
+    },
+    {
       "carNo": "3",
       "carNoLabel": "3番車",
       "starts": 3,
+      "evaluableStarts": 3,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 1,
       "thirds": 0,
@@ -693,28 +828,30 @@
     {
       "carNo": "4",
       "carNoLabel": "4番車",
-      "starts": 1,
+      "starts": 2,
+      "evaluableStarts": 2,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
-      "outside": 1,
+      "outside": 2,
       "winRate": {
         "count": 0,
-        "total": 1,
+        "total": 2,
         "rate": 0,
         "sourceType": "EXACT",
         "quality": "low-sample"
       },
       "top2Rate": {
         "count": 0,
-        "total": 1,
+        "total": 2,
         "rate": 0,
         "sourceType": "EXACT",
         "quality": "low-sample"
       },
       "top3Rate": {
         "count": 0,
-        "total": 1,
+        "total": 2,
         "rate": 0,
         "sourceType": "EXACT",
         "quality": "low-sample"
@@ -724,31 +861,33 @@
     {
       "carNo": "5",
       "carNoLabel": "5番車",
-      "starts": 2,
+      "starts": 3,
+      "evaluableStarts": 2,
+      "unknownRankStarts": 1,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
-      "outside": null,
+      "outside": 2,
       "winRate": {
         "count": 0,
-        "total": null,
-        "rate": null,
+        "total": 2,
+        "rate": 0,
         "sourceType": "EXACT",
-        "quality": "unavailable"
+        "quality": "low-sample"
       },
       "top2Rate": {
         "count": 0,
-        "total": null,
-        "rate": null,
+        "total": 2,
+        "rate": 0,
         "sourceType": "EXACT",
-        "quality": "unavailable"
+        "quality": "low-sample"
       },
       "top3Rate": {
         "count": 0,
-        "total": null,
-        "rate": null,
+        "total": 2,
+        "rate": 0,
         "sourceType": "EXACT",
-        "quality": "unavailable"
+        "quality": "low-sample"
       },
       "sourceType": "EXACT"
     },
@@ -756,30 +895,32 @@
       "carNo": "6",
       "carNoLabel": "6番車",
       "starts": 7,
+      "evaluableStarts": 3,
+      "unknownRankStarts": 4,
       "wins": 0,
       "seconds": 0,
       "thirds": 1,
-      "outside": null,
+      "outside": 2,
       "winRate": {
         "count": 0,
-        "total": null,
-        "rate": null,
+        "total": 3,
+        "rate": 0,
         "sourceType": "EXACT",
-        "quality": "unavailable"
+        "quality": "low-sample"
       },
       "top2Rate": {
         "count": 0,
-        "total": null,
-        "rate": null,
+        "total": 3,
+        "rate": 0,
         "sourceType": "EXACT",
-        "quality": "unavailable"
+        "quality": "low-sample"
       },
       "top3Rate": {
         "count": 1,
-        "total": null,
-        "rate": null,
+        "total": 3,
+        "rate": 33.3,
         "sourceType": "EXACT",
-        "quality": "unavailable"
+        "quality": "low-sample"
       },
       "sourceType": "EXACT"
     },
@@ -787,30 +928,32 @@
       "carNo": "7",
       "carNoLabel": "7番車",
       "starts": 3,
+      "evaluableStarts": 2,
+      "unknownRankStarts": 1,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
-      "outside": null,
+      "outside": 2,
       "winRate": {
         "count": 0,
-        "total": null,
-        "rate": null,
+        "total": 2,
+        "rate": 0,
         "sourceType": "EXACT",
-        "quality": "unavailable"
+        "quality": "low-sample"
       },
       "top2Rate": {
         "count": 0,
-        "total": null,
-        "rate": null,
+        "total": 2,
+        "rate": 0,
         "sourceType": "EXACT",
-        "quality": "unavailable"
+        "quality": "low-sample"
       },
       "top3Rate": {
         "count": 0,
-        "total": null,
-        "rate": null,
+        "total": 2,
+        "rate": 0,
         "sourceType": "EXACT",
-        "quality": "unavailable"
+        "quality": "low-sample"
       },
       "sourceType": "EXACT"
     }
@@ -819,6 +962,8 @@
     {
       "raceClass": "A級チャレンジ",
       "starts": 1,
+      "evaluableStarts": 1,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 1,
       "thirds": 0,
@@ -849,6 +994,8 @@
     {
       "raceClass": "A級一般",
       "starts": 2,
+      "evaluableStarts": 2,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 1,
@@ -879,6 +1026,8 @@
     {
       "raceClass": "A級予選",
       "starts": 1,
+      "evaluableStarts": 1,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -908,59 +1057,31 @@
     },
     {
       "raceClass": "unknown",
-      "starts": 6,
+      "starts": 9,
+      "evaluableStarts": 3,
+      "unknownRankStarts": 6,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
-      "outside": null,
+      "outside": 3,
       "winRate": {
         "count": 0,
-        "total": null,
-        "rate": null,
-        "sourceType": "EXACT",
-        "quality": "unavailable"
-      },
-      "top2Rate": {
-        "count": 0,
-        "total": null,
-        "rate": null,
-        "sourceType": "EXACT",
-        "quality": "unavailable"
-      },
-      "top3Rate": {
-        "count": 0,
-        "total": null,
-        "rate": null,
-        "sourceType": "EXACT",
-        "quality": "unavailable"
-      },
-      "sourceType": "EXACT"
-    },
-    {
-      "raceClass": "チャレンジ予選",
-      "starts": 2,
-      "wins": 0,
-      "seconds": 1,
-      "thirds": 0,
-      "outside": 1,
-      "winRate": {
-        "count": 0,
-        "total": 2,
+        "total": 3,
         "rate": 0,
         "sourceType": "EXACT",
         "quality": "low-sample"
       },
       "top2Rate": {
-        "count": 1,
-        "total": 2,
-        "rate": 50,
+        "count": 0,
+        "total": 3,
+        "rate": 0,
         "sourceType": "EXACT",
         "quality": "low-sample"
       },
       "top3Rate": {
-        "count": 1,
-        "total": 2,
-        "rate": 50,
+        "count": 0,
+        "total": 3,
+        "rate": 0,
         "sourceType": "EXACT",
         "quality": "low-sample"
       },
@@ -969,6 +1090,8 @@
     {
       "raceClass": "チャレンジ決勝",
       "starts": 2,
+      "evaluableStarts": 2,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -999,6 +1122,8 @@
     {
       "raceClass": "チャレンジ準決勝",
       "starts": 2,
+      "evaluableStarts": 2,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -1029,6 +1154,8 @@
     {
       "raceClass": "チャレンジ選抜",
       "starts": 1,
+      "evaluableStarts": 1,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -1055,6 +1182,38 @@
         "quality": "low-sample"
       },
       "sourceType": "EXACT"
+    },
+    {
+      "raceClass": "チャレンジ予選",
+      "starts": 2,
+      "evaluableStarts": 2,
+      "unknownRankStarts": 0,
+      "wins": 0,
+      "seconds": 1,
+      "thirds": 0,
+      "outside": 1,
+      "winRate": {
+        "count": 0,
+        "total": 2,
+        "rate": 0,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "top2Rate": {
+        "count": 1,
+        "total": 2,
+        "rate": 50,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "top3Rate": {
+        "count": 1,
+        "total": 2,
+        "rate": 50,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "sourceType": "EXACT"
     }
   ],
   "byRaceStage": [
@@ -1062,6 +1221,8 @@
       "raceStage": "consolation",
       "raceStageLabel": "一般・敗者戦",
       "starts": 2,
+      "evaluableStarts": 2,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 1,
@@ -1093,6 +1254,8 @@
       "raceStage": "final",
       "raceStageLabel": "決勝",
       "starts": 4,
+      "evaluableStarts": 4,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -1124,6 +1287,8 @@
       "raceStage": "qualifying",
       "raceStageLabel": "予選",
       "starts": 3,
+      "evaluableStarts": 3,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 1,
       "thirds": 0,
@@ -1155,6 +1320,8 @@
       "raceStage": "seed-special",
       "raceStageLabel": "特選・シード",
       "starts": 1,
+      "evaluableStarts": 1,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -1185,40 +1352,9 @@
     {
       "raceStage": "unknown",
       "raceStageLabel": "不明",
-      "starts": 7,
-      "wins": 0,
-      "seconds": 1,
-      "thirds": 0,
-      "outside": null,
-      "winRate": {
-        "count": 0,
-        "total": null,
-        "rate": null,
-        "sourceType": "EXACT",
-        "quality": "unavailable"
-      },
-      "top2Rate": {
-        "count": 1,
-        "total": null,
-        "rate": null,
-        "sourceType": "EXACT",
-        "quality": "unavailable"
-      },
-      "top3Rate": {
-        "count": 1,
-        "total": null,
-        "rate": null,
-        "sourceType": "EXACT",
-        "quality": "unavailable"
-      },
-      "sourceType": "EXACT"
-    }
-  ],
-  "byWeather": [
-    {
-      "weatherCondition": "cloudy",
-      "weatherLabel": "曇り",
-      "starts": 4,
+      "starts": 10,
+      "evaluableStarts": 4,
+      "unknownRankStarts": 6,
       "wins": 0,
       "seconds": 1,
       "thirds": 0,
@@ -1245,11 +1381,48 @@
         "quality": "low-sample"
       },
       "sourceType": "EXACT"
+    }
+  ],
+  "byWeather": [
+    {
+      "weatherCondition": "cloudy",
+      "weatherLabel": "曇り",
+      "starts": 6,
+      "evaluableStarts": 6,
+      "unknownRankStarts": 0,
+      "wins": 0,
+      "seconds": 1,
+      "thirds": 0,
+      "outside": 5,
+      "winRate": {
+        "count": 0,
+        "total": 6,
+        "rate": 0,
+        "sourceType": "EXACT",
+        "quality": "ok"
+      },
+      "top2Rate": {
+        "count": 1,
+        "total": 6,
+        "rate": 16.7,
+        "sourceType": "EXACT",
+        "quality": "ok"
+      },
+      "top3Rate": {
+        "count": 1,
+        "total": 6,
+        "rate": 16.7,
+        "sourceType": "EXACT",
+        "quality": "ok"
+      },
+      "sourceType": "EXACT"
     },
     {
       "weatherCondition": "rain",
       "weatherLabel": "雨",
       "starts": 2,
+      "evaluableStarts": 2,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -1280,29 +1453,31 @@
     {
       "weatherCondition": "sunny",
       "weatherLabel": "晴れ",
-      "starts": 2,
+      "starts": 3,
+      "evaluableStarts": 3,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 1,
       "thirds": 0,
-      "outside": 1,
+      "outside": 2,
       "winRate": {
         "count": 0,
-        "total": 2,
+        "total": 3,
         "rate": 0,
         "sourceType": "EXACT",
         "quality": "low-sample"
       },
       "top2Rate": {
         "count": 1,
-        "total": 2,
-        "rate": 50,
+        "total": 3,
+        "rate": 33.3,
         "sourceType": "EXACT",
         "quality": "low-sample"
       },
       "top3Rate": {
         "count": 1,
-        "total": 2,
-        "rate": 50,
+        "total": 3,
+        "rate": 33.3,
         "sourceType": "EXACT",
         "quality": "low-sample"
       },
@@ -1312,92 +1487,131 @@
       "weatherCondition": "unknown",
       "weatherLabel": "不明",
       "starts": 9,
+      "evaluableStarts": 3,
+      "unknownRankStarts": 6,
       "wins": 0,
       "seconds": 0,
       "thirds": 1,
-      "outside": null,
+      "outside": 2,
       "winRate": {
         "count": 0,
-        "total": null,
-        "rate": null,
+        "total": 3,
+        "rate": 0,
         "sourceType": "EXACT",
-        "quality": "unavailable"
+        "quality": "low-sample"
       },
       "top2Rate": {
         "count": 0,
-        "total": null,
-        "rate": null,
+        "total": 3,
+        "rate": 0,
         "sourceType": "EXACT",
-        "quality": "unavailable"
+        "quality": "low-sample"
       },
       "top3Rate": {
         "count": 1,
-        "total": null,
-        "rate": null,
+        "total": 3,
+        "rate": 33.3,
         "sourceType": "EXACT",
-        "quality": "unavailable"
+        "quality": "low-sample"
       },
       "sourceType": "EXACT"
     }
   ],
   "byBankLength": [
     {
+      "bankLength": 333,
+      "bankLengthLabel": "333m",
+      "starts": 3,
+      "evaluableStarts": 3,
+      "unknownRankStarts": 0,
+      "wins": 0,
+      "seconds": 0,
+      "thirds": 0,
+      "outside": 3,
+      "winRate": {
+        "count": 0,
+        "total": 3,
+        "rate": 0,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "top2Rate": {
+        "count": 0,
+        "total": 3,
+        "rate": 0,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "top3Rate": {
+        "count": 0,
+        "total": 3,
+        "rate": 0,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "sourceType": "EXACT"
+    },
+    {
       "bankLength": 400,
       "bankLengthLabel": "400m",
       "starts": 17,
+      "evaluableStarts": 11,
+      "unknownRankStarts": 6,
       "wins": 0,
       "seconds": 2,
       "thirds": 1,
-      "outside": null,
+      "outside": 8,
       "winRate": {
         "count": 0,
-        "total": null,
-        "rate": null,
-        "sourceType": "EXACT",
-        "quality": "unavailable"
-      },
-      "top2Rate": {
-        "count": 2,
-        "total": null,
-        "rate": null,
-        "sourceType": "EXACT",
-        "quality": "unavailable"
-      },
-      "top3Rate": {
-        "count": 3,
-        "total": null,
-        "rate": null,
-        "sourceType": "EXACT",
-        "quality": "unavailable"
-      },
-      "sourceType": "EXACT"
-    }
-  ],
-  "byRole": {
-    "front": {
-      "starts": 9,
-      "wins": 0,
-      "seconds": 2,
-      "thirds": 1,
-      "outside": 6,
-      "winRate": {
-        "count": 0,
-        "total": 9,
+        "total": 11,
         "rate": 0,
         "sourceType": "EXACT",
         "quality": "ok"
       },
       "top2Rate": {
         "count": 2,
-        "total": 9,
-        "rate": 22.2,
+        "total": 11,
+        "rate": 18.2,
         "sourceType": "EXACT",
         "quality": "ok"
       },
       "top3Rate": {
         "count": 3,
-        "total": 9,
-        "rate": 33.3,
+        "total": 11,
+        "rate": 27.3,
+        "sourceType": "EXACT",
+        "quality": "ok"
+      },
+      "sourceType": "EXACT"
+    }
+  ],
+  "byRole": {
+    "front": {
+      "starts": 10,
+      "evaluableStarts": 10,
+      "unknownRankStarts": 0,
+      "wins": 0,
+      "seconds": 2,
+      "thirds": 1,
+      "outside": 7,
+      "winRate": {
+        "count": 0,
+        "total": 10,
+        "rate": 0,
+        "sourceType": "EXACT",
+        "quality": "ok"
+      },
+      "top2Rate": {
+        "count": 2,
+        "total": 10,
+        "rate": 20,
+        "sourceType": "EXACT",
+        "quality": "ok"
+      },
+      "top3Rate": {
+        "count": 3,
+        "total": 10,
+        "rate": 30,
         "sourceType": "EXACT",
         "quality": "ok"
       },
@@ -1405,6 +1619,8 @@
     },
     "bante": {
       "starts": 2,
+      "evaluableStarts": 2,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -1440,10 +1656,41 @@
       }
     },
     "third": null,
-    "single": null
+    "single": {
+      "starts": 2,
+      "evaluableStarts": 2,
+      "unknownRankStarts": 0,
+      "wins": 0,
+      "seconds": 0,
+      "thirds": 0,
+      "outside": 2,
+      "winRate": {
+        "count": 0,
+        "total": 2,
+        "rate": 0,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "top2Rate": {
+        "count": 0,
+        "total": 2,
+        "rate": 0,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "top3Rate": {
+        "count": 0,
+        "total": 2,
+        "rate": 0,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "sourceType": "EXACT"
+    }
   },
   "quality": "partial",
   "warnings": [
+    "rank unavailable for some starts",
     "role unavailable for some starts"
   ]
 }

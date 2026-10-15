@@ -313,6 +313,7 @@ export type KurariExFailureGuidanceFreshness = {
   lagDays: number | null;
   status: KurariExFailureGuidanceFreshnessStatus;
   preRaceUsage: KurariExFailureGuidancePreRaceUsage;
+  classifiableTo?: string | null;
 };
 
 export type KurariExFailureGuidanceContextType = "global" | "venue" | "raceNo" | "venueRaceNo";
@@ -361,6 +362,7 @@ export type KurariExPredictionFailureGuidanceArtifact = {
     historicalTo: string;
     raceCount: number | null;
     classifiableRaceCount: number | null;
+    classifiableTo?: string | null;
   };
   policy: {
     specificRiderSelectionAllowed: false;
@@ -681,6 +683,17 @@ function shiftIsoDate(date: string | null, days: number) {
   return value.toISOString().slice(0, 10);
 }
 
+function jstTodayIsoDate() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const value = (type: string) => parts.find((part) => part.type === type)?.value;
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
+
 function freshnessItem(
   label: string,
   date: string | null | undefined,
@@ -746,9 +759,9 @@ export async function loadKurariExSourceFreshnessSummary(): Promise<KurariExSour
   const raceRisk = settledValue(results[7]);
   const starters = settledValue(results[8]);
   const seedKpi = settledValue(results[9]);
-  const targetDate = today?.date ?? raceRisk?.period?.date ?? null;
+  const targetDate = jstTodayIsoDate();
   const historicalTo = history?.period?.to ?? null;
-  const expectedHistorical = shiftIsoDate(targetDate, -1) ?? historicalTo;
+  const expectedHistorical = shiftIsoDate(targetDate, -1);
 
   return {
     targetDate,
@@ -760,15 +773,18 @@ export async function loadKurariExSourceFreshnessSummary(): Promise<KurariExSour
       resultTrend: freshnessItem("Result Trend", resultTrend?.range?.to, expectedHistorical),
       riderExact: freshnessItem("Rider EXACT", riders?.period?.to, expectedHistorical),
       matchup: freshnessItem("MATCHUP", matchups?.period?.to, expectedHistorical),
-      failureGuidance: freshnessItem(
-        "Failure Guidance",
-        failureGuidance?.historicalTo,
-        expectedHistorical,
-        {
+      failureGuidance: (() => {
+        const item = freshnessItem("Failure Guidance", failureGuidance?.historicalTo, expectedHistorical, {
           targetDate: failureGuidance?.targetDate ?? null,
           expectedTargetDate: targetDate,
-        },
-      ),
+        });
+        if (item.status !== "FRESH" || failureGuidance?.freshness?.preRaceUsage === "allowed") return item;
+        return {
+          ...item,
+          status: failureGuidance?.freshness?.preRaceUsage === "reference_only" ? "REFERENCE" as const : "STALE" as const,
+          note: `classifiable through ${failureGuidance?.source?.classifiableTo ?? "unavailable"}`,
+        };
+      })(),
       raceRisk: freshnessItem(
         "Race Risk",
         raceRisk?.period?.historicalTo,
@@ -1616,6 +1632,7 @@ function diffCalendarDays(fromDate: string, toDate: string) {
 export function computeKurariExFailureGuidanceFreshness(
   historicalTo?: string | null,
   raceDate?: string | null,
+  classifiableTo?: string | null,
 ): KurariExFailureGuidanceFreshness {
   if (!isIsoDateOnly(historicalTo) || !isIsoDateOnly(raceDate)) {
     return { lagDays: null, status: "unknown", preRaceUsage: "prohibited" };
@@ -1624,7 +1641,12 @@ export function computeKurariExFailureGuidanceFreshness(
   if (!Number.isFinite(diffDays) || diffDays <= 0) {
     return { lagDays: null, status: "prohibited", preRaceUsage: "prohibited" };
   }
-  const lagDays = Math.max(0, diffDays - 1);
+  if (classifiableTo === null || (classifiableTo !== undefined && !isIsoDateOnly(classifiableTo))) {
+    return { lagDays: null, status: "unknown", preRaceUsage: "prohibited" };
+  }
+  const evidenceDiff = classifiableTo === undefined ? diffDays : diffCalendarDays(classifiableTo, raceDate);
+  if (evidenceDiff <= 0) return { lagDays: null, status: "prohibited", preRaceUsage: "prohibited" };
+  const lagDays = Math.max(0, diffDays - 1, evidenceDiff - 1);
   if (lagDays <= 1) return { lagDays, status: "fresh", preRaceUsage: "allowed" };
   if (lagDays <= 7) return { lagDays, status: "reference", preRaceUsage: "reference_only" };
   return { lagDays, status: "stale", preRaceUsage: "prohibited" };
@@ -1658,6 +1680,7 @@ export function lookupKurariExFailureGuidanceForRace(
   const effectiveFreshness = computeKurariExFailureGuidanceFreshness(
     artifact.historicalTo,
     params.raceDate,
+    artifact.source.classifiableTo,
   );
   const venueKey = (params.venueSlug ?? params.venueKey ?? "").trim();
   const raceNoKey = normalizeFailureGuidanceRaceNo(params.raceNo);

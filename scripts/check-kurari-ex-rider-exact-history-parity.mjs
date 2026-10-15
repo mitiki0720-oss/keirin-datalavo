@@ -3,7 +3,11 @@ import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { promisify } from "node:util";
 import os from "node:os";
 import path from "node:path";
-import { projectRoot } from "./kurari-ex-history-common.mjs";
+import {
+  projectRoot,
+  readCompactHistoryRaces,
+  readNormalizedRaces,
+} from "./kurari-ex-history-common.mjs";
 
 const execFileAsync = promisify(execFile);
 
@@ -47,6 +51,31 @@ async function riderFiles(root) {
 }
 
 async function main() {
+  const [normalizedInput, historyInput] = await Promise.all([
+    readNormalizedRaces(),
+    readCompactHistoryRaces(),
+  ]);
+  if (normalizedInput.errors.length || historyInput.errors.length) {
+    throw new Error("normalized/history source contains parse errors");
+  }
+  const normalizedKeys = new Set(normalizedInput.races.map((race) => race.raceKey));
+  const historyKeys = new Set(historyInput.races.map((race) => race.raceKey));
+  const commonRaceKeyCount = [...normalizedKeys].filter((key) => historyKeys.has(key)).length;
+  console.log("[kurari-ex rider exact history parity source coverage]");
+  console.log(`normalizedRaces: ${normalizedInput.races.length}`);
+  console.log(`historyRaces: ${historyInput.races.length}`);
+  console.log(`commonRaceKeys: ${commonRaceKeyCount}`);
+  console.log(`normalizedOnlyRaceKeys: ${normalizedKeys.size - commonRaceKeyCount}`);
+  console.log(`historyOnlyRaceKeys: ${historyKeys.size - commonRaceKeyCount}`);
+  if (!normalizedInput.races.length || !historyInput.races.length
+    || normalizedInput.races.length !== normalizedKeys.size
+    || historyInput.races.length !== historyKeys.size
+    || normalizedKeys.size !== historyKeys.size
+    || commonRaceKeyCount !== normalizedKeys.size) {
+    console.error("BLOCKED: source coverage differs; rider-file parity requires the same complete raceKey cohort");
+    process.exitCode = 1;
+    return;
+  }
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "kurari-rider-parity-"));
   const normalizedRoot = path.join(tempRoot, "normalized");
   const historyRoot = path.join(tempRoot, "history");

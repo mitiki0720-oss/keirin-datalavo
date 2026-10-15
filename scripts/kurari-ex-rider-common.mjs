@@ -173,10 +173,10 @@ async function loadKeirinJpFeedIdentityCards() {
     });
 }
 
-export async function loadRiderIdentitySources() {
+export async function loadRiderIdentitySources({ includeCurrentFeed = true } = {}) {
   const playerCards = JSON.parse(await readFile(playerCardIndexPath, "utf8"));
   const officialSupplementCards = await loadOfficialRiderSupplement();
-  const keirinJpFeedCards = await loadKeirinJpFeedIdentityCards();
+  const keirinJpFeedCards = includeCurrentFeed ? await loadKeirinJpFeedIdentityCards() : [];
   let overrides = {};
   try {
     overrides = JSON.parse(await readFile(riderOverridePath, "utf8"));

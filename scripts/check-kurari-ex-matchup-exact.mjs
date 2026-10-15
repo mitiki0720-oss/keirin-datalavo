@@ -3,7 +3,9 @@ import path from "node:path";
 
 const ROOT = process.cwd();
 
-const MATCHUP_DIR = path.join(
+const MATCHUP_DIR = process.argv.find((arg) => arg.startsWith("--root="))
+  ? path.resolve(process.argv.find((arg) => arg.startsWith("--root=")).slice(7))
+  : path.join(
   ROOT,
   "public",
   "data",
@@ -300,6 +302,9 @@ async function readJson(filePath) {
 }
 
 function toRelative(filePath) {
+  if (process.argv.some((arg) => arg.startsWith("--root="))) {
+    return `data/analytics/kurari-ex/exact/matchups/${path.relative(MATCHUP_DIR, filePath).replaceAll("\\", "/")}`;
+  }
   return path
     .relative(ROOT, filePath)
     .replaceAll("\\", "/");
@@ -309,6 +314,11 @@ function publicUrlToLocalPath(file) {
   const normalized =
     normalizeText(file)
       .replace(/^\/+/, "");
+
+  const prefix = "data/analytics/kurari-ex/exact/matchups/";
+  if (process.argv.some((arg) => arg.startsWith("--root=")) && normalized.startsWith(prefix)) {
+    return path.join(MATCHUP_DIR, normalized.slice(prefix.length));
+  }
 
   return path.join(
     ROOT,

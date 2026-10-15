@@ -3,10 +3,15 @@ import path from "node:path";
 
 const ROOT = process.cwd();
 
-const analysisDir = path.join(
+const defaultAnalysisDir = path.join(
   ROOT,
   "public/data/analytics/kurari-ex/analysis"
 );
+const outputArg = process.argv.find((arg) => arg.startsWith("--analysis-root="))?.slice(16);
+const analysisDir = outputArg ? path.resolve(outputArg) : defaultAnalysisDir;
+if (outputArg && !analysisDir.startsWith(`${path.join(ROOT, ".tmp")}${path.sep}`)) {
+  throw new Error("--analysis-root must be beneath this worktree's ignored .tmp directory");
+}
 
 const scoreFile = path.join(analysisDir, "rider-score.generated.json");
 const tagsFile = path.join(analysisDir, "rider-tags.generated.json");

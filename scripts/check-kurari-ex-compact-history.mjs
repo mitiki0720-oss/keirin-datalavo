@@ -6,7 +6,9 @@ import {
   venueMap,
 } from "./kurari-ex-history-common.mjs";
 
-const historyRoot = path.join(
+const historyRoot = process.argv.find((arg) => arg.startsWith("--root="))?.slice(7)
+  ? path.resolve(process.argv.find((arg) => arg.startsWith("--root=")).slice(7))
+  : path.join(
   projectRoot,
   "public",
   "data",

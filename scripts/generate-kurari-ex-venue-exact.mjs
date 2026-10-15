@@ -17,6 +17,9 @@ const getArg = (name, fallback = "") => (
 );
 const source = getArg("--source", "history");
 const exactOutputRoot = path.resolve(getArg("--output-root", defaultExactOutputRoot));
+const historyDailyRoot = getArg("--history-root")
+  ? path.join(path.resolve(getArg("--history-root")), "daily")
+  : undefined;
 const baselineRoot = path.resolve(getArg("--baseline-root", defaultExactOutputRoot));
 const requestedGeneratedAt = getArg("--generated-at");
 
@@ -195,7 +198,7 @@ function aggregate(races, generatedAt) {
 }
 
 async function main() {
-  const { races, errors } = await readKurariExRaces(source);
+  const { races, errors } = await readKurariExRaces(source, { historyDailyRoot });
   if (errors.length) throw new Error(`${source} contains ${errors.length} parse errors`);
   if (!races.length) throw new Error(`no ${source} races found`);
 

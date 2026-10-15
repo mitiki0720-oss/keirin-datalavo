@@ -4,11 +4,13 @@ import {
   evaluateRace,
   extractLabeledValue,
   mergePrediction,
-  mergeResult,
+  mergeResultFromBlocks,
+  normalizeVenueName,
   normalizedRacesRoot,
   normalizedRoot,
   parseLineupFromBlocks,
   parsePredictionBlock,
+  parseDate,
   parseRaceMeta,
   parseResultBlock,
   readInput,
@@ -32,6 +34,16 @@ function mapBlocks(items, type) {
   const map = new Map();
   for (const item of items) {
     for (const block of splitRaceBlocks(item.text, type)) {
+      if (block.format === "review-result") {
+        const date = parseDate(extractLabeledValue(block.text, ["日付"]));
+        const venue = extractLabeledValue(block.text, ["会場"]);
+        const race = extractLabeledValue(block.text, ["R"]);
+        if (date !== item.source.date
+          || normalizeVenueName(venue) !== normalizeVenueName(item.source.venueName)
+          || (race !== `${block.raceNumber}R` && race !== String(block.raceNumber))) {
+          throw new Error(`review result identity mismatch: ${item.source.relativePath} ${block.heading}`);
+        }
+      }
       map.set(block.raceNumber, { ...block, source: item.source });
     }
   }
@@ -95,7 +107,7 @@ async function main() {
 
       const summaryResult = summaryBlock ? parseResultBlock(summaryBlock.text) : null;
       const sourceResult = resultBlock ? parseResultBlock(resultBlock.text) : null;
-      const mergedResult = mergeResult(summaryResult, sourceResult);
+      const mergedResult = mergeResultFromBlocks(summaryResult, sourceResult, resultBlock?.format);
       const result = mergedResult ?? {
         status: "missing",
         first: { carNo: null, name: "", winningMethod: "" },
@@ -117,7 +129,7 @@ async function main() {
         predictionBlock?.text ?? "",
       );
       if (lineup.status !== "parsed") raceWarnings.push("lineup parse incomplete");
-      const meta = parseRaceMeta(summaryBlock, predictionBlock?.text ?? resultBlock?.text ?? "");
+      const meta = parseRaceMeta(summaryBlock, [predictionBlock?.text, resultBlock?.text].filter(Boolean).join("\n"));
       const explicitStarters = parseExplicitStarterTable(predictionBlock?.text ?? "");
       const starters = explicitStarters.map((starter) => {
         const parsedRegistrationNo = extractStarterNameRegistrationNo(starter.name);

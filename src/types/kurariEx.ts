@@ -261,6 +261,8 @@ export type KurariExRiderMetric = {
 
 export type KurariExRiderAggregate = {
   starts: number | null;
+  evaluableStarts?: number;
+  unknownRankStarts?: number;
   wins: number;
   seconds: number;
   thirds: number;
@@ -339,6 +341,9 @@ export type KurariExRiderExactIndexItem = {
   file: string;
   observedRaceCount: number;
   confirmedStartCount: number;
+  evaluableStartCount?: number;
+  latestObservedRaceDate?: string | null;
+  latestEvaluableRaceDate?: string | null;
   roleEligibleCount: number;
   quality: KurariExRiderQuality;
 };
@@ -394,6 +399,10 @@ export type KurariExRiderExact = {
     observedRaceCount: number;
     confirmedStartCount: number;
     resultParsedCount: number;
+    evaluableStartCount?: number;
+    unknownRankStartCount?: number;
+    latestObservedRaceDate?: string | null;
+    latestEvaluableRaceDate?: string | null;
     roleEligibleCount: number;
     venueCount: number;
   };

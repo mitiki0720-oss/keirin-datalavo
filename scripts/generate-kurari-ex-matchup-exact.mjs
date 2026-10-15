@@ -1,13 +1,17 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { compareExplicitFinishOrder, explicitFinishRank } from "./kurari-ex-official-finish.mjs";
+import { loadLegacyOfficialFinishByRace } from "./kurari-ex-legacy-official-evidence.mjs";
+import { officialFinishForStarter } from "./kurari-ex-official-finish.mjs";
 import {
   loadRiderIdentitySources,
   resolveRiderIdentity,
 } from "./kurari-ex-rider-common.mjs";
 
 const ROOT = process.cwd();
+const getArg = (name) => process.argv.find((arg) => arg.startsWith(`${name}=`))?.slice(name.length + 1);
 
-const HISTORY_DIR = path.join(
+const HISTORY_DIR = getArg("--history-root") ? path.join(path.resolve(getArg("--history-root")), "daily") : path.join(
   ROOT,
   "public",
   "data",
@@ -17,7 +21,7 @@ const HISTORY_DIR = path.join(
   "daily",
 );
 
-const OUTPUT_DIR = path.join(
+const OUTPUT_DIR = getArg("--output-root") ? path.resolve(getArg("--output-root")) : path.join(
   ROOT,
   "public",
   "data",
@@ -42,6 +46,7 @@ const PREVIEW_FILE = path.join(
 const NOW = new Date().toISOString();
 
 const DRY_RUN = process.argv.includes("--dry-run");
+const USE_LEGACY_OFFICIAL_HISTORY = process.argv.includes("--legacy-official-git-history");
 
 const SAFE_IDENTITY_STATUSES = new Set([
   "registration-no",
@@ -339,6 +344,7 @@ function classifyLine({
 
 function extractPodiumPositionMap(result) {
   const positions = new Map();
+  if (result?.status !== "finished") return positions;
 
   const entries = [
     [1, result?.first],
@@ -376,14 +382,9 @@ function extractFullFinishPositionMap(result) {
 
     const positions = new Map();
 
-    candidate.forEach((item, index) => {
+    candidate.forEach((item) => {
       const carNo = extractCarNo(item);
-
-      const position =
-        toFiniteNumber(item?.position) ??
-        toFiniteNumber(item?.rank) ??
-        toFiniteNumber(item?.place) ??
-        index + 1;
+      const position = explicitFinishRank(item);
 
       if (
         Number.isFinite(carNo) &&
@@ -406,7 +407,11 @@ function comparePair({
   carNoB,
   fullFinishPositions,
   podiumPositions,
+  result,
 }) {
+  if (Array.isArray(result?.finishOrder)) {
+    return compareExplicitFinishOrder(result, carNoA, carNoB);
+  }
   const fullA =
     fullFinishPositions.get(carNoA);
 
@@ -826,12 +831,8 @@ async function writePreparedFile(
 }
 
 function toPublicFileUrl(filePath) {
-  return `/${path
-    .relative(
-      path.join(ROOT, "public"),
-      filePath,
-    )
-    .replaceAll("\\", "/")}`;
+  return `/data/analytics/kurari-ex/exact/matchups/${path
+    .relative(OUTPUT_DIR, filePath).replaceAll("\\", "/")}`;
 }
 
 function createRiderFilePath(
@@ -848,7 +849,7 @@ function createRiderFilePath(
 }
 
 async function main() {
-  const identitySources = await loadRiderIdentitySources();
+  const identitySources = await loadRiderIdentitySources({ includeCurrentFeed: false });
 
   const historyFiles =
     (await walkFiles(HISTORY_DIR))
@@ -866,6 +867,12 @@ async function main() {
       "compact historyの日別JSONが見つかりません。",
     );
   }
+
+  const legacyRaces = (await Promise.all(historyFiles.map(async (filePath) =>
+    JSON.parse(await fs.readFile(filePath, "utf8")).items ?? []))).flat();
+  const legacyOfficial = loadLegacyOfficialFinishByRace(legacyRaces,
+    { fromGitHistory: USE_LEGACY_OFFICIAL_HISTORY });
+  console.log(`legacy official evidence: ${legacyOfficial.evidence.size}/${legacyOfficial.candidateCount} races`);
 
   const pairs = new Map();
 
@@ -917,6 +924,7 @@ async function main() {
 
     for (const race of races) {
       status.historyRaceCount += 1;
+      const verifiedResult = legacyOfficial.evidence.get(race.raceKey) ?? race.result;
 
       const date =
         normalizeText(race?.date);
@@ -945,7 +953,8 @@ async function main() {
           .map((starter) =>
             resolveStarterForMatchup(starter, identitySources, race),
           )
-          .filter(Boolean);
+          .filter((starter) => starter && (!legacyOfficial.evidence.has(race.raceKey)
+            || officialFinishForStarter(verifiedResult, starter)?.observed === true));
 
       for (
         const starter of resolvedStarters
@@ -976,14 +985,16 @@ async function main() {
       const lines =
         extractLines(race);
 
+      if (race?.result?.status === "cancelled" || race?.operationStatus === "cancelled") continue;
+
       const podiumPositions =
         extractPodiumPositionMap(
-          race?.result,
+          verifiedResult,
         );
 
       const fullFinishPositions =
         extractFullFinishPositionMap(
-          race?.result,
+          verifiedResult,
         );
 
       for (
@@ -1095,6 +1106,7 @@ async function main() {
               carNoB,
               fullFinishPositions,
               podiumPositions,
+              result: verifiedResult,
             });
 
           if (

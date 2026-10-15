@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import path from "node:path";
 import {
   POINT_RANGES,
   PRIMARY_CLASSES,
@@ -120,9 +121,15 @@ function checkArtifact(artifact) {
 }
 
 async function main() {
-  const artifact = JSON.parse(await readFile(outputPath, "utf8"));
+  const fileArg = process.argv.indexOf("--file");
+  if (fileArg >= 0 && (fileArg !== process.argv.length - 2 || !process.argv[fileArg + 1])) {
+    throw new Error("--file requires exactly one path");
+  }
+  if (fileArg < 0 && process.argv.length > 2) throw new Error("unknown argument");
+  const file = fileArg >= 0 ? path.resolve(process.argv[fileArg + 1]) : outputPath;
+  const artifact = JSON.parse(await readFile(file, "utf8"));
   const result = checkArtifact(artifact);
-  console.log("[kurari-ex-prediction-failure-check] file:", outputPath);
+  console.log("[kurari-ex-prediction-failure-check] file:", file);
   console.log("[kurari-ex-prediction-failure-check] targetDate:", artifact.targetDate);
   console.log("[kurari-ex-prediction-failure-check] historical:", `${artifact.historicalFrom}..${artifact.historicalTo}`);
   console.log("[kurari-ex-prediction-failure-check] raceCount:", artifact.raceCount);

@@ -5,7 +5,9 @@ import {
   projectRoot,
 } from "./kurari-ex-history-common.mjs";
 
-const riderRoot = path.join(
+const riderRoot = process.argv.find((arg) => arg.startsWith("--root="))
+  ? path.resolve(process.argv.find((arg) => arg.startsWith("--root=")).slice(7))
+  : path.join(
   projectRoot,
   "public",
   "data",

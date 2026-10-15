@@ -4,24 +4,30 @@
   "name": "星野 洋輝",
   "nameKey": "星野洋輝",
   "sourceType": "EXACT",
-  "generatedAt": "2026-10-03T18:42:56.349Z",
+  "generatedAt": "2026-10-13T16:44:49.682Z",
   "period": {
     "from": "2026-06-09",
-    "to": "2026-10-03"
+    "to": "2026-10-08"
   },
   "identity": {
-    "status": "unique-player-card-name",
+    "status": "registration-no",
     "registrationNoResolved": true
   },
   "coverage": {
-    "observedRaceCount": 9,
-    "confirmedStartCount": 9,
+    "observedRaceCount": 10,
+    "confirmedStartCount": 10,
     "resultParsedCount": 9,
+    "evaluableStartCount": 9,
+    "unknownRankStartCount": 1,
+    "latestObservedRaceDate": "2026-10-08",
+    "latestEvaluableRaceDate": "2026-10-03",
     "roleEligibleCount": 4,
-    "venueCount": 4
+    "venueCount": 5
   },
   "overall": {
-    "starts": 9,
+    "starts": 10,
+    "evaluableStarts": 9,
+    "unknownRankStarts": 1,
     "wins": 0,
     "seconds": 1,
     "thirds": 1,
@@ -107,7 +113,7 @@
     "sourceType": "EXACT",
     "source": "kurari-ex-history",
     "identityKey": "registrationNo",
-    "generatedAt": "2026-10-03T18:42:56.349Z",
+    "generatedAt": "2026-10-13T16:44:49.682Z",
     "excludedIdentityConflictCount": 0,
     "excludedSettledIdentityConflictCount": 0,
     "overall": {
@@ -121,6 +127,47 @@
       "top3Rate": 22.2
     },
     "items": [
+      {
+        "venueKey": "hiratsuka",
+        "venueName": "平塚",
+        "observedStarts": 1,
+        "settledStarts": 0,
+        "wins": 0,
+        "seconds": 0,
+        "thirds": 0,
+        "outside": null,
+        "winRate": null,
+        "top2Rate": null,
+        "top3Rate": null,
+        "period": {
+          "from": "2026-10-08",
+          "to": "2026-10-08"
+        },
+        "latestRaceDate": "2026-10-08",
+        "recent": {
+          "windowSize": 5,
+          "sampleSize": 0,
+          "settledStarts": 0,
+          "windowComplete": false,
+          "period": {
+            "from": null,
+            "to": null
+          },
+          "wins": 0,
+          "seconds": 0,
+          "thirds": 0,
+          "outside": null,
+          "winRate": null,
+          "top2Rate": null,
+          "top3Rate": null
+        },
+        "delta": {
+          "winRate": null,
+          "top2Rate": null,
+          "top3Rate": null
+        },
+        "sampleQuality": "unavailable"
+      },
       {
         "venueKey": "kishiwada",
         "venueName": "岸和田",
@@ -309,9 +356,44 @@
   },
   "byVenue": [
     {
+      "venueKey": "hiratsuka",
+      "venueName": "平塚",
+      "starts": 1,
+      "evaluableStarts": 0,
+      "unknownRankStarts": 1,
+      "wins": 0,
+      "seconds": 0,
+      "thirds": 0,
+      "outside": null,
+      "winRate": {
+        "count": 0,
+        "total": null,
+        "rate": null,
+        "sourceType": "EXACT",
+        "quality": "unavailable"
+      },
+      "top2Rate": {
+        "count": 0,
+        "total": null,
+        "rate": null,
+        "sourceType": "EXACT",
+        "quality": "unavailable"
+      },
+      "top3Rate": {
+        "count": 0,
+        "total": null,
+        "rate": null,
+        "sourceType": "EXACT",
+        "quality": "unavailable"
+      },
+      "sourceType": "EXACT"
+    },
+    {
       "venueKey": "kishiwada",
       "venueName": "岸和田",
       "starts": 1,
+      "evaluableStarts": 1,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -343,6 +425,8 @@
       "venueKey": "matsusaka",
       "venueName": "松阪",
       "starts": 1,
+      "evaluableStarts": 1,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -374,6 +458,8 @@
       "venueKey": "omiya",
       "venueName": "大宮",
       "starts": 3,
+      "evaluableStarts": 3,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 1,
       "thirds": 1,
@@ -405,6 +491,8 @@
       "venueKey": "toride",
       "venueName": "取手",
       "starts": 4,
+      "evaluableStarts": 4,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -437,6 +525,8 @@
     {
       "timeslot": "day",
       "starts": 4,
+      "evaluableStarts": 4,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 1,
       "thirds": 1,
@@ -466,7 +556,9 @@
     },
     {
       "timeslot": "unknown",
-      "starts": 5,
+      "starts": 6,
+      "evaluableStarts": 5,
+      "unknownRankStarts": 1,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -499,7 +591,9 @@
     {
       "carNo": "1",
       "carNoLabel": "1番車",
-      "starts": 1,
+      "starts": 2,
+      "evaluableStarts": 1,
+      "unknownRankStarts": 1,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -531,6 +625,8 @@
       "carNo": "2",
       "carNoLabel": "2番車",
       "starts": 1,
+      "evaluableStarts": 1,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -562,6 +658,8 @@
       "carNo": "4",
       "carNoLabel": "4番車",
       "starts": 1,
+      "evaluableStarts": 1,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -593,6 +691,8 @@
       "carNo": "5",
       "carNoLabel": "5番車",
       "starts": 2,
+      "evaluableStarts": 2,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 1,
@@ -624,6 +724,8 @@
       "carNo": "6",
       "carNoLabel": "6番車",
       "starts": 1,
+      "evaluableStarts": 1,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -655,6 +757,8 @@
       "carNo": "7",
       "carNoLabel": "7番車",
       "starts": 2,
+      "evaluableStarts": 2,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 1,
       "thirds": 0,
@@ -686,6 +790,8 @@
       "carNo": "8",
       "carNoLabel": "8番車",
       "starts": 1,
+      "evaluableStarts": 1,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -716,38 +822,10 @@
   ],
   "byClass": [
     {
-      "raceClass": "S級予選",
-      "starts": 1,
-      "wins": 0,
-      "seconds": 0,
-      "thirds": 1,
-      "outside": 0,
-      "winRate": {
-        "count": 0,
-        "total": 1,
-        "rate": 0,
-        "sourceType": "EXACT",
-        "quality": "low-sample"
-      },
-      "top2Rate": {
-        "count": 0,
-        "total": 1,
-        "rate": 0,
-        "sourceType": "EXACT",
-        "quality": "low-sample"
-      },
-      "top3Rate": {
-        "count": 1,
-        "total": 1,
-        "rate": 100,
-        "sourceType": "EXACT",
-        "quality": "low-sample"
-      },
-      "sourceType": "EXACT"
-    },
-    {
       "raceClass": "S級決勝",
       "starts": 1,
+      "evaluableStarts": 1,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -778,6 +856,8 @@
     {
       "raceClass": "S級準決勝",
       "starts": 1,
+      "evaluableStarts": 1,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 1,
       "thirds": 0,
@@ -806,8 +886,42 @@
       "sourceType": "EXACT"
     },
     {
+      "raceClass": "S級予選",
+      "starts": 1,
+      "evaluableStarts": 1,
+      "unknownRankStarts": 0,
+      "wins": 0,
+      "seconds": 0,
+      "thirds": 1,
+      "outside": 0,
+      "winRate": {
+        "count": 0,
+        "total": 1,
+        "rate": 0,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "top2Rate": {
+        "count": 0,
+        "total": 1,
+        "rate": 0,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "top3Rate": {
+        "count": 1,
+        "total": 1,
+        "rate": 100,
+        "sourceType": "EXACT",
+        "quality": "low-sample"
+      },
+      "sourceType": "EXACT"
+    },
+    {
       "raceClass": "unknown",
-      "starts": 5,
+      "starts": 6,
+      "evaluableStarts": 5,
+      "unknownRankStarts": 1,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -838,6 +952,8 @@
     {
       "raceClass": "一般|❌ 不的中",
       "starts": 1,
+      "evaluableStarts": 1,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -871,6 +987,8 @@
       "raceStage": "consolation",
       "raceStageLabel": "一般・敗者戦",
       "starts": 1,
+      "evaluableStarts": 1,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -902,6 +1020,8 @@
       "raceStage": "final",
       "raceStageLabel": "決勝",
       "starts": 2,
+      "evaluableStarts": 2,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 1,
       "thirds": 0,
@@ -933,6 +1053,8 @@
       "raceStage": "qualifying",
       "raceStageLabel": "予選",
       "starts": 1,
+      "evaluableStarts": 1,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 1,
@@ -963,7 +1085,9 @@
     {
       "raceStage": "unknown",
       "raceStageLabel": "不明",
-      "starts": 5,
+      "starts": 6,
+      "evaluableStarts": 5,
+      "unknownRankStarts": 1,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -997,6 +1121,8 @@
       "weatherCondition": "cloudy",
       "weatherLabel": "曇り",
       "starts": 2,
+      "evaluableStarts": 2,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -1028,6 +1154,8 @@
       "weatherCondition": "rain",
       "weatherLabel": "雨",
       "starts": 1,
+      "evaluableStarts": 1,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -1058,7 +1186,9 @@
     {
       "weatherCondition": "sunny",
       "weatherLabel": "晴れ",
-      "starts": 3,
+      "starts": 4,
+      "evaluableStarts": 3,
+      "unknownRankStarts": 1,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -1090,6 +1220,8 @@
       "weatherCondition": "unknown",
       "weatherLabel": "不明",
       "starts": 3,
+      "evaluableStarts": 3,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 1,
       "thirds": 1,
@@ -1122,7 +1254,9 @@
     {
       "bankLength": 400,
       "bankLengthLabel": "400m",
-      "starts": 6,
+      "starts": 7,
+      "evaluableStarts": 6,
+      "unknownRankStarts": 1,
       "wins": 0,
       "seconds": 0,
       "thirds": 0,
@@ -1154,6 +1288,8 @@
       "bankLength": 500,
       "bankLengthLabel": "500m",
       "starts": 3,
+      "evaluableStarts": 3,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 1,
       "thirds": 1,
@@ -1186,6 +1322,8 @@
     "front": null,
     "bante": {
       "starts": 4,
+      "evaluableStarts": 4,
+      "unknownRankStarts": 0,
       "wins": 0,
       "seconds": 1,
       "thirds": 1,
@@ -1225,6 +1363,7 @@
   },
   "quality": "partial",
   "warnings": [
+    "rank unavailable for some starts",
     "role unavailable for some starts"
   ]
 }

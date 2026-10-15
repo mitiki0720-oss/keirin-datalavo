@@ -69,7 +69,8 @@ function compactRace(race) {
   const starters = [...(race.starters ?? [])]
     .map(compactStarter)
     .sort((left, right) => Number(left.carNo) - Number(right.carNo));
-  const resultStatus = race.result?.status === "finished" ? "finished" : "unknown";
+  const resultStatus = race.result?.status === "finished" ? "finished"
+    : race.result?.status === "cancelled" ? "cancelled" : "unknown";
   const predictionMatched = race.quality?.predictionParsed === true;
   return {
     raceKey: race.raceKey,
@@ -81,6 +82,7 @@ function compactRace(race) {
     grade: String(race.grade ?? ""),
     timeslot: String(race.timeslot ?? ""),
     raceClass: String(race.raceClass ?? ""),
+    raceTitle: String(race.raceTitle ?? ""),
     operationStatus: resultStatus,
     starterCount: Number.isInteger(race.starterCount) ? race.starterCount : starters.length,
     starters,
@@ -95,6 +97,9 @@ function compactRace(race) {
     },
     result: {
       status: resultStatus,
+      ...(Array.isArray(race.result?.finishOrder)
+        ? { finishOrder: race.result.finishOrder }
+        : {}),
       first: compactPlacement(race.result?.first, true),
       second: compactPlacement(race.result?.second),
       third: compactPlacement(race.result?.third),

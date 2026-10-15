@@ -6,8 +6,12 @@ import {
 } from "./kurari-ex-history-common.mjs";
 import {
   normalizeRegistrationNo,
-  riderExactRoot,
+  riderExactRoot as defaultRiderExactRoot,
 } from "./kurari-ex-rider-common.mjs";
+
+const riderExactRoot = path.resolve(
+  process.argv.find((arg) => arg.startsWith("--root="))?.slice(7) ?? defaultRiderExactRoot,
+);
 
 const individualLimit = 20 * 1024;
 const indexLimit = 500 * 1024;

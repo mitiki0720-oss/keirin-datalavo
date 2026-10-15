@@ -66,12 +66,14 @@ jobs:
           STATUS=$?
           set -e
           if [ "$STATUS" -eq 2 ]; then
+            echo "NIGHTLY_SKIPPED=true" >> "$GITHUB_ENV"
             echo "Nightly update safely skipped because the feed is pending or mismatched."
             exit 0
           fi
           exit "$STATUS"
 
       - name: Commit changed KURARI EX data
+        if: env.NIGHTLY_SKIPPED != 'true'
         run: |
           node scripts/check-kurari-ex-freshness.mjs \
             --historical-date="$TARGET_DATE"

@@ -106,15 +106,16 @@ function sampleStatusFor(contextType, classifiableCount) {
   return "low_sample";
 }
 
-function freshnessFor(sourceHistoricalTo, targetDate) {
+function freshnessFor(sourceHistoricalTo, targetDate, classifiableTo) {
   if (!(sourceHistoricalTo < targetDate)) {
     throw new Error(`source historicalTo must be before targetDate: ${sourceHistoricalTo} >= ${targetDate}`);
   }
   const rawDiff = dayDiff(sourceHistoricalTo, targetDate);
-  const lagDays = rawDiff == null ? null : Math.max(0, rawDiff - 1);
+  const evidenceDiff = classifiableTo ? dayDiff(classifiableTo, targetDate) : null;
+  const lagDays = rawDiff == null || evidenceDiff == null ? null : Math.max(0, rawDiff - 1, evidenceDiff - 1);
   const status = lagDays == null ? "unknown" : lagDays <= 1 ? "fresh" : lagDays <= 7 ? "reference" : "stale";
   const preRaceUsage = status === "fresh" ? "allowed" : status === "reference" ? "reference_only" : "prohibited";
-  return { lagDays, status, preRaceUsage };
+  return { lagDays, status, preRaceUsage, classifiableTo };
 }
 
 function finalize(accumulator, { globalContext, freshness }) {
@@ -211,7 +212,12 @@ function buildGuidanceArtifact({ sourceArtifact, targetDate, generatedAt = new D
   const historicalFrom = assertDate(sourceArtifact.historicalFrom, "source historicalFrom");
   const historicalTo = assertDate(sourceArtifact.historicalTo, "source historicalTo");
   targetDate = assertDate(targetDate, "targetDate");
-  const freshness = freshnessFor(historicalTo, targetDate);
+  const classifiableDates = (sourceArtifact.records ?? [])
+    .filter((record) => record.sourceStatus?.classifiable && record.primaryClass !== "UNCLASSIFIABLE")
+    .map((record) => assertDate(record.date, "classifiable record date"));
+  const classifiableTo = classifiableDates.length ? classifiableDates.sort().at(-1) : null;
+  if (classifiableTo && classifiableTo > historicalTo) throw new Error("classifiable evidence exceeds historicalTo");
+  const freshness = freshnessFor(historicalTo, targetDate, classifiableTo);
 
   const globalAccumulator = createAccumulator("global", "GLOBAL", "global");
   const venueMap = new Map();
@@ -268,6 +274,7 @@ function buildGuidanceArtifact({ sourceArtifact, targetDate, generatedAt = new D
       historicalTo,
       raceCount: sourceArtifact.raceCount ?? null,
       classifiableRaceCount: sourceArtifact.classifiableRaceCount ?? null,
+      classifiableTo,
     },
     policy: {
       specificRiderSelectionAllowed: false,
@@ -350,13 +357,18 @@ function printSummary(artifact, mode, outputPath) {
 async function main() {
   const args = process.argv.slice(2);
   const write = args.includes("--write");
-  const sourceArtifact = JSON.parse(fs.readFileSync(SOURCE_PATH, "utf8"));
+  const sourcePath = path.resolve(getArgValue(args, "--source-file", SOURCE_PATH));
+  const outputPath = path.resolve(getArgValue(args, "--output-file", OUTPUT_PATH));
+  const sourceArtifact = JSON.parse(fs.readFileSync(sourcePath, "utf8"));
   const targetDate = getArgValue(args, "--target-date", sourceArtifact.targetDate ?? formatJstDate());
   const artifact = buildGuidanceArtifact({ sourceArtifact, targetDate });
-  printSummary(artifact, write ? "write" : "dry-run", OUTPUT_PATH);
+  printSummary(artifact, write ? "write" : "dry-run", outputPath);
   if (write) {
-    fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
-    fs.writeFileSync(OUTPUT_PATH, `${JSON.stringify(artifact, null, 2)}\n`, "utf8");
+    if (args.includes("--source-file") && !args.includes("--output-file")) {
+      throw new Error("--output-file is required when writing from --source-file");
+    }
+    fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+    fs.writeFileSync(outputPath, `${JSON.stringify(artifact, null, 2)}\n`, "utf8");
   }
 }
 

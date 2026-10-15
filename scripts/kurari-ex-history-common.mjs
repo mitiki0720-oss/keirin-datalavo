@@ -270,8 +270,28 @@ export function splitRaceBlocks(text, type) {
         meta: "",
       });
     }
+    if (type === "result") {
+      const reviewHeadingPattern = /^\s*【(\d{1,2})R】\s*$/gmu;
+      for (const match of normalized.matchAll(reviewHeadingPattern)) {
+        matches.push({
+          index: match.index,
+          heading: match[0].trim(),
+          date: null,
+          venueLabel: "",
+          raceNumber: Number(match[1]),
+          meta: "",
+          format: "review-result",
+        });
+      }
+    }
   }
   matches.sort((left, right) => left.index - right.index);
+  if (type === "result") {
+    const raceNumbers = matches.map((match) => match.raceNumber);
+    if (new Set(raceNumbers).size !== raceNumbers.length) {
+      throw new Error("duplicate result race heading");
+    }
+  }
   return matches.map((match, index) => ({
     ...match,
     text: normalized.slice(match.index, matches[index + 1]?.index ?? normalized.length).trim(),
@@ -429,6 +449,19 @@ function parseShbRiders(text) {
 }
 export function parseResultBlock(text) {
   const normalized = normalizeText(text);
+  const explicitStatus = extractLabeledValue(normalized, ["結果確定ステータス", "結果確定"]);
+  const isReviewResult = /^【結果判定】\s*$/mu.test(normalized);
+  const sourceName = extractLabeledValue(normalized, ["source名"]);
+  const officialSource = extractLabeledValue(normalized, ["official source"]);
+  const sourceType = extractLabeledValue(normalized, ["source種別"]);
+  const sourceFetchedAt = extractLabeledValue(normalized, ["source取得日時"]);
+  const hasOfficialProvenance = !isReviewResult || (
+    sourceName && !/^(?:未取得|--|unknown)$/iu.test(sourceName)
+    && officialSource && !/^(?:未取得|--|unknown)$/iu.test(officialSource)
+    && /^(?:official|official-derived)$/iu.test(sourceType ?? "")
+    && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/u.test(sourceFetchedAt ?? "")
+    && Number.isFinite(Date.parse(sourceFetchedAt))
+  );
   const order = canonicalCombination(
     firstMatch(normalized, [
       /^着順\s*[:：]\s*([^\n]+)/mu,
@@ -468,7 +501,14 @@ export function parseResultBlock(text) {
   }
 
   return {
-    status: trifectaCombination ? "finished" : "missing",
+    status: hasOfficialProvenance
+      && (isReviewResult ? /^(?:confirmed|確定|結果確定)$/iu.test(explicitStatus ?? "")
+        : !explicitStatus || /^(?:confirmed|確定|結果確定)$/iu.test(explicitStatus))
+      && trifectaCombination && first.carNo && second.carNo && third.carNo
+      && (!isReviewResult || (parseYenBeforeSymbol(trifectaLine) != null
+        && trifectaCombination === [first.carNo, second.carNo, third.carNo].join("-")))
+      ? "finished"
+      : "missing",
     first,
     second,
     third,
@@ -538,8 +578,15 @@ export function mergeResult(primary, fallback) {
   };
 }
 
+export function mergeResultFromBlocks(summaryResult, sourceResult, resultFormat) {
+  // A review-result block must not inherit a finished status from an unverified summary.
+  return resultFormat === "review-result"
+    ? mergeResult(null, sourceResult)
+    : mergeResult(summaryResult, sourceResult);
+}
+
 export function parseRaceMeta(summaryBlock, fallbackText = "") {
-  const text = summaryBlock?.text ?? fallbackText;
+  const text = [summaryBlock?.text, fallbackText].filter(Boolean).join("\n");
   const meta = summaryBlock?.meta ?? "";
   const grade = extractLabeledValue(text, ["グレード"])
     ?? firstMatch(meta, [/\b(G[123]|F[12])\b/u])
@@ -677,9 +724,9 @@ export async function readNormalizedRaces() {
   return { files, races, errors };
 }
 
-export async function readCompactHistoryRaces() {
+export async function readCompactHistoryRaces(historyDailyRoot = compactHistoryDailyRoot) {
   const files = await collectFiles(
-    compactHistoryDailyRoot,
+    historyDailyRoot,
     (file) => file.endsWith(".generated.json"),
   );
   const races = [];
@@ -718,7 +765,8 @@ export async function readCompactHistoryRaces() {
         };
         const result = {
           ...compact.result,
-          status: compact.result?.status === "finished" ? "finished" : "missing",
+          status: ["finished", "cancelled"].includes(compact.result?.status)
+            ? compact.result.status : "missing",
           sRider: compact.result?.sRider ?? null,
           bRider: compact.result?.bRider ?? null,
         };
@@ -734,7 +782,7 @@ export async function readCompactHistoryRaces() {
           grade: compact.grade ?? "",
           timeslot: compact.timeslot ?? "",
           raceClass: compact.raceClass ?? "",
-          raceTitle: "",
+          raceTitle: compact.raceTitle ?? "",
           starterCount: Number.isInteger(compact.starterCount) ? compact.starterCount : (compact.starters?.length ?? 0),
           starters: compact.starters ?? [],
           lineup,
@@ -767,9 +815,9 @@ export async function readCompactHistoryRaces() {
   return { files, races, errors };
 }
 
-export async function readKurariExRaces(source = "history") {
+export async function readKurariExRaces(source = "history", options = {}) {
   if (source === "normalized") return readNormalizedRaces();
-  if (source === "history") return readCompactHistoryRaces();
+  if (source === "history") return readCompactHistoryRaces(options.historyDailyRoot);
   throw new Error(`unsupported KURARI EX source: ${source}`);
 }
 

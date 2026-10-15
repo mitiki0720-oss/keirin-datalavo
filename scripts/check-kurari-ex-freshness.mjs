@@ -97,7 +97,11 @@ const report = {
     failureGuidance: {
       date: guidance.historicalTo ?? null,
       targetDate: guidance.targetDate ?? null,
-      status: guidance.historicalTo === historicalDate && guidance.targetDate === nextTargetDate ? "FRESH" : "STALE",
+      classifiableTo: guidance.source?.classifiableTo ?? null,
+      preRaceUsage: guidance.freshness?.preRaceUsage ?? "prohibited",
+      status: guidance.historicalTo === historicalDate
+        && guidance.targetDate === nextTargetDate
+        && guidance.freshness?.preRaceUsage === "allowed" ? "FRESH" : "STALE",
     },
     raceRisk: { date: risk.period?.historicalTo ?? null, targetDate: risk.period?.date ?? null, status: raceRiskMode === "deferred" ? "REFERENCE" : risk.freshness?.status === "fresh" ? "FRESH" : "STALE" },
     seedPredictionKpi: { date: seedKpi.period?.to ?? null, status: seedKpi.period?.to === historicalDate ? "FRESH" : "REFERENCE" },

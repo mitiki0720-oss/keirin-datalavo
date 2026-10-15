@@ -14,6 +14,7 @@ import {
 } from "./kurari-ex-history-common.mjs";
 import {
   getArgValue,
+  resolveJstDate,
   todayFeedPath,
 } from "./kurari-ex-daily-common.mjs";
 
@@ -40,6 +41,16 @@ function addDays(isoDate, days) {
   const date = new Date(`${isoDate}T00:00:00Z`);
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
+}
+
+export function checkNightlyHistoryContinuity(historyTo, targetDate) {
+  if (!/^\d{4}-\d{2}-\d{2}$/u.test(historyTo ?? "")) {
+    throw new Error("compact history period.to is unavailable");
+  }
+  const nextDate = addDays(historyTo, 1);
+  return targetDate <= nextDate
+    ? { safe: true, nextDate }
+    : { safe: false, nextDate };
 }
 
 async function readJson(file) {
@@ -202,6 +213,14 @@ async function publishRiderExact(tempRoot) {
 }
 
 export async function runNightly(options = {}) {
+  const targetDate = resolveJstDate(options.date ?? "today");
+  const initialHistoryIndex = await readJson(path.join(compactHistoryRoot, "index.generated.json"));
+  const continuity = checkNightlyHistoryContinuity(initialHistoryIndex.period?.to, targetDate);
+  if (!continuity.safe) {
+    const message = `compact history ends ${initialHistoryIndex.period.to}; backfill ${continuity.nextDate} before ${targetDate}`;
+    console.log(`[nightly] archive skipped: ${message}`);
+    return { status: "skipped", archive: { status: "skipped", message, targetDate } };
+  }
   const enrichment = options.allowEnrichmentUpgrade
     ? await enrichExistingDailyFacts({
         date: options.date ?? "today",

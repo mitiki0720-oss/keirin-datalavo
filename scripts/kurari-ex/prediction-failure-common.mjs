@@ -98,7 +98,7 @@ function parseTicketsFromSection(section, mode) {
   const ambiguous = [];
   for (const line of lines) {
     const normalized = normalizeText(line);
-    if (mode === "purchase" && /影買い目/u.test(normalized)) break;
+    if (mode === "purchase" && /影買い目|影目/u.test(normalized)) break;
     const ticket = normalizeTicket(normalized);
     if (!ticket) continue;
     if (mode === "purchase" && /(?:2車単|2車複|3連複|ワイド|払戻|照合キー)/u.test(normalized)) {
@@ -240,6 +240,8 @@ export function parsePredictionSource(sourcePath, source) {
   for (const block of blocks) {
     const buySection = sectionBetween(block.body, /【買い目】/u, [
       /【影買い目】/u,
+      /【影目】/u,
+      /【設計メモ】/u,
       /【買目設計メモ】/u,
       /【買い目設計メモ】/u,
       /^■\s/gmu,

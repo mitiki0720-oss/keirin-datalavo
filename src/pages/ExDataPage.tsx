@@ -137,12 +137,16 @@ import type {
   KurariExHistoricalAvailabilitySummary,
 } from "../types/kurariExHistoricalResult";
 import { SiteHeader, useIsMobile } from "./PageImplementations";
+import { getActiveMonthlyReview } from "../lib/monthlyReviewInsights";
+import { getRiderFormChange, getRiderFormFreshness } from "../lib/kurariExRiderForm";
+import type { MonthlyReviewDigest, MonthlyReviewIndexItem } from "../types/monthlyReview";
 
 const serif = '"Yu Mincho", "Hiragino Mincho ProN", "Times New Roman", serif';
 const sans = '"Helvetica Neue", Arial, "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif';
 
 type ExSectionTab =
   | "overview"
+  | "rider-form"
   | "identity"
   | "coverage"
   | "trend"
@@ -161,18 +165,19 @@ const EX_SECTION_TABS: Array<{
   sublabel: string;
   category: "summary" | "source" | "trend" | "prediction" | "audit";
 }> = [
-  { key: "overview", label: "OVERVIEW", sublabel: "全体サマリー", category: "summary" },
-  { key: "identity", label: "IDENTITY", sublabel: "選手source", category: "source" },
-  { key: "coverage", label: "DATA COVERAGE", sublabel: "自動更新・source", category: "source" },
-  { key: "trend", label: "TREND LAB", sublabel: "ロードマップ", category: "audit" },
-  { key: "ranking", label: "出目ランキング", sublabel: "3連単 v1", category: "trend" },
-  { key: "turbulence", label: "荒れ指数", sublabel: "実払戻 v1", category: "trend" },
-  { key: "chain", label: "レース連鎖", sublabel: "transition v1", category: "trend" },
-  { key: "weather", label: "WEATHER", sublabel: "風速×決まり手", category: "trend" },
-  { key: "venue-bias", label: "会場クセ", sublabel: "venue bias v1", category: "trend" },
-  { key: "today-flow", label: "今日の流れ", sublabel: "today flow meter v1", category: "prediction" },
-  { key: "structure-lab", label: "予想構造LAB", sublabel: "analysis coverage map v1", category: "audit" },
+  { key: "overview", label: "OVERVIEW", sublabel: "全体サマリー・10月月次", category: "summary" },
+  { key: "rider-form", label: "RIDER FORM", sublabel: "選手コンディション", category: "prediction" },
   { key: "analysis", label: "EX ANALYSIS", sublabel: "会場・選手・対戦", category: "prediction" },
+  { key: "today-flow", label: "今日の流れ", sublabel: "当日展開・risk", category: "prediction" },
+  { key: "venue-bias", label: "会場クセ", sublabel: "会場別傾向", category: "trend" },
+  { key: "weather", label: "WEATHER", sublabel: "風速×決まり手", category: "trend" },
+  { key: "ranking", label: "出目ランキング", sublabel: "3連単・車番", category: "trend" },
+  { key: "turbulence", label: "荒れ指数", sublabel: "高配当・波乱", category: "trend" },
+  { key: "chain", label: "レース連鎖", sublabel: "前後レース推移", category: "trend" },
+  { key: "structure-lab", label: "予想構造LAB", sublabel: "3着抜け・順序", category: "audit" },
+  { key: "identity", label: "IDENTITY", sublabel: "登録番号・照合", category: "source" },
+  { key: "coverage", label: "DATA COVERAGE", sublabel: "鮮度・欠損", category: "source" },
+  { key: "trend", label: "TREND LAB", sublabel: "設計・監査", category: "audit" },
 ];
 
 const EX_TAB_CATEGORY_LABELS: Record<(typeof EX_SECTION_TABS)[number]["category"], string> = {
@@ -218,6 +223,12 @@ function formatDate(value?: string | null) {
     month: "2-digit",
     day: "2-digit",
   }).format(date);
+}
+
+function getJstToday() {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
 function sourceFreshness(value?: string | null, freshHours = 48) {
@@ -1084,13 +1095,23 @@ function RiderQualityBadge({ quality }: { quality: KurariExRiderQuality }) {
 
 const RIDER_EXACT_OVERVIEW_LIMIT = 50;
 
-type PlayerConditionTab = "venue" | "bankLength" | "timeslot" | "role";
+type PlayerConditionTab = "venue" | "bankLength" | "timeslot" | "role" | "raceClass" | "raceStage" | "weather";
 
 const PLAYER_CONDITION_TABS: Array<{ key: PlayerConditionTab; label: string; note: string }> = [
   { key: "venue", label: "会場別", note: "保存済みbyVenue" },
   { key: "bankLength", label: "周長別", note: "保存済みbyBankLength" },
   { key: "timeslot", label: "時間帯別", note: "保存済みbyTimeslot" },
   { key: "role", label: "ライン役割別", note: "保存済みbyRole" },
+];
+
+const RIDER_FORM_CONDITION_TABS: Array<{ key: PlayerConditionTab; label: string }> = [
+  { key: "role", label: "ライン役割" },
+  { key: "venue", label: "会場" },
+  { key: "timeslot", label: "時間帯" },
+  { key: "raceClass", label: "級班" },
+  { key: "raceStage", label: "レース種別" },
+  { key: "bankLength", label: "周長" },
+  { key: "weather", label: "天候" },
 ];
 
 const PLAYER_ROLE_LABELS: Record<"front" | "bante" | "third" | "single", string> = {
@@ -1230,7 +1251,7 @@ function RiderAggregateCards({ aggregate }: { aggregate: KurariExRiderAggregate 
   );
 }
 
-function RiderRecentForm({ rider }: { rider: KurariExRiderExact }) {
+function RiderRecentForm({ rider, referenceOnly = false }: { rider: KurariExRiderExact; referenceOnly?: boolean }) {
   const rows = rider.recentForm ?? [];
   if (!rows.length || rows.every((row) => row.sampleSize === 0)) {
     return <EmptyState text="直近走は確定結果が蓄積されるまで表示しません。" />;
@@ -1238,15 +1259,16 @@ function RiderRecentForm({ rider }: { rider: KurariExRiderExact }) {
   return (
     <div className="ex-player-recent-grid">
       {rows.map((row) => {
+        const usable = row.quality === "ok" && row.windowComplete && !referenceOnly;
         return (
-          <article className={`ex-player-recent-card${row.quality === "ok" ? " is-usable" : " is-reference"}`} key={row.windowSize}>
+          <article className={`ex-player-recent-card${usable ? " is-usable" : " is-reference"}`} key={row.windowSize}>
             <div className="ex-player-recent-head">
               <div>
                 <span>直近{row.windowSize}走</span>
                 <strong>{row.sampleSize} / {row.windowSize}走</strong>
               </div>
-              <span className={`ex-player-use-label${row.quality === "ok" ? " is-usable" : " is-reference"}`}>
-                {row.quality === "ok" ? "予想に使える" : "LOW SAMPLE / 参考"}
+              <span className={`ex-player-use-label${usable ? " is-usable" : " is-reference"}`}>
+                {referenceOnly ? `STALE / ${!row.windowComplete ? "蓄積中 / " : row.quality !== "ok" ? "LOW SAMPLE / " : ""}参考` : !row.windowComplete ? "蓄積中 / 参考" : usable ? "予想に使える" : "LOW SAMPLE / 参考"}
               </span>
             </div>
             {row.sampleSize > 0 ? (
@@ -1281,21 +1303,21 @@ function RiderEvidenceSummary({
 }) {
   const recent10 = rider.recentForm?.find((row) => row.windowSize === 10);
   const venue = [...rider.byVenue]
-    .filter((row) => (row.starts ?? 0) >= 5 && row.top3Rate.rate != null)
-    .sort((left, right) => (right.top3Rate.rate ?? -1) - (left.top3Rate.rate ?? -1) || (right.starts ?? 0) - (left.starts ?? 0))[0];
+    .filter((row) => (row.evaluableStarts ?? row.top3Rate.total ?? 0) >= 5 && row.top3Rate.rate != null)
+    .sort((left, right) => (right.top3Rate.rate ?? -1) - (left.top3Rate.rate ?? -1) || (right.evaluableStarts ?? right.top3Rate.total ?? 0) - (left.evaluableStarts ?? left.top3Rate.total ?? 0))[0];
   const roles = Object.entries(rider.byRole ?? {})
     .filter((entry): entry is [keyof typeof PLAYER_ROLE_LABELS, KurariExRiderAggregate] => Boolean(entry[1]))
-    .sort((left, right) => (right[1].starts ?? 0) - (left[1].starts ?? 0));
+    .sort((left, right) => (right[1].evaluableStarts ?? right[1].top3Rate.total ?? 0) - (left[1].evaluableStarts ?? left[1].top3Rate.total ?? 0));
   const role = roles[0];
   const notes = [
     recent10 && recent10.sampleSize > 0
       ? `直近${recent10.sampleSize}走は1着${recent10.wins}・2着${recent10.seconds}・3着${recent10.thirds}・着外${recent10.outside ?? "未取得"}。`
       : "直近走は確定結果未蓄積。",
     venue
-      ? `${venue.venueName || venue.venueKey || "会場未取得"}は保存済み${venue.starts}走、3連対率${formatKurariExRiderMetric(venue.top3Rate)}。`
+      ? `${venue.venueName || venue.venueKey || "会場未取得"}は順位評価可能${venue.evaluableStarts ?? venue.top3Rate.total}走、3連対率${formatKurariExRiderMetric(venue.top3Rate)}。`
       : "会場別は5走以上の比較可能データ未蓄積。",
     role
-      ? `${PLAYER_ROLE_LABELS[role[0]]}は保存済み${role[1].starts ?? 0}走。役割は安全に解釈できた並びだけを集計。`
+      ? `${PLAYER_ROLE_LABELS[role[0]]}は観測${role[1].starts ?? 0}走、順位評価可能${role[1].evaluableStarts ?? role[1].top3Rate.total ?? 0}走。役割は安全に解釈できた並びだけを集計。`
       : "ライン役割別は安全に解釈できるデータ未蓄積。",
     matchupCount != null
       ? `保存済み対戦相手${matchupCount}人。詳細はMATCHUP EXで確認。`
@@ -1314,7 +1336,7 @@ function RiderEvidenceSummary({
 }
 
 function getAggregateUsageLabel(aggregate: KurariExRiderAggregate) {
-  const starts = aggregate.starts ?? 0;
+  const starts = aggregate.evaluableStarts ?? aggregate.top3Rate.total ?? 0;
   if (starts <= 0) return "蓄積中";
   if (starts < 5) return "LOW SAMPLE / 参考";
   return "予想に使える";
@@ -1351,6 +1373,9 @@ function getPlayerConditionRows(rider: KurariExRiderExact, tab: PlayerConditionT
       note: "時間帯",
     }));
   }
+  if (tab === "raceClass") return rider.byClass.map((row, index) => ({ ...row, id: `class-${index}`, label: row.raceClass ?? "未取得", note: "保存済み級班" }));
+  if (tab === "raceStage") return rider.byRaceStage.map((row, index) => ({ ...row, id: `stage-${index}`, label: row.raceStageLabel ?? row.raceStage ?? "未取得", note: "保存済みレース種別" }));
+  if (tab === "weather") return rider.byWeather.map((row, index) => ({ ...row, id: `weather-${index}`, label: row.weatherLabel ?? row.weatherCondition ?? "未取得", note: "保存済み天候・走路実測風速ではありません" }));
   const roleRows: PlayerConditionRow[] = [];
   (Object.entries(PLAYER_ROLE_LABELS) as Array<[keyof typeof PLAYER_ROLE_LABELS, string]>).forEach(([key, label]) => {
     const aggregate = rider.byRole?.[key];
@@ -1366,7 +1391,7 @@ function getPlayerConditionRows(rider: KurariExRiderExact, tab: PlayerConditionT
 }
 
 function PlayerPositionGuide({ aggregate }: { aggregate: KurariExRiderAggregate }) {
-  const startsText = aggregate.starts == null ? "未取得" : `${valueText(aggregate.starts)}走`;
+  const startsText = aggregate.top3Rate.total == null ? "未取得" : `${valueText(aggregate.top3Rate.total)}評価可能走`;
   const rows = [
     { key: "head", title: "1着評価を見る", count: valueText(aggregate.wins), rate: formatKurariExRiderMetric(aggregate.winRate), note: "頭候補判断は勝率と1着数を確認" },
     { key: "top2", title: "2着までを見る", count: valueText(aggregate.wins + aggregate.seconds), rate: formatKurariExRiderMetric(aggregate.top2Rate), note: "2着内評価は2連対率を確認" },
@@ -1386,7 +1411,7 @@ function PlayerPositionGuide({ aggregate }: { aggregate: KurariExRiderAggregate 
   );
 }
 
-function PlayerConditionTable({ rows }: { rows: PlayerConditionRow[] }) {
+function PlayerConditionTable({ rows, referenceOnly = false }: { rows: PlayerConditionRow[]; referenceOnly?: boolean }) {
   if (!rows.length) {
     return <EmptyState text="この条件の保存済みEXACTはまだありません。0件を強い根拠として扱わず、蓄積中として確認してください。" />;
   }
@@ -1396,7 +1421,7 @@ function PlayerConditionTable({ rows }: { rows: PlayerConditionRow[] }) {
         <thead>
           <tr>
             <th>条件</th>
-            <th>sample</th>
+            <th>sample 観測/評価可能</th>
             <th>1着</th>
             <th>2着</th>
             <th>3着</th>
@@ -1411,7 +1436,7 @@ function PlayerConditionTable({ rows }: { rows: PlayerConditionRow[] }) {
           {rows.map((row) => (
             <tr key={row.id}>
               <td><strong>{row.label}</strong>{row.note ? <small>{row.note}</small> : null}</td>
-              <td>{row.starts == null ? "未取得" : valueText(row.starts)}</td>
+              <td>{row.starts == null ? "未取得" : `${valueText(row.starts)} / ${valueText(row.evaluableStarts ?? row.top3Rate.total)}`}</td>
               <td>{valueText(row.wins)}</td>
               <td>{valueText(row.seconds)}</td>
               <td>{valueText(row.thirds)}</td>
@@ -1419,7 +1444,7 @@ function PlayerConditionTable({ rows }: { rows: PlayerConditionRow[] }) {
               <td>{formatKurariExRiderMetric(row.winRate)}</td>
               <td>{formatKurariExRiderMetric(row.top2Rate)}</td>
               <td>{formatKurariExRiderMetric(row.top3Rate)}</td>
-              <td><span className={`ex-player-use-label ${row.starts != null && row.starts >= 5 ? "is-usable" : "is-reference"}`}>{getAggregateUsageLabel(row)}</span></td>
+              <td><span className={`ex-player-use-label ${!referenceOnly && (row.evaluableStarts ?? row.top3Rate.total ?? 0) >= 5 ? "is-usable" : "is-reference"}`}>{referenceOnly ? `STALE / ${(row.evaluableStarts ?? row.top3Rate.total ?? 0) < 5 ? "LOW SAMPLE / " : ""}参考` : getAggregateUsageLabel(row)}</span></td>
             </tr>
           ))}
         </tbody>
@@ -1987,7 +2012,7 @@ function formatShbNameQuality(value?: string | null) {
 }
 
 function RiderDecisionMemo({ rider, shb }: { rider: KurariExRiderExact; shb?: KurariExShbNameEntry }) {
-  const starts = rider.coverage.confirmedStartCount;
+  const starts = rider.coverage.evaluableStartCount ?? rider.coverage.resultParsedCount;
   const roleEligible = rider.coverage.roleEligibleCount;
   const usableNotes = rider.quality === "identity-only"
     ? ["登録番号と選手情報のみ。買い目根拠ではなく、出走確認用として扱う。"]
@@ -2001,7 +2026,7 @@ function RiderDecisionMemo({ rider, shb }: { rider: KurariExRiderExact; shb?: Ku
     rider.warnings.length ? "注意: " + rider.warnings[0] : "",
   ].filter(Boolean);
   const sampleNotes = [
-    "確認出走 " + starts.toLocaleString("ja-JP") + "R",
+    "順位評価可能 " + starts.toLocaleString("ja-JP") + "R / 観測 " + rider.coverage.observedRaceCount.toLocaleString("ja-JP") + "R",
     "役割解析 " + roleEligible.toLocaleString("ja-JP") + "R",
     "結果解析 " + rider.coverage.resultParsedCount.toLocaleString("ja-JP") + "R",
     "会場 " + rider.coverage.venueCount.toLocaleString("ja-JP") + "場",
@@ -2053,6 +2078,9 @@ export default function ExDataPage() {
   const [activeSectionTab, setActiveSectionTab] = useState<ExSectionTab>("overview");
   const [activeView, setActiveView] = useState<"venue" | "player" | "matchup">("venue");
   const [activePlayerCondition, setActivePlayerCondition] = useState<PlayerConditionTab>("venue");
+  const [riderFormCondition, setRiderFormCondition] = useState<PlayerConditionTab>("role");
+  const [monthlyReview, setMonthlyReview] = useState<{ item: MonthlyReviewIndexItem; digest: MonthlyReviewDigest } | null>(null);
+  const [monthlyReviewStatus, setMonthlyReviewStatus] = useState<"idle" | "loading" | "ready" | "unavailable">("idle");
   const [query, setQuery] = useState("");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [venueCache, setVenueCache] = useState<Record<string, KurariExVenueBundle>>({});
@@ -2115,6 +2143,17 @@ export default function ExDataPage() {
     useState<KurariExHistoricalAvailabilitySummary | null>(null);
   const [historicalAvailabilityStatus, setHistoricalAvailabilityStatus] =
     useState<"idle" | "loading" | "ready">("idle");
+
+  useEffect(() => {
+    if (!["overview", "structure-lab"].includes(activeSectionTab) || monthlyReviewStatus !== "idle") return;
+    setMonthlyReviewStatus("loading");
+    getActiveMonthlyReview().then(({ item, digest }) => {
+      setMonthlyReview(item && digest ? { item, digest } : null);
+      setMonthlyReviewStatus(item && digest ? "ready" : "unavailable");
+    }).catch(() => {
+      setMonthlyReviewStatus("unavailable");
+    });
+  }, [activeSectionTab, monthlyReviewStatus]);
   const [predictionFailure, setPredictionFailure] = useState<KurariExPredictionFailureArtifact | null>(null);
   const [predictionFailureStatus, setPredictionFailureStatus] =
     useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -2533,8 +2572,8 @@ export default function ExDataPage() {
         const matchesQuery = !normalized || [item.name, item.nameKey, item.registrationNo, item.prefecture, item.class]
           .some((value) => normalizeSearchText(value).includes(normalized));
         if (!matchesQuery) return false;
-        if (riderFilterMode === "practical") return item.quality !== "identity-only" && item.confirmedStartCount >= 5;
-        if (riderFilterMode === "sample") return item.confirmedStartCount >= 10;
+        if (riderFilterMode === "practical") return item.quality !== "identity-only" && (item.evaluableStartCount ?? item.confirmedStartCount) >= 5;
+        if (riderFilterMode === "sample") return (item.evaluableStartCount ?? item.confirmedStartCount) >= 10;
         if (riderFilterMode === "identity") return item.quality === "identity-only";
         return true;
       })
@@ -2545,7 +2584,7 @@ export default function ExDataPage() {
           if (leftRegistrationMatch !== rightRegistrationMatch) return rightRegistrationMatch - leftRegistrationMatch;
         }
         if (riderFilterMode === "identity") return left.name.localeCompare(right.name, "ja");
-        return right.confirmedStartCount - left.confirmedStartCount || right.roleEligibleCount - left.roleEligibleCount || left.name.localeCompare(right.name, "ja");
+        return (right.evaluableStartCount ?? right.confirmedStartCount) - (left.evaluableStartCount ?? left.confirmedStartCount) || right.roleEligibleCount - left.roleEligibleCount || left.name.localeCompare(right.name, "ja");
       });
   }, [riderFilterMode, riderInitialData?.index.items, riderQuery]);
 
@@ -2934,6 +2973,21 @@ export default function ExDataPage() {
     () => selectedRider ? getPlayerConditionRows(selectedRider, activePlayerCondition) : [],
     [activePlayerCondition, selectedRider],
   );
+  const riderFormConditionRows = useMemo(
+    () => selectedRider ? getPlayerConditionRows(selectedRider, riderFormCondition) : [],
+    [riderFormCondition, selectedRider],
+  );
+  const riderFormChange = selectedRider ? getRiderFormChange(selectedRider.recentForm ?? []) : null;
+  const riderFormFreshness = getRiderFormFreshness(
+    selectedRider?.period.to ?? riderInitialData?.index.period.to ?? null,
+    selectedRider?.generatedAt ?? riderInitialData?.status.generatedAt ?? null,
+    getJstToday(),
+  );
+  const octoberAuditText = monthlyReview?.item.month === "2026-10" ? monthlyReview.digest.rawText : "";
+  const octoberAuditLine = (prefix: string) => octoberAuditText.split(/\r?\n/u).find((line) => line.startsWith(prefix)) ?? null;
+  const septemberAudit = octoberAuditLine("9月照合採用：")?.match(/^9月照合採用：([\d,]+)R。購入([\d,]+)R、SKIP ([\d,]+)R。/u);
+  const septemberPurchase = octoberAuditLine("購入3連単的中：")?.match(/^購入3連単的中：([\d,]+)R／([\d,]+)R＝([\d.]+)%/u);
+  const septemberRoi = octoberAuditLine("投資：")?.match(/ROI ([\d.]+)%/u);
   const shbNameByNameKey = useMemo(
     () => new Map((shbNameIndex?.items ?? []).map((item) => [item.nameKey, item])),
     [shbNameIndex],
@@ -3060,7 +3114,7 @@ export default function ExDataPage() {
   ] as const;
   const riderQualityCounts = riderInitialData?.status.qualityCounts;
   const practicalRiderCount = (riderInitialData?.index.items ?? []).filter(
-    (item) => item.quality !== "identity-only" && item.confirmedStartCount >= 5,
+    (item) => item.quality !== "identity-only" && (item.evaluableStartCount ?? item.confirmedStartCount) >= 5,
   ).length;
   const matchupQualityCounts = matchupSummary?.qualityCounts ?? {};
   const matchupOverviewVisibleRows = matchupOverviewRows.slice(0, MATCHUP_OVERVIEW_LIMIT);
@@ -3178,7 +3232,7 @@ export default function ExDataPage() {
       candidates.forEach(({ rider, aggregate }) => {
         if (!aggregate?.starts) return;
         const quality: MatchupOverviewCategory =
-          rider.quality === "low-sample" || aggregate.starts < 5 ? "low-sample" : "practical";
+          rider.quality === "low-sample" || (aggregate.evaluableStarts ?? aggregate.top3Rate.total ?? 0) < 5 ? "low-sample" : "practical";
         rows.push({
           id: `${source.key}:${rider.registrationNo}`,
           category: source.category,
@@ -3321,7 +3375,7 @@ export default function ExDataPage() {
         .ex-health-grid, .ex-kpi-grid, .ex-location-grid, .ex-category-grid, .ex-insights, .ex-note-grid, .ex-summary-primary-grid, .ex-summary-secondary-grid, .ex-prediction-summary, .ex-prediction-support-grid, .ex-source-primary-grid, .ex-source-secondary-grid, .ex-trend-ranking-grid, .ex-turbulence-category-grid, .ex-race-risk-grid, .ex-prediction-failure-grid, .ex-prediction-failure-coverage, .ex-chain-type-grid, .ex-chain-examples, .ex-weather-bucket-grid, .ex-weather-venue-grid, .ex-venue-bias-grid, .ex-venue-definition-grid, .ex-today-flow-grid, .ex-today-flow-meter, .ex-coverage-tab-map, .ex-backfill-grid, .ex-definition-grid { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
         .ex-health-grid > *, .ex-kpi-grid > *, .ex-location-grid > *, .ex-category-grid > *, .ex-insights > *, .ex-note-grid > *, .ex-summary-primary-grid > *, .ex-summary-secondary-grid > *, .ex-prediction-summary > *, .ex-prediction-support-grid > *, .ex-source-primary-grid > *, .ex-source-secondary-grid > *, .ex-trend-ranking-grid > *, .ex-turbulence-category-grid > *, .ex-race-risk-grid > *, .ex-prediction-failure-grid > *, .ex-prediction-failure-coverage > *, .ex-chain-type-grid > *, .ex-chain-examples > *, .ex-venue-bias-grid > *, .ex-venue-definition-grid > *, .ex-today-flow-grid > *, .ex-today-flow-meter > *, .ex-coverage-tab-map > *, .ex-backfill-grid > *, .ex-definition-grid > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
         .ex-main [hidden] { display: none !important; }
-        .ex-section-tabs { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 14px; width: min(100%, 1360px); margin-inline: auto; padding: 16px; border: 1px solid rgba(202,207,232,.72); border-radius: 28px; background: linear-gradient(135deg,rgba(255,255,255,.78),rgba(248,250,255,.64) 52%,rgba(244,255,250,.52)); box-shadow: 0 20px 48px rgba(82,74,135,.09), inset 0 1px 0 rgba(255,255,255,.82); backdrop-filter: blur(20px) saturate(1.08); }
+        .ex-section-tabs { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 14px; width: min(100%, 1500px); margin-inline: auto; padding: 16px; border: 1px solid rgba(202,207,232,.72); border-radius: 28px; background: linear-gradient(135deg,rgba(255,255,255,.78),rgba(248,250,255,.64) 52%,rgba(244,255,250,.52)); box-shadow: 0 20px 48px rgba(82,74,135,.09), inset 0 1px 0 rgba(255,255,255,.82); backdrop-filter: blur(20px) saturate(1.08); }
         .ex-section-tab { position: relative; min-width: 0; min-height: 82px; cursor: pointer; display: grid; grid-template-rows: auto 1fr auto; align-content: stretch; gap: 7px; padding: 15px 16px 15px 20px; border: 1px solid rgba(205,213,231,.8); border-radius: 18px; background: linear-gradient(145deg,rgba(255,255,255,.66),rgba(249,251,255,.54)); color: #536077; text-align: left; box-shadow: 0 8px 20px rgba(53,67,96,.04), inset 0 1px 0 rgba(255,255,255,.74); transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease, color .16s ease; }
         .ex-section-tab::before { content: ""; position: absolute; inset: 15px auto 15px 8px; width: 3px; border-radius: 99px; background: rgba(120,132,162,.34); transition: inset .16s ease, width .16s ease, background .16s ease, box-shadow .16s ease; }
         .ex-section-tab::after { content: ""; position: absolute; left: 17px; right: 17px; bottom: 9px; height: 3px; border-radius: 99px; background: transparent; transition: background .16s ease, box-shadow .16s ease; }
@@ -3345,6 +3399,7 @@ export default function ExDataPage() {
         .ex-section-tab.is-active span { color: #51428f; }
         .ex-section-tab.is-active small { color: #2f226e; background: rgba(255,255,255,.7); border-color: rgba(116,89,202,.22); }
         .ex-section-tab:focus-visible { outline: 3px solid rgba(92,134,206,.36); outline-offset: 3px; border-color: #6e8ed4; box-shadow: 0 0 0 6px rgba(92,134,206,.15), 0 14px 30px rgba(61,81,132,.14); }
+        @media (max-width: 1350px) { .ex-section-tabs { grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; } }
         @media (max-width: 1100px) { .ex-section-tabs { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; } }
         @media (max-width: 720px) { .ex-section-tabs { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; padding: 10px; } .ex-section-tab { min-height: 68px; padding: 13px 13px 14px 17px; } .ex-section-tab strong { font-size: 10.8px; } .ex-section-tab span { font-size: 9.5px; } }
         .ex-usage-strip { display: grid; grid-template-columns: repeat(${isMobile ? 2 : 4}, minmax(0,1fr)); gap: 10px; width: min(100%, 1120px); margin: -8px auto 0; }
@@ -4103,6 +4158,90 @@ export default function ExDataPage() {
           )}
         </div>
 
+        <section className="ex-section" id="ex-section-rider-form" data-testid="ex-section-rider-form" role="tabpanel" hidden={activeSectionTab !== "rider-form"}>
+          <SectionTitle eyebrow="RIDER FORM / EXACT" title="選手コンディション" lead="保存済み確定成績から直近の変化を確認します。体調・怪我の推定や過去予想への事後結果の流用はしません。" />
+          <div className="ex-health-grid">
+            <MetricCard label="RIDER EXACT" value={riderInitialStatus === "loading" ? "…" : valueText(riderInitialData?.status.riderCount)} note="index + 選択選手のみ読込" />
+            <MetricCard label="SOURCE TO" value={riderInitialData?.index.period.to ?? "未取得"} note="成績の最終対象日" warning={riderFormFreshness === "STALE"} />
+            <MetricCard label="GENERATED" value={riderInitialData?.status.generatedAt ? formatDate(riderInitialData.status.generatedAt) : "未取得"} note={riderInitialData?.status.generatedAt ?? "生成日時未取得"} />
+            <MetricCard label="FRESHNESS" value={riderFormFreshness} note="JST前日までの確定成績と比較" warning={riderFormFreshness !== "CURRENT"} />
+          </div>
+          {riderFormFreshness === "STALE" ? <div className="ex-sample-alert"><strong>STALE</strong>選手EXACTは最新の確定日まで反映されていません。以下は表示期間の過去成績であり、現在の体調を表しません。</div> : null}
+          {riderInitialStatus === "error" ? <EmptyState text="選手EXACTのindexを取得できません。" /> : null}
+          <div className="ex-workspace">
+            <aside className="ex-panel ex-section">
+              <SectionTitle eyebrow="REGISTRATION EXACT" title="選手を探す" lead={`${filteredRiders.length.toLocaleString("ja-JP")}名 / 名前・登録番号を検索。同姓同名は番号で区別します。`} />
+              <input className="ex-search" type="search" value={riderQuery} onChange={(event) => setRiderQuery(event.target.value)} placeholder="選手名または登録番号" aria-label="RIDER FORMの選手検索" />
+              <div className="ex-venue-list">
+                {filteredRiders.slice(0, 60).map((item) => (
+                  <button key={item.registrationNo} className={`ex-venue-button${selectedRiderNo === item.registrationNo ? " is-active" : ""}`} type="button" onClick={() => selectRider(item)}>
+                    <strong>{item.name}</strong><span className="ex-muted"> 登録番号 {item.registrationNo} / {item.prefecture || "府県未取得"} / {item.class || "級班未取得"}</span>
+                    <RiderQualityBadge quality={item.quality} />
+                  </button>
+                ))}
+                {filteredRiders.length > 60 ? <span className="ex-muted">先頭60名を表示。名前または登録番号で絞り込んでください。</span> : null}
+                {riderInitialStatus === "ready" && filteredRiders.length === 0 ? <EmptyState text="該当する登録番号・選手名がありません。" /> : null}
+              </div>
+            </aside>
+            <div className="ex-detail">
+              {!selectedRiderNo ? <EmptyState text="選手を選択すると登録番号EXACTの直近成績を表示します。" /> : null}
+              {selectedRiderStatus === "loading" ? <EmptyState text="選択選手のEXACTを読み込んでいます。" /> : null}
+              {selectedRiderStatus === "error" ? <EmptyState text="選択選手のEXACTを取得できませんでした。" /> : null}
+              {selectedRider ? <>
+                <div className="ex-panel ex-section">
+                  <div className="ex-detail-head">
+                    <div><div className="ex-eyebrow">REGISTRATION {selectedRider.registrationNo}</div><h3>{selectedRider.name}</h3><span className="ex-muted">{selectedRiderItem?.prefecture || "府県未取得"} / {selectedRiderItem?.class || "級班未取得"}</span></div>
+                    <div className="ex-badges"><RiderQualityBadge quality={selectedRider.quality} /><span className="ex-badge">{getPlayerSourceLabel(selectedRider)}</span><span className="ex-badge">{riderFormFreshness}</span></div>
+                  </div>
+                  <div className="ex-health-grid">
+                    <MetricCard label="OBSERVED / EVALUABLE" value={`${valueText(selectedRider.coverage.observedRaceCount)} / ${valueText(selectedRider.coverage.evaluableStartCount ?? selectedRider.coverage.resultParsedCount)}`} note={`成績未評価 ${valueText(selectedRider.coverage.unknownRankStartCount ?? Math.max(0, selectedRider.coverage.observedRaceCount - selectedRider.coverage.resultParsedCount))}R`} />
+                    <MetricCard label="LAST OBSERVED" value={selectedRider.coverage.latestObservedRaceDate ?? selectedRider.period.to ?? "未取得"} note={`${selectedRider.period.from ?? "未取得"}から`} />
+                    <MetricCard label="LAST EVALUABLE" value={selectedRider.coverage.latestEvaluableRaceDate ?? selectedRider.recentForm?.find((row) => row.windowSize === 5)?.period.to ?? "未取得"} />
+                    <MetricCard label="SOURCE" value={selectedRider.sourceType} note={selectedRider.generatedAt} />
+                  </div>
+                  <button type="button" className="ex-view-tab" onClick={() => { setActiveSectionTab("analysis"); setActiveView("player"); }}>EX ANALYSISで詳細を見る</button>
+                </div>
+                {selectedRider.quality === "identity-only" ? <div className="ex-sample-alert"><strong>UNAVAILABLE / identity-only</strong>登録番号は参照できますが、成績根拠として使用しません。</div> : <>
+                  <section className="ex-panel ex-section"><SectionTitle eyebrow="RECENT 5 / 10 / 20" title="直近確定成績" lead="集計期間・確定母数と一緒に表示。4着以下の平均着順は作りません。" /><RiderRecentForm rider={selectedRider} referenceOnly={riderFormFreshness !== "CURRENT"} /></section>
+                  <section className="ex-panel ex-section">
+                    <SectionTitle eyebrow="NON-OVERLAPPING FORM" title="直近5走とその前の5走" lead="10走窓が完全な時だけ、先行する5走を差し引いて比較します。率の変化は体調の断定ではありません。" />
+                    {riderFormChange ? <>
+                      <div className="ex-health-grid">
+                        <MetricCard label="直近5走 勝率差" value={formatSignedRate(riderFormChange.winRateChange)} note={`前5走 ${riderFormChange.previousWins}/${riderFormChange.previousStarts}勝`} />
+                        <MetricCard label="直近5走 2連対率差" value={formatSignedRate(riderFormChange.top2RateChange)} note={`前5走 ${riderFormChange.previousTop2}/${riderFormChange.previousStarts}回`} />
+                        <MetricCard label="直近5走 3着以内率差" value={formatSignedRate(riderFormChange.top3RateChange)} note={`前5走 ${riderFormChange.previousTop3}/${riderFormChange.previousStarts}回`} />
+                      </div>
+                      <p className="ex-muted">各5走の非重複比較。10走・20走の全体率と直近5走を直接比べる場合は母集団が重複します。LOW SAMPLE / 参考として扱ってください。</p>
+                    </> : <EmptyState text="判定保留。直近10走の確定結果が揃うまで、前5走との非重複比較はできません。" />}
+                  </section>
+                  <section className="ex-panel ex-section">
+                    <SectionTitle eyebrow="CONDITION EXACT" title="役割・会場・条件別" lead="保存済みEXACTの母数と期間のみを確認。天候は保存済み分類で、外部気象を走路実測風速とみなしません。風速条件別は選手単位では未蓄積です。" />
+                    <div className="ex-player-condition-tabs" role="tablist" aria-label="RIDER FORM条件切替">
+                      {RIDER_FORM_CONDITION_TABS.map((tab) => <button key={tab.key} className={`ex-view-tab${riderFormCondition === tab.key ? " is-active" : ""}`} type="button" role="tab" aria-selected={riderFormCondition === tab.key} onClick={() => setRiderFormCondition(tab.key)}>{tab.label}</button>)}
+                    </div>
+                    {riderFormCondition === "venue" && selectedRider.venueSuitability ? <RiderVenueSuitability rider={selectedRider} /> : <PlayerConditionTable rows={riderFormConditionRows} referenceOnly={riderFormFreshness !== "CURRENT"} />}
+                    {riderFormCondition === "role" ? <p className="ex-muted">ライン先頭・番手・3番手・単騎は安全に並びを解析できた過去レースだけ。番手追走や単騎の3着を役割別の事実値で確認し、戦法イベントを推測しません。</p> : null}
+                    {riderFormCondition === "weather" ? <p className="ex-muted">風条件別の選手実測データは未蓄積。天候を実測風速に読み替えません。</p> : null}
+                  </section>
+                  <section className="ex-panel ex-section"><SectionTitle eyebrow="SOURCE-BACKED CHECKS" title="予想時の確認ポイント" lead="頭・番手2着・3番手3着・単騎や別線の割り込みを検討するための事実値です。買い目を自動変更しません。" /><RiderEvidenceSummary rider={selectedRider} matchupCount={selectedRiderMatchupIndexItem?.distinctOpponentCount} /><p className="ex-muted">S/B履歴: {selectedRiderShb?.registrationNo === selectedRider.registrationNo ? `登録番号EXACT / B ${selectedRiderShb.bCount}回・S ${selectedRiderShb.sCount}回` : "登録番号EXACTの照合なし / 未取得"}。欠損・LOW SAMPLE・STALEを先に確認してください。</p></section>
+                </>}
+              </> : null}
+            </div>
+          </div>
+        </section>
+
+        <section className="ex-panel ex-section" hidden={activeSectionTab !== "structure-lab"} data-testid="ex-october-structure-audit">
+          <SectionTitle eyebrow="OCTOBER STRUCTURE AUDIT" title="3着接続・同じ3車の順序" lead="月次監査の失敗分類です。Result TrendやEXACT全レース集計とは母集団が異なり、予測精度の改善を保証しません。" />
+          {octoberAuditText ? <>
+            <div className="ex-note-grid">
+              <article className="ex-note-card"><h4>9月監査</h4><p>{octoberAuditText.split(/\r?\n/u).filter((line) => line.includes("third_missing:") || line.includes("same_3_wrong_order:")).slice(0, 2).map((line) => line.trim()).join(" / ")}</p></article>
+              <article className="ex-note-card"><h4>10月1〜11日 中間速報</h4><p>{octoberAuditText.split(/\r?\n/u).filter((line) => line.includes("third_missing:") || line.includes("same_3_wrong_order:")).slice(2, 4).map((line) => line.trim()).join(" / ")}</p></article>
+            </div>
+            <p className="ex-muted">RIDER FORMの番手・3番手・単騎は保存済み役割成績であり、3着接続を自動予測するものではありません。新しい購入判断はPrediction側の最終判定に委ねます。</p>
+            <button type="button" className="ex-view-tab" onClick={() => setActiveSectionTab("rider-form")}>選手の役割別成績を見る</button>
+          </> : <EmptyState text="10月月次資料が未取得のため監査値を表示できません。" />}
+        </section>
+
         <section
           className="ex-panel ex-section"
           data-testid="ex-section-overview"
@@ -4114,6 +4253,27 @@ export default function ExDataPage() {
             title="EX全体サマリー"
             lead="identity・source・Result Trend Lab・既存EX分析の現在地を、保存済み値だけで簡潔に表示します。"
           />
+          <div className="ex-subsection" data-testid="ex-october-monthly-audit">
+            <SectionTitle eyebrow="OCTOBER MONTHLY REVIEW" title="2026年10月の月次監査" lead="月次レポートの照合対象とEXACTの確定結果は母集団・期間・評価条件が異なるため合算しません。" />
+            {monthlyReviewStatus === "loading" ? <EmptyState text="月次レビューを読み込んでいます。" /> : null}
+            {!octoberAuditText && monthlyReviewStatus !== "loading" ? <EmptyState text="10月の月次監査を取得できません。未取得の値を補完しません。" /> : null}
+            {octoberAuditText ? <>
+              <div className="ex-health-grid">
+                <MetricCard label="監査対象" value={monthlyReview?.item.scope ?? "未取得"} note="10月12日当日は暫定・主要結論から除外" />
+                <MetricCard label="監査作成日" value={monthlyReview?.item.createdAt ?? "未取得"} />
+                <MetricCard label="9月 照合" value={septemberAudit ? `${septemberAudit[1]}R` : "未取得"} note={septemberAudit ? `購入${septemberAudit[2]}R / SKIP ${septemberAudit[3]}R` : "監査値未取得"} />
+                <MetricCard label="9月 購入成績" value={septemberPurchase ? `${septemberPurchase[1]}R / ${septemberPurchase[3]}%` : "未取得"} note={septemberRoi ? `回収率${septemberRoi[1]}%` : "回収率未取得"} />
+              </div>
+              <ul className="ex-guidance-list">
+                {["A/HIT：", "B/VALUE：", "C/SKIP：", "  third_missing:", "  same_3_wrong_order:"].map((prefix) => {
+                  const line = octoberAuditLine(prefix);
+                  return line ? <li key={prefix}>{line.trim()}</li> : null;
+                })}
+              </ul>
+              <p className="ex-muted">上記は9月の監査値。10月1〜11日は中間速報、10月12日は暫定です。未取得・判定除外・払戻欠損に注意してください。EXACTの全確定レース数とは比較対象が異なります。</p>
+              <a href="#monthly-review-page">月次レビュー全文を見る</a>
+            </> : null}
+          </div>
           <div className="ex-summary-shell">
           <div className="ex-summary-primary-grid">
             <MetricCard
@@ -7599,13 +7759,16 @@ export default function ExDataPage() {
         <section className="ex-panel ex-section ex-today" hidden={activeSectionTab !== "analysis"}>
           <SectionTitle
             eyebrow="TODAY RECOMMENDATION"
-            title={"\u4eca\u65e5\u306e\u63a8\u5968\u30e1\u30e2"}
+            title={historyIndex?.period?.to && todayRecommendation?.period?.to !== historyIndex.period.to ? "保存済み推奨メモ" : "今日の推奨メモ"}
             lead={todayRecommendation ? (todayRecommendation.period?.from ?? "--") + "\u301c" + (todayRecommendation.period?.to ?? "--") + " / " + todayRecommendation.sourceType : "\u4e88\u60f3\u4f5c\u6210\u524d\u306b\u898b\u308b\u8981\u70b9\u3092\u8868\u793a\u3057\u307e\u3059\u3002"}
           />
           {todayRecommendationStatus === "loading" ? <EmptyState text={"\u4eca\u65e5\u306e\u63a8\u5968\u30e1\u30e2\u3092\u8aad\u307f\u8fbc\u3093\u3067\u3044\u307e\u3059\u3002"} /> : null}
           {todayRecommendationStatus === "error" ? <EmptyState text={"\u4eca\u65e5\u306e\u63a8\u5968\u30e1\u30e2\u3092\u53d6\u5f97\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f\u3002"} /> : null}
           {todayRecommendation ? (
             <>
+              {historyIndex?.period?.to && todayRecommendation.period?.to !== historyIndex.period.to ? (
+                <div className="ex-sample-alert"><strong>STALE / 参考</strong>推奨メモは {todayRecommendation.period?.to ?? "期間未取得"} まで。履歴 {historyIndex.period.to} までの更新を反映していません。</div>
+              ) : null}
               <div className="ex-health-grid">
                 <MetricCard label={"\u52dd\u8ca0\u5019\u88dc"} value={valueText(todayRecommendation.sections.battleVenues.length)} note="score ranking" />
                 <MetricCard label={"3\u7740\u4fdd\u8b77"} value={valueText(todayRecommendation.sections.thirdGuardVenues.length)} note="third guard" />
@@ -8078,6 +8241,9 @@ export default function ExDataPage() {
           {venueScoreStatus === "error" ? <EmptyState text="会場カルテ分析を取得できませんでした。" /> : null}
           {venueScoreAnalysis ? (
             <>
+              {historyIndex?.period?.to && venueScoreAnalysis.period?.to !== historyIndex.period.to ? (
+                <div className="ex-sample-alert"><strong>STALE / 参考</strong>会場スコアは {venueScoreAnalysis.period?.to ?? "期間未取得"} まで。履歴 {historyIndex.period.to} までの更新を反映していません。</div>
+              ) : null}
               <div className="ex-health-grid">
                 <MetricCard label="ANALYSIS PERIOD" value={venueScoreAnalysis.period.to ?? "--"} note={venueScoreAnalysis.period.from ? venueScoreAnalysis.period.from + " から" : "period"} />
                 <MetricCard label="VENUE SCORES" value={valueText(venueScoreAnalysis.venueCount)} note="全会場を保持" />
@@ -8402,6 +8568,9 @@ export default function ExDataPage() {
               {riderScoreStatus === "error" ? <EmptyState text="選手カルテ分析を取得できませんでした。" /> : null}
               {riderScoreAnalysis ? (
                 <>
+                  {historyIndex?.period?.to && riderScoreAnalysis.period?.to !== historyIndex.period.to ? (
+                    <div className="ex-sample-alert"><strong>STALE / 参考</strong>選手スコアは {riderScoreAnalysis.period?.to ?? "期間未取得"} まで。履歴 {historyIndex.period.to} までの更新を反映していません。</div>
+                  ) : null}
                   <div className="ex-health-grid">
                     <MetricCard label="RIDER SCORES" value={valueText(riderScoreAnalysis.riderCount)} note="全選手を保持" />
                     <MetricCard label="COMPLETE" value={valueText(riderScoreAnalysis.qualityCounts.complete)} />
@@ -8526,7 +8695,7 @@ export default function ExDataPage() {
                       {selectedRider.quality === "identity-only" ? (
                         <div className="ex-sample-alert"><strong>素材蓄積中</strong>登録番号と選手情報は公開済みです。成績データはまだ蓄積中のため、買い目根拠には使わず、出走確認用として扱ってください。</div>
                       ) : null}
-                      {selectedRider.quality !== "identity-only" && (selectedRider.quality === "low-sample" || selectedRider.coverage.confirmedStartCount < 5) ? (
+                      {selectedRider.quality !== "identity-only" && (selectedRider.quality === "low-sample" || (selectedRider.coverage.evaluableStartCount ?? selectedRider.coverage.resultParsedCount) < 5) ? (
                         <div className="ex-sample-alert"><strong>LOW SAMPLE / 母数少</strong>母数が少ないため、確定的な評価には使わず、展開判断の補助として確認してください。</div>
                       ) : null}
                       <div className="ex-player-summary-grid">
@@ -8547,8 +8716,8 @@ export default function ExDataPage() {
                         </article>
                         <article>
                           <span>EX対象レース数</span>
-                          <strong>{valueText(selectedRider.coverage.confirmedStartCount)}R</strong>
-                          <small>解析済み {valueText(selectedRider.coverage.resultParsedCount)}R</small>
+                          <strong>{valueText(selectedRider.coverage.evaluableStartCount ?? selectedRider.coverage.resultParsedCount)}R</strong>
+                          <small>観測 {valueText(selectedRider.coverage.observedRaceCount)}R / 成績未評価 {valueText(selectedRider.coverage.unknownRankStartCount ?? Math.max(0, selectedRider.coverage.observedRaceCount - selectedRider.coverage.resultParsedCount))}R</small>
                         </article>
                         <article>
                           <span>source状態</span>
@@ -8585,7 +8754,8 @@ export default function ExDataPage() {
                       <SectionTitle eyebrow="COVERAGE" title="解析範囲" />
                       <div className="ex-health-grid">
                         <MetricCard label="OBSERVED RACES" value={valueText(selectedRider.coverage.observedRaceCount)} />
-                        <MetricCard label="CONFIRMED STARTS" value={valueText(selectedRider.coverage.confirmedStartCount)} />
+                        <MetricCard label="OBSERVED / EVALUABLE" value={`${valueText(selectedRider.coverage.observedRaceCount)} / ${valueText(selectedRider.coverage.evaluableStartCount ?? selectedRider.coverage.resultParsedCount)}`} />
+                        <MetricCard label="UNEVALUABLE" value={valueText(selectedRider.coverage.unknownRankStartCount ?? Math.max(0, selectedRider.coverage.observedRaceCount - selectedRider.coverage.resultParsedCount))} />
                         <MetricCard label="RESULT PARSED" value={valueText(selectedRider.coverage.resultParsedCount)} />
                         <MetricCard label="ROLE ELIGIBLE" value={valueText(selectedRider.coverage.roleEligibleCount)} />
                         <MetricCard label="VENUES" value={valueText(selectedRider.coverage.venueCount)} />

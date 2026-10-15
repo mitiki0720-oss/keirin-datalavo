@@ -25,9 +25,10 @@ function dayDiff(from, to) {
   return Math.round((toTime - fromTime) / 86400000);
 }
 
-function expectedFreshness(historicalTo, targetDate) {
+function expectedFreshness(historicalTo, targetDate, classifiableTo) {
   const rawDiff = dayDiff(historicalTo, targetDate);
-  const lagDays = rawDiff == null ? null : Math.max(0, rawDiff - 1);
+  const evidenceDiff = classifiableTo === undefined ? rawDiff : classifiableTo ? dayDiff(classifiableTo, targetDate) : null;
+  const lagDays = rawDiff == null || evidenceDiff == null ? null : Math.max(0, rawDiff - 1, evidenceDiff - 1);
   const status = lagDays == null ? "unknown" : lagDays <= 1 ? "fresh" : lagDays <= 7 ? "reference" : "stale";
   const preRaceUsage = status === "fresh" ? "allowed" : status === "reference" ? "reference_only" : "prohibited";
   return { lagDays, status, preRaceUsage };
@@ -101,8 +102,12 @@ function validateContext(context, failures, seenKeys) {
 
 function main() {
   const failures = [];
-  const guidance = readJson(GUIDANCE_PATH);
-  const source = readJson(SOURCE_PATH);
+  const getArg = (name, fallback) => {
+    const index = process.argv.indexOf(name);
+    return index < 0 ? fallback : path.resolve(process.argv[index + 1] ?? "");
+  };
+  const guidance = readJson(getArg("--guidance-file", GUIDANCE_PATH));
+  const source = readJson(getArg("--source-file", SOURCE_PATH));
 
   if (guidance.version !== EXPECTED_VERSION) failures.push(`unexpected version: ${guidance.version}`);
   if (!isDate(guidance.targetDate)) failures.push("targetDate must be YYYY-MM-DD");
@@ -117,8 +122,16 @@ function main() {
   for (const field of ["targetDate", "historicalFrom", "historicalTo", "raceCount", "classifiableRaceCount"]) {
     if (guidance.source?.[field] !== source[field]) failures.push(`source metadata mismatch: ${field}`);
   }
+  if (guidance.source?.classifiableTo !== undefined) {
+    const classifiableDates = (source.records ?? [])
+      .filter((record) => record.sourceStatus?.classifiable && record.primaryClass !== "UNCLASSIFIABLE")
+      .map((record) => record.date);
+    const expectedTo = classifiableDates.length ? classifiableDates.sort().at(-1) : null;
+    if (guidance.source.classifiableTo !== expectedTo) failures.push("classifiableTo source mismatch");
+    if (guidance.freshness?.classifiableTo !== expectedTo) failures.push("freshness classifiableTo mismatch");
+  }
 
-  const freshness = expectedFreshness(guidance.historicalTo, guidance.targetDate);
+  const freshness = expectedFreshness(guidance.historicalTo, guidance.targetDate, guidance.source?.classifiableTo);
   if (guidance.freshness?.lagDays !== freshness.lagDays) failures.push("freshness lagDays mismatch");
   if (guidance.freshness?.status !== freshness.status) failures.push("freshness status mismatch");
   if (guidance.freshness?.preRaceUsage !== freshness.preRaceUsage) failures.push("freshness preRaceUsage mismatch");

@@ -7,7 +7,9 @@ import {
   rateMetric,
 } from "./kurari-ex-history-common.mjs";
 
-const historyRoot = path.join(
+const historyRoot = process.argv.find((arg) => arg.startsWith("--history-root="))
+  ? path.resolve(process.argv.find((arg) => arg.startsWith("--history-root=")).slice(15))
+  : path.join(
   projectRoot,
   "public",
   "data",
@@ -15,7 +17,9 @@ const historyRoot = path.join(
   "kurari-ex",
   "history",
 );
-const globalExactFile = path.join(
+const globalExactFile = process.argv.find((arg) => arg.startsWith("--exact-root="))
+  ? path.join(path.resolve(process.argv.find((arg) => arg.startsWith("--exact-root=")).slice(13)), "global", "prediction-kpi.generated.json")
+  : path.join(
   projectRoot,
   "public",
   "data",
