@@ -2,6 +2,7 @@ import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import { evaluateRace, projectRoot } from "./kurari-ex-history-common.mjs";
+import { loadAndVerifyOfficialDailySource } from "./kurari-ex-official-daily-guard.mjs";
 import {
   getArgValue,
   loadDailySource,
@@ -16,7 +17,6 @@ import {
   resolveJstDate,
   summarizeDailySource,
   todayFeedPath,
-  writeArchiveStatus,
   writeDailyPayload,
 } from "./kurari-ex-daily-common.mjs";
 
@@ -136,6 +136,18 @@ export async function enrichExistingDailyFacts(options = {}) {
       changed: false,
     };
   }
+  try {
+    const feedSource = await loadDailySource({ feedFile: options.feedFile ?? todayFeedPath });
+    const officialSource = await loadAndVerifyOfficialDailySource(feedSource, targetDate, options.officialPaths);
+    const officialByKey = new Map(officialSource.races.map((race) => [race.raceKey, race]));
+    if (officialByKey.size !== existing.payload.items.length || existing.payload.items.some((race) => {
+      const verified = officialByKey.get(race.raceKey);
+      return !verified || resultSignature(race) !== resultSignature(verified);
+    })) throw new Error("existing FACTS differ from verified official results");
+  } catch (error) {
+    return { status: "skipped", message: `official verification unavailable: ${error.message}`,
+      targetDate, changed: false };
+  }
   const predictionInput = await resolvePredictionInput(
     targetDate,
     options.predictionsFile ?? "",
@@ -253,23 +265,14 @@ export async function archiveDailyFacts(options = {}) {
   });
   const summary = summarizeDailySource(source);
   const attemptedAt = new Date().toISOString();
-  const skip = async (message) => {
-    if (!dryRun) {
-      await writeArchiveStatus({
-        lastArchiveAttemptAt: attemptedAt,
-        lastArchiveStatus: "skipped",
-        lastArchiveMessage: message,
-      });
-    }
-    return {
-      status: "skipped",
-      message,
-      targetDate,
-      summary,
-      predictionSource: predictionInput.source,
-      changed: false,
-    };
-  };
+  const skip = (message) => ({
+    status: "skipped",
+    message,
+    targetDate,
+    summary,
+    predictionSource: predictionInput.source,
+    changed: false,
+  });
 
   if (summary.feedDate !== targetDate) {
     return skip(`feed date ${summary.feedDate || "(missing)"} does not match ${targetDate}`);
@@ -284,14 +287,20 @@ export async function archiveDailyFacts(options = {}) {
   if (summary.resultUnparsedCount > 0) {
     return skip(`${summary.resultUnparsedCount} settled results could not be parsed`);
   }
+  let verifiedSource;
+  try {
+    verifiedSource = await loadAndVerifyOfficialDailySource(source, targetDate, options.officialPaths);
+  } catch (error) {
+    return skip(`official verification unavailable: ${error.message}`);
+  }
   const candidatePayload = {
     schemaVersion: 1,
     date: targetDate,
     raceCount: summary.raceCount,
     settledRaceCount: summary.settledRaceCount,
     cancelledRaceCount: summary.cancelledRaceCount,
-    predictionCoverage: predictionCoverageForRaces(source.races),
-    items: source.races,
+    predictionCoverage: predictionCoverageForRaces(verifiedSource.races),
+    items: verifiedSource.races,
   };
   const existing = await readDailyPayload(targetDate);
   let merged;
@@ -368,6 +377,10 @@ async function main() {
     dryRun: fixture ? true : args.includes("--dry-run"),
     onlyIfMissing: args.includes("--only-if-missing"),
     feedFile: path.resolve(getArgValue(args, "--feed", fixtureFeed)),
+    officialPaths: {
+      results: getArgValue(args, "--official-results", "") || undefined,
+      entries: getArgValue(args, "--official-entries", "") || undefined,
+    },
     predictionsFile: fixture
       ? path.resolve(getArgValue(args, "--predictions", fixturePredictions))
       : getArgValue(args, "--predictions", ""),

@@ -177,19 +177,21 @@ async function updatePreRaceArtifacts(historyDate) {
   if (typeof todayFeed.date !== "string") {
     throw new Error("today feed date is unavailable");
   }
-  if (todayFeed.date > historyDate) {
+  const riskIndex = await readJson(path.join(projectRoot, "public", "data", "analytics", "kurari-ex", "race-risk", "index.generated.json"));
+  const hasSettledCurrentRace = (todayFeed.venues ?? []).some((venue) =>
+    (venue.races ?? []).some((race) => race.resultStatus === "confirmed" || race.raceOperationStatus === "finished"));
+  if (todayFeed.date === addDays(historyDate, 1)
+    && !hasSettledCurrentRace
+    && riskIndex.period?.date !== todayFeed.date) {
     await runScript("kurari-ex/generate-kurari-ex-race-risk.mjs");
     await runScript("check-kurari-ex-race-risk.mjs");
     await runScript("kurari-ex/archive-kurari-ex-race-risk.mjs");
     await runScript("check-kurari-ex-race-risk-history.mjs");
   } else {
-    console.log(`[nightly] race-risk deferred: today=${todayFeed.date} historicalTo=${historyDate}`);
+    console.log(`[nightly] race-risk deferred: today=${todayFeed.date} historicalTo=${historyDate}; existing artifact or current-day result is present`);
   }
-  await runScript("check-kurari-ex-freshness.mjs", [
-    "--historical-date",
-    historyDate,
-    "--target-date",
-    todayFeed.date,
+  await runScript("check-kurari-ex-historical-publish-readiness.mjs", [
+    `--historical-date=${historyDate}`,
   ]);
 }
 
