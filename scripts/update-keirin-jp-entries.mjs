@@ -255,13 +255,19 @@ function officialLineupFromJsj005(data) {
   };
 }
 
-function createRaceEntry(raceNumber, raceMeta, entryData, lineupData) {
+function createRaceEntry(raceNumber, raceMeta, entryData, lineupData, detailData) {
   const rows = Array.isArray(entryData.sensyuTypeInfo)
     ? entryData.sensyuTypeInfo
     : [];
 
   const entries = rows.map(normalizeEntry);
   const officialLineup = officialLineupFromJsj005(lineupData);
+  const detail = detailData.C0201racedtl ?? {};
+  const detailRiders = Array.isArray(detail.C0201sensyu) ? detail.C0201sensyu : [];
+  const detailByCar = new Map(detailRiders.map((rider) => [clean(rider.carNum), clean(rider.numPlayer)]));
+  if ((expectedDate && normalizeDate(detailData.selKaisai) !== expectedDate) || clean(detailData.selKjyoCd) !== clean(entryData.bKeirinjyoCd) || integerValue(detailData.selRaceNo) !== raceNumber || detailByCar.size !== entries.length || entries.some((entry) => detailByCar.get(entry.carNo) !== entry.registrationNo)) {
+    throw new Error(`JSJ001/JSJ006 race identity conflict: ${detailData.selKaisai}:${detailData.selKjyoCd}:${raceNumber}`);
+  }
 
   const warnings = [
     ...(entries.length ? [] : ["entry rows missing"]),
@@ -285,9 +291,9 @@ function createRaceEntry(raceNumber, raceMeta, entryData, lineupData) {
     raceMeta: {
       raceNo: clean(raceMeta.raceNo),
       raceNum: clean(raceMeta.raceNum),
-      raceName: clean(raceMeta.raceName ?? raceMeta.shumokuName),
-      deadlineTime: clean(raceMeta.dentoShimekiri ?? raceMeta.denTime),
-      startTime: clean(raceMeta.hassouYotei ?? raceMeta.stTime),
+      raceName: clean(detail.syumoku ?? raceMeta.raceName ?? raceMeta.shumokuName),
+      deadlineTime: clean(detail.aftBetTime ?? raceMeta.dentoShimekiri ?? raceMeta.denTime),
+      startTime: clean(detail.aftStartTime ?? raceMeta.hassouYotei ?? raceMeta.stTime),
     },
     official: {
       bKeirinjyoCd: clean(entryData.bKeirinjyoCd),
@@ -452,6 +458,8 @@ async function fetchRace(raceNumber, raceMeta) {
   const entryData = await fetchJson(
     buildJsonUrl(raceParameter, "JSJ006"),
   );
+  const detailResponse = await fetchJson(buildJsonUrl(raceParameter, "JSJ001"));
+  const detailData = detailResponse?.C0201data ?? {};
 
   let lineupData = null;
 
@@ -468,6 +476,7 @@ async function fetchRace(raceNumber, raceMeta) {
     raceMeta,
     entryData,
     lineupData,
+    detailData,
   );
 }
 
@@ -529,6 +538,7 @@ async function fetchVenue(venue) {
 }
 
 async function main() {
+  const fetchStartedAt = new Date().toISOString();
   if (
     listUrl.hostname !== "keirin.jp" ||
     listUrl.pathname !== "/pc/json" ||
@@ -589,8 +599,11 @@ async function main() {
     generatedAt: new Date().toISOString(),
     source: {
       provider: "KEIRIN.JP",
+      fetchStartedAt,
+      fetchCompletedAt: new Date().toISOString(),
       listType: "JSJ048",
       entryType: "JSJ006",
+      detailType: "JSJ001",
       lineupType: "JSJ005",
       endpoint: "/pc/json",
       kaisaiDateKbn: clean(listData.kaisaiDateKbn),

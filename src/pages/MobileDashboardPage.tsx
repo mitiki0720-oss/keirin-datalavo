@@ -553,7 +553,11 @@ const clipMobilePredictionText = (value?: string | null) => {
   return `${text.slice(0, 260).replace(/[、。・,\s]+$/g, "")}…`;
 };
 
+const isMobileOfficialComplexResult = (race?: PredictionRaceItem) =>
+  String(race?.sourceNote ?? "").includes("official complex result: not simplified into today feed");
+
 const getMobileRaceResultLabel = (race: PredictionRaceItem) => {
+  if (isMobileOfficialComplexResult(race)) return "公式結果あり・照合保留";
   if (race.resultStatus === "confirmed" || race.result?.status === "confirmed") return "結果あり";
   return "結果待ち";
 };
@@ -1262,7 +1266,10 @@ function MobileVenueCard({
     ? getMobileRaceResultTone(selectedVenueRace)
     : { background: "#faf8fd", color: "#64748b", border: "#ede7f5" };
 
-  const selectedResultOrderText = getMobileRaceResultOrderText(selectedVenueRace) || selectedSavedResult?.resultOrder || "";
+  const selectedOfficialComplexResult = isMobileOfficialComplexResult(selectedVenueRace);
+  const selectedResultOrderText = selectedOfficialComplexResult
+    ? ""
+    : getMobileRaceResultOrderText(selectedVenueRace) || selectedSavedResult?.resultOrder || "";
 
   const selectedResultTop3Text = selectedResultOrderText
     ? getMobileResultTopCombination(selectedResultOrderText, 3)
@@ -1290,7 +1297,9 @@ function MobileVenueCard({
   });
 
   const selectedStructuredPredictionResultLabel =
-      !selectedStructuredPrediction || selectedStructuredPrediction.tickets.length === 0
+      selectedOfficialComplexResult
+      ? "照合保留"
+      : !selectedStructuredPrediction || selectedStructuredPrediction.tickets.length === 0
       ? "JSON予想なし"
       : selectedPredictionEvaluation.hasExplicitBetPlan && selectedPredictionEvaluation.tickets.length === 0
         ? "購入買い目なし"
@@ -1300,7 +1309,9 @@ function MobileVenueCard({
           ? "的中"
           : "不的中";
 
-const selectedResolvedHitStatus: PredictionResultHitStatus = !selectedResultOrderText
+const selectedResolvedHitStatus: PredictionResultHitStatus = selectedOfficialComplexResult
+    ? "pending"
+    : !selectedResultOrderText
     ? selectedSavedResult?.hitStatus ?? "pending"
     : selectedStructuredHitTicket
       ? "hit"
@@ -1309,10 +1320,10 @@ const selectedResolvedHitStatus: PredictionResultHitStatus = !selectedResultOrde
         : "miss";
 
 const selectedResolvedHitBetType =
-    selectedStructuredHitTicket?.betType ?? selectedSavedResult?.hitBetType;
+    selectedOfficialComplexResult ? undefined : selectedStructuredHitTicket?.betType ?? selectedSavedResult?.hitBetType;
 
   const selectedResolvedHitCombination =
-    selectedStructuredHitTicket?.combination ?? selectedSavedResult?.hitCombination;
+    selectedOfficialComplexResult ? undefined : selectedStructuredHitTicket?.combination ?? selectedSavedResult?.hitCombination;
 
   const selectedSavedTone = getMobileSavedResultTone(selectedResolvedHitStatus, selectedHasSavedPrediction);
 
@@ -2330,7 +2341,11 @@ boxShadow: isHit
                           RESULT CHECK
                         </div>
 
-                        {(selectedSavedResult || selectedVenueRace.result) ? (
+                        {selectedOfficialComplexResult ? (
+                          <div style={{ padding: "14px", border: "1px solid #e7dbf7", borderRadius: "8px", color: "#475569" }}>
+                            公式結果に同着・複数払戻等があります。着順・払戻・的中判定は照合保留です。
+                          </div>
+                        ) : (selectedSavedResult || selectedVenueRace.result) ? (
                           <>
                             <div
                               style={{
@@ -2651,6 +2666,9 @@ export default function MobileDashboardPage() {
     () => todayPredictionFeed?.date === TODAY ? todayPredictionFeed : null,
     [todayPredictionFeed]
   );
+  const pastFeedDate = todayPredictionFeed?.date && todayPredictionFeed.date !== TODAY
+    ? todayPredictionFeed.date
+    : null;
     const predictionSlotMap = useMemo(
     () => mergePredictionSlotMaps(publicPredictionSlotMap, localPredictionSlotMap),
     [publicPredictionSlotMap, localPredictionSlotMap]
@@ -3615,7 +3633,7 @@ const resolvedPredictionResultMap = useMemo<PredictionResultMap>(
                         color: "#081224",
                       }}
                     >
-                      本日開催
+                      {pastFeedDate ? "本日の開催予定" : "本日開催"}
                     </h2>
                   </div>
 
@@ -3673,6 +3691,11 @@ const resolvedPredictionResultMap = useMemo<PredictionResultMap>(
               </div>
             </div>
 
+            {pastFeedDate && (
+              <p style={{ margin: "0 0 12px", color: "#475569", fontSize: "13px", lineHeight: 1.7 }}>
+                取得済みのレースデータは{pastFeedDate.replaceAll("-", "/")}の過去データです。本日の出走・結果としては使用しません。
+              </p>
+            )}
             <div style={{ display: "grid", gap: "12px" }}>
               {selectedDashboardVenue ? (
                 <MobileVenueCard

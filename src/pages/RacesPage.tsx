@@ -972,6 +972,10 @@ function isRacesPageAllRefundRace(race?: LiveRaceDetail | null) {
   return payoutText.includes(RACES_ALL_REFUND_TEXT);
 }
 
+function isRacesPageOfficialComplexResult(race?: LiveRaceDetail | null) {
+  return String(race?.sourceNote ?? "").includes("official complex result: not simplified into today feed");
+}
+
 function formatRacesPageResultOrderForRace(race: LiveRaceDetail | null | undefined, value?: string[] | null) {
   if (isRacesPageAllRefundRace(race)) return RACES_ALL_REFUND_ORDER_LABEL;
   return formatRacesPageResultOrder(value);
@@ -979,17 +983,20 @@ function formatRacesPageResultOrderForRace(race: LiveRaceDetail | null | undefin
 
 function getRacesPageResultLeadText(race: LiveRaceDetail | null | undefined, resultStatus: string) {
   if (isRacesPageAllRefundRace(race)) return RACES_ALL_REFUND_STATUS_LABEL;
+  if (isRacesPageOfficialComplexResult(race)) return "公式結果に同着・複数払戻等あり。買い目照合は保留";
   return resultStatus === "confirmed" ? "\u81ea\u52d5\u53d6\u5f97\u3057\u305f\u7d50\u679c\u3092\u8868\u793a\u4e2d" : "\u7d50\u679c\u306e\u78ba\u5b9a\u5f85\u3061";
 }
 
 function getRacesPageResultBadgeText(race: LiveRaceDetail | null | undefined, resultStatus: string, finalizedAt?: string) {
   if (isRacesPageAllRefundRace(race)) return RACES_ALL_REFUND_STATUS_LABEL;
+  if (isRacesPageOfficialComplexResult(race)) return "公式結果あり・照合保留";
   if (finalizedAt) return "\u78ba\u5b9a " + finalizedAt;
   return resultStatus === "confirmed" ? "\u7d50\u679c\u78ba\u5b9a" : "\u672a\u78ba\u5b9a";
 }
 
 function getRacesPageResultSubText(race: LiveRaceDetail | null | undefined, resultStatus: string) {
   if (isRacesPageAllRefundRace(race)) return RACES_ALL_REFUND_TEXT;
+  if (isRacesPageOfficialComplexResult(race)) return "照合保留";
   return resultStatus === "confirmed" ? "3\u9023\u5358\u7167\u5408\u30ad\u30fc" : "\u672a\u78ba\u5b9a";
 }
 
@@ -2652,14 +2659,14 @@ const selectedRaceSecondKimarite =
 
 const selectedSavedPredictionResultLookup = findPredictionResultRecord(
   predictionResultMap,
-  TODAY,
+  generatedDate,
   selectedVenue as any,
   selectedRace as any,
 );
 
 const selectedSavedPredictionResult = selectedSavedPredictionResultLookup.record;
 
-const selectedRaceWeatherFallbackActual: LiveRaceResultWeatherActual | undefined = venueWeather
+const selectedRaceWeatherFallbackActual: LiveRaceResultWeatherActual | undefined = generatedDate === TODAY && venueWeather
   ? {
       weather: venueWeather.weatherLabel,
       windDirection: venueWeather.windDirectionText,
@@ -2687,7 +2694,7 @@ const selectedRaceWeatherActual =
 }
 
 useEffect(() => {
-  if (!selectedVenue?.venue) {
+  if (!selectedVenue?.venue || generatedDate !== TODAY) {
     setVenueWeather(null);
     setWeatherLoading(false);
     setWeatherError("");
@@ -2741,7 +2748,7 @@ useEffect(() => {
   return () => {
     isActive = false;
   };
-}, [selectedVenue?.venue, selectedRace?.time]);
+}, [selectedVenue?.venue, selectedRace?.time, generatedDate]);
 
 const selectedRaceSLeaderCarNo = selectedRaceResult?.sLeaderCarNo ?? "";
 const selectedRaceHLeaderCarNo = selectedRaceResult?.hLeaderCarNo ?? "";
@@ -2818,10 +2825,12 @@ const selectedRaceResultCards = [
       ? `ライン: ${parsedRaceLineup.display}`
       : "ライン: 並び要確認";
   const WEEKDAY_JA = ["日", "月", "火", "水", "木", "金", "土"] as const;
-  const todayDisplayLabel = `${todayDate.getFullYear()}/${todayDate.getMonth() + 1}/${todayDate.getDate()}（${WEEKDAY_JA[todayDate.getDay()]}）`;
+  const hasPastRaceFeed = generatedTodayRaces.length > 0 && /^\d{4}-\d{2}-\d{2}$/.test(generatedDate) && generatedDate !== TODAY;
+  const raceFeedDate = /^\d{4}-\d{2}-\d{2}$/.test(generatedDate) ? new Date(`${generatedDate}T00:00:00`) : todayDate;
+  const todayDisplayLabel = `${raceFeedDate.getFullYear()}/${raceFeedDate.getMonth() + 1}/${raceFeedDate.getDate()}（${WEEKDAY_JA[raceFeedDate.getDay()]}）`;
   const updatedTimeLabel = generatedAt
-    ? `更新 ${generatedAt.includes(" ") ? generatedAt.split(" ")[1] : generatedAt}`
-    : "更新 --:--:--";
+    ? `JSON生成 ${generatedAt.split(" / ")[0].replace(/^(?:today|keirin-jp-entries):/, "")}`
+    : "JSON生成日時 未取得";
   const officialEntryVenueNames = sortedTodayVenues
     .filter((venue) => (venue.races ?? []).some(isRacesPageOfficialEntryRace))
     .map((venue) => venue.venue)
@@ -2949,14 +2958,6 @@ const selectedRaceResultCards = [
   const selectedRiders = getDisplayRidersForKeirinRace(selectedRace as never, selectedVenue as never) as LiveRaceRider[];
   const totalRiderCount = selectedRiders.length;
 
-  const parseScoreValue = (value?: string) => {
-    if (!value) return null;
-    const normalized = value.replace(/[^\d.]/g, "");
-    if (!normalized) return null;
-    const parsed = Number(normalized);
-    return Number.isFinite(parsed) ? parsed : null;
-  };
-
   const parseIntegerLike = (value: unknown) => {
     if (typeof value === "number" && Number.isFinite(value)) return value;
     if (typeof value === "string") {
@@ -3050,29 +3051,31 @@ const selectedRaceResultCards = [
     return parts.length ? parts.join(" ") : "府県・年齢・期別・級班は後から連携";
   };
 
-  const buildEnhancedRiderMetrics = (rider: LiveRaceRider, index: number) => {
-    const wins = parseIntegerLike(rider.wins) ?? Math.max(Math.round(((parseScoreValue(rider.score) ?? 92) - 90) / 2), 0);
-    const seconds = parseIntegerLike(rider.seconds) ?? ((index + wins) % 5);
-    const thirds = parseIntegerLike(rider.thirds) ?? ((index + 2) % 4);
-    const loses = parseIntegerLike(rider.loses) ?? (14 + index * 2);
-    const totalStarts = Math.max(wins + seconds + thirds + loses, 1);
+  const buildEnhancedRiderMetrics = (rider: LiveRaceRider) => {
+    const wins = parseIntegerLike(rider.wins);
+    const seconds = parseIntegerLike(rider.seconds);
+    const thirds = parseIntegerLike(rider.thirds);
+    const loses = parseIntegerLike(rider.loses);
+    const totalStarts = [wins, seconds, thirds, loses].every((value) => value !== null)
+      ? wins! + seconds! + thirds! + loses!
+      : null;
 
     return {
-      s: parseIntegerLike(rider.s) ?? ((index + 1) % 5),
-      b: parseIntegerLike(rider.b) ?? (rider.style.includes("逃") ? 4 + (index % 3) : index % 3),
-      nige: parseIntegerLike(rider.nige) ?? (rider.style.includes("逃") ? 3 + (index % 4) : index % 2),
-      makuri: parseIntegerLike(rider.makuri) ?? (rider.style.includes("捲") ? 2 + (index % 3) : (index + 1) % 2),
-      sashi: parseIntegerLike(rider.sashi) ?? (rider.style.includes("両") || rider.style.includes("追") ? 2 + (index % 4) : index % 3),
-      mark: parseIntegerLike(rider.mark) ?? (rider.style.includes("追") ? 2 + (index % 2) : index % 2),
-      wins,
-      seconds,
-      thirds,
-      loses,
+      s: parseIntegerLike(rider.s) ?? "—",
+      b: parseIntegerLike(rider.b) ?? "—",
+      nige: parseIntegerLike(rider.nige) ?? "—",
+      makuri: parseIntegerLike(rider.makuri) ?? "—",
+      sashi: parseIntegerLike(rider.sashi) ?? "—",
+      mark: parseIntegerLike(rider.mark) ?? "—",
+      wins: wins ?? "—",
+      seconds: seconds ?? "—",
+      thirds: thirds ?? "—",
+      loses: loses ?? "—",
       totalStarts,
-      gear: rider.gear !== undefined && rider.gear !== null && String(rider.gear).trim() ? String(rider.gear) : "3.92",
+      gear: rider.gear !== undefined && rider.gear !== null && String(rider.gear).trim() ? String(rider.gear) : "—",
       winRate: formatRateValue(rider.winRate, wins, totalStarts),
-      quinellaRate: formatRateValue(rider.quinellaRate, wins + seconds, totalStarts),
-      trifectaRate: formatRateValue(rider.trifectaRate, wins + seconds + thirds, totalStarts),
+      quinellaRate: formatRateValue(rider.quinellaRate, wins !== null && seconds !== null ? wins + seconds : null, totalStarts),
+      trifectaRate: formatRateValue(rider.trifectaRate, wins !== null && seconds !== null && thirds !== null ? wins + seconds + thirds : null, totalStarts),
     };
   };
 
@@ -3421,8 +3424,8 @@ const selectedRaceResultCards = [
       ])
   );
 
-  const enhancedRiderRows = selectedRiders.map((rider, index) => {
-    const metrics = buildEnhancedRiderMetrics(rider, index);
+  const enhancedRiderRows = selectedRiders.map((rider) => {
+    const metrics = buildEnhancedRiderMetrics(rider);
     const markInfo = riderMarkLookup.get(rider.carNo);
     const shb = getRacesPageShbEntryForRider(rider, shbNameLookup);
 
@@ -3471,7 +3474,7 @@ const selectedRaceResultCards = [
     source: selectedVenueGuideSummary.hasData ? "linked" : "missing",
   };
 
-  const predictionWeather: PredictionWeatherData | null = venueWeather
+  const predictionWeather: PredictionWeatherData | null = generatedDate === TODAY && venueWeather
     ? {
         weatherLabel: venueWeather.weatherLabel,
         temperatureText: venueWeather.temperatureText,
@@ -3483,7 +3486,9 @@ const selectedRaceResultCards = [
       }
     : null;
 
-  const gptMaterialText = selectedVenue && selectedRace
+  const gptMaterialText = generatedDate !== TODAY
+    ? "過去の開催データです。事前予想用素材は提供しません。"
+    : selectedVenue && selectedRace
     ? buildPredictionExportText({
         date: TODAY,
         venue: { ...selectedVenue, races: (selectedVenue.races ?? []) as PredictionRaceItem[] } as PredictionVenueItem,
@@ -3764,7 +3769,7 @@ const renderMiniTable = (headers: string[], rows: ReactNode[][]) => (
                 <div style={{ flex: "1 1 auto", minWidth: 0 }}>
                   <img
                     src={toPublicPath("/races-page/races-page-title-todays-venues-logo.png")}
-                    alt="今日の開催を、会場バーから気持ちよく選ぶ。"
+                    alt={hasPastRaceFeed ? "過去の開催データ" : "今日の開催を、会場バーから気持ちよく選ぶ。"}
                     style={{
                       display: "block",
                       width: "min(100%, 860px)",
@@ -3850,7 +3855,7 @@ const renderMiniTable = (headers: string[], rows: ReactNode[][]) => (
   }}
 >
                 {/* 英字小見出し */}
-                <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.22em", color: "rgba(140,99,199,0.82)", marginBottom: "8px" }}>TODAY'S VENUES</div>
+                <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.22em", color: "rgba(140,99,199,0.82)", marginBottom: "8px" }}>{hasPastRaceFeed ? "PAST RACE DATA" : "TODAY'S VENUES"}</div>
 
                 {/* 主役タイトル */}
                 <div
@@ -3863,12 +3868,12 @@ const renderMiniTable = (headers: string[], rows: ReactNode[][]) => (
     marginBottom: isMobile ? "12px" : "16px",
   }}
 >
-  今日の開催一覧
+  {hasPastRaceFeed ? `${generatedDate.replaceAll("-", "/")}の開催データ（過去データ）` : "今日の開催一覧"}
 </div>
 
                 {/* 日付・更新・開催数 */}
                 <div style={{ display: "grid", gap: "0", marginBottom: "20px" }}>
-                  <div style={{ fontSize: "13px", fontWeight: 800, lineHeight: 1.8, color: "#526072" }}>{todayDisplayLabel}</div>
+                  <div style={{ fontSize: "13px", fontWeight: 800, lineHeight: 1.8, color: "#526072" }}>{hasPastRaceFeed ? `データ対象日 ${todayDisplayLabel}` : todayDisplayLabel}</div>
                   <div style={{ fontSize: "13px", fontWeight: 700, lineHeight: 1.8, color: "#526072" }}>{updatedTimeLabel}</div>
                   <div style={{ fontSize: "13px", fontWeight: 700, lineHeight: 1.8, color: "#526072" }}>全{sortedTodayVenues.length}開催</div>
                   <div
@@ -3976,7 +3981,7 @@ style={{
 >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
           <div>
-            <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7", marginBottom: "4px" }}>TODAY'S VENUES · PICK A TRACK</div>
+            <div style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7", marginBottom: "4px" }}>{hasPastRaceFeed ? "PAST RACE DATA · PICK A TRACK" : "TODAY'S VENUES · PICK A TRACK"}</div>
           </div>
           <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", borderRadius: "9999px", padding: "8px 12px", background: "#ffffff", border: "1px solid #ebe3f3", boxShadow: "0 8px 16px rgba(15, 23, 42, 0.03)" }}>
             <span style={{ width: "7px", height: "7px", borderRadius: "9999px", background: "#8c63c7", display: "inline-block" }} />

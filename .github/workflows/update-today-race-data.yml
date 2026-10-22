@@ -68,7 +68,20 @@ jobs:
           git pull --ff-only origin main
 
       - name: Update today race data
+        env:
+          REQUESTED_TARGET_DATE: ${{ github.event.inputs.target_date || '' }}
         run: |
+          JST_DATE="$(TZ=Asia/Tokyo date +%F)"
+          if [ -n "$REQUESTED_TARGET_DATE" ] && [ "$REQUESTED_TARGET_DATE" != "$JST_DATE" ]; then
+            echo "[guard] target_date is not the current JST date: $REQUESTED_TARGET_DATE != $JST_DATE"
+            exit 1
+          fi
+          if [ "${{ github.event.schedule }}" = "47 14 * * *" ] || [ "${{ github.event.schedule }}" = "53 14 * * *" ]; then
+            if [ "$JST_DATE" != "$(date -u +%F)" ]; then
+              echo "[guard] final/backfill crossed the JST date boundary; refusing current-day overwrite"
+              exit 1
+            fi
+          fi
           PHASE_ARG=""
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             PHASE_ARG="--phase ${{ github.event.inputs.phase || 'auto' }}"

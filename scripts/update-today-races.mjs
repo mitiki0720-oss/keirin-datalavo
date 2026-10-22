@@ -2,7 +2,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { load } from "cheerio";
+import { execFileSync } from "node:child_process";
 import { fetchWithRetry } from "./lib/fetch-with-retry.mjs";
+import { attachKdreamsDetailLinks, buildOfficialTodayVenues, indexOfficialTodayRaces, indexOfficialTodayResults, isFreshOfficialResultSnapshot, mergeOfficialTodayRiders, officialResultToTodayRace, validateOfficialTodayEntries } from "./lib/official-today-source.mjs";
+import { probeVenueOfficialSite } from "./lib/venue-official-sources.mjs";
 
 const KDREAMS_RACECARD_URL = "https://keirin.kdreams.jp/racecard/";
 const NETKEIRIN_ENTRY_URL = "https://keirin.netkeiba.com/race/entry/";
@@ -47,17 +50,24 @@ function resolveSourcePolicy(argv) {
   if (argv.includes("--enable-netkeirin") || probeSources) policy.netkeirin = true;
   if (argv.includes("--enable-oddspark") || probeSources) policy.oddspark = true;
   if (argv.includes("--enable-winticket") || probeSources) policy.winticket = true;
+  if (argv.includes("--disable-chariloto")) policy.chariloto = false;
+  if (argv.includes("--official-only")) {
+    policy.kdreams = false;
+    policy.chariloto = false;
+  }
 
   return policy;
 }
 
 const SOURCE_POLICY = resolveSourcePolicy(args);
 
-const OUTPUT_PATH = shouldWritePublic ? PUBLIC_OUTPUT_PATH : LOCAL_DEBUG_OUTPUT_PATH;
+const OUTPUT_PATH = path.resolve(getArgValue("--output", shouldWritePublic ? PUBLIC_OUTPUT_PATH : LOCAL_DEBUG_OUTPUT_PATH));
 const OVERRIDE_PATH = path.resolve("scripts/today-races-overrides.json");
 const RACE_SCHEDULE_DATA_PATH = path.resolve("src/data/raceScheduleData.ts");
 const UPCOMING_SCHEDULE_DATA_PATH = path.resolve("public/data/races/upcoming-schedule.generated.json");
 const KEIRIN_JP_RESULTS_PATH = path.resolve("public/data/races/keirin-jp-results.generated.json");
+const KEIRIN_JP_ENTRIES_PATH = path.resolve("public/data/races/keirin-jp-entries.generated.json");
+const OFFICIAL_ENTRIES_INPUT_PATH = path.resolve(getArgValue("--official-entries-file", KEIRIN_JP_ENTRIES_PATH));
 
 const DEBUG_DIR = path.resolve("scripts");
 const DEBUG_ODDS_DIR = path.join(DEBUG_DIR, "debug");
@@ -3898,6 +3908,9 @@ async function fetchKdreamsRaceResult(slug, kdreamsRaceId, raceNo, riders) {
 }
 
 async function fetchRaceOddsWithFallback({ raceId, venue, raceNo, detailLink }) {
+  if (!SOURCE_POLICY.kdreams && !SOURCE_POLICY.netkeirin) {
+    return { ...createEmptyRaceOddsData(), source: "unavailable", oddsNote: "3連単オッズ未取得: 有効な取得元なし" };
+  }
   if (SOURCE_POLICY.kdreams) {
     const kdreamsOdds = await fetchKdreamsTrifectaOdds(detailLink?.slug ?? venue.slug, detailLink?.raceId);
     if (hasMeaningfulRaceOdds(kdreamsOdds)) {
@@ -4066,7 +4079,7 @@ function extractOfficialAllRefundPayoutItems(officialRace) {
   return items;
 }
 
-async function loadOfficialAllRefundRaceMap() {
+async function loadOfficialAllRefundRaceMap(todayIso) {
   let payload = null;
 
   try {
@@ -4074,6 +4087,7 @@ async function loadOfficialAllRefundRaceMap() {
   } catch {
     return new Map();
   }
+  if (payload?.date !== todayIso) return new Map();
 
   const map = new Map();
 
@@ -4151,6 +4165,119 @@ function applyOfficialAllRefundResults(payload, allRefundRaceMap) {
   return { appliedCount };
 }
 
+async function loadOfficialTodayEntries(todayIso) {
+  const readValid = async (file) => {
+    const payload = JSON.parse(await fs.readFile(file, "utf-8"));
+    const counts = validateOfficialTodayEntries(payload, todayIso);
+    console.log(`[official] entries ${todayIso}: venues=${counts.venueCount} races=${counts.raceCount} riders=${counts.riderCount} path=${file}`);
+    return payload;
+  };
+  try {
+    return await readValid(OFFICIAL_ENTRIES_INPUT_PATH);
+  } catch (error) {
+    console.warn(`[official] stored entries unavailable: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  if (OFFICIAL_ENTRIES_INPUT_PATH !== KEIRIN_JP_ENTRIES_PATH) return null;
+  const output = path.resolve(".tmp", `keirin-jp-entries-${todayIso}.generated.json`);
+  try {
+    await fs.mkdir(path.dirname(output), { recursive: true });
+    execFileSync(process.execPath, ["scripts/update-keirin-jp-entries.mjs", `--expect-date=${todayIso}`, `--output=${output}`], {
+      cwd: process.cwd(),
+      stdio: "inherit",
+      timeout: 180_000,
+    });
+    return await readValid(output);
+  } catch (error) {
+    console.warn(`[official] live entries unavailable: ${error instanceof Error ? error.message : String(error)}`);
+    return null;
+  }
+}
+
+async function loadOfficialTodayResults(todayIso, shouldRefresh) {
+  const input = path.resolve(getArgValue("--official-results-file", KEIRIN_JP_RESULTS_PATH));
+  const readValid = async (file) => {
+    const payload = JSON.parse(await fs.readFile(file, "utf-8"));
+    if (payload?.source?.provider !== "KEIRIN.JP" || payload.date !== todayIso || !Array.isArray(payload.venues)) throw new Error(`result date/source mismatch: ${payload?.date ?? "missing"}`);
+    indexOfficialTodayResults(payload, todayIso);
+    return payload;
+  };
+  let stored = null;
+  try {
+    stored = await readValid(input);
+  } catch (error) {
+    console.warn(`[official] stored results unavailable: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  if (stored && input !== KEIRIN_JP_RESULTS_PATH) return { payload: stored, freshness: "REFERENCE" };
+  if (!shouldRefresh && isFreshOfficialResultSnapshot(stored)) return { payload: stored, freshness: "FRESH" };
+  if (stored) console.warn(`[official] results snapshot needs refresh: generatedAt=${stored.generatedAt ?? "missing"}`);
+  if (input === KEIRIN_JP_RESULTS_PATH) {
+    const output = path.resolve(".tmp", `keirin-jp-results-${todayIso}.generated.json`);
+    try {
+      await fs.mkdir(path.dirname(output), { recursive: true });
+      execFileSync(process.execPath, ["scripts/update-keirin-jp-results.mjs", `--expect-date=${todayIso}`, `--output=${output}`], {
+        cwd: process.cwd(), stdio: "inherit", timeout: 180_000,
+      });
+      return { payload: await readValid(output), freshness: "FRESH" };
+    } catch (error) {
+      console.warn(`[official] live results unavailable: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  return stored ? { payload: stored, freshness: "STALE" } : null;
+}
+
+function applyOfficialEntryToRace(race, officialRace, venueName) {
+  if (!officialRace) return race;
+  let riders;
+  try {
+    riders = mergeOfficialTodayRiders(officialRace.entries, race.riders);
+  } catch (error) {
+    console.warn(`[official] supplemental identity rejected ${venueName} ${race.raceNo}R: ${error instanceof Error ? error.message : String(error)}`);
+    riders = mergeOfficialTodayRiders(officialRace.entries, []);
+  }
+  const startTime = String(officialRace.raceMeta?.startTime ?? "").trim();
+  return {
+    ...race,
+    time: /^\d{1,2}:\d{2}$/.test(startTime) ? startTime : race.time,
+    title: officialRace.raceMeta?.raceName || race.title || "",
+    lineup: officialRace.lineup || race.lineup,
+    riders,
+    sourceNote: appendUniqueNote(race.sourceNote, "official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked"),
+  };
+}
+
+function applyOfficialResultToRace(race, officialResult, officialEntry, venueName) {
+  if (!officialResult || officialResult.resultStatus !== "confirmed") {
+    if (race.resultStatus === "confirmed" && race.raceOperationSource === "KEIRIN.JP:JSJ012") return race;
+    return {
+      ...race, ...createPendingRaceResultData("official result not yet available; result withheld"),
+      sourceNote: appendUniqueNote(race.sourceNote, "official result unavailable: not adopted"),
+    };
+  }
+  if (!officialEntry) return race;
+  try {
+    const result = officialResultToTodayRace(officialResult, officialEntry);
+    if (!result) {
+      if (officialResult.resultStatus !== "confirmed") return race;
+      return {
+        ...race, ...createPendingRaceResultData("official result has ties, missing ranks or multiple payouts; see KEIRIN.JP result feed"),
+        sourceNote: appendUniqueNote(race.sourceNote, "official complex result: not simplified into today feed"),
+      };
+    }
+    return {
+      ...race, ...result,
+      resultNote: appendUniqueNote(race.resultNote, "official result: KEIRIN.JP JSJ012"),
+      sourceNote: appendUniqueNote(race.sourceNote, "official result: date/venueCode/raceNo/carNo/registrationNo checked"),
+      raceOperationStatus: "finished", raceOperationLabel: "結果確定", raceOperationSource: "KEIRIN.JP:JSJ012",
+    };
+  } catch (error) {
+    console.warn(`[official] result rejected ${venueName} ${race.raceNo}R: ${error instanceof Error ? error.message : String(error)}`);
+    return {
+      ...race, ...createPendingRaceResultData("official result identity conflict; result withheld"),
+      sourceNote: appendUniqueNote(race.sourceNote, "official result conflict: not adopted"),
+    };
+  }
+}
+
 async function main() {
   const updatePhase = resolveUpdatePhase();
   const todayIso = getJstTodayIso();
@@ -4159,6 +4286,7 @@ async function main() {
     console.log(`[mode] writing generated data to ${OUTPUT_PATH}`);
   }
   const activeSources = [
+    "keirin-jp",
     SOURCE_POLICY.kdreams ? "kdreams" : "",
     SOURCE_POLICY.chariloto && ["lineup", "backfill", "final"].includes(updatePhase.phase) ? "chariloto" : "",
     SOURCE_POLICY.netkeirin ? "netkeirin" : "",
@@ -4184,27 +4312,45 @@ async function main() {
 
   await fs.mkdir(DEBUG_DIR, { recursive: true });
   await fs.mkdir(DEBUG_ODDS_DIR, { recursive: true });
-
-  const response = await fetchWithRetry(
-    KDREAMS_RACECARD_URL,
-    {
-      headers: {
-        "user-agent": "Mozilla/5.0",
-        "accept-language": "ja-JP,ja;q=0.9,en;q=0.8",
-      },
-    },
-    { attempts: 3, timeoutMs: 20_000, label: "kdreams racecard" },
-  );
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch Kドリームス racecard: ${response.status}`);
-  }
-
-  const html = await readHtmlResponse(response);
-  await fs.writeFile(KDREAMS_DEBUG_HTML_PATH, html, "utf-8");
-
   const operationUpdatedAt = `${getJstNowParts().isoDateTime}+09:00`;
-  const { venues: todayVenues, debug } = parseKdreamsTodayVenues(html, todayIso, scheduleData, operationUpdatedAt);
+  const officialEntries = await loadOfficialTodayEntries(todayIso);
+  const officialRaces = officialEntries ? indexOfficialTodayRaces(officialEntries) : new Map();
+  const officialResultsLoad = officialEntries && ["result", "final", "backfill"].includes(updatePhase.phase)
+    ? await loadOfficialTodayResults(todayIso, ["final", "backfill"].includes(updatePhase.phase))
+    : null;
+  const officialResults = officialResultsLoad?.payload ?? null;
+  const officialResultRaces = officialResults ? indexOfficialTodayResults(officialResults, todayIso) : new Map();
+  let kdreamsVenues = [];
+  let debug = { tableFound: false };
+  if (SOURCE_POLICY.kdreams) {
+    try {
+      const response = await fetchWithRetry(KDREAMS_RACECARD_URL, {
+        headers: { "user-agent": "Mozilla/5.0", "accept-language": "ja-JP,ja;q=0.9,en;q=0.8" },
+      }, { attempts: 3, timeoutMs: 20_000, label: "kdreams racecard" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const html = await readHtmlResponse(response);
+      const parsed = parseKdreamsTodayVenues(html, todayIso, scheduleData, operationUpdatedAt);
+      if (!parsed.venues.length) throw new Error(`HTTP 200 but no current racecard table; body=${stripTags(html).slice(0, 160)}`);
+      kdreamsVenues = parsed.venues;
+      debug = parsed.debug;
+      await fs.writeFile(KDREAMS_DEBUG_HTML_PATH, html, "utf-8");
+    } catch (error) {
+      SOURCE_POLICY.kdreams = false;
+      console.warn(`[kdreams] racecard unavailable; official fallback ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  if (!officialEntries && !kdreamsVenues.length) throw new Error(`No verified racecard source for ${todayIso}; refusing to treat previous data as current`);
+  const todayVenues = officialEntries
+    ? attachKdreamsDetailLinks(buildOfficialTodayVenues(officialEntries, scheduleData, operationUpdatedAt), kdreamsVenues, todayIso)
+    : kdreamsVenues;
+  if (!args.includes("--skip-venue-sites")) {
+    for (const venue of todayVenues) {
+      const officialSite = await probeVenueOfficialSite(venue.venueCode, todayIso);
+      if (!officialSite) continue;
+      venue.officialSite = officialSite;
+      console.log(`[official-site] ${venue.venue} ${todayIso}: ${officialSite.status} pdf=${officialSite.pdfStatus ?? "unavailable"}`);
+    }
+  }
   await fs.writeFile(
     DEBUG_JSON_PATH,
     JSON.stringify({ todayIso, matchedCount: todayVenues.length, debug }, null, 2),
@@ -4270,6 +4416,8 @@ async function main() {
           ...extra,
           riders: Array.isArray(extra.riders) && extra.riders.length ? extra.riders : reusableRace.riders,
         });
+        if (officialEntries) fetchedRaces[fetchedRaces.length - 1] = applyOfficialEntryToRace(fetchedRaces[fetchedRaces.length - 1], officialRaces.get(`${venue.venueCode}:${raceNo}`), venue.venue);
+        if (officialResults) fetchedRaces[fetchedRaces.length - 1] = applyOfficialResultToRace(fetchedRaces[fetchedRaces.length - 1], officialResultRaces.get(`${venue.venueCode}:${raceNo}`), officialRaces.get(`${venue.venueCode}:${raceNo}`), venue.venue);
         cacheReusedCount += 1;
         console.log(`[skip] ${venue.venue} ${raceNo}R finalized complete; skip all fetch`);
         continue;
@@ -4478,6 +4626,8 @@ async function main() {
         ...extra,
         riders: Array.isArray(extra.riders) && extra.riders.length ? extra.riders : race.riders,
       });
+      if (officialEntries) fetchedRaces[fetchedRaces.length - 1] = applyOfficialEntryToRace(fetchedRaces[fetchedRaces.length - 1], officialRaces.get(`${venue.venueCode}:${raceNo}`), venue.venue);
+      if (officialResults) fetchedRaces[fetchedRaces.length - 1] = applyOfficialResultToRace(fetchedRaces[fetchedRaces.length - 1], officialResultRaces.get(`${venue.venueCode}:${raceNo}`), officialRaces.get(`${venue.venueCode}:${raceNo}`), venue.venue);
     }
 
     venue.races = fetchedRaces;
@@ -4497,15 +4647,21 @@ async function main() {
   const payload = {
     generatedAt: new Date().toLocaleString("ja-JP", { hour12: false }),
     source: {
-      racecard: KDREAMS_RACECARD_URL,
-      detailPrimary: `${NETKEIRIN_ENTRY_URL}?race_id=[YYYYMMDD][venueCode][raceNo]&rf=racetoplive`,
-      detailFallback: `${KDREAMS_RACE_DETAIL_BASE_URL}/[slug]/racedetail/[kdreamsRaceId]/`,
+      racecard: officialEntries ? officialEntries.source?.resolvedListUrl || "KEIRIN.JP:JSJ048" : KDREAMS_RACECARD_URL,
+      officialEntriesGeneratedAt: officialEntries?.generatedAt ?? null,
+      officialEntriesFetchStartedAt: officialEntries?.source?.fetchStartedAt ?? null,
+      officialEntriesFetchCompletedAt: officialEntries?.source?.fetchCompletedAt ?? null,
+      officialResultsGeneratedAt: officialResults?.generatedAt ?? null,
+      officialResultsFreshness: officialResultsLoad?.freshness ?? "UNAVAILABLE",
+      supplementaryRacecard: kdreamsVenues.length ? KDREAMS_RACECARD_URL : null,
+      detailPrimary: officialEntries ? "KEIRIN.JP:JSJ001/JSJ006" : `${KDREAMS_RACE_DETAIL_BASE_URL}/[slug]/racedetail/[kdreamsRaceId]/`,
+      detailFallback: kdreamsVenues.length ? `${KDREAMS_RACE_DETAIL_BASE_URL}/[slug]/racedetail/[kdreamsRaceId]/` : null,
     },
     date: todayIso,
     venues,
   };
 
-  const allRefundRaceMap = await loadOfficialAllRefundRaceMap();
+  const allRefundRaceMap = await loadOfficialAllRefundRaceMap(todayIso);
   const allRefundOverlay = applyOfficialAllRefundResults(payload, allRefundRaceMap);
   const allRefundAppliedCount = allRefundOverlay.appliedCount;
 
