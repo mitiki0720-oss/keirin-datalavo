@@ -2285,6 +2285,7 @@ const parseRacesPageLineupRowTokens = (row: string) => {
 const parseRacesPageLineup = (lineupText?: string | null): ParsedRacesPageLineup | null => {
   const normalizedRaw = normalizeRacesPageLineupRaw(lineupText);
   if (!normalizedRaw) return null;
+  if (/^[1-9](?:\s+[1-9])+$/u.test(normalizedRaw)) return null;
 
   const rows = normalizedRaw
     .split(/\n+/)
@@ -2297,6 +2298,7 @@ const parseRacesPageLineup = (lineupText?: string | null): ParsedRacesPageLineup
   if (topTokens.length === 0) return null;
 
   const segments: RacesPageLineupSegment[] = topTokens.map((token) => ({ kind: "plain", cars: [...token.cars] }));
+  if (segments.every((segment) => segment.kind === "plain" && segment.cars.length === 1)) return null;
 
   if (rows.length > 1) {
     for (const row of rows.slice(1)) {
@@ -2812,9 +2814,10 @@ const selectedRaceResultCards = [
   const coreFadeLabel = selectedRace?.coreFade?.trim() || "整理中";
   const raceTitleLabel = selectedRace?.title?.trim() || "レース名反映待ち";
   const hasRawRaceLineup = Boolean(selectedRace?.lineup?.trim());
-  const parsedRaceLineup = parseRacesPageLineup(selectedRace?.lineup);
+  const raceHasGirls = /ガールズ|L級/u.test(String(selectedRace?.title ?? ""));
+  const parsedRaceLineup = raceHasGirls ? null : parseRacesPageLineup(selectedRace?.lineup);
   const raceLineupLabel = selectedRace?.lineup?.trim()
-    ? parsedRaceLineup?.display ?? normalizeRacesPageLineupRaw(selectedRace.lineup)
+    ? parsedRaceLineup?.display ?? `車番順（ライン未確認）: ${normalizeRacesPageLineupRaw(selectedRace.lineup)}`
     : "並び予想未登録";
   const raceLineupFixedLabel = !hasRawRaceLineup
     ? "並び予想未登録"
@@ -2823,7 +2826,7 @@ const selectedRaceResultCards = [
     ? "ライン: 未登録"
     : parsedRaceLineup
       ? `ライン: ${parsedRaceLineup.display}`
-      : "ライン: 並び要確認";
+      : "ライン: 未確認（車番順のみ）";
   const WEEKDAY_JA = ["日", "月", "火", "水", "木", "金", "土"] as const;
   const hasPastRaceFeed = generatedTodayRaces.length > 0 && /^\d{4}-\d{2}-\d{2}$/.test(generatedDate) && generatedDate !== TODAY;
   const raceFeedDate = /^\d{4}-\d{2}-\d{2}$/.test(generatedDate) ? new Date(`${generatedDate}T00:00:00`) : todayDate;
@@ -3080,7 +3083,7 @@ const selectedRaceResultCards = [
   };
 
   const predictionCandidates = buildRacesPagePredictionCandidates(selectedRiders, {
-    lineup: selectedRace?.lineup,
+    lineup: raceHasGirls ? undefined : selectedRace?.lineup,
     lead: selectedRace?.lead,
     venueName: selectedVenue?.venue,
     shbNameLookup,

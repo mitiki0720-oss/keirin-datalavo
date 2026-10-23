@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const ROOT = process.cwd();
-const TARGET = path.join(ROOT, "public/data/analytics/kurari-ex/race-risk/index.generated.json");
+const TARGET = path.resolve(ROOT, process.argv.find((arg) => arg.startsWith("--file="))?.slice(7) || "public/data/analytics/kurari-ex/race-risk/index.generated.json");
 const allowedRiskLevels = new Set(["LOW", "MEDIUM", "HIGH", "VERY_HIGH", "INSUFFICIENT"]);
 const allowedActions = new Set(["BASE_8", "VALUE_10", "STRONG_VALUE_12", "MAX_14", "SKIP"]);
 const allowedConfidence = new Set(["high", "medium", "low"]);
@@ -32,6 +32,7 @@ const issues = {
   invalidRegistrationNoJoin: 0,
   invalidSignal: 0,
   invalidFreshness: 0,
+  invalidLineupEvidence: 0,
 };
 
 if (!data.freshness || !allowedFreshness.has(data.freshness.status) || typeof data.freshness.warning !== "string") {
@@ -50,6 +51,18 @@ for (const record of data.records) {
   }
   if (record.riskLevel !== "INSUFFICIENT" && (!record.sourceAvailability?.officialEntries || !record.sourceAvailability?.officialLineup)) {
     issues.missingRequiredSource += 1;
+  }
+  if (record.line?.groupingStatus !== "verified") {
+    if (record.line?.lineCount != null || record.line?.singleCount != null ||
+        record.sourceAvailability?.officialLineup || record.riskLevel !== "INSUFFICIENT" ||
+        record.confidence !== "low" || (record.signals ?? []).some((item) =>
+          (item.key === "line-count" || item.key === "single-line") && item.contribution !== 0)) {
+      issues.invalidLineupEvidence += 1;
+    }
+  } else if (!record.line.source || record.line.source === "unavailable" ||
+      !Number.isInteger(record.line.lineCount) || !Number.isInteger(record.line.singleCount) ||
+      record.line.lineCount < 2 || record.line.singleCount < 0 || !record.sourceAvailability?.officialLineup) {
+    issues.invalidLineupEvidence += 1;
   }
   for (const signal of record.signals ?? []) {
     if (!signal.key || !signal.label || typeof signal.value !== "string" || !Number.isFinite(signal.contribution) || !signal.source || !allowedConfidence.has(signal.confidence)) {

@@ -2630,7 +2630,7 @@ boxShadow: isHit
                           <div>レース：{selectedVenueRace.raceNo}R</div>
                           <div>発走：{selectedVenueRace.time ?? "時刻未取得"}</div>
                           <div>タイトル：{selectedVenueRace.title ?? "レース名未取得"}</div>
-                          <div>並び：{selectedVenueRace.lineup ?? selectedVenueRace.netkeirinLineupRaw ?? selectedVenueRace.winticketLineupRaw ?? "並び未取得"}</div>
+                          <div>{/^[1-9](?:\s+[1-9])+$/u.test(String(selectedVenueRace.lineup ?? "").trim()) ? "車番順（ライン未確認）" : "並び"}：{selectedVenueRace.lineup ?? selectedVenueRace.netkeirinLineupRaw ?? selectedVenueRace.winticketLineupRaw ?? "並び未取得"}</div>
                           <div>メモ：{selectedVenueRace.sourceNote ?? selectedVenueRace.oddsNote ?? "補足情報なし"}</div>
                         </div>
                       </div>

@@ -3104,6 +3104,11 @@ const mergePredictionVenueSummaryWithMaster = (
 
 const PREDICTION_LINEUP_SEPARATOR_PATTERN = /[\s/・-]+/;
 
+const isPredictionGirlsRace = (race?: PredictionRaceItem | null) => Boolean(
+  race?.isGirls || /ガールズ|L級/u.test(String(race?.title ?? "")) ||
+  race?.riders?.some((rider) => /^(?:L[12]$|L級)/iu.test(String(rider.grade ?? "").trim())),
+);
+
 const getPredictionLineupCandidates = (race?: PredictionRaceItem | null) => [
   { source: "lineup", raw: race?.lineup },
   { source: "netkeirin", raw: race?.netkeirinLineupRaw },
@@ -3139,7 +3144,9 @@ const resolvePredictionLineup = (race?: PredictionRaceItem | null) => {
     ...candidate,
     parsed: parsePredictionLineupRaw(candidate.raw),
   }));
-  const groupedCandidate = candidates.find((candidate) => candidate.parsed.hasExplicitGroups) ?? null;
+  const groupedCandidate = isPredictionGirlsRace(race)
+    ? null
+    : candidates.find((candidate) => candidate.parsed.hasExplicitGroups) ?? null;
   const orderCandidate = candidates.find((candidate) => candidate.parsed.orderCars.length > 0) ?? null;
 
   return {
@@ -3156,7 +3163,7 @@ const resolvePredictionLineup = (race?: PredictionRaceItem | null) => {
 export const buildPredictionLineupDisplay = (race?: PredictionRaceItem | null) => {
   const lineup = resolvePredictionLineup(race);
   if (lineup.groupedLabel) return lineup.groupedLabel;
-  if (lineup.orderLabel) return lineup.orderLabel;
+  if (lineup.orderLabel) return `車番順（ライン未確認）: ${lineup.orderLabel}`;
   return "並び未取得";
 };
 
@@ -5077,7 +5084,7 @@ export const getFeaturedRaceWeatherComment = (weather?: PredictionWeatherData | 
 
 export const getFeaturedRaceLineupComment = (race?: PredictionRaceItem | null) => {
   const groups = buildPredictionLineupGroups(race);
-  if (groups.length === 0) return "並び情報なし。";
+  if (groups.length === 0) return resolvePredictionLineup(race).orderLabel ? "車番順のみ。ライン境界は未確認です。" : "並び情報なし。";
   if (groups.length === 1) return `並びは ${groups[0]}。単一路線の構成です。`;
   return `並びは${groups.length}分戦。${groups.join(" / ")}のライン構成です。`;
 };
@@ -8471,7 +8478,7 @@ function buildPredictionKdreamsLineupExport(race?: PredictionRaceItem | null) {
   }
 
   const parsed = parsePredictionLineupRaw(rawLineup);
-  const hasGroupedLineup = parsed.groupedGroups.length > 0;
+  const hasGroupedLineup = !isPredictionGirlsRace(race) && parsed.groupedGroups.length > 0;
   const shouldShowRookieNote = Boolean(
     rookieNote &&
     (rookieCategory === "advance-rookie-men"
@@ -10715,7 +10722,7 @@ if (
     }
     const lineupGroups = buildPredictionLineupGroups(selectedPredictionMaterialRace);
     const allowRole = lineupGroups.length > 0
-      && !selectedPredictionMaterialRace?.isGirls
+      && !isPredictionGirlsRace(selectedPredictionMaterialRace)
       && detectPredictionRookieRaceCategory(selectedPredictionMaterialRace) === null;
     return buildKurariExRiderPredictionMaterial(
       selectedKurariExRiderEntries,
@@ -10961,7 +10968,7 @@ if (
     );
     const lineupCarNumbers = groups.flat();
     const lineupIsSafe =
-      groups.length > 0 &&
+      groups.length > 0 && !isPredictionGirlsRace(selectedPredictionMaterialRace) &&
       lineupCarNumbers.length > 0 &&
       lineupCarNumbers.every((carNo) => riderByCarNo.has(carNo)) &&
       new Set(lineupCarNumbers).size === lineupCarNumbers.length;
@@ -11110,8 +11117,8 @@ if (
   ]);
   const selectedKurariExRoleStatsMaterial = useMemo(() => {
     const lineupGroups = buildPredictionLineupGroups(selectedPredictionMaterialRace);
-    const allowRole = lineupGroups.length > 0
-      && !selectedPredictionMaterialRace?.isGirls
+      const allowRole = lineupGroups.length > 0
+      && !isPredictionGirlsRace(selectedPredictionMaterialRace)
       && detectPredictionRookieRaceCategory(selectedPredictionMaterialRace) === null;
     return buildKurariExRoleStatsMaterial(
       selectedKurariExRiderEntries,

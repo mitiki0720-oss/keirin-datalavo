@@ -1,10 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
+import { verifiedLineupForRace } from "./verified-lineup.mjs";
 
 const ROOT = process.cwd();
 const VERSION = "kurari-ex-race-risk/v1";
-const OUTPUT_DIR = path.join(ROOT, "public/data/analytics/kurari-ex/race-risk");
-const OUTPUT_PATH = path.join(OUTPUT_DIR, "index.generated.json");
+const OUTPUT_PATH = path.resolve(ROOT, process.argv.find((arg) => arg.startsWith("--output="))?.slice(9) || "public/data/analytics/kurari-ex/race-risk/index.generated.json");
+const OUTPUT_DIR = path.dirname(OUTPUT_PATH);
 
 const readJson = (relativePath) => JSON.parse(fs.readFileSync(path.join(ROOT, relativePath), "utf8"));
 const finite = (value) => Number.isFinite(Number(value));
@@ -130,10 +131,9 @@ for (const venue of today.venues ?? []) {
     const entriesBundle = entriesByKey.get(raceKey);
     const entryRace = entriesBundle?.race ?? null;
     const entries = entryRace?.entries ?? [];
-    const lineupRaw = race.lineup || entryRace?.lineup || entryRace?.officialLineup?.lineup || "";
-    const lineGroups = String(lineupRaw).trim().split(/\s+/u).filter(Boolean);
-    const lineCount = lineGroups.length;
-    const singleCount = lineGroups.filter((group) => group.length === 1).length;
+    const verifiedLineup = verifiedLineupForRace({ race, entryRace, entries, date: today.date, venueCode, raceNo });
+    const lineCount = verifiedLineup.groups?.length ?? null;
+    const singleCount = verifiedLineup.groups?.filter((group) => group.length === 1).length ?? null;
     const carCount = entries.length || race.riders?.length || 0;
     const selfPowerCount = entries.filter(isSelfPowerStarter).length;
     const grade = String(venue.grade ?? "");
@@ -157,10 +157,11 @@ for (const venue of today.venues ?? []) {
       signals.push(signal({
         key: "line-count",
         label: "分戦数",
-        value: `${lineCount || "未取得"}分戦`,
-        contribution: lineCount >= 4 ? 1 : lineCount <= 2 && lineCount > 0 ? -1 : 0,
-        source: race.lineup ? "today.generated.lineup" : "keirin-jp-entries.lineup",
-        confidence: lineCount ? "high" : "low",
+        value: lineCount == null ? "未取得" : `${lineCount}分戦`,
+        contribution: lineCount == null ? 0 : lineCount >= 4 ? 1 : lineCount <= 2 ? -1 : 0,
+        source: verifiedLineup.source,
+        confidence: lineCount == null ? "low" : "high",
+        note: lineCount == null ? `車番順からライン境界は推定しない (${verifiedLineup.reason})` : undefined,
       }));
       signals.push(signal({
         key: "self-power-contest",
@@ -171,13 +172,13 @@ for (const venue of today.venues ?? []) {
         confidence: "medium",
         note: "逃げ、B/H回数、B/Hを伴う両だけを事前sourceとして使用",
       }));
-      if (singleCount > 0) {
+      if (singleCount != null && singleCount > 0) {
         signals.push(signal({
           key: "single-line",
           label: "単騎/短ライン",
           value: `${singleCount}本`,
           contribution: singleCount >= 2 ? 1 : 0,
-          source: race.lineup ? "today.generated.lineup" : "keirin-jp-entries.lineup",
+          source: verifiedLineup.source,
           confidence: "medium",
         }));
       }
@@ -230,7 +231,7 @@ for (const venue of today.venues ?? []) {
     }
 
     const score = signals.reduce((sum, item) => sum + item.contribution, 0);
-    const essentialReady = entries.length >= 5 && lineCount > 0;
+    const essentialReady = entries.length >= 5 && lineCount != null;
     const confidenceScore = signals.reduce((sum, item) => sum + (item.confidence === "high" ? 2 : item.confidence === "medium" ? 1 : 0), 0);
     const confidence = !essentialReady ? "low" : confidenceScore >= 7 ? "high" : confidenceScore >= 4 ? "medium" : "low";
     const riskLevel = !essentialReady
@@ -257,9 +258,11 @@ for (const venue of today.venues ?? []) {
       raceClass: raceClassLabel,
       carCount,
       line: {
-        source: race.lineup ? "today.generated.lineup" : entries.length ? "keirin-jp-entries.lineup" : "unavailable",
-        lineup: lineupRaw || null,
-        lineCount: lineCount || null,
+        source: verifiedLineup.source,
+        lineup: verifiedLineup.groups?.map((group) => group.join("-")).join(" / ") ?? null,
+        carOrder: verifiedLineup.carOrder,
+        groupingStatus: verifiedLineup.reason,
+        lineCount,
         singleCount,
         selfPowerCount,
       },
@@ -276,7 +279,7 @@ for (const venue of today.venues ?? []) {
       sourceAvailability: {
         todayRace: true,
         officialEntries: entries.length > 0,
-        officialLineup: lineCount > 0,
+        officialLineup: lineCount != null,
         venueHistoricalSampleSize: venueHistorical.sampleSize,
         raceNumberHistoricalSampleSize: raceNoHistorical.sampleSize,
         riderCoverageCount: riderCoverage.length,

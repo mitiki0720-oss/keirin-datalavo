@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   formatKurariExMetric,
   formatKurariExRiderMetric,
+  hasUnverifiedRaceRiskLineup,
   getKurariExRaceRegistrationNoStatus,
   getSameNameCandidateWarnings,
   getKurariExRiderQualityLabel,
@@ -450,21 +451,23 @@ function MetricCard({ label, value, note, warning, className }: {
 }
 
 function RaceRiskSignalCard({ record }: { record: KurariExRaceRiskRecord }) {
+  const unsafeLineup = hasUnverifiedRaceRiskLineup(record);
   const visibleSignals = [...record.signals]
+    .filter((signal) => !unsafeLineup || (signal.key !== "line-count" && signal.key !== "single-line"))
     .filter((signal) => signal.contribution !== 0 || signal.confidence === "low")
     .slice(0, 4);
   return (
-    <article className={`ex-race-risk-card ${getRaceRiskTone(record.riskLevel)}`}>
+    <article className={`ex-race-risk-card ${unsafeLineup ? "is-unavailable" : getRaceRiskTone(record.riskLevel)}`}>
       <div className="ex-race-risk-head">
         <div>
           <span>{record.venueName} {record.raceNo}R</span>
-          <strong>{getRaceRiskLevelLabel(record.riskLevel)}</strong>
+          <strong>{unsafeLineup ? "ライン根拠未確認" : getRaceRiskLevelLabel(record.riskLevel)}</strong>
         </div>
-        <b>{record.pointRange.label}</b>
+        <b>{unsafeLineup ? "使用禁止" : record.pointRange.label}</b>
       </div>
       <div className="ex-race-risk-meta">
-        <span>{getRaceRiskConfidenceLabel(record.confidence)}</span>
-        <span>{record.line.lineCount ?? "--"}分戦</span>
+        <span>{unsafeLineup ? "confidence未確認" : getRaceRiskConfidenceLabel(record.confidence)}</span>
+        <span>{record.line.groupingStatus === "verified" ? `${record.line.lineCount}分戦` : "分戦数未確認"}</span>
         <span>自力候補 {record.line.selfPowerCount}人</span>
       </div>
       <ul>
@@ -476,7 +479,7 @@ function RaceRiskSignalCard({ record }: { record: KurariExRaceRiskRecord }) {
           </li>
         ))}
       </ul>
-      <p>{record.protectionGuide.note}</p>
+      <p>{unsafeLineup ? "車番順をライン構成とした可能性があるため、risk判定・点数候補に使用しません。" : record.protectionGuide.note}</p>
     </article>
   );
 }
@@ -2899,8 +2902,10 @@ export default function ExDataPage() {
   const raceRiskCoverageNote = raceRiskIndex
     ? `${raceRiskIndex.coverage.officialEntryRaceCount ?? 0}/${raceRiskIndex.raceCount} official entries / ${raceRiskIndex.coverage.officialLineupRaceCount ?? 0} lineup`
     : "official entries / lineup";
+  const raceRiskUnsafeLineupCount = raceRiskIndex?.records.filter(hasUnverifiedRaceRiskLineup).length ?? 0;
   const raceRiskGuardOk = raceRiskIndex
     ? raceRiskIndex.records.every((record) =>
+        !hasUnverifiedRaceRiskLineup(record) &&
         !record.leakageGuard.currentResultUsed &&
         !record.leakageGuard.currentPayoutUsed &&
         !record.leakageGuard.oddsUsedAsRiskDriver &&
@@ -4677,20 +4682,20 @@ export default function ExDataPage() {
                     <MetricCard label="RACES" value={`${raceRiskIndex.raceCount.toLocaleString("ja-JP")}R`} note={raceRiskCoverageNote} />
                     <MetricCard
                       label="HIGH / VERY HIGH"
-                      value={`${raceRiskIndex.riskLevelCounts.HIGH ?? 0} / ${raceRiskIndex.riskLevelCounts.VERY_HIGH ?? 0}`}
-                      note="10〜12 / 12〜14 candidate"
-                      warning={(raceRiskIndex.riskLevelCounts.VERY_HIGH ?? 0) > 0}
+                      value={raceRiskUnsafeLineupCount ? "判定不可" : `${raceRiskIndex.riskLevelCounts.HIGH ?? 0} / ${raceRiskIndex.riskLevelCounts.VERY_HIGH ?? 0}`}
+                      note={raceRiskUnsafeLineupCount ? `${raceRiskUnsafeLineupCount}Rでライン根拠未確認` : "10〜12 / 12〜14 candidate"}
+                      warning={raceRiskUnsafeLineupCount > 0 || (raceRiskIndex.riskLevelCounts.VERY_HIGH ?? 0) > 0}
                     />
                     <MetricCard
                       label="INSUFFICIENT"
-                      value={(raceRiskIndex.riskLevelCounts.INSUFFICIENT ?? 0).toLocaleString("ja-JP")}
-                      note="source不足は見送り候補"
+                      value={raceRiskUnsafeLineupCount ? "判定不可" : (raceRiskIndex.riskLevelCounts.INSUFFICIENT ?? 0).toLocaleString("ja-JP")}
+                      note={raceRiskUnsafeLineupCount ? "旧artifactの点数候補は使用禁止" : "source不足は見送り候補"}
                       warning={(raceRiskIndex.riskLevelCounts.INSUFFICIENT ?? 0) > 0}
                     />
                     <MetricCard
                       label="LEAKAGE GUARD"
                       value={raceRiskGuardOk ? "PASS" : "CHECK"}
-                      note="result / payout / odds / fuzzy / fake not used"
+                      note="lineup / result / payout / odds / fuzzy / fake"
                       warning={!raceRiskGuardOk}
                     />
                     <MetricCard

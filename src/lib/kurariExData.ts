@@ -96,8 +96,10 @@ export type KurariExRaceRiskRecord = {
   line: {
     source: string;
     lineup: string | null;
+    carOrder?: string | null;
+    groupingStatus?: string;
     lineCount: number | null;
-    singleCount: number;
+    singleCount: number | null;
     selfPowerCount: number;
   };
   riskScore: number;
@@ -1167,9 +1169,11 @@ function resolvePredictionDimensionKeys(context?: KurariExPredictionContext | nu
         : /A級/u.test(title)
           ? "a"
           : null;
-  const lineup = String(context?.lineup ?? "").trim();
-  const lineCount = lineup && !/未取得|未掲載|不明/u.test(lineup)
-    ? lineup.split(/[\s/／|｜]+/u).filter(Boolean).length
+  // A raw lineup can be only JSJ005 car order; it is not evidence of line boundaries.
+  const lineCount = raceClass !== "girls" && context?.lineupGroupingStatus === "verified" &&
+    Boolean(context?.verifiedLineupSource?.trim()) &&
+    Number.isInteger(context?.verifiedLineCount) && Number(context?.verifiedLineCount) > 0
+    ? Number(context?.verifiedLineCount)
     : null;
   const lineCountKey = lineCount == null ? null : lineCount <= 2 ? "2" : lineCount === 3 ? "3" : "4+";
   const windMps = Number.isFinite(context?.windSpeedKmh)
@@ -1526,6 +1530,21 @@ function hasRaceRiskLeakageGuardIssue(record: KurariExRaceRiskRecord) {
   );
 }
 
+export function hasUnverifiedRaceRiskLineup(record: KurariExRaceRiskRecord) {
+  if (record.line?.groupingStatus === "verified") {
+    return !record.line.source || record.line.source === "unavailable" ||
+      /JSJ005.*narabiyoso|position-only/iu.test(record.line.source) ||
+      !Number.isInteger(record.line.lineCount) || Number(record.line.lineCount) < 2 ||
+      !Number.isInteger(record.line.singleCount) || Number(record.line.singleCount) < 0 ||
+      record.sourceAvailability?.officialLineup !== true;
+  }
+  return record.line?.lineCount != null || record.line?.singleCount != null ||
+    record.sourceAvailability?.officialLineup === true ||
+    record.riskLevel !== "INSUFFICIENT" || record.confidence !== "low" ||
+    (record.signals ?? []).some((signal) =>
+      (signal.key === "line-count" || signal.key === "single-line") && signal.contribution !== 0);
+}
+
 function formatRaceRiskSignalLine(signal: KurariExRaceRiskSignal) {
   return [
     signal.label,
@@ -1556,6 +1575,16 @@ export function buildKurariExPreRaceRiskSignalMaterial(
       "status: unavailable",
       "usage: prohibited",
       "note: date + venueCode/venueSlug/venueName + raceNo のexact一致がないため、別レースのriskは流用しない。",
+    ].join("\n");
+  }
+
+  if (hasUnverifiedRaceRiskLineup(record)) {
+    return [
+      "【RISK SIGNAL】",
+      "status: lineup-unverified",
+      "usage: prohibited",
+      "pointRange: SKIP / 判断材料不足",
+      "note: 車番順をライン構成として集計した可能性があるため、このartifactのrisk判定・点数候補は使用しない。",
     ].join("\n");
   }
 

@@ -242,6 +242,9 @@ export type KurariExPredictionContext = {
   raceTitle?: string | null;
   isGirls?: boolean;
   lineup?: string | null;
+  verifiedLineCount?: number | null;
+  lineupGroupingStatus?: "verified" | "unverified";
+  verifiedLineupSource?: string | null;
   windSpeedKmh?: number | null;
 };
 
