@@ -1,4 +1,5 @@
 import { normalizeVenueName, venueMap } from "../kurari-ex-history-common.mjs";
+import { fetchWithRetry, isRetryableHttpStatus } from "./fetch-with-retry.mjs";
 
 const slugByName = new Map(Object.entries(venueMap).map(([slug, name]) => [normalizeVenueName(name), slug]));
 
@@ -8,6 +9,44 @@ function clean(value) {
 
 function normalizedName(value) {
   return clean(value).normalize("NFKC").replace(/\s+/gu, "");
+}
+
+export function assertCurrentDayWriteDate(targetDate, currentDate, phase) {
+  if (targetDate !== currentDate) {
+    throw new Error(`[guard] ${phase} crossed the JST date boundary; refusing current-day overwrite for ${targetDate}`);
+  }
+}
+
+export async function fetchOfficialResultJson(url, options = {}, retryOptions = {}) {
+  const attempts = 3;
+  const retryDelayMs = retryOptions.retryDelayMs ?? 750;
+  const label = retryOptions.label ?? "KEIRIN.JP result";
+  let lastError;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const response = await fetchWithRetry(url, options, { ...retryOptions, attempts: 1 });
+      if (!response.ok) {
+        lastError = new Error(`KEIRIN.JP request failed: ${response.status} ${response.statusText}`);
+        if (!isRetryableHttpStatus(response.status)) throw lastError;
+      } else {
+        try {
+          return await response.json();
+        } catch (error) {
+          lastError = error;
+        }
+      }
+    } catch (error) {
+      if (error === lastError) throw error;
+      lastError = error;
+    }
+
+    if (attempt === attempts) break;
+    console.warn(`[network] ${label} retry ${attempt}/${attempts} after ${lastError instanceof Error ? lastError.message : String(lastError)}`);
+    if (retryDelayMs > 0) await new Promise((resolve) => setTimeout(resolve, retryDelayMs * attempt));
+  }
+
+  throw lastError;
 }
 
 export function isFreshOfficialResultSnapshot(payload, nowMs = Date.now()) {
@@ -148,6 +187,10 @@ export function indexOfficialTodayRaces(payload) {
 
 export function indexOfficialTodayResults(payload, targetDate) {
   if (payload?.source?.provider !== "KEIRIN.JP" || payload.date !== targetDate || !Array.isArray(payload.venues) || !payload.venues.length) throw new Error("official result date/source mismatch");
+  if ((payload.errorCount != null && payload.errorCount !== 0) ||
+      payload.venues.some((venue) => Array.isArray(venue.races) && venue.races.some((race) => race.resultStatus === "error"))) {
+    throw new Error("official result fetch errors: snapshot is not usable as fresh results");
+  }
   const races = new Map();
   for (const venue of payload.venues) {
     if (venue.date !== targetDate || !/^\d{2}$/.test(clean(venue.venueCode)) || !Array.isArray(venue.races)) throw new Error("official result venue mismatch");
@@ -172,6 +215,13 @@ const payoutLabels = {
 export function officialResultToTodayRace(officialResult, officialEntries) {
   if (officialResult?.resultStatus !== "confirmed") return null;
   const rows = Array.isArray(officialResult.finishOrder) ? officialResult.finishOrder : [];
+  if (rows.some((row) => clean(row.status) || (clean(row.rank) && !/^\d+$/.test(clean(row.rank))))) return null;
+  if (new Set(rows.map((row) => clean(row.carNo))).size !== rows.length ||
+      new Set(rows.map((row) => clean(row.registrationNo))).size !== rows.length) {
+    throw new Error("official result/entry identity conflict");
+  }
+  const rankedRows = rows.filter((row) => /^\d+$/.test(clean(row.rank)));
+  if (new Set(rankedRows.map((row) => clean(row.rank))).size !== rankedRows.length) return null;
   const top3 = rows.filter((row) => /^[123]$/.test(clean(row.rank)));
   if (top3.length !== 3 || top3.map((row) => clean(row.rank)).join("") !== "123") return null;
   const entries = new Map((officialEntries?.entries ?? []).map((entry) => [clean(entry.carNo), entry]));
@@ -187,7 +237,10 @@ export function officialResultToTodayRace(officialResult, officialEntries) {
       popularity: row.popularity == null ? null : String(row.popularity),
     })));
   const trifectas = payouts.filter((item) => item.betType === "3連単");
-  if (trifectas.length !== 1 || !/^\d-\d-\d$/.test(trifectas[0].combination)) return null;
+  const top3Combination = top3.map((row) => clean(row.carNo)).join("-");
+  if (trifectas.length !== 1 || !/^\d-\d-\d$/.test(top3Combination) ||
+      new Set(top3.map((row) => clean(row.carNo))).size !== 3 ||
+      trifectas[0].combination !== top3Combination) return null;
   const finishOrder = rows.map((row) => ({
     rank: clean(row.rank), carNo: clean(row.carNo), name: clean(row.name),
     agari: clean(row.agari), gap: clean(row.gap), kimarite: clean(row.kimarite),

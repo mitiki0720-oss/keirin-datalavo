@@ -4,7 +4,7 @@ import path from "node:path";
 import { load } from "cheerio";
 import { execFileSync } from "node:child_process";
 import { fetchWithRetry } from "./lib/fetch-with-retry.mjs";
-import { attachKdreamsDetailLinks, buildOfficialTodayVenues, indexOfficialTodayRaces, indexOfficialTodayResults, isFreshOfficialResultSnapshot, mergeOfficialTodayRiders, officialResultToTodayRace, validateOfficialTodayEntries } from "./lib/official-today-source.mjs";
+import { assertCurrentDayWriteDate, attachKdreamsDetailLinks, buildOfficialTodayVenues, indexOfficialTodayRaces, indexOfficialTodayResults, isFreshOfficialResultSnapshot, mergeOfficialTodayRiders, officialResultToTodayRace, validateOfficialTodayEntries } from "./lib/official-today-source.mjs";
 import { probeVenueOfficialSite } from "./lib/venue-official-sources.mjs";
 
 const KDREAMS_RACECARD_URL = "https://keirin.kdreams.jp/racecard/";
@@ -4703,6 +4703,8 @@ async function main() {
       `[guard] Refusing to write empty race feed for ${todayIso}: venues=${venues.length}, races=${generatedRaceCount} -> ${OUTPUT_PATH}`,
     );
   }
+
+  assertCurrentDayWriteDate(todayIso, getJstTodayIso(), updatePhase.phase);
 
   await fs.mkdir(path.dirname(OUTPUT_PATH), { recursive: true });
   await fs.writeFile(OUTPUT_PATH, JSON.stringify(payload, null, 2), "utf-8");

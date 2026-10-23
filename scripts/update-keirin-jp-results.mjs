@@ -1,4 +1,5 @@
 import path from "node:path";
+import { fetchOfficialResultJson } from "./lib/official-today-source.mjs";
 import {
   readJsonIfPresent,
   writeJsonIfChanged,
@@ -96,22 +97,16 @@ if (expectedDate && !/^\d{4}-\d{2}-\d{2}$/u.test(expectedDate)) {
 }
 
 async function fetchJson(url) {
-  const response = await fetch(url, {
+  return fetchOfficialResultJson(url, {
     method: "GET",
     headers: {
       accept: "application/json,text/plain,*/*",
       "user-agent": "keirin-datalavo-keirin-jp-results/0.1",
     },
-    signal: AbortSignal.timeout(timeoutMs),
+  }, {
+    timeoutMs,
+    label: `KEIRIN.JP ${url.searchParams.get("type") || "result"}`,
   });
-
-  if (!response.ok) {
-    throw new Error(
-      `KEIRIN.JP request failed: ${response.status} ${response.statusText}`,
-    );
-  }
-
-  return response.json();
 }
 
 function payoutRows(data, key) {
@@ -458,6 +453,7 @@ async function main() {
     );
   }
 
+  const fetchStartedAt = new Date().toISOString();
   const listData = await fetchJson(listUrl);
 
   const venueList = Array.isArray(listData.RaceList)
@@ -509,6 +505,8 @@ async function main() {
       listType: "JSJ048",
       endpoint: "/pc/json",
       kaisaiDateKbn: clean(listData.kaisaiDateKbn),
+      fetchStartedAt,
+      fetchCompletedAt: new Date().toISOString(),
     },
     date: dates[0],
     venues,

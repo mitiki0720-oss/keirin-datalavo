@@ -202,13 +202,9 @@ jobs:
         if: github.event.schedule == '0 3 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.phase == 'final' || github.event.inputs.phase == 'backfill'))
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || \
-             [ "${{ github.event.schedule }}" = "47 14 * * *" ] || \
-             [ "${{ github.event.schedule }}" = "53 14 * * *" ]; then
-            npm run check:keirin-jp-results -- --require-complete
-          else
-            npm run check:keirin-jp-results
-          fi
+          # Late official publication must not discard already confirmed races.
+          # Pending races remain pending; the normal checker still validates the feed.
+          npm run check:keirin-jp-results -- --expect-date="$KEIRIN_JP_EXPECT_DATE" --require-no-errors
       - name: Generate KURARI EX prediction performance
         if: github.event.schedule == '47 14 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.phase == 'final')
         shell: bash
@@ -254,6 +250,18 @@ jobs:
       - name: Commit updated race data
         id: commit_updated_data
         run: |
+          check_current_feed_date() {
+            node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import { assertCurrentDayWriteDate } from "./scripts/lib/official-today-source.mjs";
+          const feed = JSON.parse(fs.readFileSync("public/data/races/today.generated.json", "utf8"));
+          const jstDate = new Intl.DateTimeFormat("sv-SE", {
+            timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit",
+          }).format(new Date());
+          assertCurrentDayWriteDate(feed.date, jstDate, "workflow publish");
+          NODE
+          }
+          check_current_feed_date
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -279,5 +287,6 @@ jobs:
 
           git commit -m "Update race data, schedule, and official feeds"
           git pull --rebase origin main
+          check_current_feed_date
           git push
           echo "changed=true" >> "$GITHUB_OUTPUT"

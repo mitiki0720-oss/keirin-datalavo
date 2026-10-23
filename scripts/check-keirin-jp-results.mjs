@@ -47,6 +47,8 @@ const file = path.resolve(
 );
 
 const requireComplete = args.includes("--require-complete");
+const requireNoErrors = args.includes("--require-no-errors");
+const expectedDate = clean(getArgValue("--expect-date", ""));
 const expectedVenueCount = numberValue(
   getArgValue("--expect-venues", ""),
 );
@@ -87,6 +89,11 @@ pushError(
   /^\d{4}-\d{2}-\d{2}$/u.test(clean(payload.date)),
   `invalid payload date: ${clean(payload.date) || "(missing)"}`,
 );
+
+if (expectedDate) {
+  pushError(errors, clean(payload.date) === expectedDate,
+    `expected date ${expectedDate}, actual ${clean(payload.date) || "(missing)"}`);
+}
 
 pushError(
   errors,
@@ -321,6 +328,11 @@ pushError(
   payload.errorCount === errorRaceCount,
   `errorCount mismatch: payload=${payload.errorCount} actual=${errorRaceCount}`,
 );
+
+if (requireNoErrors) {
+  pushError(errors, errorRaceCount === 0,
+    `fetch errors are not allowed: ${errorRaceCount}`);
+}
 
 if (requireComplete) {
   pushError(
