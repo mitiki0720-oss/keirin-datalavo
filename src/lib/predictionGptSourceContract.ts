@@ -334,11 +334,8 @@ export const resolvePredictionGptSourceMetadata = ({
     sourceName,
     sourceFetchedAt: firstContractValue(
       race?.sourceFetchedAt,
-      race?.raceOperationUpdatedAt,
       venue?.sourceFetchedAt,
-      venue?.venueOperationUpdatedAt,
       feed?.sourceFetchedAt,
-      feed?.generatedAt,
     ),
     sourceType: normalizeSourceType(explicitSourceType, sourceName),
   };

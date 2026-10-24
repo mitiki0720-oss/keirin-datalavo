@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { buildReviewOfficialResultsFeed } from "../lib/reviewOfficialResults";
 import {
   SiteHeader,
   fetchPredictionVenueWeather,
@@ -122,6 +123,7 @@ type PredictionRaceFinishOrderItem = {
 
 type PredictionRaceResult = {
   status?: "pending" | "confirmed";
+  reviewSettlementEligible?: boolean;
   finishOrder?: Array<string | PredictionRaceFinishOrderItem>;
   kimarite?: string;
   secondKimarite?: string;
@@ -223,6 +225,7 @@ type ReviewFinalOddsReference = {
 
 type PredictionVenueItem = {
   venue: string;
+  venueCode?: string;
   slug?: string;
   grade?: string;
   session?: string;
@@ -326,6 +329,8 @@ const toPublicPath = (path: string) => {
 const PREDICTION_TODAY_DATA_URL = toPublicPath("/data/races/today.generated.json");
 const PREDICTION_SAVED_DATA_URL = toPublicPath("/data/predictions/saved-predictions.generated.json");
 const REVIEW_FILE_INDEX_URL = toPublicPath("/data/reviews/index.json");
+const REVIEW_OFFICIAL_RESULTS_URL = (date: string) =>
+  toPublicPath(`/data/review-page/official-results/${date}.generated.json`);
 const REVIEW_PAGE_BACKGROUND_URL = toPublicPath("/review-page/backgrounds/review-page-bg-sky-water.png");
 
 async function fetchReviewTodayFeed(cacheMode: RequestCache = "no-cache") {
@@ -333,6 +338,14 @@ async function fetchReviewTodayFeed(cacheMode: RequestCache = "no-cache") {
   const response = await fetch(`${PREDICTION_TODAY_DATA_URL}${suffix}`, { cache: cacheMode });
   if (!response.ok) throw new Error(`review-feed-${response.status}`);
   return response.json() as Promise<PredictionTodayFeed>;
+}
+
+async function fetchReviewOfficialResults(date: string): Promise<PredictionTodayFeed | null> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const response = await fetch(REVIEW_OFFICIAL_RESULTS_URL(date), { cache: "no-cache" });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`review-official-results-${response.status}`);
+  return buildReviewOfficialResultsFeed(await response.json(), date);
 }
 
 type SavedPredictionPayload = {
@@ -410,57 +423,6 @@ function shiftReviewIsoDateByDays(isoDate: string, days: number) {
 function getJstOperationalDate(base: Date = new Date()) {
   const parts = getReviewJstDateTimeParts(base);
   return Number(parts.hour) >= 6 ? parts.isoDate : shiftReviewIsoDateByDays(parts.isoDate, -1);
-}
-
-function getReviewPredictionKeepDate() {
-  return getJstOperationalDate();
-}
-
-function shouldKeepTodayPredictionDate(date?: string) {
-  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
-  return date === getReviewPredictionKeepDate();
-}
-
-function prunePredictionSlotsMap(map: Record<string, PredictionSlotRecord>) {
-  let changed = false;
-
-  const records = Object.entries(map).reduce<Record<string, PredictionSlotRecord>>((accumulator, [key, value]) => {
-    if (!value || typeof value !== "object") {
-      changed = true;
-      return accumulator;
-    }
-
-    if (!shouldKeepTodayPredictionDate(value.date)) {
-      changed = true;
-      return accumulator;
-    }
-
-    accumulator[key] = value;
-    return accumulator;
-  }, {});
-
-  return { records, changed };
-}
-
-function prunePredictionResultsMap(map: Record<string, PredictionResultRecord>) {
-  let changed = false;
-
-  const records = Object.entries(map).reduce<Record<string, PredictionResultRecord>>((accumulator, [key, value]) => {
-    if (!value || typeof value !== "object") {
-      changed = true;
-      return accumulator;
-    }
-
-    if (!shouldKeepTodayPredictionDate(value.date)) {
-      changed = true;
-      return accumulator;
-    }
-
-    accumulator[key] = value;
-    return accumulator;
-  }, {});
-
-  return { records, changed };
 }
 
 function formatDateLabel(iso: string) {
@@ -796,15 +758,7 @@ function loadPredictionSlots() {
       normalizeReviewPredictionSlotRecord(value),
     ]),
   ) as Record<string, PredictionSlotRecord>;
-  const { records, changed } = prunePredictionSlotsMap(normalized);
-  if (changed) {
-    try {
-      window.localStorage.setItem(PREDICTION_SLOT_STORAGE_KEY, JSON.stringify(records));
-    } catch {
-      // localStorage write failure is non-fatal
-    }
-  }
-  return records;
+  return normalized;
 }
 
 function loadPredictionResults() {
@@ -813,15 +767,7 @@ function loadPredictionResults() {
   const normalized = Object.fromEntries(
     Object.entries(parsed).map(([key, value]) => [key, normalizeReviewPredictionResultRecord(value)]),
   ) as Record<string, PredictionResultRecord>;
-  const { records, changed } = prunePredictionResultsMap(normalized);
-  if (changed) {
-    try {
-      window.localStorage.setItem(PREDICTION_RESULT_STORAGE_KEY, JSON.stringify(records));
-    } catch {
-      // localStorage write failure is non-fatal
-    }
-  }
-  return records;
+  return normalized;
 }
 
 function normalizeReviewFileIndexItem(record: Partial<ReviewFileIndexItem>): ReviewFileIndexItem | null {
@@ -1081,6 +1027,7 @@ function cleanReviewRiderName(value?: string) {
 }
 
 function getResultOrder(record?: PredictionResultRecord, feedRace?: PredictionRaceItem) {
+  if (feedRace?.result?.reviewSettlementEligible === false) return "--";
   if (record?.resultOrder) return record.resultOrder;
   const finish = (feedRace?.result?.finishOrder ?? [])
     .map((item) => typeof item === "string" ? item : item?.carNo)
@@ -1935,7 +1882,7 @@ function resolveReviewRacePerformance(
   feedRace: PredictionRaceItem | undefined,
 ) {
   const resultOrder = getResultOrder(resultRecord, feedRace);
-  const settled = isResultReviewReady({
+  const settled = feedRace?.result?.reviewSettlementEligible !== false && isResultReviewReady({
     venue: "",
     date: "",
     raceNumber: feedRace?.raceNo ?? resultRecord?.raceNumber ?? 0,
@@ -2169,7 +2116,9 @@ function buildResultCopy(
     const finalOddsReference = resolveReviewFinalOddsReference(latestFeedRace, race.feedRace);
     const resultStatusLabel = getReviewResultStatusLabel(race.feedRace);
     const resultOrderLabel = getReviewResultOrderLabel(race.feedRace, resultOrder);
-    const hitStatusLabel = isReviewAllRefundRace(race.feedRace)
+    const hitStatusLabel = !race.hasPrediction
+      ? "予想未保存 / 的中・収支未判定"
+      : isReviewAllRefundRace(race.feedRace)
       ? REVIEW_ALL_REFUND_HIT_LABEL
       : hitStatus === "purchase-hit"
         ? "実購入的中"
@@ -2386,6 +2335,7 @@ export default function ReviewPage() {
   const [publicSlotMap, setPublicSlotMap] = useState<Record<string, PredictionSlotRecord>>({});
   const [resultMap, setResultMap] = useState<Record<string, PredictionResultRecord>>({});
   const [todayFeed, setTodayFeed] = useState<PredictionTodayFeed | null>(null);
+  const [historicalOfficialFeed, setHistoricalOfficialFeed] = useState<PredictionTodayFeed | null>(null);
   const [raceResultSnapshotMap, setRaceResultSnapshotMap] = useState<ReviewRaceResultSnapshotMap>({});
   const [reviewWeatherActualMap, setReviewWeatherActualMap] = useState<ReviewWeatherActualMap>({});
   const [reviewFileIndexItems, setReviewFileIndexItems] = useState<ReviewFileIndexItem[]>([]);
@@ -2396,15 +2346,18 @@ export default function ReviewPage() {
   const [keywordQuery, setKeywordQuery] = useState("");
   const [selectedVenueName, setSelectedVenueName] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
-  const [selectedDate] = useState(operationalToday);
+  const [selectedDate, setSelectedDate] = useState(operationalToday);
   const isTodaySelected = selectedDate === operationalToday;
   const isYesterdaySelected = selectedDate === yesterdayReviewDate;
-  const isLocalReviewSelected = isTodaySelected || isYesterdaySelected;
+  const selectedFeed = isTodaySelected && todayFeed?.date === selectedDate
+    ? todayFeed
+    : (historicalOfficialFeed?.date === selectedDate ? historicalOfficialFeed : null);
+  const isLocalReviewSelected = isTodaySelected || isYesterdaySelected || historicalOfficialFeed?.date === selectedDate;
   const reviewModeLabel = isLocalReviewSelected
-    ? (isTodaySelected ? "TODAY REVIEW" : "YESTERDAY REVIEW")
+    ? (isTodaySelected ? "TODAY REVIEW" : isYesterdaySelected ? "YESTERDAY REVIEW" : "HISTORICAL REVIEW")
     : "FILE REVIEW";
   const workbenchLabel = isLocalReviewSelected
-    ? (isTodaySelected ? "LIVE WORKBENCH" : "YESTERDAY WORKBENCH")
+    ? (isTodaySelected ? "LIVE WORKBENCH" : isYesterdaySelected ? "YESTERDAY WORKBENCH" : "HISTORICAL WORKBENCH")
     : "FILE ARCHIVE";
   const slotMap = useMemo(
     () => mergeReviewPredictionSlots(publicSlotMap, localSlotMap),
@@ -2453,6 +2406,14 @@ export default function ReviewPage() {
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [isTodaySelected]);
+
+  useEffect(() => {
+    let active = true;
+    void fetchReviewOfficialResults(selectedDate)
+      .then((feed) => { if (active) setHistoricalOfficialFeed(feed); })
+      .catch(() => { if (active) setHistoricalOfficialFeed(null); });
+    return () => { active = false; };
+  }, [selectedDate]);
 
   useEffect(() => {
     let cancelled = false;
@@ -2528,11 +2489,11 @@ export default function ReviewPage() {
       selectedDate,
       slotMap,
       resultMap,
-      todayFeed && todayFeed.date === selectedDate ? todayFeed : null,
+      selectedFeed,
       raceResultSnapshotMap,
       reviewFileGroups,
     ),
-  [selectedDate, slotMap, resultMap, todayFeed, raceResultSnapshotMap, reviewFileGroups],
+  [selectedDate, slotMap, resultMap, selectedFeed, raceResultSnapshotMap, reviewFileGroups],
 );
 
   useEffect(() => {
@@ -2764,7 +2725,7 @@ export default function ReviewPage() {
     () => {
       if (isLocalReviewSelected) {
         const structuredCopy = selectedVenueGroup
-          ? buildResultCopy(selectedVenueGroup, reviewWeatherActualMap, todayFeed)
+          ? buildResultCopy(selectedVenueGroup, reviewWeatherActualMap, selectedFeed)
           : "";
         const fileCopy = selectedReviewFileGroup?.resultText ?? "";
         const structuredCount = selectedVenueGroup?.races.filter((race) => isResultReviewReady(race)).length ?? 0;
@@ -2779,11 +2740,11 @@ export default function ReviewPage() {
         ? buildResultCopy(
             selectedFileFallbackVenueGroup,
             reviewWeatherActualMap,
-            todayFeed,
+            selectedFeed,
           )
         : fileResultText;
     },
-    [isLocalReviewSelected, reviewWeatherActualMap, selectedFileFallbackVenueGroup, selectedReviewFileGroup, selectedVenueGroup, todayFeed],
+    [isLocalReviewSelected, reviewWeatherActualMap, selectedFileFallbackVenueGroup, selectedReviewFileGroup, selectedVenueGroup, selectedFeed],
   );
 
   const selectedReviewReadiness = useMemo(() => {
@@ -2792,8 +2753,8 @@ export default function ReviewPage() {
     const predictionSections = parseReviewCopySections(selectedReviewFileGroup?.predictionText ?? "");
     const resultSections = parseReviewCopySections(selectedReviewFileGroup?.resultText ?? "");
     const targetVenue = selectedDisplayVenueName ?? sourceGroup?.venue;
-    const feedVenue = todayFeed?.date === selectedDate && targetVenue
-      ? todayFeed.venues.find((venue) => normalizeVenueName(venue.venue) === normalizeVenueName(targetVenue))
+    const feedVenue = selectedFeed && targetVenue
+      ? selectedFeed.venues.find((venue) => normalizeVenueName(venue.venue) === normalizeVenueName(targetVenue))
       : undefined;
     const savedResultRecords = targetVenue
       ? Object.values(resultMap).filter(
@@ -2892,7 +2853,7 @@ export default function ReviewPage() {
     selectedFileFallbackVenueGroup,
     selectedReviewFileGroup,
     selectedVenueGroup,
-    todayFeed,
+    selectedFeed,
   ]);
 
   const todaySummary = useMemo(() => {
@@ -3005,6 +2966,13 @@ export default function ReviewPage() {
                   <div style={{ marginBottom: "10px", fontSize: "14px", fontWeight: 900, color: "#6f52b2" }}>
                     対象日: {selectedDate.replaceAll("-", "/")}
                     <span style={{ marginLeft: "8px", fontSize: "11px", fontWeight: 700, color: "#8b8495" }}>JST 6:00切替</span>
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
+                    <button type="button" onClick={() => setSelectedDate(operationalToday)} aria-pressed={isTodaySelected} style={{ border: "1px solid #d6cceb", borderRadius: "6px", padding: "5px 10px", background: isTodaySelected ? "#6f52b2" : "#fff", color: isTodaySelected ? "#fff" : "#4b3a73", cursor: "pointer" }}>今日</button>
+                    <button type="button" onClick={() => setSelectedDate(yesterdayReviewDate)} aria-pressed={isYesterdaySelected} style={{ border: "1px solid #d6cceb", borderRadius: "6px", padding: "5px 10px", background: isYesterdaySelected ? "#6f52b2" : "#fff", color: isYesterdaySelected ? "#fff" : "#4b3a73", cursor: "pointer" }}>昨日</button>
+                    <input type="date" aria-label="レビュー対象日" value={selectedDate} max={operationalToday} style={{ border: "1px solid #d6cceb", borderRadius: "6px", padding: "5px 8px", color: "#4b3a73", background: "#fff" }} onChange={(event) => {
+                      if (/^\d{4}-\d{2}-\d{2}$/.test(event.target.value)) setSelectedDate(event.target.value);
+                    }} />
                   </div>
                   <p style={{ margin: 0, maxWidth: "560px", fontSize: "15px", lineHeight: 1.95, color: "#5f6676" }}>
                     {isTodaySelected
@@ -3493,6 +3461,32 @@ export default function ReviewPage() {
                   <SummaryChip label={isLocalReviewSelected ? "R対応" : "保存方式"} value={isLocalReviewSelected ? selectedReviewReadiness.raceNumbersMatch ? "予想・結果一致" : "要確認" : "fetch only"} />
                 </div>
 
+                {selectedFeed && selectedFeed === historicalOfficialFeed && selectedVenueGroup ? (
+                  <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: "14px", marginBottom: "18px" }}>
+                    <h3 style={{ margin: "0 0 8px", fontSize: "16px" }}>公式結果</h3>
+                    {selectedVenueGroup.races.map((race) => {
+                      const payout = resolveRacePayoutByBetType(race.feedRace, "3連単");
+                      const confirmed = race.feedRace?.resultStatus === "confirmed";
+                      return (
+                        <details key={race.raceKey} style={{ borderBottom: "1px solid #e5e7eb", padding: "8px 0" }}>
+                          <summary style={{ cursor: "pointer", fontWeight: 700 }}>
+                            {race.raceNumber}R · {confirmed ? "公式結果確定" : "公式結果未取得"}
+                            {confirmed && payout ? ` · 3連単 ${payout.combination} ${formatYen(Number(payout.payout))}` : ""}
+                            {race.feedRace?.resultNote ? ` · ${race.feedRace.resultNote}` : ""}
+                          </summary>
+                          <div style={{ padding: "8px 0", fontSize: "12px", lineHeight: 1.8 }}>
+                            <div>{race.hasPrediction ? "保存予想あり" : "予想未保存・的中/投資/収支/ROI未判定"}</div>
+                            {confirmed ? buildReviewFullResultLines(race.feedRace).map((line, index) => (
+                              <div key={`${race.raceKey}:${index}`}>{line}</div>
+                            )) : <div>着順・払戻は未取得</div>}
+                            <div>出典: {race.feedRace?.sourceName ?? "未取得"} / 取得完了: {race.feedRace?.sourceFetchedAt ?? "未取得"}</div>
+                          </div>
+                        </details>
+                      );
+                    })}
+                  </div>
+                ) : null}
+
                 {isLocalReviewSelected && selectedVenueGroup ? (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "16px" }}>
                     {selectedVenueGroup.races.filter((race) => race.hasPrediction).map((race) => {
@@ -3635,12 +3629,13 @@ export default function ReviewPage() {
       try {
         let copyValue = selectedResultCopy;
         const latestFeed = isTodaySelected ? await fetchReviewTodayFeed("no-store").catch(() => null) : null;
-        if (latestFeed) setTodayFeed(latestFeed);
+        const matchingLatestFeed = latestFeed?.date === selectedDate ? latestFeed : null;
+        if (matchingLatestFeed) setTodayFeed(matchingLatestFeed);
 
         if (!copyValue.trim() && isLocalReviewSelected && selectedVenueGroup) {
-          copyValue = buildResultCopy(selectedVenueGroup, reviewWeatherActualMap, latestFeed ?? todayFeed);
+          copyValue = buildResultCopy(selectedVenueGroup, reviewWeatherActualMap, matchingLatestFeed ?? selectedFeed);
         } else if (!copyValue.trim() && selectedFileFallbackVenueGroup) {
-          copyValue = buildResultCopy(selectedFileFallbackVenueGroup, reviewWeatherActualMap, latestFeed ?? todayFeed);
+          copyValue = buildResultCopy(selectedFileFallbackVenueGroup, reviewWeatherActualMap, matchingLatestFeed ?? selectedFeed);
         }
 
         await copyText(copyValue);

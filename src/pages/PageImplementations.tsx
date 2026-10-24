@@ -1125,11 +1125,6 @@ export const prunePredictionSlotsMap = (map: PredictionSlotMap) => {
       return accumulator;
     }
 
-    if (!shouldKeepPredictionReviewDate(value.date)) {
-      changed = true;
-      return accumulator;
-     }
-
     accumulator[key] = value;
     return accumulator;
   }, {});
@@ -1142,11 +1137,6 @@ export const prunePredictionResultsMap = (map: PredictionResultMap) => {
 
   const records = Object.entries(map).reduce<PredictionResultMap>((accumulator, [key, value]) => {
     if (!value || typeof value !== "object") {
-      changed = true;
-      return accumulator;
-    }
-
-    if (!shouldKeepPredictionReviewDate(value.date)) {
       changed = true;
       return accumulator;
     }
@@ -1166,15 +1156,7 @@ export const loadStoredPredictionSlots = (): PredictionSlotMap => {
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return {};
-    const { records, changed } = prunePredictionSlotsMap(parsed as PredictionSlotMap);
-    if (changed) {
-      try {
-        window.localStorage.setItem(PREDICTION_SLOT_STORAGE_KEY, JSON.stringify(records));
-      } catch {
-        // localStorage write failure is non-fatal
-      }
-    }
-    return records;
+    return prunePredictionSlotsMap(parsed as PredictionSlotMap).records;
   } catch {
     return {};
   }
@@ -1237,11 +1219,13 @@ export const loadStoredPredictionResults = (): PredictionResultMap => {
 
     let missingInvestmentCount = 0;
     let missingPayoutCount = 0;
-    let needsResave = pruned.changed;
-
     const normalized = Object.entries(pruned.records).reduce<PredictionResultMap>((accumulator, [key, value]) => {
       if (!value || typeof value !== "object") return accumulator;
       const raw = value as PredictionResultRecord;
+      if (!shouldKeepPredictionReviewDate(raw.date)) {
+        accumulator[key] = raw;
+        return accumulator;
+      }
 
 if (raw.hitStatus !== "pending" && raw.investment === undefined) {
   missingInvestmentCount += 1;
@@ -1253,12 +1237,10 @@ if (raw.hitStatus !== "pending" && raw.investment === undefined) {
       date: raw.date,
     });
   }
-  needsResave = true;
 }
 
 if (raw.hitStatus === "miss" && raw.payout && raw.payout > 0) {
   missingPayoutCount += 1;
-  needsResave = true;
 }
 
 accumulator[key] = normalizePredictionResultRecord(raw);
@@ -1273,14 +1255,6 @@ if (missingInvestmentCount > 0 || missingPayoutCount > 0) {
     });
   }
 }
-
-    if (needsResave) {
-      try {
-        window.localStorage.setItem(PREDICTION_RESULT_STORAGE_KEY, JSON.stringify(normalized));
-      } catch {
-        // localStorage write failure is non-fatal
-      }
-    }
 
     return normalized;
   } catch {
@@ -8479,6 +8453,13 @@ function buildPredictionKdreamsLineupExport(race?: PredictionRaceItem | null) {
 
   const parsed = parsePredictionLineupRaw(rawLineup);
   const hasGroupedLineup = !isPredictionGirlsRace(race) && parsed.groupedGroups.length > 0;
+  const carOrderOnly = !kdreamsRaw
+    && !race?.charilotoLineupRaw
+    && !race?.oddsparkLineupRaw
+    && !race?.netkeirinLineupRaw
+    && !race?.winticketLineupRaw
+    && Boolean(race?.lineup)
+    && !hasGroupedLineup;
   const shouldShowRookieNote = Boolean(
     rookieNote &&
     (rookieCategory === "advance-rookie-men"
@@ -8488,8 +8469,8 @@ function buildPredictionKdreamsLineupExport(race?: PredictionRaceItem | null) {
   return [
     `- KDreams並び予想: ${kdreamsRaw ? "取得済み" : "未掲載"}`,
     ...(kdreamsRaw ? [`- KDreams raw: ${kdreamsRaw}`] : []),
-    ...(!kdreamsRaw ? ["- 代替周回予想: 取得済み"] : []),
-    `- 周回予想: ${parsed.orderLabel || rawLineup}`,
+    ...(!kdreamsRaw ? [`- 代替周回予想: ${carOrderOnly ? "未確認" : "取得済み"}`] : []),
+    `- ${carOrderOnly ? "車番順（ライン未確認）" : "周回予想"}: ${parsed.orderLabel || rawLineup}`,
     ...(hasGroupedLineup
       ? [`- ライン区切り: ${parsed.groupedGroups.join(" / ")}`]
       : race?.isGirls && parsed.orderLabel

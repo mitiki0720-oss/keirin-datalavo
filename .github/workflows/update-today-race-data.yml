@@ -205,6 +205,22 @@ jobs:
           # Late official publication must not discard already confirmed races.
           # Pending races remain pending; the normal checker still validates the feed.
           npm run check:keirin-jp-results -- --expect-date="$KEIRIN_JP_EXPECT_DATE" --require-no-errors
+      - name: Archive Review official results
+        id: review_official_archive
+        if: github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *'
+        continue-on-error: true
+        shell: bash
+        run: |
+          node scripts/check-keirin-jp-results.mjs --expect-date="$KEIRIN_JP_EXPECT_DATE" --require-complete --require-no-errors
+          node scripts/archive-keirin-review-official-results.mjs --expect-date="$KEIRIN_JP_EXPECT_DATE"
+          echo "REVIEW_OFFICIAL_ARCHIVE_DATE=$KEIRIN_JP_EXPECT_DATE" >> "$GITHUB_ENV"
+
+      - name: Report Review official archive failure
+        if: always() && steps.review_official_archive.outcome == 'failure'
+        run: |
+          echo "::warning title=Review official archive unavailable::The daily Review archive was not created or changed; inspect the preceding date, completeness, source, identity, or write-once error. Validated today data will continue to its commit gate."
+          echo "Review official archive: FAILED / not updated. Check the archive step before treating this date as available in Review." >> "$GITHUB_STEP_SUMMARY"
+
       - name: Generate KURARI EX prediction performance
         if: github.event.schedule == '47 14 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.phase == 'final')
         shell: bash
@@ -278,6 +294,13 @@ jobs:
           git add public/data/races/upcoming-schedule.generated.json
           git add public/data/races/keirin-jp-results.generated.json
           git add public/data/races/keirin-jp-entries.generated.json
+          if [ -n "${REVIEW_OFFICIAL_ARCHIVE_DATE:-}" ]; then
+            if [ "$REVIEW_OFFICIAL_ARCHIVE_DATE" != "$KEIRIN_JP_EXPECT_DATE" ]; then
+              echo "[guard] Review archive date mismatch: $REVIEW_OFFICIAL_ARCHIVE_DATE != $KEIRIN_JP_EXPECT_DATE"
+              exit 1
+            fi
+            git add -- "public/data/review-page/official-results/${REVIEW_OFFICIAL_ARCHIVE_DATE}.generated.json"
+          fi
           git add public/data/analytics/kurari-ex/race-risk/index.generated.json
           RISK_DATE="$(node -e 'const fs=require("fs"); const data=JSON.parse(fs.readFileSync("public/data/analytics/kurari-ex/race-risk/index.generated.json","utf8")); if(!/^\d{4}-\d{2}-\d{2}$/.test(data.period?.date || "")) process.exit(1); process.stdout.write(data.period.date);')"
           git add "public/data/analytics/kurari-ex/race-risk-history/${RISK_DATE}.generated.json"
