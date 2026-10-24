@@ -4,6 +4,7 @@ import path from "node:path";
 import { load } from "cheerio";
 import { execFileSync } from "node:child_process";
 import { fetchWithRetry } from "./lib/fetch-with-retry.mjs";
+import { classifyOddsPage, classifyRacecardFailure, createOddsAcquisition, hasConflictingTrifectaPrices, reusableVerifiedOdds, validateKdreamsRaceLink, validateTrifectaOdds } from "./lib/odds-acquisition.mjs";
 import { assertCurrentDayWriteDate, attachKdreamsDetailLinks, buildOfficialTodayVenues, indexOfficialTodayRaces, indexOfficialTodayResults, isFreshOfficialResultSnapshot, mergeOfficialTodayRiders, officialResultToTodayRace, validateOfficialTodayEntries } from "./lib/official-today-source.mjs";
 import { probeVenueOfficialSite } from "./lib/venue-official-sources.mjs";
 
@@ -895,12 +896,8 @@ function isRaceResultComplete(race) {
 }
 
 function isRaceOddsComplete(race) {
-  const oddsNote = String(race?.oddsNote ?? "");
-  return Boolean(
-    (Array.isArray(race?.oddsTrifecta) && race.oddsTrifecta.length > 0)
-      || (Array.isArray(race?.oddsPreview) && race.oddsPreview.length > 0)
-      || /unavailable|fetch failed|accepted/i.test(oddsNote),
-  );
+  return race?.oddsAcquisition?.status === "odds-verified"
+    && Array.isArray(race.oddsTrifecta) && race.oddsTrifecta.length > 0;
 }
 
 function isRaceLineupCheckedOrComplete(race) {
@@ -3106,7 +3103,12 @@ function extractKdreamsTrifectaOddsData(html) {
       source: "kdreams",
     }))
     .sort((a, b) => a.popularity - b.popularity || a.odds - b.odds);
-  const mergedItems = [...popularItems, ...matrixMergedItems]
+  const combinedItems = [...popularItems, ...matrixMergedItems];
+  if (hasConflictingTrifectaPrices(combinedItems)) {
+    return { ...createEmptyRaceOddsData(), reason: "conflicting trifecta prices", conflict: true,
+      matrixCount: matrixItems.length, popularityCount: popularityRows.length };
+  }
+  const mergedItems = combinedItems
     .filter((item, index, array) => array.findIndex((candidate) => candidate.combination === item.combination) === index);
 
   const oddsPreview = popularityRows.slice(0, 3).map((item) => ({
@@ -3116,7 +3118,6 @@ function extractKdreamsTrifectaOddsData(html) {
   }));
 
   const favorite = mergedItems.find((item) => item.popularity === 1) ?? null;
-  const capturedAt = getJstNowParts().isoDateTime;
   const finalTrifectaFavorite = favorite
     ? {
         combination: favorite.combination,
@@ -3125,7 +3126,7 @@ function extractKdreamsTrifectaOddsData(html) {
         popularity: 1,
         source: "kdreams",
         sort: "popular",
-        capturedAt,
+        capturedAt: null,
       }
     : null;
 
@@ -3143,7 +3144,7 @@ function extractKdreamsTrifectaOddsData(html) {
   };
 }
 
-async function fetchKdreamsTrifectaOdds(slug, kdreamsRaceId) {
+async function fetchKdreamsTrifectaOdds(slug, kdreamsRaceId, context = null) {
   const url = buildKdreamsRaceOddsDetailUrl(slug, kdreamsRaceId);
   if (!url) {
     return {
@@ -3151,25 +3152,31 @@ async function fetchKdreamsTrifectaOdds(slug, kdreamsRaceId) {
       source: "kdreams",
       reason: "url unavailable",
       oddsNote: "kdreams odds skipped: url unavailable",
+      oddsAcquisition: context && createOddsAcquisition({ ...context, status: "race-id-unresolved", reason: "observed odds URL unavailable" }),
       matrixCount: 0,
       popularityCount: 0,
     };
   }
 
+  const requestedAt = new Date().toISOString();
+  let receivedStatus = null;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       headers: {
         "user-agent": "Mozilla/5.0",
         "accept-language": "ja-JP,ja;q=0.9,en;q=0.8",
       },
-    });
+    }, { attempts: 3, timeoutMs: 20_000, label: "kdreams trifecta odds" });
+    receivedStatus = response.status;
 
     if (!response.ok) {
+      const status = response.status === 404 ? "individual-odds-unavailable" : "http-error";
       return {
         ...createEmptyRaceOddsData(),
         source: "kdreams",
         reason: `fetch failed: ${response.status}`,
         oddsNote: `kdreams odds fetch failed: ${response.status}`,
+        oddsAcquisition: context && createOddsAcquisition({ ...context, status, httpAttempted: true, requestedAt, httpStatus: response.status, reason: `odds HTTP ${response.status}` }),
         matrixCount: 0,
         popularityCount: 0,
       };
@@ -3177,29 +3184,35 @@ async function fetchKdreamsTrifectaOdds(slug, kdreamsRaceId) {
 
     const html = await readHtmlResponse(response);
     const oddsData = extractKdreamsTrifectaOddsData(html);
+    const checked = context && validateTrifectaOdds(oddsData.oddsTrifecta, context.riderCars);
+    const verified = context ? checked.valid : oddsData.oddsTrifecta.length > 0;
+    const status = oddsData.conflict ? "identity-conflict-blocked"
+      : classifyOddsPage({ html, oddsCount: oddsData.oddsTrifecta.length, valid: verified });
+    const accepted = status === "odds-verified";
+    const reason = status === "individual-odds-unavailable" ? "odds page maintenance"
+      : oddsData.conflict ? oddsData.reason : checked?.reason || oddsData.reason;
+    const fetchedAt = accepted ? new Date().toISOString() : null;
+    if (accepted && oddsData.finalTrifectaFavorite) oddsData.finalTrifectaFavorite.capturedAt = fetchedAt;
     return {
-      oddsPreview: oddsData.oddsPreview,
-      oddsTrifecta: oddsData.oddsTrifecta,
-      finalTrifectaFavorite: oddsData.finalTrifectaFavorite,
-      topOdds: oddsData.topOdds,
-      topTrifectaOdds: oddsData.topTrifectaOdds,
-      favoriteOdds: oddsData.favoriteOdds,
-      favoriteCombination: oddsData.favoriteCombination,
-      oddsNote: oddsData.oddsTrifecta.length
+      ...createEmptyRaceOddsData(),
+      ...(accepted ? oddsData : {}),
+      oddsNote: accepted
         ? `kdreams odds accepted: count=${oddsData.oddsTrifecta.length} matrix=${oddsData.matrixCount} popular=${oddsData.popularityCount}`
-        : `kdreams odds unavailable: ${oddsData.reason} matrix=${oddsData.matrixCount} popular=${oddsData.popularityCount}`,
+        : `kdreams odds not adopted: ${reason}`,
+      oddsAcquisition: context && createOddsAcquisition({ ...context, status, httpAttempted: true, requestedAt, fetchedAt, httpStatus: response.status, reason }),
       source: "kdreams",
-      reason: oddsData.reason,
+      reason: accepted ? oddsData.reason : reason,
       matrixCount: oddsData.matrixCount,
       popularityCount: oddsData.popularityCount,
-      url,
     };
   } catch (error) {
+    const status = receivedStatus === null ? "transport-error" : "format-changed";
     return {
       ...createEmptyRaceOddsData(),
       source: "kdreams",
       reason: error instanceof Error ? error.message : String(error),
-      oddsNote: `kdreams odds fetch failed: ${error instanceof Error ? error.message : String(error)}`,
+      oddsNote: `kdreams odds ${status}`,
+      oddsAcquisition: context && createOddsAcquisition({ ...context, status, httpAttempted: true, requestedAt, httpStatus: receivedStatus, reason: status }),
       matrixCount: 0,
       popularityCount: 0,
     };
@@ -3907,60 +3920,33 @@ async function fetchKdreamsRaceResult(slug, kdreamsRaceId, raceNo, riders) {
   }
 }
 
-async function fetchRaceOddsWithFallback({ raceId, venue, raceNo, detailLink }) {
-  if (!SOURCE_POLICY.kdreams && !SOURCE_POLICY.netkeirin) {
-    return { ...createEmptyRaceOddsData(), source: "unavailable", oddsNote: "3連単オッズ未取得: 有効な取得元なし" };
+async function fetchRaceOddsWithFallback({ date, phase, venue, raceNo, detailLink, riderCars, racecard }) {
+  const context = { date, venueCode: venue.venueCode, raceNo, phase, racecard, riderCars };
+  if (!SOURCE_POLICY.kdreams) {
+    return { ...createEmptyRaceOddsData(), source: "unavailable", oddsNote: "3連単オッズ未取得: 有効な取得元なし",
+      oddsAcquisition: createOddsAcquisition({ ...context, status: racecard?.status && !["available", "not-requested"].includes(racecard.status) ? racecard.status : "sale-state-unverified", reason: racecard?.reason || "no verified odds provider" }) };
   }
-  if (SOURCE_POLICY.kdreams) {
-    const kdreamsOdds = await fetchKdreamsTrifectaOdds(detailLink?.slug ?? venue.slug, detailLink?.raceId);
-    if (hasMeaningfulRaceOdds(kdreamsOdds)) {
-      console.log(
-        `[odds] ${venue.venue} ${raceNo}R kdreams=accepted count=${kdreamsOdds.oddsTrifecta.length} matrix=${kdreamsOdds.matrixCount} popular=${kdreamsOdds.popularityCount}`,
-      );
-      return kdreamsOdds;
-    }
-
-    if (!SOURCE_POLICY.netkeirin) {
-      console.log(`[odds] ${venue.venue} ${raceNo}R kdreams=${kdreamsOdds.reason}`);
-      return {
-        ...createEmptyRaceOddsData(),
-        source: "pending",
-        oddsNote: kdreamsOdds.oddsNote,
-      };
-    }
+  if (!detailLink) {
+    return { ...createEmptyRaceOddsData(), source: "unavailable", oddsNote: "kdreams raceId unavailable",
+      oddsAcquisition: createOddsAcquisition({ ...context, status: "race-id-unresolved", reason: "observed race detail link unavailable" }) };
   }
-
-  const netkeirinOdds = SOURCE_POLICY.netkeirin
-    ? await fetchNetkeirinTrifectaOddsForRaceId(raceId)
-    : { ...createEmptyRaceOddsData(), source: "netkeirin:disabled", reason: "disabled by source policy", oddsNote: "netkeirin odds disabled by source policy" };
-  if (hasMeaningfulRaceOdds(netkeirinOdds)) {
+  if (!validateKdreamsRaceLink(detailLink, venue, raceNo, date)) {
+    return { ...createEmptyRaceOddsData(), source: "unavailable", oddsNote: "kdreams race identity conflict",
+      oddsAcquisition: createOddsAcquisition({ ...context, status: "identity-conflict-blocked", reason: "race detail link does not match official race identity" }) };
+  }
+  const kdreamsOdds = await fetchKdreamsTrifectaOdds(detailLink.slug, detailLink.raceId, context);
+  if (kdreamsOdds.oddsAcquisition?.status === "odds-verified") {
     console.log(
-      `[odds] ${venue.venue} ${raceNo}R source=${netkeirinOdds.source} count=${netkeirinOdds.oddsTrifecta.length} reason=${netkeirinOdds.reason} usedKey=${netkeirinOdds.usedKey} rawRows=${netkeirinOdds.rawRows} normalizedRows=${netkeirinOdds.normalizedRows}`,
+      `[odds] ${venue.venue} ${raceNo}R kdreams=accepted count=${kdreamsOdds.oddsTrifecta.length} matrix=${kdreamsOdds.matrixCount} popular=${kdreamsOdds.popularityCount}`,
     );
-    return netkeirinOdds;
+    return kdreamsOdds;
   }
-
-  const netkeirinFailureNote = `netkeirin odds fetch failed: ${netkeirinOdds.reason}`;
-  const kdreamsOdds = await fetchKdreamsTrifectaOdds(detailLink?.slug ?? venue.slug, detailLink?.raceId);
-  if (hasMeaningfulRaceOdds(kdreamsOdds)) {
-    console.log(
-      `[odds] ${venue.venue} ${raceNo}R netkeirin=${netkeirinOdds.reason} kdreams=accepted count=${kdreamsOdds.oddsTrifecta.length} matrix=${kdreamsOdds.matrixCount} popular=${kdreamsOdds.popularityCount}`,
-    );
-    return {
-      ...kdreamsOdds,
-      oddsNote: `${netkeirinFailureNote} / ${kdreamsOdds.oddsNote}`,
-    };
-  }
-
-  // TODO: Probe WINTICKET / OddsPark odds pages if KDreams odds become unavailable or structurally unstable.
-  console.log(
-    `[odds] ${venue.venue} ${raceNo}R netkeirin=${netkeirinOdds.reason} kdreams=${kdreamsOdds.reason}`,
-  );
-
+  console.log(`[odds] ${venue.venue} ${raceNo}R kdreams=${kdreamsOdds.reason}`);
   return {
     ...createEmptyRaceOddsData(),
     source: "pending",
-    oddsNote: `${netkeirinFailureNote} / ${kdreamsOdds.oddsNote}`,
+    oddsNote: kdreamsOdds.oddsNote,
+    oddsAcquisition: kdreamsOdds.oddsAcquisition,
   };
 }
 
@@ -4322,21 +4308,41 @@ async function main() {
   const officialResultRaces = officialResults ? indexOfficialTodayResults(officialResults, todayIso) : new Map();
   let kdreamsVenues = [];
   let debug = { tableFound: false };
+  let racecardObservation = { status: "not-requested", provider: "kdreams", requestedAt: null, receivedAt: null, httpStatus: null, reason: "racecard not requested by source policy" };
   if (SOURCE_POLICY.kdreams) {
+    const requestedAt = new Date().toISOString();
+    let receivedStatus = null;
+    let receivedAt = null;
     try {
       const response = await fetchWithRetry(KDREAMS_RACECARD_URL, {
         headers: { "user-agent": "Mozilla/5.0", "accept-language": "ja-JP,ja;q=0.9,en;q=0.8" },
       }, { attempts: 3, timeoutMs: 20_000, label: "kdreams racecard" });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      receivedStatus = response.status;
+      receivedAt = new Date().toISOString();
+      if (!response.ok) {
+        racecardObservation = { ...classifyRacecardFailure({ httpStatus: response.status }), provider: "kdreams", requestedAt, receivedAt };
+        throw new Error(racecardObservation.reason);
+      }
       const html = await readHtmlResponse(response);
       const parsed = parseKdreamsTodayVenues(html, todayIso, scheduleData, operationUpdatedAt);
-      if (!parsed.venues.length) throw new Error(`HTTP 200 but no current racecard table; body=${stripTags(html).slice(0, 160)}`);
+      if (!parsed.venues.length) {
+        racecardObservation = { ...classifyRacecardFailure({ httpStatus: 200, html }), provider: "kdreams", requestedAt, receivedAt };
+        throw new Error(racecardObservation.reason);
+      }
       kdreamsVenues = parsed.venues;
       debug = parsed.debug;
-      await fs.writeFile(KDREAMS_DEBUG_HTML_PATH, html, "utf-8");
+      racecardObservation = { status: "available", provider: "kdreams", requestedAt, receivedAt, httpStatus: 200, reason: "current racecard table parsed" };
+      await fs.writeFile(KDREAMS_DEBUG_HTML_PATH, html, "utf-8").catch((error) => {
+        console.warn(`[kdreams] debug HTML not saved: ${error instanceof Error ? error.message : String(error)}`);
+      });
     } catch (error) {
+      if (racecardObservation.status === "not-requested") {
+        racecardObservation = receivedStatus === null
+          ? { ...classifyRacecardFailure({ error }), provider: "kdreams", requestedAt, receivedAt: null }
+          : { status: "format-changed", httpStatus: receivedStatus, reason: "racecard parse failed", provider: "kdreams", requestedAt, receivedAt };
+      }
       SOURCE_POLICY.kdreams = false;
-      console.warn(`[kdreams] racecard unavailable; official fallback ${error instanceof Error ? error.message : String(error)}`);
+      console.warn(`[kdreams] racecard unavailable; official fallback ${racecardObservation.status}: ${racecardObservation.reason}`);
     }
   }
   if (!officialEntries && !kdreamsVenues.length) throw new Error(`No verified racecard source for ${todayIso}; refusing to treat previous data as current`);
@@ -4386,9 +4392,12 @@ async function main() {
         && !hasMojibakeRace(cachedRace, venue.venue)
         && !hasPolicyMismatchSourceNote(cachedRace?.sourceNote);
       const effectiveCachedRace = cachedRaceRefreshReason && !canUseStaleRaceAsFallback ? null : cachedRace;
+      const officialRiderCars = officialRaces.get(`${venue.venueCode}:${raceNo}`)?.entries?.map((entry) => entry.carNo) ?? [];
       const incompleteCacheReason = getReusableFinalRaceSkipReason(cachedRace);
 
-      if (!cachedRaceRefreshReason && isReusableFinalRace(cachedRace) && !shouldFetchOddsForRace(cachedRace, venue, updatePhase)) {
+      if (!cachedRaceRefreshReason && isReusableFinalRace(cachedRace)
+        && reusableVerifiedOdds(cachedRace, { date: todayIso, venueCode: venue.venueCode, raceNo, riderCars: officialRiderCars })
+        && !shouldFetchOddsForRace(cachedRace, venue, updatePhase)) {
         const reusableRace = prepareCachedRaceForReuse(cachedRace, raceNo);
         const venueOperation = {
           status: venue.venueOperationStatus ?? "scheduled",
@@ -4412,6 +4421,8 @@ async function main() {
           : reusableRace.raceOperationSource || "kdreams:racecard";
         fetchedRaces.push({
           ...reusableRace,
+          oddsAcquisition: createOddsAcquisition({ date: todayIso, venueCode: venue.venueCode, raceNo, phase: updatePhase.phase,
+            status: "cached-verified", racecard: racecardObservation, reason: "verified same-race odds reused without new HTTP request" }),
           ...createOperationFields("race", resolvedOperation, resolvedOperationSource, operationUpdatedAt),
           ...extra,
           riders: Array.isArray(extra.riders) && extra.riders.length ? extra.riders : reusableRace.riders,
@@ -4524,14 +4535,19 @@ async function main() {
       }
       const oddsData = fetchOdds
         ? await fetchRaceOddsWithFallback({
-            raceId: netkeirinRaceId,
+            date: todayIso,
+            phase: updatePhase.phase,
             venue,
             raceNo,
             detailLink,
+            riderCars: officialRiderCars,
+            racecard: racecardObservation,
           })
         : {
             ...createEmptyRaceOddsData(),
             oddsNote: appendUniqueNote(detailRace.oddsNote, `odds skipped outside ${updatePhase.phase} window`),
+            oddsAcquisition: createOddsAcquisition({ date: todayIso, venueCode: venue.venueCode, raceNo, phase: updatePhase.phase,
+              status: "outside-phase", racecard: racecardObservation, reason: "odds not requested in this phase" }),
           };
       if (!fetchOdds) {
         console.log(`[skip] ${venue.venue} ${raceNo}R odds skipped outside odds window`);
@@ -4558,10 +4574,10 @@ async function main() {
       } else if (effectiveCachedRace && (effectiveCachedRace.resultStatus !== "confirmed" || effectiveCachedRace.result?.status !== "confirmed")) {
         console.log(`[fetch] ${venue.venue} ${raceNo}R pending; result only`);
       }
-      const hasFreshOdds =
-        Boolean(oddsData.finalTrifectaFavorite) &&
-        Array.isArray(oddsData.oddsTrifecta) &&
-        oddsData.oddsTrifecta.length > 0;
+      const hasFreshOdds = oddsData.oddsAcquisition?.status === "odds-verified";
+      const retainedOdds = reusableVerifiedOdds(effectiveCachedRace, {
+        date: todayIso, venueCode: venue.venueCode, raceNo, riderCars: officialRiderCars,
+      }) ?? createEmptyRaceOddsData();
       const venueOperation = {
         status: venue.venueOperationStatus ?? "scheduled",
         label: venue.venueOperationLabel ?? "",
@@ -4585,23 +4601,17 @@ async function main() {
       const race = sanitizeRaceForCurrentPolicy({
         ...detailRace,
         ...createOperationFields("race", resolvedRaceOperation, resolvedRaceOperationSource, operationUpdatedAt),
-        oddsPreview:
-          hasFreshOdds
-            ? oddsData.oddsPreview
-            : Array.isArray(detailRace.oddsPreview) && detailRace.oddsPreview.length
-              ? detailRace.oddsPreview
-              : oddsData.oddsPreview,
-        oddsTrifecta:
-          hasFreshOdds
-            ? oddsData.oddsTrifecta
-            : Array.isArray(detailRace.oddsTrifecta) && detailRace.oddsTrifecta.length
-              ? detailRace.oddsTrifecta
-              : oddsData.oddsTrifecta,
-        topOdds: hasFreshOdds ? oddsData.topOdds ?? null : detailRace.topOdds ?? oddsData.topOdds ?? null,
-        topTrifectaOdds: hasFreshOdds ? oddsData.topTrifectaOdds ?? null : detailRace.topTrifectaOdds ?? oddsData.topTrifectaOdds ?? null,
-        favoriteOdds: hasFreshOdds ? oddsData.favoriteOdds ?? null : detailRace.favoriteOdds ?? oddsData.favoriteOdds ?? null,
-        favoriteCombination: hasFreshOdds ? oddsData.favoriteCombination || "" : detailRace.favoriteCombination || oddsData.favoriteCombination || "",
-        finalTrifectaFavorite: hasFreshOdds ? oddsData.finalTrifectaFavorite : detailRace.finalTrifectaFavorite ?? oddsData.finalTrifectaFavorite ?? null,
+        oddsPreview: hasFreshOdds ? oddsData.oddsPreview : retainedOdds.oddsPreview,
+        oddsTrifecta: hasFreshOdds ? oddsData.oddsTrifecta : retainedOdds.oddsTrifecta,
+        topOdds: hasFreshOdds ? oddsData.topOdds : retainedOdds.topOdds,
+        topTrifectaOdds: hasFreshOdds ? oddsData.topTrifectaOdds : retainedOdds.topTrifectaOdds,
+        favoriteOdds: hasFreshOdds ? oddsData.favoriteOdds : retainedOdds.favoriteOdds,
+        favoriteCombination: hasFreshOdds ? oddsData.favoriteCombination : retainedOdds.favoriteCombination,
+        finalTrifectaFavorite: hasFreshOdds ? oddsData.finalTrifectaFavorite : retainedOdds.finalTrifectaFavorite,
+        oddsObservation: hasFreshOdds
+          ? { date: todayIso, venueCode: venue.venueCode, raceNo, provider: "kdreams", fetchedAt: oddsData.oddsAcquisition.fetchedAt }
+          : retainedOdds.oddsObservation ?? null,
+        oddsAcquisition: oddsData.oddsAcquisition,
         oddsNote: oddsData.oddsNote || detailRace.oddsNote || "",
         resultNote: resultData.resultNote || detailRace.resultNote || "",
         resultStatus: hasConfirmedRaceResult(resultData) ? resultData.resultStatus : detailRace.resultStatus,
