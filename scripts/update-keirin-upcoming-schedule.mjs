@@ -18,10 +18,6 @@ const jstDateFormatter = new Intl.DateTimeFormat("sv-SE", {
   day: "2-digit",
 });
 
-function getJstTodayIso() {
-  return jstDateFormatter.format(new Date());
-}
-
 function addDaysIso(isoDate, days) {
   const date = new Date(`${isoDate}T00:00:00+09:00`);
   date.setUTCDate(date.getUTCDate() + days);
@@ -88,8 +84,8 @@ function parseDateRange(text, startYear) {
   };
 }
 
-async function fetchHtml() {
-  const response = await fetch(SOURCE_URL, {
+async function fetchHtml(fetchImpl = fetch) {
+  const response = await fetchImpl(SOURCE_URL, {
     headers: {
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
       "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
@@ -160,10 +156,10 @@ function parseScheduleItems(html, rangeFrom, rangeTo) {
   });
 }
 
-async function main() {
-  const rangeFrom = getJstTodayIso();
+export async function updateUpcomingSchedule({ fetchImpl = fetch, outputPath = OUTPUT_PATH, now = new Date() } = {}) {
+  const rangeFrom = jstDateFormatter.format(now);
   const rangeTo = addDaysIso(rangeFrom, RANGE_DAYS);
-  const html = await fetchHtml();
+  const html = await fetchHtml(fetchImpl);
   const items = parseScheduleItems(html, rangeFrom, rangeTo);
 
   if (items.length === 0) {
@@ -182,13 +178,16 @@ async function main() {
     items,
   };
 
-  await fs.mkdir(path.dirname(OUTPUT_PATH), { recursive: true });
-  await fs.writeFile(OUTPUT_PATH, `${JSON.stringify(output, null, 2)}\n`, "utf8");
-  console.log(`Wrote ${items.length} upcoming schedule items to ${OUTPUT_PATH}`);
+  await fs.mkdir(path.dirname(outputPath), { recursive: true });
+  await fs.writeFile(outputPath, `${JSON.stringify(output, null, 2)}\n`, "utf8");
+  console.log(`Wrote ${items.length} upcoming schedule items to ${outputPath}`);
   console.log(`Range: ${rangeFrom} to ${rangeTo}`);
+  return output;
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
+  updateUpcomingSchedule().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

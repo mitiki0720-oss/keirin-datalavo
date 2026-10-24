@@ -244,8 +244,16 @@ jobs:
           echo "PERFORMANCE_GENERATED=true" >> "$GITHUB_ENV"
           echo "PERFORMANCE_DATE=$KEIRIN_JP_EXPECT_DATE" >> "$GITHUB_ENV"
       - name: Update upcoming race schedule
-        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '10 21 * * *'
+        id: upcoming_schedule
+        if: github.event.schedule == '10 21 * * *'
+        continue-on-error: true
         run: npm run update:schedule:upcoming
+
+      - name: Report upcoming schedule failure
+        if: always() && steps.upcoming_schedule.outcome == 'failure'
+        run: |
+          echo "::warning title=CTC schedule unavailable::Upcoming schedule was not updated; validated today race data will continue to the commit gate. See the preceding CTC HTTP/error log."
+          echo "CTC upcoming schedule: FAILED / not updated. Today race data has a separate validation and commit gate." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Commit updated race data
         id: commit_updated_data
