@@ -374,6 +374,8 @@ export type PredictionVenueItem = {
 
 export type PredictionRaceItem = {
   raceNo: number;
+  date?: string;
+  venueCode?: string;
   time?: string;
   title?: string;
   lineup?: string;
@@ -389,8 +391,11 @@ export type PredictionRaceItem = {
   raceOperationUpdatedAt?: string;
   raceOperationRaw?: string;
   isGirls?: boolean;
+  lineupObservation?: { date?: string; venueCode?: string; raceNo?: number; provider?: string; fetchedAt?: string } | null;
   sourceNote?: string;
   oddsNote?: string;
+  oddsAcquisition?: { date?: string; venueCode?: string; raceNo?: number; status?: string; provider?: string; requestedAt?: string | null; fetchedAt?: string | null; reason?: string };
+  oddsObservation?: { date?: string; venueCode?: string; raceNo?: number; provider?: string; fetchedAt?: string } | null;
   resultNote?: string;
   lead?: string;
   coreBuy?: string;
@@ -3076,10 +3081,8 @@ const mergePredictionVenueSummaryWithMaster = (
   };
 };
 
-const PREDICTION_LINEUP_SEPARATOR_PATTERN = /[\s/・-]+/;
-
 const isPredictionGirlsRace = (race?: PredictionRaceItem | null) => Boolean(
-  race?.isGirls || /ガールズ|L級/u.test(String(race?.title ?? "")) ||
+  race?.isGirls || /ガールズ|[ＬL]級/u.test(String(race?.title ?? "")) ||
   race?.riders?.some((rider) => /^(?:L[12]$|L級)/iu.test(String(rider.grade ?? "").trim())),
 );
 
@@ -3094,12 +3097,15 @@ const getPredictionLineupCandidates = (race?: PredictionRaceItem | null) => [
 
 const parsePredictionLineupRaw = (raw: string) => {
   const normalized = (raw ?? "").trim();
-  const groups = normalized
-    .split(PREDICTION_LINEUP_SEPARATOR_PATTERN)
+  if (!/^[1-9\s・/／|｜\-－ー―]+$/u.test(normalized)) {
+    return { raw: normalized, orderCars: [], orderLabel: "", hasExplicitGroups: false, groupedGroups: [], groupedLabel: "", leadCarNo: "" };
+  }
+  const groups = (/[\/／|｜・]/u.test(normalized) ? normalized.split(/[\/／|｜・]+/u) : normalized.split(/\s+/u))
     .map((group) => group.replace(/[^0-9]/g, ""))
     .filter(Boolean);
   const orderCars = groups.join("").split("").filter(Boolean);
-  const hasExplicitGroups = groups.length >= 2 && groups.some((group) => group.length > 1);
+  const hasExplicitGroups = groups.length >= 2 && groups.some((group) => group.length > 1)
+    && new Set(orderCars).size === orderCars.length;
   const groupedGroups = hasExplicitGroups ? groups.map((group) => group.split("").join("-")) : [];
 
   return {
@@ -3113,6 +3119,27 @@ const parsePredictionLineupRaw = (raw: string) => {
   };
 };
 
+const hasPredictionLineupEvidence = (race: PredictionRaceItem | null | undefined, source: string, cars: string[]) => {
+  const observation = race?.lineupObservation;
+  const observedAt = observation?.fetchedAt ?? "";
+  const observedMs = Date.parse(observedAt);
+  const observedJstDate = Number.isFinite(observedMs)
+    ? new Date(observedMs + 9 * 60 * 60 * 1000).toISOString().slice(0, 10) : "";
+  const startAt = observation?.date && /^\d{1,2}:\d{2}$/u.test(race?.time ?? "")
+    ? Date.parse(`${observation.date}T${race!.time!.padStart(5, "0")}:00+09:00`) : NaN;
+  const riderCars = (race?.riders ?? []).map((rider) => String(rider.carNo ?? "").trim());
+  return source !== "lineup" && observation?.provider === source
+    && observation.date === race?.date
+    && observation.venueCode === race?.venueCode
+    && /^\d{2}$/u.test(observation.venueCode ?? "")
+    && /^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/u.test(observedAt)
+    && observedJstDate === observation.date
+    && observation.raceNo === race?.raceNo
+    && Number.isFinite(startAt) && observedMs < startAt
+    && riderCars.length > 0 && riderCars.length === cars.length
+    && new Set(cars).size === cars.length && riderCars.every((car) => cars.includes(car));
+};
+
 const resolvePredictionLineup = (race?: PredictionRaceItem | null) => {
   const candidates = getPredictionLineupCandidates(race).map((candidate) => ({
     ...candidate,
@@ -3120,7 +3147,8 @@ const resolvePredictionLineup = (race?: PredictionRaceItem | null) => {
   }));
   const groupedCandidate = isPredictionGirlsRace(race)
     ? null
-    : candidates.find((candidate) => candidate.parsed.hasExplicitGroups) ?? null;
+    : candidates.find((candidate) => candidate.parsed.hasExplicitGroups
+      && hasPredictionLineupEvidence(race, candidate.source, candidate.parsed.orderCars)) ?? null;
   const orderCandidate = candidates.find((candidate) => candidate.parsed.orderCars.length > 0) ?? null;
 
   return {
@@ -3136,7 +3164,7 @@ const resolvePredictionLineup = (race?: PredictionRaceItem | null) => {
 
 export const buildPredictionLineupDisplay = (race?: PredictionRaceItem | null) => {
   const lineup = resolvePredictionLineup(race);
-  if (lineup.groupedLabel) return lineup.groupedLabel;
+  if (lineup.groupedLabel) return `ライン区切り候補: ${lineup.groupedLabel}`;
   if (lineup.orderLabel) return `車番順（ライン未確認）: ${lineup.orderLabel}`;
   return "並び未取得";
 };
@@ -3899,12 +3927,12 @@ export const comparePredictionVenues = (a: PredictionVenueItem, b: PredictionVen
   return a.venue.localeCompare(b.venue, "ja");
 };
 
-export const getPredictionMaterialReady = (race?: PredictionRaceItem | null) => {
+export const getPredictionMaterialReady = (race?: PredictionRaceItem | null, date?: string, venueCode?: string) => {
   if (!race) return false;
   if (isPredictionRaceExcludedByOperation(undefined, race)) return false;
   const hasRiders = (race.riders?.length ?? 0) > 0;
   const hasLineup = buildPredictionLineupDisplay(race) !== "並び未取得";
-  const hasOdds = (race.oddsTrifecta?.length ?? 0) > 0 || (race.oddsPreview?.length ?? 0) > 0;
+  const hasOdds = hasVerifiedPredictionOdds(race, date, venueCode);
   return hasRiders && hasLineup && hasOdds;
 };
 
@@ -4184,8 +4212,8 @@ export const mergePredictionTodayFeedsPreserveRichData = (feeds: PredictionToday
   return merged;
 };
 
-export const buildPredictionOddsBuckets = (race?: PredictionRaceItem | null) => {
-  const trifecta = [...(race?.oddsTrifecta ?? [])]
+export const buildPredictionOddsBuckets = (race?: PredictionRaceItem | null, date?: string, venueCode?: string) => {
+  const trifecta = [...(race && hasVerifiedPredictionOdds(race, date, venueCode) ? race.oddsTrifecta ?? [] : [])]
     .sort((a, b) => (a.popularity ?? 999) - (b.popularity ?? 999) || a.odds - b.odds);
   const picked = new Set<string>();
   const popular = trifecta.slice(0, 5);
@@ -4365,7 +4393,7 @@ export const buildPredictionExportText = ({
   const resolvedMatchupText = matchupText.trim() || buildPredictionMatchupExport(exportContexts, exportRace);
   const resolvedTrackAffinityText = trackAffinityText.trim() || buildPredictionTrackAffinityExport(exportContexts, venue);
   const resolvedDataAnalysisText = dataAnalysisText.trim() || buildPredictionDataAnalysisExport(exportContexts, venue, exportRace, venueSummary);
-  const resolvedOddsText = oddsText.trim() || buildPredictionOddsExport(exportRace);
+  const resolvedOddsText = oddsText.trim() || buildPredictionOddsExport(exportRace, date, venue.venueCode);
   const raceIdLabel = normalizePredictionExportValue(getPredictionRaceIdForVenue(venue, exportRace) || exportRace.sourceNote, "race_idなし");
   const raceTitleLabel = normalizePredictionExportValue(
     exportRace.title || exportRace.sourceNote || (venue.title ? `${venue.title} ${exportRace.raceNo}R` : ""),
@@ -4993,8 +5021,49 @@ export const parsePredictionNumber = (value?: string | number | null) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
-export const getFeaturedRaceOddsTone = (race?: PredictionRaceItem | null): { tone: FeaturedRaceOddsTone; comment: string } => {
-  const trifecta = [...(race?.oddsTrifecta ?? [])]
+function hasVerifiedPredictionOdds(race: PredictionRaceItem, date?: string, venueCode?: string) {
+  const observedAt = race.oddsObservation?.fetchedAt ?? "";
+  const observedMs = Date.parse(observedAt);
+  const observedJstDate = Number.isFinite(observedMs)
+    ? new Date(observedMs + 9 * 60 * 60 * 1000).toISOString().slice(0, 10) : "";
+  const startAt = date && /^\d{1,2}:\d{2}$/u.test(race.time ?? "")
+    ? Date.parse(`${date}T${race.time!.padStart(5, "0")}:00+09:00`) : NaN;
+  const riderCars = new Set((race.riders ?? []).map((rider) => String(rider.carNo ?? "")));
+  const seenCombinations = new Set<string>();
+  const validOdds = (race.oddsTrifecta ?? []).length > 0 && (race.oddsTrifecta ?? []).every((item) => {
+    const cars = item.combination.split("-");
+    if (seenCombinations.has(item.combination)) return false;
+    seenCombinations.add(item.combination);
+    return cars.length === 3 && new Set(cars).size === 3
+      && cars.every((car) => riderCars.has(car)) && Number.isFinite(item.odds) && item.odds > 0
+      && item.source === race.oddsObservation?.provider;
+  });
+  const oddsByCombination = new Map((race.oddsTrifecta ?? []).map((item) => [item.combination, item] as const));
+  const validPreview = (race.oddsPreview ?? []).every((item) =>
+    oddsByCombination.get(item.combo)?.odds === Number(item.odds.replace(/倍\s*$/u, ""))
+  );
+  const hasFavorite = Boolean(race.favoriteCombination || race.favoriteOdds != null);
+  const favorite = oddsByCombination.get(race.favoriteCombination ?? "");
+  const validFavorite = !hasFavorite || Boolean(race.favoriteCombination && typeof race.favoriteOdds === "number"
+    && favorite?.odds === race.favoriteOdds && (favorite.popularity == null || favorite.popularity === 1));
+  const acquisition = race.oddsAcquisition;
+  const validAcquisition = !acquisition || (acquisition.status !== "identity-conflict-blocked" && acquisition.date === date
+    && acquisition.venueCode === venueCode && acquisition.raceNo === race.raceNo
+    && acquisition.provider === race.oddsObservation?.provider
+    && (acquisition.status !== "odds-verified" || acquisition.fetchedAt === observedAt));
+  return validOdds && validPreview && validFavorite && validAcquisition
+    && /^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/u.test(observedAt)
+    && Number.isFinite(startAt) && observedMs < startAt
+    && race.oddsObservation?.raceNo === race.raceNo
+    && Boolean(date && venueCode)
+    && race.oddsObservation?.date === date
+    && race.oddsObservation?.venueCode === venueCode
+    && observedJstDate === date
+    && race.oddsObservation?.provider === "kdreams";
+}
+
+export const getFeaturedRaceOddsTone = (race?: PredictionRaceItem | null, date?: string, venueCode?: string): { tone: FeaturedRaceOddsTone; comment: string } => {
+  const trifecta = [...(race && hasVerifiedPredictionOdds(race, date, venueCode) ? race.oddsTrifecta ?? [] : [])]
     .map((item) => item.odds)
     .filter((value): value is number => Number.isFinite(value))
     .sort((a, b) => a - b);
@@ -5002,7 +5071,7 @@ export const getFeaturedRaceOddsTone = (race?: PredictionRaceItem | null): { ton
   if (trifecta.length === 0) {
     return {
       tone: "pending",
-      comment: "オッズ情報なし。",
+      comment: "事前オッズ未取得。",
     };
   }
 
@@ -5260,14 +5329,16 @@ export const buildFeaturedRaceData = ({
 
   const gradeLabel = race.displayGradeLabel ?? race.grade ?? "—";
   const sessionLabel = getSessionLabel(race.session);
-  const oddsTone = getFeaturedRaceOddsTone(predictionRace);
+  const oddsDate = predictionVenue?.startDate ?? race.startDate;
+  const oddsVenueCode = predictionVenue?.venueCode;
+  const oddsTone = getFeaturedRaceOddsTone(predictionRace, oddsDate, oddsVenueCode);
   const lineupComment = getFeaturedRaceLineupComment(predictionRace);
   const weatherComment = getFeaturedRaceWeatherComment(weather);
   const venueComment = getFeaturedRaceVenueComment(venueSummary);
   const leadComment = getFeaturedRaceLeadComment(predictionRace);
   const favoriteComment = getFeaturedRaceFavoriteComment(favorites);
   const scoreLeaders = getFeaturedRaceScoreLeaders(predictionRace);
-  const hasOddsMaterial = (predictionRace?.oddsTrifecta?.length ?? 0) > 0;
+  const hasOddsMaterial = Boolean(predictionRace && hasVerifiedPredictionOdds(predictionRace, oddsDate, oddsVenueCode));
   const topLeaderText = scoreLeaders.length > 0
     ? `${scoreLeaders.slice(0, 2).map((item) => `${item.rider.name} ${item.score.toFixed(1)}`).join(" / ")} が得点上位です。`
     : "得点上位データなし。";
@@ -8424,15 +8495,16 @@ function getPredictionRookieLineupNote(category: PredictionRookieRaceCategory) {
 
 function buildPredictionKdreamsLineupExport(race?: PredictionRaceItem | null) {
   const kdreamsRaw = String(race?.kdreamsLineupRaw ?? "").trim();
+  const verifiedCandidate = resolvePredictionLineup(race).groupedCandidate;
   const fallbackRaw = String(
-    race?.charilotoLineupRaw ??
-    race?.oddsparkLineupRaw ??
-    race?.netkeirinLineupRaw ??
-    race?.winticketLineupRaw ??
-    race?.lineup ??
+    race?.charilotoLineupRaw ||
+    race?.oddsparkLineupRaw ||
+    race?.netkeirinLineupRaw ||
+    race?.winticketLineupRaw ||
+    race?.lineup ||
     ""
   ).trim();
-  const rawLineup = kdreamsRaw || fallbackRaw;
+  const rawLineup = verifiedCandidate?.raw || kdreamsRaw || fallbackRaw;
   const hasRaceDetail = Boolean(
     (race?.riders?.length ?? 0) > 0 ||
     (race?.oddsTrifecta?.length ?? 0) > 0 ||
@@ -8452,14 +8524,8 @@ function buildPredictionKdreamsLineupExport(race?: PredictionRaceItem | null) {
   }
 
   const parsed = parsePredictionLineupRaw(rawLineup);
-  const hasGroupedLineup = !isPredictionGirlsRace(race) && parsed.groupedGroups.length > 0;
-  const carOrderOnly = !kdreamsRaw
-    && !race?.charilotoLineupRaw
-    && !race?.oddsparkLineupRaw
-    && !race?.netkeirinLineupRaw
-    && !race?.winticketLineupRaw
-    && Boolean(race?.lineup)
-    && !hasGroupedLineup;
+  const hasGroupedLineup = Boolean(verifiedCandidate);
+  const carOrderOnly = !hasGroupedLineup;
   const shouldShowRookieNote = Boolean(
     rookieNote &&
     (rookieCategory === "advance-rookie-men"
@@ -8467,9 +8533,10 @@ function buildPredictionKdreamsLineupExport(race?: PredictionRaceItem | null) {
       : !hasGroupedLineup)
   );
   return [
-    `- KDreams並び予想: ${kdreamsRaw ? "取得済み" : "未掲載"}`,
+    `- KDreams並び予想: ${verifiedCandidate?.source === "kdreams" ? "区切り候補あり" : "ライン未確認"}`,
     ...(kdreamsRaw ? [`- KDreams raw: ${kdreamsRaw}`] : []),
-    ...(!kdreamsRaw ? [`- 代替周回予想: ${carOrderOnly ? "未確認" : "取得済み"}`] : []),
+    ...(!kdreamsRaw ? [`- 代替周回予想: ${carOrderOnly ? "ライン未確認" : "区切り候補あり"}`] : []),
+    ...(verifiedCandidate ? [`- 区切り候補の証跡: ${verifiedCandidate.source} / ${race?.lineupObservation?.fetchedAt}`] : []),
     `- ${carOrderOnly ? "車番順（ライン未確認）" : "周回予想"}: ${parsed.orderLabel || rawLineup}`,
     ...(hasGroupedLineup
       ? [`- ライン区切り: ${parsed.groupedGroups.join(" / ")}`]
@@ -8668,29 +8735,41 @@ function buildPredictionDataAnalysisExport(contexts: PredictionExportRiderContex
   ].join("\n");
 }
 
-function buildPredictionOddsExport(race: PredictionRaceItem) {
-  const normalizedOddsNote = dedupePredictionNoteParts(splitPredictionNoteParts(race.oddsNote))
+function buildPredictionOddsExport(race: PredictionRaceItem, date?: string, venueCode?: string) {
+  const observedAt = race.oddsObservation?.fetchedAt ?? "";
+  const verified = hasVerifiedPredictionOdds(race, date, venueCode);
+  const normalizedOddsNote = verified ? dedupePredictionNoteParts(splitPredictionNoteParts(race.oddsNote))
     .filter((part) => /kdreams/i.test(part))
     .slice(0, 2)
-    .join(" / ");
-  const previewText = (race.oddsPreview ?? []).length > 0
-    ? (race.oddsPreview ?? []).map((item) => `- ${item.tag ?? "オッズ"}: ${item.combo} ${item.odds}`).join("\n")
+    .join(" / ") : "";
+  const verifiedOddsByCombination = new Map(
+    verified ? (race.oddsTrifecta ?? []).map((item) => [item.combination, item.odds] as const) : []
+  );
+  const previewText = verified && (race.oddsPreview ?? []).length > 0
+    ? (race.oddsPreview ?? [])
+      .filter((item) => verifiedOddsByCombination.get(item.combo) === Number(item.odds.replace(/倍\s*$/u, "")))
+      .map((item) => `- ${item.tag ?? "オッズ"}: ${item.combo} ${item.odds}`).join("\n")
     : "";
-  const popularText = (race.oddsTrifecta ?? []).slice(0, 15)
+  const popularText = (verified ? race.oddsTrifecta ?? [] : []).slice(0, 15)
     .map((item) => `- ${item.combination} ${item.odds.toFixed(1)}倍${item.popularity ? ` / ${item.popularity}人気` : ""}`)
     .join("\n");
   const favoriteText =
-    race.favoriteCombination && typeof race.favoriteOdds === "number"
+    verified && race.favoriteCombination && typeof race.favoriteOdds === "number"
+      && verifiedOddsByCombination.get(race.favoriteCombination) === race.favoriteOdds
       ? `- 一番人気オッズ: ${race.favoriteCombination} ${race.favoriteOdds.toFixed(1)}倍`
       : "";
   const hasOddsMaterial = Boolean(favoriteText || (race.oddsPreview ?? []).length > 0 || (race.oddsTrifecta ?? []).length > 0);
-  const missingStatusText = hasOddsMaterial ? "" : `- ${getPredictionOddsUnavailableLabel(race.oddsNote)}`;
+  const missingStatusText = verified && hasOddsMaterial ? ""
+    : hasOddsMaterial ? "- 事前3連単オッズ: 検証不成立" : `- ${getPredictionOddsUnavailableLabel(race.oddsNote)}`;
   const blocks = [
+    ...(race.oddsAcquisition ? [`- 取得状態: ${!verified && race.oddsAcquisition.status === "odds-verified" ? "画面側検証未成立" : race.oddsAcquisition.status ?? "未確認"}${race.oddsAcquisition.reason ? ` / ${race.oddsAcquisition.reason}` : ""}`] : []),
+    ...(verified ? [`- オッズ取得元・時刻: ${race.oddsObservation?.provider} / ${observedAt}`] : []),
+    ...(!verified && hasOddsMaterial ? ["- 出典・時刻・組番・倍率の照合未成立: 事前オッズとして採算判断に使用禁止"] : []),
     ...(normalizedOddsNote ? [`- オッズ注記: ${normalizedOddsNote}`] : []),
     ...(missingStatusText ? [missingStatusText] : []),
     ...(favoriteText ? [favoriteText] : []),
-    ...((race.oddsPreview ?? []).length > 0 ? ["[オッズプレビュー]", previewText] : []),
-    ...((race.oddsTrifecta ?? []).length > 0 ? ["[3連単上位15件]", popularText] : []),
+    ...(previewText ? ["[オッズプレビュー]", previewText] : []),
+    ...(popularText ? ["[3連単上位15件]", popularText] : []),
   ].filter(Boolean);
 
   return blocks.length > 0 ? blocks.join("\n\n") : getPredictionOddsUnavailableLabel(race.oddsNote);
@@ -10670,8 +10749,8 @@ if (
     [selectedPredictionMaterialRace, selectedPredictionMaterialVenue, selectedPredictionRiderContexts, selectedVenueSummary]
   );
   const selectedPredictionOddsText = useMemo(
-    () => buildPredictionOddsExport(selectedPredictionMaterialRace ?? { raceNo: 0 }),
-    [selectedPredictionMaterialRace]
+    () => buildPredictionOddsExport(selectedPredictionMaterialRace ?? { raceNo: 0 }, predictionFeed?.date, selectedPredictionMaterialVenue?.venueCode),
+    [selectedPredictionMaterialRace, predictionFeed?.date, selectedPredictionMaterialVenue?.venueCode]
   );
   const selectedPredictionMemoText = useMemo(
     () => buildPredictionMemoExport(selectedPredictionMaterialRace ?? { raceNo: 0 }, predictionMemo),
@@ -11369,7 +11448,7 @@ if (
   ) ?? 0;
   const predictionTargetRaceCount = Math.max(0, todayRaceCount - cancelledRaceCount);
   const readyRaceCount = predictionFeed?.venues.reduce(
-    (sum, venue) => sum + venue.races.filter((race) => !isPredictionRaceExcludedByOperation(venue, race) && getPredictionMaterialReady(race)).length,
+    (sum, venue) => sum + venue.races.filter((race) => !isPredictionRaceExcludedByOperation(venue, race) && getPredictionMaterialReady(race, predictionFeed?.date, venue.venueCode)).length,
     0
   ) ?? 0;
   const copyableRaceCount = readyRaceCount;
@@ -11789,7 +11868,7 @@ if (
     ? "対象未選択"
     : isPredictionRaceExcludedByOperation(selectedVenue, selectedRace)
       ? "中止NOTICE"
-    : getPredictionMaterialReady(materialRace)
+    : getPredictionMaterialReady(materialRace, predictionFeed?.date, selectedVenue?.venueCode)
       ? "素材生成済み"
       : "素材補完中";
   const monthlyReviewStateLabel = monthlyReviewStatus === "ready"

@@ -4226,6 +4226,8 @@ function applyOfficialEntryToRace(race, officialRace, venueName) {
     time: /^\d{1,2}:\d{2}$/.test(startTime) ? startTime : race.time,
     title: officialRace.raceMeta?.raceName || race.title || "",
     lineup: officialRace.lineup || race.lineup,
+    isGirls: Boolean(race.isGirls || (officialRace.entries.length > 0
+      && officialRace.entries.every((entry) => /^L[12]$/iu.test(String(entry.raceClass ?? "").trim())))),
     riders,
     sourceNote: appendUniqueNote(race.sourceNote, "official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked"),
   };
