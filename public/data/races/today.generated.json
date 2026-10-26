@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026/10/26 5:06:35",
+  "generatedAt": "2026/10/26 5:30:51",
   "source": {
     "racecard": "https://keirin.jp/pc/json?kaisaibikbn=0&kanyusyaflg=false&shccp=0&dispid=PJ0326&type=JSJ048",
     "officialEntriesGeneratedAt": "2026-10-26T05:02:00.727Z",
     "officialEntriesFetchStartedAt": "2026-10-26T05:00:56.831Z",
     "officialEntriesFetchCompletedAt": "2026-10-26T05:02:00.727Z",
-    "officialResultsGeneratedAt": "2026-10-26T05:06:35.324Z",
-    "officialResultsFreshness": "FRESH",
+    "officialResultsGeneratedAt": null,
+    "officialResultsFreshness": "UNAVAILABLE",
     "supplementaryRacecard": null,
     "detailPrimary": "KEIRIN.JP:JSJ001/JSJ006",
     "detailFallback": null
@@ -44,7 +44,7 @@
       "venueOperationLabel": "",
       "venueOperationReason": "",
       "venueOperationSource": "KEIRIN.JP:JSJ048/JSJ001",
-      "venueOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+      "venueOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
       "venueOperationRaw": "",
       "raceIds": [
         "",
@@ -74,7 +74,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": true,
           "sourceNote": "kdreams racedetail disabled by source policy / fallback: kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / lineFallback: chariloto shukai unavailable (empty) / riderFallback: chariloto unavailable / lineFallback: chariloto shukai unavailable (too short raw=1) / official result unavailable: not adopted",
@@ -85,7 +85,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -228,22 +228,22 @@
             "date": "2026-10-26",
             "venueCode": "12",
             "raceNo": 1,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -262,7 +262,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / fallback: kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / lineFallback: chariloto shukai unavailable (empty) / riderFallback: chariloto unavailable / lineFallback: chariloto shukai unavailable (too short raw=4) / official result unavailable: not adopted",
@@ -273,7 +273,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -462,22 +462,22 @@
             "date": "2026-10-26",
             "venueCode": "12",
             "raceNo": 2,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -496,7 +496,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / fallback: kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / lineFallback: chariloto shukai unavailable (empty) / riderFallback: chariloto unavailable / lineFallback: chariloto shukai unavailable (too short raw=2) / official result unavailable: not adopted",
@@ -507,7 +507,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -696,22 +696,22 @@
             "date": "2026-10-26",
             "venueCode": "12",
             "raceNo": 3,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -730,7 +730,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / fallback: kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / lineFallback: chariloto shukai unavailable (empty) / riderFallback: chariloto unavailable / lineFallback: chariloto shukai unavailable (too short raw=2) / official result unavailable: not adopted",
@@ -741,7 +741,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -930,22 +930,22 @@
             "date": "2026-10-26",
             "venueCode": "12",
             "raceNo": 4,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -964,7 +964,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / fallback: kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / lineFallback: chariloto shukai unavailable (empty) / riderFallback: chariloto unavailable / lineFallback: chariloto shukai unavailable (too short raw=3) / official result unavailable: not adopted",
@@ -975,7 +975,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -1164,22 +1164,22 @@
             "date": "2026-10-26",
             "venueCode": "12",
             "raceNo": 5,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -1198,7 +1198,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / fallback: kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / lineFallback: chariloto shukai unavailable (empty) / riderFallback: chariloto unavailable / lineFallback: chariloto shukai unavailable (too short raw=2) / official result unavailable: not adopted",
@@ -1209,7 +1209,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -1398,22 +1398,22 @@
             "date": "2026-10-26",
             "venueCode": "12",
             "raceNo": 6,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -1432,7 +1432,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / fallback: kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / lineFallback: chariloto shukai unavailable (empty) / riderFallback: chariloto unavailable / lineFallback: chariloto shukai unavailable (too short raw=6) / official result unavailable: not adopted",
@@ -1443,7 +1443,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -1632,22 +1632,22 @@
             "date": "2026-10-26",
             "venueCode": "12",
             "raceNo": 7,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -1666,7 +1666,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": true,
           "sourceNote": "kdreams racedetail disabled by source policy / fallback: kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / lineFallback: chariloto shukai unavailable (empty) / riderFallback: chariloto unavailable / lineFallback: chariloto shukai unavailable (too short raw=5) / official result unavailable: not adopted",
@@ -1677,7 +1677,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -1866,22 +1866,22 @@
             "date": "2026-10-26",
             "venueCode": "12",
             "raceNo": 8,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -1900,7 +1900,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / fallback: kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / lineFallback: chariloto shukai unavailable (empty) / riderFallback: chariloto unavailable / lineFallback: chariloto shukai unavailable (too short raw=2) / official result unavailable: not adopted",
@@ -1911,7 +1911,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -2100,22 +2100,22 @@
             "date": "2026-10-26",
             "venueCode": "12",
             "raceNo": 9,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         }
       ]
@@ -2154,7 +2154,7 @@
       "venueOperationLabel": "",
       "venueOperationReason": "",
       "venueOperationSource": "KEIRIN.JP:JSJ048/JSJ001",
-      "venueOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+      "venueOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
       "venueOperationRaw": "",
       "raceIds": [
         "",
@@ -2187,7 +2187,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -2199,7 +2199,7 @@
           "favoriteOdds": null,
           "favoriteCombination": "",
           "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
-          "resultNote": "official result not yet available; result withheld",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -2387,7 +2387,7 @@
             "date": "2026-10-26",
             "venueCode": "27",
             "raceNo": 1,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
             "status": "racecard-maintenance",
             "racecard": {
@@ -2395,8 +2395,8 @@
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
@@ -2421,7 +2421,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -2433,7 +2433,7 @@
           "favoriteOdds": null,
           "favoriteCombination": "",
           "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
-          "resultNote": "official result not yet available; result withheld",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -2621,7 +2621,7 @@
             "date": "2026-10-26",
             "venueCode": "27",
             "raceNo": 2,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
             "status": "racecard-maintenance",
             "racecard": {
@@ -2629,8 +2629,8 @@
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
@@ -2655,7 +2655,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -2667,7 +2667,7 @@
           "favoriteOdds": null,
           "favoriteCombination": "",
           "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
-          "resultNote": "official result not yet available; result withheld",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -2855,7 +2855,7 @@
             "date": "2026-10-26",
             "venueCode": "27",
             "raceNo": 3,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
             "status": "racecard-maintenance",
             "racecard": {
@@ -2863,8 +2863,8 @@
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
@@ -2889,7 +2889,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -2901,7 +2901,7 @@
           "favoriteOdds": null,
           "favoriteCombination": "",
           "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
-          "resultNote": "official result not yet available; result withheld",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -3089,7 +3089,7 @@
             "date": "2026-10-26",
             "venueCode": "27",
             "raceNo": 4,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
             "status": "racecard-maintenance",
             "racecard": {
@@ -3097,8 +3097,8 @@
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
@@ -3123,7 +3123,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -3135,7 +3135,7 @@
           "favoriteOdds": null,
           "favoriteCombination": "",
           "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
-          "resultNote": "official result not yet available; result withheld",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -3323,7 +3323,7 @@
             "date": "2026-10-26",
             "venueCode": "27",
             "raceNo": 5,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
             "status": "racecard-maintenance",
             "racecard": {
@@ -3331,8 +3331,8 @@
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
@@ -3357,7 +3357,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -3369,7 +3369,7 @@
           "favoriteOdds": null,
           "favoriteCombination": "",
           "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
-          "resultNote": "official result not yet available; result withheld",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -3557,7 +3557,7 @@
             "date": "2026-10-26",
             "venueCode": "27",
             "raceNo": 6,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
             "status": "racecard-maintenance",
             "racecard": {
@@ -3565,8 +3565,8 @@
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
@@ -3591,7 +3591,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -3603,7 +3603,7 @@
           "favoriteOdds": null,
           "favoriteCombination": "",
           "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
-          "resultNote": "official result not yet available; result withheld",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -3791,7 +3791,7 @@
             "date": "2026-10-26",
             "venueCode": "27",
             "raceNo": 7,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
             "status": "racecard-maintenance",
             "racecard": {
@@ -3799,8 +3799,8 @@
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
@@ -3825,7 +3825,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -3837,7 +3837,7 @@
           "favoriteOdds": null,
           "favoriteCombination": "",
           "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
-          "resultNote": "official result not yet available; result withheld",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -4025,7 +4025,7 @@
             "date": "2026-10-26",
             "venueCode": "27",
             "raceNo": 8,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
             "status": "racecard-maintenance",
             "racecard": {
@@ -4033,8 +4033,8 @@
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
@@ -4059,7 +4059,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -4071,7 +4071,7 @@
           "favoriteOdds": null,
           "favoriteCombination": "",
           "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
-          "resultNote": "official result not yet available; result withheld",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -4259,7 +4259,7 @@
             "date": "2026-10-26",
             "venueCode": "27",
             "raceNo": 9,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
             "status": "racecard-maintenance",
             "racecard": {
@@ -4267,8 +4267,8 @@
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
@@ -4293,7 +4293,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -4305,7 +4305,7 @@
           "favoriteOdds": null,
           "favoriteCombination": "",
           "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
-          "resultNote": "official result not yet available; result withheld",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -4493,7 +4493,7 @@
             "date": "2026-10-26",
             "venueCode": "27",
             "raceNo": 10,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
             "status": "racecard-maintenance",
             "racecard": {
@@ -4501,8 +4501,8 @@
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
@@ -4527,7 +4527,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -4539,7 +4539,7 @@
           "favoriteOdds": null,
           "favoriteCombination": "",
           "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
-          "resultNote": "official result not yet available; result withheld",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -4727,7 +4727,7 @@
             "date": "2026-10-26",
             "venueCode": "27",
             "raceNo": 11,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
             "status": "racecard-maintenance",
             "racecard": {
@@ -4735,8 +4735,8 @@
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
@@ -4761,7 +4761,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -4773,7 +4773,7 @@
           "favoriteOdds": null,
           "favoriteCombination": "",
           "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
-          "resultNote": "official result not yet available; result withheld",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -4961,7 +4961,7 @@
             "date": "2026-10-26",
             "venueCode": "27",
             "raceNo": 12,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
             "status": "racecard-maintenance",
             "racecard": {
@@ -4969,8 +4969,8 @@
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
@@ -5012,7 +5012,7 @@
       "venueOperationLabel": "",
       "venueOperationReason": "",
       "venueOperationSource": "KEIRIN.JP:JSJ048/JSJ001",
-      "venueOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+      "venueOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
       "venueOperationRaw": "",
       "raceIds": [
         "",
@@ -5042,7 +5042,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": true,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -5053,7 +5053,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -5242,22 +5242,22 @@
             "date": "2026-10-26",
             "venueCode": "34",
             "raceNo": 1,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -5276,7 +5276,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -5287,7 +5287,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -5476,22 +5476,22 @@
             "date": "2026-10-26",
             "venueCode": "34",
             "raceNo": 2,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -5510,7 +5510,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -5521,7 +5521,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -5710,22 +5710,22 @@
             "date": "2026-10-26",
             "venueCode": "34",
             "raceNo": 3,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -5744,7 +5744,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -5755,7 +5755,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -5944,22 +5944,22 @@
             "date": "2026-10-26",
             "venueCode": "34",
             "raceNo": 4,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -5978,7 +5978,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -5989,7 +5989,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -6178,22 +6178,22 @@
             "date": "2026-10-26",
             "venueCode": "34",
             "raceNo": 5,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -6212,7 +6212,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -6223,7 +6223,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -6412,22 +6412,22 @@
             "date": "2026-10-26",
             "venueCode": "34",
             "raceNo": 6,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -6446,7 +6446,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -6457,7 +6457,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -6646,22 +6646,22 @@
             "date": "2026-10-26",
             "venueCode": "34",
             "raceNo": 7,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -6680,7 +6680,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": true,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -6691,7 +6691,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -6880,22 +6880,22 @@
             "date": "2026-10-26",
             "venueCode": "34",
             "raceNo": 8,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -6914,7 +6914,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -6925,7 +6925,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -7114,22 +7114,22 @@
             "date": "2026-10-26",
             "venueCode": "34",
             "raceNo": 9,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         }
       ]
@@ -7168,7 +7168,7 @@
       "venueOperationLabel": "",
       "venueOperationReason": "",
       "venueOperationSource": "KEIRIN.JP:JSJ048/JSJ001",
-      "venueOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+      "venueOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
       "venueOperationRaw": "",
       "raceIds": [
         "",
@@ -7201,7 +7201,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "KEIRIN.JP:JSJ012",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result: date/venueCode/raceNo/carNo/registrationNo checked",
@@ -7212,7 +7212,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy / official result: KEIRIN.JP JSJ012",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -7590,22 +7590,22 @@
             "date": "2026-10-26",
             "venueCode": "36",
             "raceNo": 1,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -7624,7 +7624,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "KEIRIN.JP:JSJ012",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted / official result: date/venueCode/raceNo/carNo/registrationNo checked",
@@ -7635,7 +7635,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy / official result: KEIRIN.JP JSJ012",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -8013,22 +8013,22 @@
             "date": "2026-10-26",
             "venueCode": "36",
             "raceNo": 2,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -8047,7 +8047,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "KEIRIN.JP:JSJ012",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted / official result: date/venueCode/raceNo/carNo/registrationNo checked",
@@ -8058,7 +8058,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy / official result: KEIRIN.JP JSJ012",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -8436,22 +8436,22 @@
             "date": "2026-10-26",
             "venueCode": "36",
             "raceNo": 3,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -8470,7 +8470,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "KEIRIN.JP:JSJ012",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted / official result: date/venueCode/raceNo/carNo/registrationNo checked",
@@ -8481,7 +8481,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy / official result: KEIRIN.JP JSJ012",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -8859,22 +8859,22 @@
             "date": "2026-10-26",
             "venueCode": "36",
             "raceNo": 4,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -8893,8 +8893,8 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "KEIRIN.JP:JSJ012",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
-          "raceOperationRaw": "",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
+          "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted / official result: date/venueCode/raceNo/carNo/registrationNo checked",
           "lead": "",
@@ -8904,7 +8904,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy / official result: KEIRIN.JP JSJ012",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -9282,22 +9282,22 @@
             "date": "2026-10-26",
             "venueCode": "36",
             "raceNo": 5,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -9316,8 +9316,8 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "KEIRIN.JP:JSJ012",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
-          "raceOperationRaw": "",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
+          "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted / official result: date/venueCode/raceNo/carNo/registrationNo checked",
           "lead": "",
@@ -9327,7 +9327,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy / official result: KEIRIN.JP JSJ012",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -9705,22 +9705,22 @@
             "date": "2026-10-26",
             "venueCode": "36",
             "raceNo": 6,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -9739,8 +9739,8 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "KEIRIN.JP:JSJ012",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
-          "raceOperationRaw": "",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
+          "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted / official result: date/venueCode/raceNo/carNo/registrationNo checked",
           "lead": "",
@@ -9750,7 +9750,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy / official result: KEIRIN.JP JSJ012",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -10128,22 +10128,22 @@
             "date": "2026-10-26",
             "venueCode": "36",
             "raceNo": 7,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -10162,7 +10162,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -10173,7 +10173,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -10362,22 +10362,22 @@
             "date": "2026-10-26",
             "venueCode": "36",
             "raceNo": 8,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -10396,7 +10396,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -10407,7 +10407,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -10596,22 +10596,22 @@
             "date": "2026-10-26",
             "venueCode": "36",
             "raceNo": 9,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -10630,7 +10630,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -10641,7 +10641,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -10830,22 +10830,22 @@
             "date": "2026-10-26",
             "venueCode": "36",
             "raceNo": 10,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -10864,7 +10864,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -10875,7 +10875,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -11064,22 +11064,22 @@
             "date": "2026-10-26",
             "venueCode": "36",
             "raceNo": 11,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -11098,7 +11098,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -11109,7 +11109,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -11298,22 +11298,22 @@
             "date": "2026-10-26",
             "venueCode": "36",
             "raceNo": 12,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         }
       ]
@@ -11351,7 +11351,7 @@
       "venueOperationLabel": "",
       "venueOperationReason": "",
       "venueOperationSource": "KEIRIN.JP:JSJ048/JSJ001",
-      "venueOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+      "venueOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
       "venueOperationRaw": "",
       "raceIds": [
         "",
@@ -11383,7 +11383,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -11395,7 +11395,7 @@
           "favoriteOdds": null,
           "favoriteCombination": "",
           "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
-          "resultNote": "official result not yet available; result withheld",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -11560,7 +11560,7 @@
             "date": "2026-10-26",
             "venueCode": "42",
             "raceNo": 1,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
             "status": "racecard-maintenance",
             "racecard": {
@@ -11568,8 +11568,8 @@
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
@@ -11594,7 +11594,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -11606,7 +11606,7 @@
           "favoriteOdds": null,
           "favoriteCombination": "",
           "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
-          "resultNote": "official result not yet available; result withheld",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -11771,7 +11771,7 @@
             "date": "2026-10-26",
             "venueCode": "42",
             "raceNo": 2,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
             "status": "racecard-maintenance",
             "racecard": {
@@ -11779,8 +11779,8 @@
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
@@ -11805,7 +11805,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -11817,7 +11817,7 @@
           "favoriteOdds": null,
           "favoriteCombination": "",
           "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
-          "resultNote": "official result not yet available; result withheld",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -12005,7 +12005,7 @@
             "date": "2026-10-26",
             "venueCode": "42",
             "raceNo": 3,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
             "status": "racecard-maintenance",
             "racecard": {
@@ -12013,8 +12013,8 @@
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
@@ -12039,7 +12039,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -12051,7 +12051,7 @@
           "favoriteOdds": null,
           "favoriteCombination": "",
           "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
-          "resultNote": "official result not yet available; result withheld",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -12239,7 +12239,7 @@
             "date": "2026-10-26",
             "venueCode": "42",
             "raceNo": 4,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
             "status": "racecard-maintenance",
             "racecard": {
@@ -12247,8 +12247,8 @@
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
@@ -12273,7 +12273,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -12285,7 +12285,7 @@
           "favoriteOdds": null,
           "favoriteCombination": "",
           "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
-          "resultNote": "official result not yet available; result withheld",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -12473,7 +12473,7 @@
             "date": "2026-10-26",
             "venueCode": "42",
             "raceNo": 5,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
             "status": "racecard-maintenance",
             "racecard": {
@@ -12481,8 +12481,8 @@
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
@@ -12507,7 +12507,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -12519,7 +12519,7 @@
           "favoriteOdds": null,
           "favoriteCombination": "",
           "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
-          "resultNote": "official result not yet available; result withheld",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -12707,7 +12707,7 @@
             "date": "2026-10-26",
             "venueCode": "42",
             "raceNo": 6,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
             "status": "racecard-maintenance",
             "racecard": {
@@ -12715,8 +12715,8 @@
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
@@ -12741,7 +12741,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -12753,7 +12753,7 @@
           "favoriteOdds": null,
           "favoriteCombination": "",
           "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
-          "resultNote": "official result not yet available; result withheld",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -12941,7 +12941,7 @@
             "date": "2026-10-26",
             "venueCode": "42",
             "raceNo": 7,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
             "status": "racecard-maintenance",
             "racecard": {
@@ -12949,8 +12949,8 @@
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
@@ -12975,7 +12975,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -12987,7 +12987,7 @@
           "favoriteOdds": null,
           "favoriteCombination": "",
           "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
-          "resultNote": "official result not yet available; result withheld",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -13175,7 +13175,7 @@
             "date": "2026-10-26",
             "venueCode": "42",
             "raceNo": 8,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
             "status": "racecard-maintenance",
             "racecard": {
@@ -13183,8 +13183,8 @@
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
@@ -13209,7 +13209,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -13221,7 +13221,7 @@
           "favoriteOdds": null,
           "favoriteCombination": "",
           "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
-          "resultNote": "official result not yet available; result withheld",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -13409,7 +13409,7 @@
             "date": "2026-10-26",
             "venueCode": "42",
             "raceNo": 9,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
             "status": "racecard-maintenance",
             "racecard": {
@@ -13417,8 +13417,8 @@
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
@@ -13443,7 +13443,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -13455,7 +13455,7 @@
           "favoriteOdds": null,
           "favoriteCombination": "",
           "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
-          "resultNote": "official result not yet available; result withheld",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -13643,7 +13643,7 @@
             "date": "2026-10-26",
             "venueCode": "42",
             "raceNo": 10,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
             "status": "racecard-maintenance",
             "racecard": {
@@ -13651,8 +13651,8 @@
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
@@ -13677,7 +13677,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -13689,7 +13689,7 @@
           "favoriteOdds": null,
           "favoriteCombination": "",
           "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
-          "resultNote": "official result not yet available; result withheld",
+          "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy",
           "resultStatus": "pending",
           "resultTop3": [],
           "payouts": [],
@@ -13877,7 +13877,7 @@
             "date": "2026-10-26",
             "venueCode": "42",
             "raceNo": 11,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
             "status": "racecard-maintenance",
             "racecard": {
@@ -13885,8 +13885,8 @@
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
@@ -13926,7 +13926,7 @@
       "venueOperationLabel": "",
       "venueOperationReason": "",
       "venueOperationSource": "KEIRIN.JP:JSJ048/JSJ001",
-      "venueOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+      "venueOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
       "venueOperationRaw": "",
       "raceIds": [
         "",
@@ -13954,7 +13954,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "KEIRIN.JP:JSJ012",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result: date/venueCode/raceNo/carNo/registrationNo checked",
@@ -13965,7 +13965,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy / official result: KEIRIN.JP JSJ012",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -14343,22 +14343,22 @@
             "date": "2026-10-26",
             "venueCode": "55",
             "raceNo": 1,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -14377,7 +14377,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "KEIRIN.JP:JSJ012",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result: date/venueCode/raceNo/carNo/registrationNo checked",
@@ -14388,7 +14388,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy / official result: KEIRIN.JP JSJ012",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -14766,22 +14766,22 @@
             "date": "2026-10-26",
             "venueCode": "55",
             "raceNo": 2,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -14800,7 +14800,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "KEIRIN.JP:JSJ012",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result: date/venueCode/raceNo/carNo/registrationNo checked",
@@ -14811,7 +14811,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy / official result: KEIRIN.JP JSJ012",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -15189,22 +15189,22 @@
             "date": "2026-10-26",
             "venueCode": "55",
             "raceNo": 3,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -15223,7 +15223,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "KEIRIN.JP:JSJ012",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result: date/venueCode/raceNo/carNo/registrationNo checked",
@@ -15234,7 +15234,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy / official result: KEIRIN.JP JSJ012",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -15612,22 +15612,22 @@
             "date": "2026-10-26",
             "venueCode": "55",
             "raceNo": 4,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -15646,7 +15646,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "KEIRIN.JP:JSJ012",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result: date/venueCode/raceNo/carNo/registrationNo checked",
@@ -15657,7 +15657,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy / official result: KEIRIN.JP JSJ012",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -16035,22 +16035,22 @@
             "date": "2026-10-26",
             "venueCode": "55",
             "raceNo": 5,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -16069,7 +16069,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "KEIRIN.JP:JSJ012",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": true,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result: date/venueCode/raceNo/carNo/registrationNo checked",
@@ -16080,7 +16080,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy / official result: KEIRIN.JP JSJ012",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -16458,22 +16458,22 @@
             "date": "2026-10-26",
             "venueCode": "55",
             "raceNo": 6,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -16492,7 +16492,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "KEIRIN.JP:JSJ012",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": true,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result: date/venueCode/raceNo/carNo/registrationNo checked",
@@ -16503,7 +16503,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy / official result: KEIRIN.JP JSJ012",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -16881,22 +16881,22 @@
             "date": "2026-10-26",
             "venueCode": "55",
             "raceNo": 7,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         }
       ]
@@ -16935,7 +16935,7 @@
       "venueOperationLabel": "",
       "venueOperationReason": "",
       "venueOperationSource": "KEIRIN.JP:JSJ048/JSJ001",
-      "venueOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+      "venueOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
       "venueOperationRaw": "",
       "raceIds": [
         "",
@@ -16968,7 +16968,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "KEIRIN.JP:JSJ012",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted / official result: date/venueCode/raceNo/carNo/registrationNo checked",
@@ -16979,7 +16979,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy / official result: KEIRIN.JP JSJ012",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -17357,22 +17357,22 @@
             "date": "2026-10-26",
             "venueCode": "73",
             "raceNo": 1,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -17391,7 +17391,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "KEIRIN.JP:JSJ012",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted / official result: date/venueCode/raceNo/carNo/registrationNo checked",
@@ -17402,7 +17402,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy / official result: KEIRIN.JP JSJ012",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -17780,22 +17780,22 @@
             "date": "2026-10-26",
             "venueCode": "73",
             "raceNo": 2,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -17814,7 +17814,7 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "KEIRIN.JP:JSJ012",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted / official result: date/venueCode/raceNo/carNo/registrationNo checked",
@@ -17825,7 +17825,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy / official result: KEIRIN.JP JSJ012",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -18203,22 +18203,22 @@
             "date": "2026-10-26",
             "venueCode": "73",
             "raceNo": 3,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -18237,8 +18237,8 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "KEIRIN.JP:JSJ012",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
-          "raceOperationRaw": "",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
+          "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted / official result: date/venueCode/raceNo/carNo/registrationNo checked",
           "lead": "",
@@ -18248,7 +18248,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy / official result: KEIRIN.JP JSJ012",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -18626,22 +18626,22 @@
             "date": "2026-10-26",
             "venueCode": "73",
             "raceNo": 4,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -18660,8 +18660,8 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "KEIRIN.JP:JSJ012",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
-          "raceOperationRaw": "",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
+          "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted / official result: date/venueCode/raceNo/carNo/registrationNo checked",
           "lead": "",
@@ -18671,7 +18671,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy / official result: KEIRIN.JP JSJ012",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -19016,22 +19016,22 @@
             "date": "2026-10-26",
             "venueCode": "73",
             "raceNo": 5,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -19050,8 +19050,8 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "KEIRIN.JP:JSJ012",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
-          "raceOperationRaw": "",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
+          "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted / official result: date/venueCode/raceNo/carNo/registrationNo checked",
           "lead": "",
@@ -19061,7 +19061,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy / official result: KEIRIN.JP JSJ012",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -19439,22 +19439,22 @@
             "date": "2026-10-26",
             "venueCode": "73",
             "raceNo": 6,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -19473,8 +19473,8 @@
           "raceOperationLabel": "結果確定",
           "raceOperationReason": "",
           "raceOperationSource": "KEIRIN.JP:JSJ012",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
-          "raceOperationRaw": "",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
+          "raceOperationRaw": "result confirmed",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted / official result: date/venueCode/raceNo/carNo/registrationNo checked",
           "lead": "",
@@ -19484,7 +19484,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "netkeirin result disabled by source policy / kdreams result disabled by source policy / resultFallback: oddspark disabled by source policy / official result: KEIRIN.JP JSJ012",
           "resultStatus": "confirmed",
           "resultTop3": [
@@ -19862,22 +19862,22 @@
             "date": "2026-10-26",
             "venueCode": "73",
             "raceNo": 7,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -19896,7 +19896,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -19907,7 +19907,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -20096,22 +20096,22 @@
             "date": "2026-10-26",
             "venueCode": "73",
             "raceNo": 8,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -20130,7 +20130,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -20141,7 +20141,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -20330,22 +20330,22 @@
             "date": "2026-10-26",
             "venueCode": "73",
             "raceNo": 9,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -20364,7 +20364,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -20375,7 +20375,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -20564,22 +20564,22 @@
             "date": "2026-10-26",
             "venueCode": "73",
             "raceNo": 10,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -20598,7 +20598,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -20609,7 +20609,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -20798,22 +20798,22 @@
             "date": "2026-10-26",
             "venueCode": "73",
             "raceNo": 11,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         },
         {
@@ -20832,7 +20832,7 @@
           "raceOperationLabel": "",
           "raceOperationReason": "",
           "raceOperationSource": "kdreams:racecard",
-          "raceOperationUpdatedAt": "2026-10-26T14:06:08+09:00",
+          "raceOperationUpdatedAt": "2026-10-26T14:30:50+09:00",
           "raceOperationRaw": "",
           "isGirls": false,
           "sourceNote": "kdreams racedetail disabled by source policy / official entries: KEIRIN.JP JSJ006; date/venueCode/raceNo/carNo/registrationNo checked / official result unavailable: not adopted",
@@ -20843,7 +20843,7 @@
           "topTrifectaOdds": null,
           "favoriteOdds": null,
           "favoriteCombination": "",
-          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし",
+          "oddsNote": "netkeirin odds disabled by source policy / 3連単オッズ未取得: 有効な取得元なし / odds skipped outside odds window",
           "resultNote": "official result not yet available; result withheld",
           "resultStatus": "pending",
           "resultTop3": [],
@@ -21032,22 +21032,22 @@
             "date": "2026-10-26",
             "venueCode": "73",
             "raceNo": 12,
-            "phase": "result",
+            "phase": "odds",
             "provider": "kdreams",
-            "status": "racecard-maintenance",
+            "status": "outside-phase",
             "racecard": {
               "status": "racecard-maintenance",
               "httpStatus": 200,
               "reason": "racecard maintenance page",
               "provider": "kdreams",
-              "requestedAt": "2026-10-26T05:06:35.347Z",
-              "receivedAt": "2026-10-26T05:06:35.763Z"
+              "requestedAt": "2026-10-26T05:30:50.858Z",
+              "receivedAt": "2026-10-26T05:30:51.341Z"
             },
             "httpAttempted": false,
             "requestedAt": null,
             "fetchedAt": null,
             "httpStatus": null,
-            "reason": "racecard maintenance page"
+            "reason": "odds not requested in this phase"
           }
         }
       ]
