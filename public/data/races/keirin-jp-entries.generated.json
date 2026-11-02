@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-02T05:02:49.620Z",
+  "generatedAt": "2026-11-02T05:32:32.244Z",
   "source": {
     "provider": "KEIRIN.JP",
-    "fetchStartedAt": "2026-11-02T05:01:36.609Z",
-    "fetchCompletedAt": "2026-11-02T05:02:49.620Z",
+    "fetchStartedAt": "2026-11-02T05:31:33.646Z",
+    "fetchCompletedAt": "2026-11-02T05:32:32.244Z",
     "listType": "JSJ048",
     "entryType": "JSJ006",
     "detailType": "JSJ001",
@@ -8405,7 +8405,7 @@
       "venueName": "防府競輪場",
       "grade": "G3",
       "raceName": "周防国府杯争奪戦",
-      "selectedRaceNumber": "8",
+      "selectedRaceNumber": "9",
       "races": [
         {
           "raceNumber": 1,
@@ -10167,8 +10167,8 @@
         {
           "raceNumber": 8,
           "entryStatus": "available",
-          "operationStatus": "scheduled",
-          "raceEnded": false,
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
           "lastUpdateTime": "2026/11/02 07:05 更新",
@@ -10182,63 +10182,17 @@
           "official": {
             "bKeirinjyoCd": "63",
             "yudoSensyuName": "山崎 航",
-            "yosoinMei": "リズム",
+            "yosoinMei": "",
             "raceResult1CarNo": "3",
             "raceResult2CarNo": "9",
             "backCount1CarNo": "1",
             "backCount2CarNo": "7"
           },
-          "lineup": "1 9 2 8 4 7 3 6 5",
+          "lineup": "",
           "officialLineup": {
-            "lineup": "1 9 2 8 4 7 3 6 5",
-            "positions": [
-              {
-                "position": 2,
-                "carNo": "1",
-                "className": "base_color_1"
-              },
-              {
-                "position": 3,
-                "carNo": "9",
-                "className": "base_color_9"
-              },
-              {
-                "position": 5,
-                "carNo": "2",
-                "className": "base_color_2"
-              },
-              {
-                "position": 6,
-                "carNo": "8",
-                "className": "base_color_8"
-              },
-              {
-                "position": 7,
-                "carNo": "4",
-                "className": "base_color_4"
-              },
-              {
-                "position": 9,
-                "carNo": "7",
-                "className": "base_color_7"
-              },
-              {
-                "position": 10,
-                "carNo": "3",
-                "className": "base_color_3"
-              },
-              {
-                "position": 12,
-                "carNo": "6",
-                "className": "base_color_6"
-              },
-              {
-                "position": 13,
-                "carNo": "5",
-                "className": "base_color_5"
-              }
-            ],
-            "source": "KEIRIN.JP:JSJ005:narabiyoso"
+            "lineup": "",
+            "positions": [],
+            "source": ""
           },
           "entries": [
             {
@@ -10277,7 +10231,7 @@
               "style": "逃",
               "graduationTerm": "119",
               "age": 29,
-              "predictionMark": "△",
+              "predictionMark": "",
               "score": 103.21,
               "stats": {
                 "escapeCount": 4,
@@ -10303,7 +10257,7 @@
               "style": "両",
               "graduationTerm": "117",
               "age": 25,
-              "predictionMark": "◎",
+              "predictionMark": "",
               "score": 111.27,
               "stats": {
                 "escapeCount": 2,
@@ -10407,7 +10361,7 @@
               "style": "逃",
               "graduationTerm": "117",
               "age": 25,
-              "predictionMark": "○",
+              "predictionMark": "",
               "score": 101.25,
               "stats": {
                 "escapeCount": 7,
@@ -10459,7 +10413,7 @@
               "style": "逃",
               "graduationTerm": "115",
               "age": 29,
-              "predictionMark": "×",
+              "predictionMark": "",
               "score": 106.76,
               "stats": {
                 "escapeCount": 0,
@@ -10481,8 +10435,10 @@
             "hasEntries": true,
             "hasRegistrationNumbers": true,
             "hasNames": true,
-            "hasLineup": true,
-            "warnings": []
+            "hasLineup": false,
+            "warnings": [
+              "official lineup missing"
+            ]
           }
         },
         {
@@ -11775,7 +11731,7 @@
       "missingRaceCount": 0,
       "errorCount": 0,
       "totalEntryCount": 101,
-      "lineupRaceCount": 5
+      "lineupRaceCount": 4
     },
     {
       "date": "2026-11-02",
@@ -18271,6 +18227,6 @@
   "missingRaceCount": 0,
   "errorCount": 0,
   "totalEntryCount": 512,
-  "lineupRaceCount": 50,
+  "lineupRaceCount": 49,
   "preservedCompleteRaceCount": 0
 }
