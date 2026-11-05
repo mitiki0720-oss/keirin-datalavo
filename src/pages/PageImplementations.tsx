@@ -2481,101 +2481,13 @@ type KeirinJpEntriesFeed = {
   }>;
 };
 
-type KeirinJpEntryRegistrationCandidate = {
-  registrationNo: string;
-  name?: string;
-  prefecture?: string;
-  term?: string | number;
-  className?: string;
-};
-
-const normalizePredictionRegistrationNo = (value: unknown) => {
-  // Explicit ASCII digits only; do not extract digits or zero-pad identifiers.
-  const digits = String(value ?? "").normalize("NFKC").trim();
-  return /^[0-9]{5,6}$/u.test(digits) ? digits : "";
-};
-
-const buildKeirinJpEntryRegistrationLookup = (feed?: KeirinJpEntriesFeed | null) => {
-  const lookup = new Map<string, KeirinJpEntryRegistrationCandidate | null>();
-  const add = (key: string, candidate: KeirinJpEntryRegistrationCandidate) => {
-    if (!key || !candidate.registrationNo) return;
-    const current = lookup.get(key);
-    if (current === null) return;
-    if (current && current.registrationNo !== candidate.registrationNo) {
-      lookup.set(key, null);
-      return;
-    }
-    lookup.set(key, candidate);
-  };
-
-  for (const venue of feed?.venues ?? []) {
-    const date = String(venue.date ?? feed?.date ?? "").trim();
-    const venueCode = String(venue.venueCode ?? "").trim();
-    const venueNameKey = normalizePredictionVenueName(venue.venueName);
-    for (const race of venue.races ?? []) {
-      const raceNo = Number(race.raceNumber);
-      if (!date || !Number.isFinite(raceNo)) continue;
-      for (const entry of race.entries ?? []) {
-        const carNo = String(entry.carNo ?? "").trim();
-        const registrationNo = normalizePredictionRegistrationNo(entry.registrationNo);
-        if (!carNo || !registrationNo) continue;
-        const candidate = {
-          registrationNo,
-          name: entry.name,
-          prefecture: entry.prefecture,
-          term: entry.graduationTerm,
-          className: entry.raceClass,
-        };
-        if (venueCode) add([date, "code", venueCode, raceNo, carNo].join("|"), candidate);
-        if (venueNameKey) add([date, "venue", venueNameKey, raceNo, carNo].join("|"), candidate);
-      }
-    }
-  }
-
-  return lookup;
-};
-
-const enrichPredictionFeedWithKeirinJpEntries = (
-  feed: PredictionTodayFeed,
-  entriesFeed?: KeirinJpEntriesFeed | null,
-): PredictionTodayFeed => {
-  const lookup = buildKeirinJpEntryRegistrationLookup(entriesFeed);
-  if (lookup.size === 0) return feed;
-
-  let changed = false;
-  const venues = (feed.venues ?? []).map((venue) => {
-    const venueCode = String(venue.venueCode ?? "").trim();
-    const venueNameKey = normalizePredictionVenueName(venue.venue);
-    const races = (venue.races ?? []).map((race) => {
-      const riders = (race.riders ?? []).map((rider) => {
-        if (normalizePredictionRegistrationNo(getPredictionRiderRegistrationNo(rider))) return rider;
-        const carNo = String(rider.carNo ?? "").trim();
-        const raceNo = Number(race.raceNo);
-        if (!carNo || !Number.isFinite(raceNo)) return rider;
-        const codeKey = [feed.date, "code", venueCode, raceNo, carNo].join("|");
-        const venueKey = [feed.date, "venue", venueNameKey, raceNo, carNo].join("|");
-        const candidate = venueCode && lookup.has(codeKey)
-          ? lookup.get(codeKey)
-          : venueNameKey && lookup.has(venueKey)
-            ? lookup.get(venueKey)
-            : undefined;
-        if (!candidate?.registrationNo) return rider;
-        changed = true;
-        return {
-          ...rider,
-          registrationNo: candidate.registrationNo,
-          registrationNoSource: "keirin-jp-entries",
-          registrationNoStatus: "official-entry-match",
-          registrationNoTrustStatus: "official-entry-match",
-        };
-      });
-      return { ...race, riders };
-    });
-    return { ...venue, races };
-  });
-
-  return changed ? { ...feed, venues } : feed;
-};
+// STEP10-01AS (review only): do not backfill rider registration IDs from a
+// separately fetched official-entry file. A SHA/version check is necessary,
+// but it is not proof of the identity of a rider missing an explicit ID.
+// Keep the official JSON in StrictRegistrationEvidence and require the strict
+// 4-key + per-race JSJ001/JSJ006 attestation at GPT export time instead.
+// An unverified ID must never be added to PredictionTodayFeed or labelled
+// "official-entry-match" by a compatibility lookup.
 
 export const isPredictionOddsSkippedOutsideWindow = (oddsNote?: string | null) =>
   /odds skipped outside/i.test(String(oddsNote ?? ""));
@@ -9694,11 +9606,13 @@ useEffect(() => {
 
         if (!isActive) return;
 
-        const enrichedFeed = enrichPredictionFeedWithKeirinJpEntries(feed, entriesFeed);
-        const sortedVenues = [...(enrichedFeed.venues ?? [])].sort(comparePredictionVenues);
+        // STEP10-01AS: render the original feed without rider-ID backfill.
+        // StrictRegistrationEvidence remains separate; mismatched SHA or
+        // missing proof always causes the GPT source contract to hold.
+        const sortedVenues = [...(feed.venues ?? [])].sort(comparePredictionVenues);
 
         setPredictionStrictOfficialRegistrationEvidence(strictRegistrationEvidence);
-        setPredictionFeed({ ...enrichedFeed, venues: sortedVenues });
+        setPredictionFeed({ ...feed, venues: sortedVenues });
         setPredictionBankIndex(bankIndex);
         setPredictionInsightGroups(groupVenueInsightEntries(insightIndex));
         setSelectedVenueId((current) => current || sortedVenues[0]?.id || "");
