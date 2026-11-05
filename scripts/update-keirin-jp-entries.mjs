@@ -1,4 +1,5 @@
 import path from "node:path";
+import { assertJsj001Jsj006Exact } from "./lib/official-entry-crosscheck.mjs";
 import {
   readJsonIfPresent,
   writeJsonIfChanged,
@@ -255,7 +256,7 @@ function officialLineupFromJsj005(data) {
   };
 }
 
-function createRaceEntry(raceNumber, raceMeta, entryData, lineupData, detailData) {
+function createRaceEntry(raceNumber, raceMeta, entryData, lineupData, detailData, venueDate, venueCode) {
   const rows = Array.isArray(entryData.sensyuTypeInfo)
     ? entryData.sensyuTypeInfo
     : [];
@@ -264,9 +265,18 @@ function createRaceEntry(raceNumber, raceMeta, entryData, lineupData, detailData
   const officialLineup = officialLineupFromJsj005(lineupData);
   const detail = detailData.C0201racedtl ?? {};
   const detailRiders = Array.isArray(detail.C0201sensyu) ? detail.C0201sensyu : [];
-  const detailByCar = new Map(detailRiders.map((rider) => [clean(rider.carNum), clean(rider.numPlayer)]));
-  if ((expectedDate && normalizeDate(detailData.selKaisai) !== expectedDate) || clean(detailData.selKjyoCd) !== clean(entryData.bKeirinjyoCd) || integerValue(detailData.selRaceNo) !== raceNumber || detailByCar.size !== entries.length || entries.some((entry) => detailByCar.get(entry.carNo) !== entry.registrationNo)) {
-    throw new Error(`JSJ001/JSJ006 race identity conflict: ${detailData.selKaisai}:${detailData.selKjyoCd}:${raceNumber}`);
+  // Only a full exact-key, duplicate-safe JSJ001↔JSJ006 comparison may create
+  // this per-race proof. Never synthesize proof from the generated JSON later.
+  const entryDetailCrosscheck = assertJsj001Jsj006Exact({
+    date: venueDate, venueCode, raceNumber,
+    entryVenueCode: entryData.bKeirinjyoCd,
+    detailDate: detailData.selKaisai,
+    detailVenueCode: detailData.selKjyoCd,
+    detailRaceNumber: detailData.selRaceNo,
+    entries, detailRiders,
+  });
+  if (expectedDate && venueDate !== expectedDate) {
+    throw new Error(`JSJ001/JSJ006 expected date mismatch: ${venueDate}`);
   }
 
   const warnings = [
@@ -309,6 +319,7 @@ function createRaceEntry(raceNumber, raceMeta, entryData, lineupData, detailData
     entries,
     quality: {
       entryCount: entries.length,
+      entryDetailCrosscheck: { ...entryDetailCrosscheck, checkedAt: new Date().toISOString() },
       hasEntries: entries.length > 0,
       hasRegistrationNumbers: entries.length > 0 &&
         entries.every((entry) => entry.registrationNo),
@@ -448,7 +459,7 @@ function mergeWithExisting(existing, candidate) {
   };
 }
 
-async function fetchRace(raceNumber, raceMeta) {
+async function fetchRace(raceNumber, raceMeta, venueDate, venueCode) {
   const raceParameter = clean(raceMeta.encParaR);
 
   if (!raceParameter) {
@@ -477,6 +488,8 @@ async function fetchRace(raceNumber, raceMeta) {
     entryData,
     lineupData,
     detailData,
+    venueDate,
+    venueCode,
   );
 }
 
@@ -507,7 +520,11 @@ async function fetchVenue(venue) {
       index + 1;
 
     try {
-      races.push(await fetchRace(raceNumber, raceMeta));
+      races.push(await fetchRace(
+        raceNumber, raceMeta,
+        normalizeDate(venueData.selKaisai) || normalizeDate(venue.kaisaiDate),
+        clean(venueData.selKjyoCd),
+      ));
     } catch (error) {
       races.push(
         createErrorRace(
