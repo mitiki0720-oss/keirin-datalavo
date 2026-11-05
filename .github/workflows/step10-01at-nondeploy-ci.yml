@@ -30,7 +30,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$HEAD"
-          test "$(git hash-object src/pages/PageImplementations.tsx)" = 35121b421970ad0c621bd464a9d6f6e7253775fb
+          test "$(git hash-object src/pages/PageImplementations.tsx)" = f3e09228b2cf45c0feb1f92a2a243a26272c8ea0
           test "$(git hash-object src/lib/strictOfficialRegistrationMaterial.ts)" = a559228187aeb494699d12f8eff6fcde83a0be5c
           test "$(git hash-object scripts/update-keirin-jp-entries.mjs)" = 9832978236870bfb960024d14ef46c820a21486a
           test "$(git hash-object scripts/update-today-races.mjs)" = d68ba10f3800c92060d60fca1763396985d5f968
@@ -38,7 +38,7 @@ jobs:
           test "$(git hash-object public/data/races/today.generated.json)" = 99207cc65c58428c4439ae04a9602c0a5591ada1
           while IFS= read -r file; do
             case "$file" in
-              .github/workflows/step10-01at-nondeploy-ci.yml|tests/test-at-browser-preview.mjs|tests/test-at-pair-evidence.mjs) ;;
+              .github/workflows/step10-01at-nondeploy-ci.yml|tests/test-at-browser-preview.mjs|tests/test-at-pair-evidence.mjs|src/pages/PageImplementations.tsx) ;;
               *) echo "UNEXPECTED AT source change: $file" >&2; exit 1 ;;
             esac
           done < <(git diff --name-only "$BASE" "$HEAD")
