@@ -34,10 +34,18 @@ try{
     const venue=await request(official('JSJ001',txt(candidate.touhyouLivePara)));status.officialQueries++;
     const parent=venue.data?.C0201data??{};
     const venueCode=txt(parent.selKjyoCd);
-    const meta=(Array.isArray(parent.C0201race)?parent.C0201race:[]).find(r=>txt(r.encParaR));
-    if(!meta||normDate(parent.selKaisai)!==expectedDate){status.status='WAIT_SOURCE_VENUE_DETAIL_UNAVAILABLE';}
-    else{
-      const raceNo=Number(meta.raceNo??meta.raceNum);
+    const raceList=Array.isArray(parent.C0201race)?parent.C0201race:[];
+    const listIndex=raceList.findIndex(r=>txt(r.encParaR));
+    const meta=listIndex>=0?raceList[listIndex]:null;
+    if(!meta||normDate(parent.selKaisai)!==expectedDate||!venueCode){
+      status.status='WAIT_SOURCE_VENUE_DETAIL_UNAVAILABLE';
+      status.venueMetadata={hasRaceMeta:!!meta,hasVenueCode:!!venueCode,dateMatches:normDate(parent.selKaisai)===expectedDate};
+    }else{
+      // The official updater uses race-list position when JSJ001 has no
+      // explicit raceNo/raceNum; do not parse a missing number as NaN/zero.
+      const observedNumber=Number(meta.raceNo??meta.raceNum);
+      const raceNo=Number.isInteger(observedNumber)&&observedNumber>=1&&observedNumber<=12?observedNumber:listIndex+1;
+      status.raceNoBasis=Number.isInteger(observedNumber)&&observedNumber>=1&&observedNumber<=12?'official-explicit':'jsj001-index-fallback';
       const [entries,detail]=await Promise.all([request(official('JSJ006',txt(meta.encParaR))),request(official('JSJ001',txt(meta.encParaR)))]);
       status.officialQueries+=2;
       const entryRows=(Array.isArray(entries.data?.sensyuTypeInfo)?entries.data.sensyuTypeInfo:[]).map(x=>({carNo:txt(x.syaban),registrationNo:txt(x.sensyuRegistNo),name:txt(x.sensyuName)}));
