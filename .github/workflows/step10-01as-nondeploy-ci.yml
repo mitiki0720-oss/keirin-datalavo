@@ -1,0 +1,111 @@
+# STEP10-01AS -- review-only, NO PAGES/PRODUCTION WRITE.
+name: STEP10-01AS source integrity, limited live proof and HTTPS probe -- NONDEPLOY
+on:
+  pull_request:
+    branches:
+      - review/step10-01ar-official-normal-path-nondeploy-20261105
+    paths:
+      - '.github/workflows/step10-01as-nondeploy-ci.yml'
+      - 'src/pages/PageImplementations.tsx'
+      - 'scripts/audit-step10-01aq-safe-material.mjs'
+      - 'tests/test-as-*'
+permissions:
+  contents: read
+jobs:
+  as-review:
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout immutable review head with read-only auth
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Pinned source, 7-file scope and no deployment
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          test "$(git hash-object src/pages/PageImplementations.tsx)" = 35121b421970ad0c621bd464a9d6f6e7253775fb
+          test "$(git hash-object src/lib/strictOfficialRegistrationMaterial.ts)" = a559228187aeb494699d12f8eff6fcde83a0be5c
+          test "$(git hash-object scripts/update-keirin-jp-entries.mjs)" = 9832978236870bfb960024d14ef46c820a21486a
+          test "$(git hash-object public/data/races/keirin-jp-entries.generated.json)" = b5d9b597e248c348695c1e3a759336f8f5bab588
+          test "$(git hash-object public/data/races/today.generated.json)" = 99207cc65c58428c4439ae04a9602c0a5591ada1
+          while IFS= read -r file; do
+            case "$file" in
+              src/pages/PageImplementations.tsx|scripts/audit-step10-01aq-safe-material.mjs|.github/workflows/step10-01as-nondeploy-ci.yml|tests/test-as-no-backfill.mjs|tests/test-as-live-official-sample.mjs|tests/test-as-https-delivery.mjs|tests/test-as-chrome-https.mjs) ;;
+              *) echo "Unexpected AS changed file: $file" >&2; exit 1 ;;
+            esac
+          done < <(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const y=fs.readFileSync('.github/workflows/step10-01as-nondeploy-ci.yml','utf8');
+          const uses=y.split('\n').map(x=>x.trim()).filter(x=>x.startsWith('uses:'));
+          if (!y.includes('contents: read') || uses.some(x=>x.includes('deploy-pages') || x.includes('upload-pages-artifact'))) throw Error('nondeploy contract violated');
+          NODE
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Reject implicit ID feed enrichment (gating + 4 negative mutations)
+        run: node tests/test-as-no-backfill.mjs
+      - name: AQ contract regression now requires no browser-side ID backfill
+        run: node scripts/audit-step10-01aq-safe-material.mjs
+      - name: Original AQ negative mutations (gating)
+        run: node tests/test-aq-audit-negative.mjs
+      - name: Real Page function 79R/575 synthetic positive and historical hold (gating)
+        run: node tests/test-ar-gpt-normal-and-hold.mjs
+      - name: Saved predictions JSON is not a registration certificate (gating)
+        run: node tests/test-ar-other-exports.mjs
+      - name: AP real generator with simulated official API (gating)
+        run: node tests/test-ap-generator-integration.mjs
+      - name: React19 TypeScript/Vite GitHub-mode build (gating)
+        run: npm run build:github
+      - name: Focused lint for new regression suite and updated audit (gating)
+        run: npx eslint tests/test-as-no-backfill.mjs tests/test-as-live-official-sample.mjs tests/test-as-https-delivery.mjs tests/test-as-chrome-https.mjs scripts/audit-step10-01aq-safe-material.mjs
+      - name: Live KEIRIN.JP one-race JSJ001+JSJ006 sample (diagnostic; never fake PASS)
+        id: official_live
+        continue-on-error: true
+        run: node tests/test-as-live-official-sample.mjs
+      - name: HTTPS GitHub Pages raw-byte matching and paired SHA (diagnostic)
+        id: served_pair
+        continue-on-error: true
+        run: node tests/test-as-https-delivery.mjs
+      - name: Chrome real HTTPS DOM smoke without copy or write (diagnostic)
+        id: chrome
+        continue-on-error: true
+        run: node tests/test-as-chrome-https.mjs
+      - name: Baseline full ESLint (diagnostic; not false PASS)
+        id: full_lint
+        continue-on-error: true
+        run: npm run lint
+      - name: Report all live/diagnostic outcomes and release gates
+        if: ${{ !cancelled() }}
+        env:
+          OFFICIAL_STATUS: ${{ steps.official_live.outputs.status }}
+          SERVED_STATUS: ${{ steps.served_pair.outputs.status }}
+          CHROME_STATUS: ${{ steps.chrome.outputs.status }}
+          LINT_OUTCOME: ${{ steps.full_lint.outcome }}
+        shell: bash
+        run: |
+          {
+            echo '## STEP10-01AS | Review only, nondeploy'
+            echo "KEIRIN.JP one-race official live sample: ${OFFICIAL_STATUS:-NOT_REPORTED}"
+            echo "GitHub Pages delivered JSON pairing: ${SERVED_STATUS:-NOT_REPORTED}"
+            echo "Actual Chrome HTTPS DOM smoke: ${CHROME_STATUS:-NOT_REPORTED}"
+            echo "Baseline whole-repository ESLint step outcome: ${LINT_OUTCOME:-NOT_RUN}"
+            echo 'A live sample proves only the checked race, NOT all 79 races or individual official player profiles.'
+            echo 'Chrome DOM smoke does NOT prove app copy/TXT or OS clipboard or phone device.'
+            echo 'No release or Monthly removal: missing full official evidence / paired deployed SHA / actual UI operations / rollback / explicit approval must remain HOLD.'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Ensure no tracked content changes
+        if: ${{ !cancelled() }}
+        run: test -z "$(git status --porcelain)"
