@@ -11752,8 +11752,14 @@ if (
   ]);
   const gptExportLineCount = useMemo(() => gptExportText.split(/\r?\n/).length, [gptExportText]);
   const gptExportCharCount = useMemo(() => gptExportText.length, [gptExportText]);
-  const predictionGptMaterialHeld = gptExportText.includes("[REGISTRATION_EVIDENCE_HOLD");
-  const predictionBatchMaterialHeld = predictionBatchMaterial.text.includes("【まとめ素材保留 / REGISTRATION_EVIDENCE_HOLD】");
+  const predictionGptMaterialHeld = !predictionFeed || !selectedVenue || !selectedRace
+    || !selectedPredictionMaterialVenue || !selectedPredictionMaterialRace
+    || !predictionStrictOfficialRegistrationEvidence
+    || gptExportText.includes("[REGISTRATION_EVIDENCE_HOLD");
+  const predictionBatchMaterialHeld = !predictionFeed || !selectedPredictionMaterialVenue
+    || predictionBatchMaterial.raceCount === 0
+    || !predictionStrictOfficialRegistrationEvidence
+    || predictionBatchMaterial.text.includes("【まとめ素材保留 / REGISTRATION_EVIDENCE_HOLD】");
   const selectedPredictionTargetLabel = selectedVenue && selectedRace ? `${selectedVenue.venue} ${selectedRace.raceNo}R` : "レース選択待ち";
   const selectedPredictionVenueStageLabel = selectedVenue
   ? getPredictionVenueStageLabel(selectedVenue, predictionFeed?.date ?? TODAY)
@@ -11788,6 +11794,10 @@ if (
   const predictionSlotSaveStateLabel = selectedSavedPredictionSlot ? "保存済み" : "未保存";
 
   const handlePredictionCopy = async () => {
+    if (predictionGptMaterialHeld) {
+      setCopyStatus("出走表と登録番号の照合が完了していないため、コピーを保留します。");
+      return;
+    }
     if (gptExportText.includes("[REGISTRATION_EVIDENCE_HOLD")) {
       setCopyStatus("公式登録番号の照合証拠が不足しています。素材をコピーできません。");
       return;
@@ -11813,6 +11823,11 @@ if (
 
     let isActive = true;
     const copyBatchMaterial = async () => {
+      if (predictionBatchMaterialHeld) {
+        setPredictionBatchCopyStatus("レース素材の公式照合待ちのため、まとめコピーできません。");
+        setPendingPredictionBatchCopyRange(null);
+        return;
+      }
       if (predictionBatchMaterial.text.includes("【まとめ素材保留 / REGISTRATION_EVIDENCE_HOLD】")) {
         setPredictionBatchCopyStatus("公式登録番号の照合証拠が不足しています。まとめ素材をコピーできません。");
         setPendingPredictionBatchCopyRange(null);
@@ -11839,15 +11854,23 @@ if (
     return () => {
       isActive = false;
     };
-  }, [pendingPredictionBatchCopyRange, predictionBatchKurariExRiderStatus, predictionBatchMaterial, predictionBatchRange]);
+  }, [pendingPredictionBatchCopyRange, predictionBatchKurariExRiderStatus, predictionBatchMaterial, predictionBatchMaterialHeld, predictionBatchRange]);
 
   const handlePredictionBatchCopy = (range: PredictionBatchRangePreset) => {
+    if (predictionBatchMaterialHeld) {
+      setPredictionBatchCopyStatus("レース素材の公式照合待ちのため、まとめコピーできません。");
+      return;
+    }
     setPredictionBatchCopyStatus("");
     setPredictionBatchRange(range);
     setPendingPredictionBatchCopyRange(range);
   };
 
   const handleLegacyPredictionBatchCopy = async () => {
+    if (predictionBatchMaterialHeld) {
+      setPredictionBatchCopyStatus("レース素材の公式照合待ちのため、まとめコピーできません。");
+      return;
+    }
     if (predictionBatchMaterial.text.includes("【まとめ素材保留 / REGISTRATION_EVIDENCE_HOLD】")) {
       setPredictionBatchCopyStatus("公式登録番号の照合証拠が不足しています。まとめ素材をコピーできません。");
       return;
@@ -11869,6 +11892,10 @@ if (
   };
 
   const handlePredictionDownload = () => {
+    if (predictionGptMaterialHeld) {
+      setCopyStatus("出走表と登録番号の照合が完了していないため、TXT保存を保留します。");
+      return;
+    }
     if (gptExportText.includes("[REGISTRATION_EVIDENCE_HOLD")) {
       setCopyStatus("公式登録番号の照合証拠が不足しています。TXT保存を保留します。");
       return;
