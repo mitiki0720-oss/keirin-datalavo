@@ -27,7 +27,7 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$PR_HEAD_SHA"
           test "$(git show "$BASE_SHA:src/pages/PageImplementations.tsx" | git hash-object --stdin)" = 3c7575f894730d43a0265426fd7d9a2a764c258b
-          test "$(git hash-object src/pages/PageImplementations.tsx)" = 74fd739622ab6d3739f8b8f0ae936fd1af7f2dc8
+          test "$(git hash-object src/pages/PageImplementations.tsx)" = 06a79b10ad4c6d4f3f604cb3ed90d4a1c203d23e
           MERGE_BASE="$(git merge-base "$BASE_SHA" "$PR_HEAD_SHA")"
           test -n "$MERGE_BASE"
           while IFS= read -r path; do
@@ -40,6 +40,8 @@ jobs:
           from pathlib import Path
           page = Path('src/pages/PageImplementations.tsx').read_text(encoding='utf-8-sig')
           assert page.count('import.meta.env.VITE_AH_SINGLE_R_PREVIEW === "1" && Boolean(selectedPredictionMaterialRace)') == 1
+          assert page.count('import.meta.env.VITE_AH_SINGLE_R_PREVIEW !== "1"') == 1
+          assert '【適用ルールの確認（この素材に買い目ルールは含めない）】' in page
           assert page.count('{false && (<article') == 1
           print('AH_PREVIEW_ONLY_GUARD_PASS')
           PY
