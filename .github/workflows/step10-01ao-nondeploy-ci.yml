@@ -1,0 +1,82 @@
+# AO only; never merge or deploy until all gates are independently approved.
+name: STEP10-01AO strict rider identity preview -- NONDEPLOY
+on:
+  pull_request:
+    branches:
+      - review/step10-01ah-single-r-preview-nondeploy-20261105
+    paths:
+      - 'src/lib/strictOfficialRegistrationMaterial.ts'
+      - 'src/pages/PageImplementations.tsx'
+      - 'scripts/audit-step10-01ao-strict-preview.mjs'
+      - '.github/workflows/step10-01ao-nondeploy-ci.yml'
+permissions:
+  contents: read
+jobs:
+  strict-preview:
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout review head only
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Pin changed files and ensure no published payload changes
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          test "$(git hash-object src/pages/PageImplementations.tsx)" = cf67063a7ce230067c9d9fded3f90dc751104802
+          test "$(git hash-object src/lib/strictOfficialRegistrationMaterial.ts)" = a559228187aeb494699d12f8eff6fcde83a0be5c
+          test "$(git hash-object scripts/audit-step10-01ao-strict-preview.mjs)" = 4766c4756570037808fe9c316bd9c0b01fbd6933
+          while IFS= read -r file; do
+            case "$file" in
+              src/pages/PageImplementations.tsx|src/lib/strictOfficialRegistrationMaterial.ts|scripts/audit-step10-01ao-strict-preview.mjs|.github/workflows/step10-01ao-nondeploy-ci.yml) ;;
+              *) echo "UNEXPECTED_FILE_IN_AO: $file" >&2; exit 1 ;;
+            esac
+          done < <(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: npm ci (required)
+        run: npm ci --no-audit --no-fund
+      - name: AO exact-key and whole-batch negative tests (required)
+        run: node scripts/audit-step10-01ao-strict-preview.mjs
+      - name: Default GitHub Pages build only, not a deploy (required)
+        env:
+          VITE_AH_SINGLE_R_PREVIEW: '0'
+          VITE_AL_STRICT_REGISTRATION_REVIEW: '0'
+        run: npm run build:github
+      - name: AO flag-only React19 build, no deploy (required)
+        env:
+          VITE_AH_SINGLE_R_PREVIEW: '1'
+          VITE_AL_STRICT_REGISTRATION_REVIEW: '1'
+        run: npm run build:github
+      - name: Existing GPT source contract (diagnostic; legacy expected failure)
+        id: source_contract
+        continue-on-error: true
+        run: node scripts/audit-prediction-page-gpt-material-source-contract.mjs
+      - name: Existing full lint (diagnostic; exact failure status visible)
+        id: lint
+        continue-on-error: true
+        run: npm run lint
+      - name: Publish diagnostic outcomes to job summary only
+        if: ${{ !cancelled() }}
+        env:
+          SRC_STATUS: ${{ steps.source_contract.outcome }}
+          LINT_STATUS: ${{ steps.lint.outcome }}
+        run: |
+          echo '## AO is NONDEPLOY' >> "$GITHUB_STEP_SUMMARY"
+          echo "Old name-enrichment source audit: $SRC_STATUS (diagnostic; not PASS assertion)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Repo ESLint: $LINT_STATUS (diagnostic; not PASS assertion)" >> "$GITHUB_STEP_SUMMARY"
+          echo 'No official independent JSJ001 verification or SHA-manifest released.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'A successful job does not approve Monthly removal or production.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Tracked files remained unchanged
+        if: ${{ !cancelled() }}
+        run: test -z "$(git status --porcelain)"
