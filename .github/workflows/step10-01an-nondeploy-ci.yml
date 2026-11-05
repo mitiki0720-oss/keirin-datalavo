@@ -1,0 +1,91 @@
+# STEP10-01AN: stacked review against PR #3. No deployment, writes or releases.
+name: STEP10-01AN PR3 official-first -- NONDEPLOY CI
+on:
+  pull_request:
+    branches:
+      - review/step10-01am-official-first-nondeploy-20261105
+    paths:
+      - '.github/workflows/step10-01an-nondeploy-ci.yml'
+      - '.github/workflows/update-today-race-data.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  an-review-build:
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout exact review head, without persistent credentials
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify PR scope, provenance and reordered official steps
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PR_HEAD_SHA"
+          test -n "$BASE_SHA"
+          test "$(git hash-object .github/workflows/update-today-race-data.yml)" = 3509f9c4f39f62cbc52e3a85e1fce9f17b012538
+          while IFS= read -r file; do
+            case "$file" in
+              .github/workflows/step10-01an-nondeploy-ci.yml) ;;
+              *) echo "Unexpected change on AN stacked branch: $file" >&2; exit 1 ;;
+            esac
+          done < <(git diff --name-only "$BASE_SHA" "$PR_HEAD_SHA")
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          const source=fs.readFileSync(".github/workflows/update-today-race-data.yml","utf8");
+          const steps=["Resolve KEIRIN.JP expected entry date","Update KEIRIN.JP official entries","Validate KEIRIN.JP official entries","Update today race data"];
+          const offsets=steps.map(x=>source.indexOf("      - name: "+x));
+          if (offsets.some(x=>x<0)||offsets.some((x,i)=>i>0&&x<=offsets[i-1])) throw new Error("Official entries must be fetched and checked before today generation");
+          if (!source.includes("git add public/data/races/today.generated.json")||!source.includes("git add public/data/races/keirin-jp-entries.generated.json")) throw new Error("Both output files must stay in the same commit");
+          const self=fs.readFileSync(".github/workflows/step10-01an-nondeploy-ci.yml","utf8");
+          const uses=self.split(/\n/u).map(line=>line.trim()).filter(line=>line.startsWith('uses:'));
+          if (!self.includes('contents: read') || uses.some(line=>line.includes('deploy-pages') || line.includes('upload-pages-artifact'))) throw new Error('AN must stay read-only and contain no publishing action');
+          console.log("AN_REORDER_AND_SCOPE_QA_PASS");
+          NODE
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Actual React19 TypeScript and Vite build -- review only
+        env:
+          VITE_AL_STRICT_REGISTRATION_REVIEW: '0'
+          VITE_AH_SINGLE_R_PREVIEW: '0'
+        run: npm run build:github
+      - name: Existing source contract (diagnostic; do not mislabel failure)
+        id: old_contract
+        continue-on-error: true
+        run: node scripts/audit-prediction-page-gpt-material-source-contract.mjs
+      - name: Full repository lint (diagnostic; do not mislabel failure)
+        id: lint
+        continue-on-error: true
+        run: npm run lint
+      - name: Record separate actual outcomes and outstanding safety gates
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          CONTRACT_OUTCOME: ${{ steps.old_contract.outcome }}
+          LINT_OUTCOME: ${{ steps.lint.outcome }}
+        run: |
+          {
+            echo '## STEP10-01AN NONDEPLOY validation'
+            echo "Existing source contract result: $CONTRACT_OUTCOME (diagnostic, not PASS assertion)"
+            echo "Full lint result: $LINT_OUTCOME (diagnostic, not PASS assertion)"
+            echo 'Build result is visible in its own preceding required step.'
+            echo 'Official JSJ001 per-race attestations, paired SHA256 manifest, secure-origin browser E2E, OS clipboard and Monthly removal are NOT certified by this job.'
+            echo 'No Pages deployment or publication is configured.'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Ensure tracked worktree unchanged
+        if: ${{ !cancelled() }}
+        run: test -z "$(git status --porcelain)"
