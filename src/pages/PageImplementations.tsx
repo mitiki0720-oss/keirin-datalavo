@@ -11413,7 +11413,7 @@ if (
 
   const gptExportText = useMemo(() => {
     if (!predictionFeed || !selectedPredictionMaterialVenue || !selectedPredictionMaterialRace) return "対象レースを選択してください。";
-    return buildPredictionExportText({
+    const baseMaterial = buildPredictionExportText({
       date: predictionFeed.date,
       feed: predictionFeed,
       venue: selectedPredictionMaterialVenue,
@@ -11440,6 +11440,14 @@ if (
       kurariExGuidanceText: selectedKurariExCombinedGuidanceText,
       preRaceRiskSignalText: selectedKurariExRaceRiskText,
     });
+    if (import.meta.env.VITE_AH_SINGLE_R_PREVIEW !== "1"
+      || isPredictionRaceExcludedByOperation(selectedPredictionMaterialVenue, selectedPredictionMaterialRace)) return baseMaterial;
+    return [
+      "【適用ルールの確認（この素材に買い目ルールは含めない）】",
+      "- この単一R素材は購入券種・買い目点数・投資額を指定しません。当日のユーザー明示指定と別途承認された運用ルールを確認してください。確認できなければ推測・旧Monthly規則の流用をしないでください。",
+      "",
+      baseMaterial,
+    ].join("\n");
   }, [predictionFeed, selectedKurariExCombinedGuidanceText, selectedKurariExRaceRiskText, selectedPredictionDataAnalysisText, selectedPredictionMatchupText, selectedPredictionMaterialRace, selectedPredictionMaterialRegistrationCandidates, selectedPredictionMaterialRiders, selectedPredictionMaterialVenue, selectedPredictionMemoText, selectedPredictionOddsText, selectedPredictionPlayerCardInsightText, selectedPredictionRecentPerformanceText, selectedPredictionRecentRaceText, selectedPredictionRegistrationCandidates, selectedPredictionRiderBasicText, selectedPredictionTrackAffinityText, selectedVenueGradeLabel, selectedVenueSummary, selectedWeather, selectedWeatherFallbackText]);
   const predictionBatchSessionLabel = selectedPredictionMaterialVenue
     ? getPredictionSessionBadge(selectedPredictionMaterialVenue)
