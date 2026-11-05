@@ -1,0 +1,94 @@
+# AH is a stacked QA-only PR against AE. Never deploy, publish, or merge.
+name: STEP10-01AH single-R opt-in preview -- NONDEPLOY
+on:
+  pull_request:
+    paths:
+      - 'src/pages/PageImplementations.tsx'
+      - '.github/workflows/step10-01ah-preview-nondeploy.yml'
+permissions:
+  contents: read
+jobs:
+  ah-preview:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Strict source and PR scope guard
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PR_HEAD_SHA"
+          test "$(git show "$BASE_SHA:src/pages/PageImplementations.tsx" | git hash-object --stdin)" = 3c7575f894730d43a0265426fd7d9a2a764c258b
+          test "$(git hash-object src/pages/PageImplementations.tsx)" = 06a79b10ad4c6d4f3f604cb3ed90d4a1c203d23e
+          MERGE_BASE="$(git merge-base "$BASE_SHA" "$PR_HEAD_SHA")"
+          test -n "$MERGE_BASE"
+          while IFS= read -r path; do
+            case "$path" in
+              src/pages/PageImplementations.tsx|.github/workflows/step10-01ah-preview-nondeploy.yml) ;;
+              *) echo "UNEXPECTED_AH_PR_CHANGE: $path" >&2; exit 1 ;;
+            esac
+          done < <(git diff --name-only "$MERGE_BASE" "$PR_HEAD_SHA")
+          python3 - <<'PY'
+          from pathlib import Path
+          page = Path('src/pages/PageImplementations.tsx').read_text(encoding='utf-8-sig')
+          assert page.count('import.meta.env.VITE_AH_SINGLE_R_PREVIEW === "1" && Boolean(selectedPredictionMaterialRace)') == 1
+          assert page.count('import.meta.env.VITE_AH_SINGLE_R_PREVIEW !== "1"') == 1
+          assert '【適用ルールの確認（この素材に買い目ルールは含めない）】' in page
+          assert page.count('{false && (<article') == 1
+          print('AH_PREVIEW_ONLY_GUARD_PASS')
+          PY
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Default build -- single-R remains hidden
+        env:
+          VITE_AH_SINGLE_R_PREVIEW: '0'
+        run: |
+          set -euo pipefail
+          npm run build:github
+          if grep -RFq '単独R GPT貼り付け用素材' dist/assets/; then
+            echo 'PRODUCTION_DEFAULT_REVEALS_SINGLE_R' >&2
+            exit 1
+          fi
+          echo 'AH_DEFAULT_HIDDEN_PASS' >> "$GITHUB_STEP_SUMMARY"
+      - name: Explicit AH review build -- single-R panel visible in QA artifact only
+        env:
+          VITE_AH_SINGLE_R_PREVIEW: '1'
+        run: |
+          set -euo pipefail
+          npm run build:github
+          grep -RFq '単独R GPT貼り付け用素材' dist/assets/
+          echo 'AH_PREVIEW_ENABLED_PASS; NOT A PRODUCTION BUILD' >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload ephemeral AH offline-only review bundle (not Pages)
+        uses: actions/upload-artifact@v4
+        with:
+          name: step10-01ah-single-r-preview-review-only
+          path: |
+            dist/index.html
+            dist/assets/
+            dist/data/races/today.generated.json
+            dist/data/races/keirin-jp-entries.generated.json
+          if-no-files-found: error
+          retention-days: 1
+      - name: Lint diagnostic only -- old failures remain unresolved
+        id: lint_diagnostic
+        continue-on-error: true
+        run: npm run lint
+      - name: Make actual lint result visible
+        if: ${{ !cancelled() }}
+        run: |
+          echo "Lint actual outcome: ${{ steps.lint_diagnostic.outcome }} (diagnostic only; not a PASS assertion)" >> "$GITHUB_STEP_SUMMARY"
+      - name: Clean tracked files
+        run: test -z "$(git status --porcelain)"
+# This workflow uses no deploy-pages, no pages:write, no push or workflow_run trigger.

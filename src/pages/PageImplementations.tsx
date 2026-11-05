@@ -11413,7 +11413,7 @@ if (
 
   const gptExportText = useMemo(() => {
     if (!predictionFeed || !selectedPredictionMaterialVenue || !selectedPredictionMaterialRace) return "対象レースを選択してください。";
-    return buildPredictionExportText({
+    const baseMaterial = buildPredictionExportText({
       date: predictionFeed.date,
       feed: predictionFeed,
       venue: selectedPredictionMaterialVenue,
@@ -11440,6 +11440,14 @@ if (
       kurariExGuidanceText: selectedKurariExCombinedGuidanceText,
       preRaceRiskSignalText: selectedKurariExRaceRiskText,
     });
+    if (import.meta.env.VITE_AH_SINGLE_R_PREVIEW !== "1"
+      || isPredictionRaceExcludedByOperation(selectedPredictionMaterialVenue, selectedPredictionMaterialRace)) return baseMaterial;
+    return [
+      "【適用ルールの確認（この素材に買い目ルールは含めない）】",
+      "- この単一R素材は購入券種・買い目点数・投資額を指定しません。当日のユーザー明示指定と別途承認された運用ルールを確認してください。確認できなければ推測・旧Monthly規則の流用をしないでください。",
+      "",
+      baseMaterial,
+    ].join("\n");
   }, [predictionFeed, selectedKurariExCombinedGuidanceText, selectedKurariExRaceRiskText, selectedPredictionDataAnalysisText, selectedPredictionMatchupText, selectedPredictionMaterialRace, selectedPredictionMaterialRegistrationCandidates, selectedPredictionMaterialRiders, selectedPredictionMaterialVenue, selectedPredictionMemoText, selectedPredictionOddsText, selectedPredictionPlayerCardInsightText, selectedPredictionRecentPerformanceText, selectedPredictionRecentRaceText, selectedPredictionRegistrationCandidates, selectedPredictionRiderBasicText, selectedPredictionTrackAffinityText, selectedVenueGradeLabel, selectedVenueSummary, selectedWeather, selectedWeatherFallbackText]);
   const predictionBatchSessionLabel = selectedPredictionMaterialVenue
     ? getPredictionSessionBadge(selectedPredictionMaterialVenue)
@@ -12382,7 +12390,7 @@ if (
                 </div>
               </article>
 
-              {false && (<article style={{ borderRadius: "34px", border: "1px solid #e7dcf4", background: "linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(252,248,255,0.98) 56%, rgba(246,249,255,0.98) 100%)", boxShadow: "0 24px 52px rgba(15, 23, 42, 0.06)", padding: isPredictionCompactLayout ? "22px" : "28px" }}>
+              {import.meta.env.VITE_AH_SINGLE_R_PREVIEW === "1" && Boolean(selectedPredictionMaterialRace) && (<article style={{ borderRadius: "34px", border: "1px solid #e7dcf4", background: "linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(252,248,255,0.98) 56%, rgba(246,249,255,0.98) 100%)", boxShadow: "0 24px 52px rgba(15, 23, 42, 0.06)", padding: isPredictionCompactLayout ? "22px" : "28px" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "14px" }}>
                   <div>
                     <div style={{ fontSize: "10px", fontWeight: 900, letterSpacing: "0.18em", color: "#8c63c7", marginBottom: "6px" }}>GPT MATERIAL</div>
