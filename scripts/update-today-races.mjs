@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { load } from "cheerio";
 import { execFileSync } from "node:child_process";
+import { readOfficialEntriesWithDigest } from "./lib/official-entry-crosscheck.mjs";
 import { fetchWithRetry } from "./lib/fetch-with-retry.mjs";
 import { classifyOddsPage, classifyRacecardFailure, createOddsAcquisition, hasConflictingTrifectaPrices, reusableVerifiedOdds, validateKdreamsRaceLink, validateTrifectaOdds } from "./lib/odds-acquisition.mjs";
 import { assertCurrentDayWriteDate, attachKdreamsDetailLinks, buildOfficialTodayVenues, indexOfficialTodayRaces, indexOfficialTodayResults, isFreshOfficialResultSnapshot, mergeOfficialTodayRiders, officialResultToTodayRace, validateOfficialTodayEntries } from "./lib/official-today-source.mjs";
@@ -4153,8 +4154,11 @@ function applyOfficialAllRefundResults(payload, allRefundRaceMap) {
 
 async function loadOfficialTodayEntries(todayIso) {
   const readValid = async (file) => {
-    const payload = JSON.parse(await fs.readFile(file, "utf-8"));
-    const counts = validateOfficialTodayEntries(payload, todayIso);
+    // The digest represents exactly the official JSON bytes we validated,
+    // including whitespace; it is NOT a digest of a reserialized object.
+    const { payload, counts } = await readOfficialEntriesWithDigest(
+      file, todayIso, validateOfficialTodayEntries,
+    );
     console.log(`[official] entries ${todayIso}: venues=${counts.venueCount} races=${counts.raceCount} riders=${counts.riderCount} path=${file}`);
     return payload;
   };
@@ -4663,6 +4667,9 @@ async function main() {
       officialEntriesGeneratedAt: officialEntries?.generatedAt ?? null,
       officialEntriesFetchStartedAt: officialEntries?.source?.fetchStartedAt ?? null,
       officialEntriesFetchCompletedAt: officialEntries?.source?.fetchCompletedAt ?? null,
+      // Paired official bytes manifest. A missing/unavailable source yields null,
+      // so the strict GPT export must reject it rather than infer identity.
+      officialEntriesSha256: officialEntries?.__verifiedOfficialEntriesSha256 ?? null,
       officialResultsGeneratedAt: officialResults?.generatedAt ?? null,
       officialResultsFreshness: officialResultsLoad?.freshness ?? "UNAVAILABLE",
       supplementaryRacecard: kdreamsVenues.length ? KDREAMS_RACECARD_URL : null,
