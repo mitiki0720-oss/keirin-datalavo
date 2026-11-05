@@ -53,14 +53,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
           fetch-depth: 0
       - name: Guard exact source pins and PR file scope
         shell: bash
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PR_HEAD_SHA"
+          MERGE_BASE="$(git merge-base "$BASE_SHA" "$PR_HEAD_SHA")"
+          test -n "$MERGE_BASE"
           test "$(git show "$BASE_SHA:src/App.tsx" | git hash-object --stdin)" = 78299e1dcc7e8edcee55ae9d919da25314738498
           test "$(git show "$BASE_SHA:src/pages/PageImplementations.tsx" | git hash-object --stdin)" = d7f23b51f30aadb84ce27bb88295ac8914349059
           test "$(git show "$BASE_SHA:src/pages/MonthlyReviewPage.tsx" | git hash-object --stdin)" = f38c7b7825d7909d29594c1ae88588b864e88c84
@@ -71,7 +76,7 @@ jobs:
               src/pages/PageImplementations.tsx|.github/workflows/step10-01ae-nondeploy.yml|scripts/audit-step10-01ae-gpt-material.mjs) ;;
               *) echo "UNEXPECTED_PR_CHANGE: $path" >&2; exit 1 ;;
             esac
-          done < <(git diff --name-only "$BASE_SHA" HEAD)
+          done < <(git diff --name-only "$MERGE_BASE" "$PR_HEAD_SHA")
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
