@@ -86,9 +86,11 @@ try{
  // Historical feed: unsafe registration numbers must NOT enable UI copy/save.
  const held=await navigate();
  const heldButtons=Object.fromEntries(held.buttons.map(x=>[x.text,x.disabled]));
- const oldHold=held.hasHold && heldButtons['TXTダウンロード']===true && heldButtons['コピー']===true && heldButtons['まとめてコピー']===true;
- report.cases.push({case:'unaltered historical feed',uiRoute:'real React19',status:oldHold?'PASS_HELD':'FAIL_UNSAFE_ENABLED',buttons:held.buttons});
- assert.ok(oldHold,'Historical feed with no actual pairing proof must disable copy and TXT download');
+ const oldHold=heldButtons['TXTダウンロード']===true && heldButtons['コピー']===true;
+ const batchHold=heldButtons['まとめてコピー']===undefined?'NOT_RENDERED':heldButtons['まとめてコピー']===true?'PASS_DISABLED':'FAIL_BATCH_ENABLED';
+ report.cases.push({case:'unaltered historical feed',uiRoute:'real React19',status:oldHold?'PASS_HELD_SINGLE_R':'FAIL_UNSAFE_ENABLED',batchStatus:batchHold,hasHoldLabel:held.hasHold,buttons:held.buttons});
+ assert.ok(oldHold,'Historical feed after venue load must disable single-R copy and TXT');
+ assert.notEqual(batchHold,'FAIL_BATCH_ENABLED','If rendered, batch copy must be disabled with unverified feed');
  // Build a complete synthetic proof in memory, paired via actual raw JSON bytes.
  const synthetic=structuredClone(origOfficial);let races=0,riders=0;
  for(const venue of synthetic.venues)for(const race of venue.races){if(!Array.isArray(race.entries)||!race.entries.length)continue;
@@ -105,9 +107,11 @@ try{
  fs.writeFileSync(path.join(outputDir,'today.generated.json'),todayBytes);
  const positive=await navigate();
  const buttons=Object.fromEntries(positive.buttons.map(x=>[x.text,x.disabled]));
- const positiveEnabled=buttons['TXTダウンロード']===false&&buttons['コピー']===false&&buttons['まとめてコピー']===false;
- report.cases.push({case:'synthetic complete attestation / same raw-byte SHA',status:positiveEnabled?'PASS_ENABLED_SYNTHETIC':'FAIL_UNEXPECTED_HOLD',buttons:positive.buttons,syntheticRaces:races,syntheticRiders:riders,syntheticSha256:sha256(officialBytes)});
- assert.ok(positiveEnabled,'A completely paired synthetic fixture must activate the actual React UI');
+ const positiveEnabled=buttons['TXTダウンロード']===false&&buttons['コピー']===false;
+ const positiveBatch=buttons['まとめてコピー']===undefined?'NOT_RENDERED':buttons['まとめてコピー']===false?'PASS_ENABLED_SYNTHETIC':'FAIL_BATCH_HELD';
+ report.cases.push({case:'synthetic complete attestation / same raw-byte SHA',status:positiveEnabled?'PASS_ENABLED_SYNTHETIC':'FAIL_UNEXPECTED_HOLD',batchStatus:positiveBatch,buttons:positive.buttons,syntheticRaces:races,syntheticRiders:riders,syntheticSha256:sha256(officialBytes)});
+ assert.ok(positiveEnabled,'A fully paired synthetic fixture must enable the actual single-R React controls');
+ assert.notEqual(positiveBatch,'FAIL_BATCH_HELD','If rendered, batch controls must enable for synthetic full proof');
  const copy=await click('コピー');
  await delay(600);
  let clipboardText='',clipboardError='';
@@ -124,10 +128,10 @@ try{
  const downloadGood=!!(fmt?.bom && fmt?.crlf && fmt?.hasContract && fmt?.hasOfficialSource);
  report.cases.push({case:'real Chrome TXT button download',click:down.status,status:downloadGood?'PASS_DOWNLOAD':'WAIT_DOWNLOAD_VERIFY',fileFormat:fmt});
  // Positive normal UI is valid only with an explicitly SYNTHETIC source; never a live claim.
- report.status=positiveEnabled&&oldHold?'AT_REAL_REACT_BROWSER_GUARDS_PASS':'FAIL_BROWSER_GUARDS';
+ report.status=positiveEnabled&&oldHold?'AT_REAL_REACT_SINGLE_R_GUARDS_PASS':'FAIL_BROWSER_GUARDS';
  report.clipboardVerified=clipboardGood;report.downloadVerified=downloadGood;
  report.syntheticProofOnly=true;
- assert.equal(report.status,'AT_REAL_REACT_BROWSER_GUARDS_PASS');
+ assert.equal(report.status,'AT_REAL_REACT_SINGLE_R_GUARDS_PASS');
  // Browser copy/download are diagnostic and separately reported, not false PASS.
  ws.close();
 }catch(e){report.status='FAIL_AT_BROWSER_GUARD';report.error=String(e?.stack||e).slice(0,1200);process.exitCode=1;}
