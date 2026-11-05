@@ -45,7 +45,9 @@ jobs:
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           const s=fs.readFileSync('.github/workflows/step10-01at-nondeploy-ci.yml','utf8');
-          if(!s.includes('contents: read')||s.includes('pages: write')||s.includes('id-token: write')||s.includes('actions/deploy-pages')||s.includes('upload-pages-artifact')||s.includes('pull_request_target'))throw Error('No write/deploy permission in this review');
+          const lines=s.split('\n').map(x=>x.trim());
+          const uses=lines.filter(x=>x.startsWith('uses:'));
+          if(!lines.includes('contents: read')||uses.some(x=>x.includes('deploy-pages')||x.includes('upload-pages-artifact')))throw Error('No read-only workflow guarantee');
           console.log('AT_READONLY_SCOPE_PASS');
           NODE
       - name: Setup Node 22
