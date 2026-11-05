@@ -1,0 +1,96 @@
+# AP REVIEW ONLY: no main push, deploy, pages write, or workflow_dispatch.
+name: STEP10-01AP real JSJ001-JSJ006 evidence and paired bytes -- NONDEPLOY
+on:
+  pull_request:
+    branches:
+      - review/step10-01ao-strict-id-preview-nondeploy-20261105
+    paths:
+      - '.github/workflows/step10-01ap-nondeploy-ci.yml'
+      - '.github/workflows/update-today-race-data.yml'
+      - 'scripts/update-keirin-jp-entries.mjs'
+      - 'scripts/update-today-races.mjs'
+      - 'scripts/lib/official-entry-crosscheck.mjs'
+      - 'scripts/audit-step10-01ap-integrity.mjs'
+      - 'tests/test-ap-*.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  ap-review:
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout pinned review SHA without write credentials
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Protect PR delta, prior AO source, and official-first workflow
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PR_SHA"
+          test "$(git hash-object src/pages/PageImplementations.tsx)" = cf67063a7ce230067c9d9fded3f90dc751104802
+          test "$(git hash-object .github/workflows/update-today-race-data.yml)" = 3509f9c4f39f62cbc52e3a85e1fce9f17b012538
+          test "$(git show "$BASE_SHA:src/pages/PageImplementations.tsx" | git hash-object --stdin)" = cf67063a7ce230067c9d9fded3f90dc751104802
+          while IFS= read -r path; do
+            case "$path" in
+              .github/workflows/step10-01ap-nondeploy-ci.yml|.github/workflows/update-today-race-data.yml|scripts/update-keirin-jp-entries.mjs|scripts/update-today-races.mjs|scripts/lib/official-entry-crosscheck.mjs|scripts/audit-step10-01ap-integrity.mjs|tests/test-ap-crosscheck.mjs|tests/test-ap-sha.mjs|tests/test-ap-feed-contract.mjs|tests/ap-fetch-mock.mjs|tests/test-ap-generator-integration.mjs) ;;
+              *) echo "Unexpected AP change: $path" >&2; exit 1 ;;
+            esac
+          done < <(git diff --name-only "$BASE_SHA" "$PR_SHA")
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: npm ci (gating)
+        run: npm ci --no-audit --no-fund
+      - name: AP real integration source audit (gating)
+        run: node scripts/audit-step10-01ap-integrity.mjs
+      - name: AP 28 normal and negative JSJ001 pairing checks (gating)
+        run: node tests/test-ap-crosscheck.mjs
+      - name: AP exact source bytes SHA256 regression (gating)
+        run: node tests/test-ap-sha.mjs
+      - name: AP 79R/575-row synthetic mismatch detection (gating)
+        run: node tests/test-ap-feed-contract.mjs
+      - name: AP real generator with mock official JSJ001/JSJ006 (gating)
+        run: node tests/test-ap-generator-integration.mjs
+      - name: Existing AO identity review regression (gating)
+        run: node scripts/audit-step10-01ao-strict-preview.mjs
+      - name: Default React19 TypeScript plus Vite (gating, NOT a deploy)
+        env:
+          VITE_AL_STRICT_REGISTRATION_REVIEW: '0'
+          VITE_AH_SINGLE_R_PREVIEW: '0'
+        run: npm run build:github
+      - name: AO strict flag React19 TypeScript plus Vite (gating, NOT a deploy)
+        env:
+          VITE_AL_STRICT_REGISTRATION_REVIEW: '1'
+          VITE_AH_SINGLE_R_PREVIEW: '1'
+        run: npm run build:github
+      - name: Legacy GPT source contract diagnostics (actual result visible)
+        id: source_diag
+        continue-on-error: true
+        run: node scripts/audit-prediction-page-gpt-material-source-contract.mjs
+      - name: Full lint diagnostics (actual result visible)
+        id: lint_diag
+        continue-on-error: true
+        run: npm run lint
+      - name: Show real outcomes and outstanding G06/G07/G09/G10 gates
+        if: ${{ !cancelled() }}
+        env:
+          SOURCE_STATUS: ${{ steps.source_diag.outcome }}
+          LINT_STATUS: ${{ steps.lint_diag.outcome }}
+        run: |
+          echo "Legacy source contract: $SOURCE_STATUS (diagnostic; a failure is not PASS)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Lint: $LINT_STATUS (diagnostic; a failure is not PASS)" >> "$GITHUB_STEP_SUMMARY"
+          echo 'This CI uses mock JSJ001 and original generated JSON, not a new real KEIRIN.JP network fetch. It does NOT prove production or OS clipboard, independent rider verification, or full Monthly retirement readiness.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Check tracked files remain unchanged
+        if: ${{ !cancelled() }}
+        run: test -z "$(git status --porcelain)"
