@@ -1,0 +1,79 @@
+# STEP10-01AR: stacked on AQ, read-only, never deploys or updates data.
+name: STEP10-01AR source-backed GPT normal/hold and saved export separation -- NONDEPLOY
+on:
+  pull_request:
+    branches:
+      - review/step10-01aq-default-safe-gpt-nondeploy-20261105
+    paths:
+      - '.github/workflows/step10-01ar-nondeploy-ci.yml'
+      - 'tests/test-ar-gpt-normal-and-hold.mjs'
+      - 'tests/test-ar-other-exports.mjs'
+permissions:
+  contents: read
+jobs:
+  ar-review:
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact PR head without write credentials
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify only tests and read-only CI changed, pin parent source and data
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PR_SHA"
+          test "$(git hash-object src/pages/PageImplementations.tsx)" = 451bc46baddf47da588d9c3605378a69d6f85cd2
+          test "$(git hash-object src/lib/predictionGptSourceContract.ts)" = a5bd119b2ca8335492304ced15e6bcbda9ec2da5
+          test "$(git hash-object src/lib/strictOfficialRegistrationMaterial.ts)" = a559228187aeb494699d12f8eff6fcde83a0be5c
+          test "$(git hash-object public/data/races/keirin-jp-entries.generated.json)" = b5d9b597e248c348695c1e3a759336f8f5bab588
+          test "$(git hash-object public/data/races/today.generated.json)" = 99207cc65c58428c4439ae04a9602c0a5591ada1
+          while IFS= read -r file; do
+            case "$file" in
+              .github/workflows/step10-01ar-nondeploy-ci.yml|tests/test-ar-gpt-normal-and-hold.mjs|tests/test-ar-other-exports.mjs) ;;
+              *) echo "Unexpected AR file: $file" >&2; exit 1 ;;
+            esac
+          done < <(git diff --name-only "$BASE_SHA" "$PR_SHA")
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: npm ci
+        run: npm ci --no-audit --no-fund
+      - name: Actual Page export function - 79R/575 saved rows and synthetic evidence
+        run: node tests/test-ar-gpt-normal-and-hold.mjs
+      - name: Actual saved prediction JSON export - keep separate from GPT ID proof
+        run: node tests/test-ar-other-exports.mjs
+      - name: AQ strict default source contract 12 behavioral checks
+        run: node scripts/audit-step10-01aq-safe-material.mjs
+      - name: AP generator real integration with synthetic official API responses
+        run: node tests/test-ap-generator-integration.mjs
+      - name: Review-only React19 TypeScript and Vite build
+        run: npm run build:github
+      - name: Targeted test lint
+        run: npx eslint tests/test-ar-gpt-normal-and-hold.mjs tests/test-ar-other-exports.mjs
+      - name: Baseline full repository lint (diagnostic only, never hidden)
+        id: legacy_lint
+        continue-on-error: true
+        run: npm run lint
+      - name: Publish separate actual outcomes and remaining HOLD gates
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          LINT_RESULT: ${{ steps.legacy_lint.outcome }}
+        run: |
+          echo 'AR tests are mock/synthetic JSJ001, NOT real official rider verification.' >> "$GITHUB_STEP_SUMMARY"
+          echo "Full repository lint outcome: $LINT_RESULT (separate diagnostic, NOT PASS assertion)" >> "$GITHUB_STEP_SUMMARY"
+          echo 'The saved prediction JSON export has a different historical purpose than the GPT source TXT; neither live HTTPS nor OS clipboard is certified by AR.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Do not merge, deploy, or remove Monthly. Independent official source, original raw, rollback and sign-off are outstanding.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Ensure tracked data unchanged
+        if: ${{ !cancelled() }}
+        run: test -z "$(git status --porcelain)"
