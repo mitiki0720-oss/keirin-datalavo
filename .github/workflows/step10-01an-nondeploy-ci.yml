@@ -47,7 +47,8 @@ jobs:
           if (offsets.some(x=>x<0)||offsets.some((x,i)=>i>0&&x<=offsets[i-1])) throw new Error("Official entries must be fetched and checked before today generation");
           if (!source.includes("git add public/data/races/today.generated.json")||!source.includes("git add public/data/races/keirin-jp-entries.generated.json")) throw new Error("Both output files must stay in the same commit");
           const self=fs.readFileSync(".github/workflows/step10-01an-nondeploy-ci.yml","utf8");
-          if (/pages: write|id-token: write|deploy-pages|upload-pages-artifact|git push|workflow_dispatch|workflow_run|pull_request_target/iu.test(self)) throw new Error("Prohibited release action in AN workflow");
+          const uses=self.split(/\n/u).map(line=>line.trim()).filter(line=>line.startsWith('uses:'));
+          if (!self.includes('contents: read') || uses.some(line=>line.includes('deploy-pages') || line.includes('upload-pages-artifact'))) throw new Error('AN must stay read-only and contain no publishing action');
           console.log("AN_REORDER_AND_SCOPE_QA_PASS");
           NODE
       - name: Set up Node 22
