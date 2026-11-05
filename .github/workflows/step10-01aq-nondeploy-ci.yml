@@ -1,0 +1,101 @@
+# AQ: draft-only, stacked on AP. This workflow cannot deploy or push data.
+name: STEP10-01AQ safe default GPT registration contract -- NONDEPLOY
+on:
+  pull_request:
+    branches:
+      - review/step10-01ap-verified-entry-source-nondeploy-20261105
+    paths:
+      - 'src/lib/predictionGptSourceContract.ts'
+      - 'src/pages/PageImplementations.tsx'
+      - 'scripts/audit-step10-01aq-safe-material.mjs'
+      - 'scripts/audit-prediction-page-gpt-material-*.mjs'
+      - 'scripts/audit-step10-01ao-strict-preview.mjs'
+      - 'scripts/audit-step10-01ap-integrity.mjs'
+      - 'tests/test-aq-audit-negative.mjs'
+      - '.github/workflows/step10-01aq-nondeploy-ci.yml'
+permissions:
+  contents: read
+jobs:
+  safe-default:
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact draft head without write credentials
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Pin parent source and restrict AQ file delta
+        shell: bash
+        env:
+          PR_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PR_SHA"
+          test "$(git show "$BASE_SHA:src/pages/PageImplementations.tsx" | git hash-object --stdin)" = cf67063a7ce230067c9d9fded3f90dc751104802
+          test "$(git show "$BASE_SHA:src/lib/predictionGptSourceContract.ts" | git hash-object --stdin)" = 5997eccaf1f719a56e6b93e3fbbe418cec3eee1b
+          test "$(git hash-object scripts/update-keirin-jp-entries.mjs)" = 9832978236870bfb960024d14ef46c820a21486a
+          test "$(git hash-object scripts/update-today-races.mjs)" = d68ba10f3800c92060d60fca1763396985d5f968
+          test "$(git hash-object .github/workflows/update-today-race-data.yml)" = 3509f9c4f39f62cbc52e3a85e1fce9f17b012538
+          while IFS= read -r file; do
+            case "$file" in
+              src/lib/predictionGptSourceContract.ts|src/pages/PageImplementations.tsx|scripts/audit-step10-01aq-safe-material.mjs|scripts/audit-step10-01ao-strict-preview.mjs|scripts/audit-step10-01ap-integrity.mjs|scripts/audit-prediction-page-gpt-material-source-contract.mjs|scripts/audit-prediction-page-gpt-material-registrationno-enrichment.mjs|scripts/audit-prediction-page-gpt-material-registrationno-material-enrichment.mjs|tests/test-aq-audit-negative.mjs|docs/step10-01aq-safe-gpt-registration-migration.md|.github/workflows/step10-01aq-nondeploy-ci.yml) ;;
+              *) echo "Unexpected AQ change: $file" >&2; exit 1 ;;
+            esac
+          done < <(git diff --name-only "$BASE_SHA" "$PR_SHA")
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies (gating)
+        run: npm ci --no-audit --no-fund
+      - name: Safe material source contract behavioral audit (gating)
+        run: node scripts/audit-step10-01aq-safe-material.mjs
+      - name: Negative audit mutation checks (gating)
+        run: node tests/test-aq-audit-negative.mjs
+      - name: Previous source contract audit updated for safe semantics (gating)
+        run: node scripts/audit-prediction-page-gpt-material-source-contract.mjs
+      - name: Previous identity enrichment audit retired safely (gating)
+        run: node scripts/audit-prediction-page-gpt-material-registrationno-enrichment.mjs
+      - name: Previous material enrichment audit retired safely (gating)
+        run: node scripts/audit-prediction-page-gpt-material-registrationno-material-enrichment.mjs
+      - name: AO original 575 rider fail-closed regression (gating)
+        run: node scripts/audit-step10-01ao-strict-preview.mjs
+      - name: AP real generator wiring still intact (gating)
+        run: node scripts/audit-step10-01ap-integrity.mjs
+      - name: AP generator mock regression (gating)
+        run: node tests/test-ap-generator-integration.mjs
+      - name: Existing AP source byte SHA regression (gating)
+        run: node tests/test-ap-sha.mjs
+      - name: TypeScript and React19 default build (gating, not deployed)
+        env:
+          VITE_AL_STRICT_REGISTRATION_REVIEW: '0'
+          VITE_AH_SINGLE_R_PREVIEW: '0'
+        run: npm run build:github
+      - name: TypeScript and React19 review build (gating, not deployed)
+        env:
+          VITE_AL_STRICT_REGISTRATION_REVIEW: '1'
+          VITE_AH_SINGLE_R_PREVIEW: '1'
+        run: npm run build:github
+      - name: Targeted new helper and migrated audits lint (gating)
+        run: npx eslint src/lib/predictionGptSourceContract.ts scripts/audit-step10-01aq-safe-material.mjs scripts/audit-prediction-page-gpt-material-source-contract.mjs scripts/audit-prediction-page-gpt-material-registrationno-enrichment.mjs scripts/audit-prediction-page-gpt-material-registrationno-material-enrichment.mjs tests/test-aq-audit-negative.mjs
+      - name: Full historical lint, distinct diagnostic result
+        id: full_lint
+        continue-on-error: true
+        run: npm run lint
+      - name: Show actual status and unresolved production gates
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          LINT_RESULT: ${{ steps.full_lint.outcome }}
+        run: |
+          echo "AQ migration & tests are required steps; full historical lint outcome: $LINT_RESULT (diagnostic, not PASS assertion)." >> "$GITHUB_STEP_SUMMARY"
+          echo 'This is a draft-only nondeploy build. Default GPT material is intentionally HELD on legacy snapshots until real per-race JSJ001 evidence + matching SHA. Production / Monthly not changed.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Old 2 enrichment audits were migrated from unsafe name-resolution expectations to fail-closed behavioral checks. This does NOT mean live official rider verification.' >> "$GITHUB_STEP_SUMMARY"
+      - name: No tracked output modification
+        if: ${{ !cancelled() }}
+        run: test -z "$(git status --porcelain)"
