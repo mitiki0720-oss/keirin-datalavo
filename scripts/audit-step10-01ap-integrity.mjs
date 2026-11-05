@@ -16,5 +16,5 @@ const positions=ordered.map(x=>workflow.indexOf(`      - name: ${x}`));
 assert.ok(positions.every((x,i)=>x>=0&&(i===0||x>positions[i-1])), 'official must be downloaded and checked before today generation');
 assert.ok(workflow.includes('git add public/data/races/keirin-jp-entries.generated.json')
  && workflow.includes('git add public/data/races/today.generated.json'), 'same published commit must include both generated files');
-assert.ok(page.includes('VITE_AL_STRICT_REGISTRATION_REVIEW'), 'strict preview flag required');
+assert.ok(page.includes('const exSourceContractText = buildStrictOfficialRegistrationMaterial({') && !page.includes('VITE_AL_STRICT_REGISTRATION_REVIEW'), 'AQ source contract must use strict matching in default and review builds');
 console.log(JSON.stringify({status:'AP_WIRING_AUDIT_PASS',checks:9,officialFirst:true,shaSource:'exact raw bytes',jsj001Evidence:'computed from official API responses',noOfficialIndependentReplay:true}));
