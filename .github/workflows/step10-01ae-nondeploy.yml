@@ -26,13 +26,25 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - run: npm ci --no-audit --no-fund
+      - id: dependencies
+        name: Install dependencies (required)
+        run: npm ci --no-audit --no-fund
       - name: Existing source contract (baseline diagnostic; known unrelated failures)
+        id: existing_contract
         continue-on-error: true
         run: node scripts/audit-prediction-page-gpt-material-source-contract.mjs
-      - run: npm run lint
-      - run: npm run build:github
-      - run: test -z "$(git status --porcelain)"
+      - name: Record non-gating GPT contract audit outcome
+        if: ${{ !cancelled() }}
+        run: |
+          echo 'Existing GPT contract audit outcome: ${{ steps.existing_contract.outcome }} (non-gating; not a PASS assertion)' >> "$GITHUB_STEP_SUMMARY"
+      - name: Lint (gating; pre-existing failures must stay visible)
+        run: npm run lint
+      - name: Build independently after install (gating; even after lint FAIL)
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+        run: npm run build:github
+      - name: Check clean tracked worktree (gating; even after build FAIL)
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+        run: test -z "$(git status --porcelain)"
   candidate:
     name: AE candidate -- source pins, negative checks, lint and build (no deployment)
     if: github.event_name == 'pull_request'
@@ -64,15 +76,26 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - run: npm ci --no-audit --no-fund
+      - id: dependencies
+        name: Install dependencies (required)
+        run: npm ci --no-audit --no-fund
       - name: AE GPT material static and TypeScript AST assertions
         run: node scripts/audit-step10-01ae-gpt-material.mjs
       - name: Existing source contract (candidate diagnostic; compare with baseline)
+        id: existing_contract
         continue-on-error: true
         run: node scripts/audit-prediction-page-gpt-material-source-contract.mjs
-      - run: npm run lint
-      - run: npm run build:github
-      - name: Verify no tracked files were modified
+      - name: Record non-gating GPT contract audit outcome
+        if: ${{ !cancelled() }}
+        run: |
+          echo 'Existing GPT contract audit outcome: ${{ steps.existing_contract.outcome }} (non-gating; not a PASS assertion)' >> "$GITHUB_STEP_SUMMARY"
+      - name: Lint (gating; pre-existing failures must stay visible)
+        run: npm run lint
+      - name: Build independently after install (gating; even after lint FAIL)
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+        run: npm run build:github
+      - name: Verify no tracked files were modified (gating, independent of build)
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         run: test -z "$(git status --porcelain)"
 # Deliberately no push, workflow_run, workflow_dispatch, pages:write,
 # id-token:write, upload-pages-artifact, deploy-pages or pull_request_target.
