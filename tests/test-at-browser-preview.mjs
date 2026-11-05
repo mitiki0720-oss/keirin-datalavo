@@ -52,10 +52,10 @@ const click=async(label)=>{
  await session.send('Input.dispatchMouseEvent',{type:'mouseReleased',x:rect.x,y:rect.y,button:'left',clickCount:1});
  return {status:'CLICKED',label};
 };
-const checkDom=async()=>session.eval(`(()=>({ready:document.readyState,buttons:[...document.querySelectorAll('button')].filter(x=>['TXTダウンロード','コピー','まとめてコピー'].includes(x.textContent.trim())).map(x=>({text:x.textContent.trim(),disabled:x.disabled})),hasRace:document.body.innerText.includes('単独R GPT貼り付け用素材'),hasHold:document.body.innerText.includes('登録番号の公式照合待ち'),slice:document.body.innerText.slice(-400)}))()`);
+const checkDom=async()=>session.eval(`(()=>({ready:document.readyState,buttons:[...document.querySelectorAll('button')].filter(x=>['TXTダウンロード','コピー','まとめてコピー'].includes(x.textContent.trim())).map(x=>({text:x.textContent.trim(),disabled:x.disabled})),hasRace:document.body.innerText.includes('単独R GPT貼り付け用素材'),hasVenueSelected:document.body.innerText.includes(' のレースを選択'),hasHold:document.body.innerText.includes('登録番号の公式照合待ち'),slice:document.body.innerText.slice(-400)}))()`);
 const navigate=async()=>{
  await session.send('Page.navigate',{url:previewUrl});
- try{return await waitUntil(async()=>{const d=await checkDom();return d.hasRace&&d.buttons.some(x=>x.text==='TXTダウンロード')?d:null},{attempts:75,interval:400,message:'React preview did not load single-R controls'});}catch(e){
+ try{return await waitUntil(async()=>{const d=await checkDom();return d.hasRace&&d.hasVenueSelected&&d.buttons.some(x=>x.text==='TXTダウンロード')?d:null},{attempts:75,interval:400,message:'React preview did not load single-R controls'});}catch(e){
    let info={};try{info={href:await session.eval('location.href'),dom:await checkDom(),root:await session.eval('document.querySelector("#root")?.outerHTML.slice(0,700)'),scriptCount:await session.eval('document.scripts.length')};}catch{}
    const exceptionEvents=session.events.filter(x=>x.method==='Runtime.exceptionThrown'||x.method==='Log.entryAdded'||x.method==='Network.loadingFailed').slice(-10).map(x=>({method:x.method,params:JSON.stringify(x.params).slice(0,450)}));
    throw Error(String(e.message)+' | '+JSON.stringify({info,exceptionEvents}).slice(0,2600));
@@ -86,7 +86,7 @@ try{
  // Historical feed: unsafe registration numbers must NOT enable UI copy/save.
  const held=await navigate();
  const heldButtons=Object.fromEntries(held.buttons.map(x=>[x.text,x.disabled]));
- const oldHold=heldButtons['TXTダウンロード']===true && heldButtons['コピー']===true && heldButtons['まとめてコピー']===true;
+ const oldHold=held.hasHold && heldButtons['TXTダウンロード']===true && heldButtons['コピー']===true && heldButtons['まとめてコピー']===true;
  report.cases.push({case:'unaltered historical feed',uiRoute:'real React19',status:oldHold?'PASS_HELD':'FAIL_UNSAFE_ENABLED',buttons:held.buttons});
  assert.ok(oldHold,'Historical feed with no actual pairing proof must disable copy and TXT download');
  // Build a complete synthetic proof in memory, paired via actual raw JSON bytes.
