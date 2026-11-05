@@ -1,0 +1,65 @@
+name: STEP10-01AT official paired-release preflight -- NONDEPLOY
+on:
+  pull_request:
+    branches:
+      - review/step10-01as-live-source-and-backfill-nondeploy-20261105
+    paths:
+      - 'scripts/lib/step10-01at-pair-release-gate.mjs'
+      - 'tests/test-at-pair-release-gate.mjs'
+      - '.github/workflows/step10-01at-nondeploy-ci.yml'
+permissions:
+  contents: read
+jobs:
+  at-review:
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact immutable review SHA (no credentials retained)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify narrow three-file scope and prior secure Page pin
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PR_HEAD"
+          test "$(git hash-object src/pages/PageImplementations.tsx)" = 35121b421970ad0c621bd464a9d6f6e7253775fb
+          while IFS= read -r f; do
+            case "$f" in
+              scripts/lib/step10-01at-pair-release-gate.mjs|tests/test-at-pair-release-gate.mjs|.github/workflows/step10-01at-nondeploy-ci.yml) ;;
+              *) echo "Unapproved AT change: $f" >&2; exit 1 ;;
+            esac
+          done < <(git diff --name-only "$PR_BASE" "$PR_HEAD")
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: npm ci (read only)
+        run: npm ci --no-audit --no-fund
+      - name: Fail-closed original snapshot vs synthetic attestation and 13 negative cases
+        run: AT_FIXTURES=public/data/races node tests/test-at-pair-release-gate.mjs
+      - name: Targeted lint of new independent verifier
+        run: npx eslint scripts/lib/step10-01at-pair-release-gate.mjs tests/test-at-pair-release-gate.mjs
+      - name: React19 TypeScript/Vite build on review HEAD
+        run: npm run build:github
+      - name: Record official source and UI gates remain HOLD
+        if: ${{ !cancelled() }}
+        run: |
+          {
+            echo '## STEP10-01AT — NONDEPLOY'
+            echo 'Review-only validator. Archived 2026-11-05 data must be held.'
+            echo 'Synthetic producer proof is a unit test, NOT independent official verification.'
+            echo 'No actual new JSJ001 individual profile validation or full dataset re-fetch.'
+            echo 'No production publication, OS clipboard, browser TXT click, or Monthly decommission.'
+            echo 'Do not merge without separate explicit approval and release gate closure.'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify clean tracked tree
+        if: ${{ !cancelled() }}
+        run: test -z "$(git status --porcelain)"
