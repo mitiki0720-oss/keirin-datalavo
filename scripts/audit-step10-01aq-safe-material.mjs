@@ -57,13 +57,14 @@ check('copy and download handlers reject held material',() => {
     assert.ok(initial.includes('return;'), 'held material must return from '+line);
   }
 });
-check('no digit extraction or zero padding in browser enrichment helper',() => {
-  const begin=page.indexOf('const normalizePredictionRegistrationNo =');
-  const end=page.indexOf('const buildKeirinJpEntryRegistrationLookup',begin);
-  assert.ok(begin>=0&&end>begin);
-  const body=page.slice(begin,end);
-  assert.ok(body.includes('^[0-9]{5,6}$'));
-  assert.ok(!body.includes('padStart') && !body.includes('replace(/\\D/'));
+check('no browser-side implicit rider ID backfill',() => {
+  assert.ok(!page.includes('buildKeirinJpEntryRegistrationLookup'));
+  assert.ok(!page.includes('enrichPredictionFeedWithKeirinJpEntries'));
+  assert.ok(!page.includes('registrationNoTrustStatus: "official-entry-match"'));
+  assert.ok(page.includes('const sortedVenues = [...(feed.venues ?? [])].sort(comparePredictionVenues);'));
+  assert.ok(page.includes('setPredictionFeed({ ...feed, venues: sortedVenues });'));
+  assert.ok(page.includes('actualSha256: actualEntriesSha256'));
+  assert.ok(page.includes('expectedSha256: String(feed.source?.officialEntriesSha256 ?? "")'));
 });
 check('strict module requires exact 4-key, same bytes and recorded JSJ001 check',() => {
   for(const term of ['key(date,venueCode,raceNo,rider.carNo)', 'expectedSha256 !== evidence.actualSha256','PASS_JSJ001_JSJ006_EXACT','KEIRIN.JP:JSJ006'])
