@@ -1,0 +1,113 @@
+# STEP10-01AT -- draft-only test. No Pages, no data publishing, no secrets.
+name: STEP10-01AT browser export and official source pairing -- NONDEPLOY
+on:
+  pull_request:
+    branches:
+      - review/step10-01as-live-source-and-backfill-nondeploy-20261105
+    paths:
+      - '.github/workflows/step10-01at-nondeploy-ci.yml'
+      - 'tests/test-at-browser-preview.mjs'
+      - 'tests/test-at-pair-evidence.mjs'
+permissions:
+  contents: read
+jobs:
+  at-review:
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout exact immutable Draft head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify AT file scope, inherited source and no publish
+        shell: bash
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEAD"
+          test "$(git hash-object src/pages/PageImplementations.tsx)" = 35121b421970ad0c621bd464a9d6f6e7253775fb
+          test "$(git hash-object src/lib/strictOfficialRegistrationMaterial.ts)" = a559228187aeb494699d12f8eff6fcde83a0be5c
+          test "$(git hash-object scripts/update-keirin-jp-entries.mjs)" = 9832978236870bfb960024d14ef46c820a21486a
+          test "$(git hash-object scripts/update-today-races.mjs)" = d68ba10f3800c92060d60fca1763396985d5f968
+          test "$(git hash-object public/data/races/keirin-jp-entries.generated.json)" = b5d9b597e248c348695c1e3a759336f8f5bab588
+          test "$(git hash-object public/data/races/today.generated.json)" = 99207cc65c58428c4439ae04a9602c0a5591ada1
+          while IFS= read -r file; do
+            case "$file" in
+              .github/workflows/step10-01at-nondeploy-ci.yml|tests/test-at-browser-preview.mjs|tests/test-at-pair-evidence.mjs) ;;
+              *) echo "UNEXPECTED AT source change: $file" >&2; exit 1 ;;
+            esac
+          done < <(git diff --name-only "$BASE" "$HEAD")
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const s=fs.readFileSync('.github/workflows/step10-01at-nondeploy-ci.yml','utf8');
+          if(!s.includes('contents: read')||s.includes('pages: write')||s.includes('id-token: write')||s.includes('actions/deploy-pages')||s.includes('upload-pages-artifact')||s.includes('pull_request_target'))throw Error('No write/deploy permission in this review');
+          console.log('AT_READONLY_SCOPE_PASS');
+          NODE
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Actual producer SHA to strict material resolver, 79R/575 (gating)
+        run: node tests/test-at-pair-evidence.mjs
+      - name: Regression of real GPT source, no backfill and saved predictions (gating)
+        run: |
+          set -euo pipefail
+          node tests/test-as-no-backfill.mjs
+          node scripts/audit-step10-01aq-safe-material.mjs
+          node tests/test-ar-gpt-normal-and-hold.mjs
+          node tests/test-ar-other-exports.mjs
+          node tests/test-ap-generator-integration.mjs
+      - name: Actual React19 GitHub production-mode build with single-R controls (gating)
+        env:
+          VITE_AH_SINGLE_R_PREVIEW: '1'
+          VITE_AL_STRICT_REGISTRATION_REVIEW: '0'
+        run: npm run build:github
+      - name: Browser actual React controls using unchanged and synthetic source pairs (gating)
+        id: browser
+        run: node tests/test-at-browser-preview.mjs
+      - name: Focused lint of new tests (gating)
+        run: npx eslint tests/test-at-browser-preview.mjs tests/test-at-pair-evidence.mjs
+      - name: Live KEIRIN.JP limited JSJ001/JSJ006 recheck (diagnostic)
+        id: official
+        continue-on-error: true
+        run: node tests/test-as-live-official-sample.mjs
+      - name: Served GitHub Pages official pair recheck (diagnostic)
+        id: served
+        continue-on-error: true
+        run: node tests/test-as-https-delivery.mjs
+      - name: Full lint existing baseline (diagnostic / never false PASS)
+        id: lint
+        continue-on-error: true
+        run: npm run lint
+      - name: Summary with separate release gates
+        if: ${{ !cancelled() }}
+        env:
+          BROWSER_STATUS: ${{ steps.browser.outputs.status }}
+          CLIPBOARD_STATUS: ${{ steps.browser.outputs.clipboard }}
+          DOWNLOAD_STATUS: ${{ steps.browser.outputs.download }}
+          OFFICIAL_STATUS: ${{ steps.official.outputs.status }}
+          SERVED_STATUS: ${{ steps.served.outputs.status }}
+          LINT_OUTCOME: ${{ steps.lint.outcome }}
+        run: |
+          {
+            echo '## AT NONDEPLOY -- review artifact / draft only'
+            echo "Real local Chrome on PR-built React UI: ${BROWSER_STATUS:-NOT_REPORTED}"
+            echo "Real Chrome clipboard: ${CLIPBOARD_STATUS:-NOT_REPORTED}; TXT download: ${DOWNLOAD_STATUS:-NOT_REPORTED}"
+            echo "One live official race JSJ001/JSJ006: ${OFFICIAL_STATUS:-NOT_REPORTED}"
+            echo "Published same-raw-version pair: ${SERVED_STATUS:-NOT_REPORTED}"
+            echo "Whole-repository lint: ${LINT_OUTCOME:-NOT_RUN} (may be FAIL even if workflow succeeds)"
+            echo 'Local browser positive is SYNTHETIC JSJ001 attestation, NOT independent official verification.'
+            echo 'OS clipboard test is Chromium on a GitHub runner, NOT Windows/phone real device.'
+            echo 'No original Monthly deletion, main merge, Pages deployment, or release approval.'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Review checked-out source remains unchanged
+        if: ${{ !cancelled() }}
+        run: test -z "$(git status --porcelain)"
