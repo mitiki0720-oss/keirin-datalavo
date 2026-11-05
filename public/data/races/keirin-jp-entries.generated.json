@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-05T07:32:47.390Z",
+  "generatedAt": "2026-11-05T07:41:52.571Z",
   "source": {
     "provider": "KEIRIN.JP",
-    "fetchStartedAt": "2026-11-05T07:31:23.394Z",
-    "fetchCompletedAt": "2026-11-05T07:32:47.390Z",
+    "fetchStartedAt": "2026-11-05T07:40:28.661Z",
+    "fetchCompletedAt": "2026-11-05T07:41:52.571Z",
     "listType": "JSJ048",
     "entryType": "JSJ006",
     "detailType": "JSJ001",
@@ -9402,7 +9402,7 @@
       "venueName": "四日市競輪場",
       "grade": "G3",
       "raceName": "泗水杯争奪戦",
-      "selectedRaceNumber": "4",
+      "selectedRaceNumber": "5",
       "races": [
         {
           "raceNumber": 1,
@@ -17531,8 +17531,8 @@
         {
           "raceNumber": 3,
           "entryStatus": "available",
-          "operationStatus": "scheduled",
-          "raceEnded": false,
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
           "lastUpdateTime": "2026/11/05 07:00 更新",
@@ -17546,53 +17546,17 @@
           "official": {
             "bKeirinjyoCd": "86",
             "yudoSensyuName": "高橋 優斗",
-            "yosoinMei": "別府ダービー",
+            "yosoinMei": "",
             "raceResult1CarNo": "4",
             "raceResult2CarNo": "3",
             "backCount1CarNo": "4",
             "backCount2CarNo": "3"
           },
-          "lineup": "6 4 1 7 3 5 2",
+          "lineup": "",
           "officialLineup": {
-            "lineup": "6 4 1 7 3 5 2",
-            "positions": [
-              {
-                "position": 1,
-                "carNo": "6",
-                "className": "base_color_6"
-              },
-              {
-                "position": 3,
-                "carNo": "4",
-                "className": "base_color_4"
-              },
-              {
-                "position": 4,
-                "carNo": "1",
-                "className": "base_color_1"
-              },
-              {
-                "position": 5,
-                "carNo": "7",
-                "className": "base_color_7"
-              },
-              {
-                "position": 7,
-                "carNo": "3",
-                "className": "base_color_3"
-              },
-              {
-                "position": 8,
-                "carNo": "5",
-                "className": "base_color_5"
-              },
-              {
-                "position": 9,
-                "carNo": "2",
-                "className": "base_color_2"
-              }
-            ],
-            "source": "KEIRIN.JP:JSJ005:narabiyoso"
+            "lineup": "",
+            "positions": [],
+            "source": ""
           },
           "entries": [
             {
@@ -17605,7 +17569,7 @@
               "style": "追",
               "graduationTerm": "92",
               "age": 44,
-              "predictionMark": "◎",
+              "predictionMark": "",
               "score": 75.77,
               "stats": {
                 "escapeCount": 0,
@@ -17657,7 +17621,7 @@
               "style": "逃",
               "graduationTerm": "129",
               "age": 29,
-              "predictionMark": "▲",
+              "predictionMark": "",
               "score": 78.94,
               "stats": {
                 "escapeCount": 5,
@@ -17683,7 +17647,7 @@
               "style": "逃",
               "graduationTerm": "115",
               "age": 29,
-              "predictionMark": "○",
+              "predictionMark": "",
               "score": 79.14,
               "stats": {
                 "escapeCount": 9,
@@ -17709,7 +17673,7 @@
               "style": "追",
               "graduationTerm": "86",
               "age": 46,
-              "predictionMark": "×",
+              "predictionMark": "",
               "score": 71.41,
               "stats": {
                 "escapeCount": 0,
@@ -17783,8 +17747,10 @@
             "hasEntries": true,
             "hasRegistrationNumbers": true,
             "hasNames": true,
-            "hasLineup": true,
-            "warnings": []
+            "hasLineup": false,
+            "warnings": [
+              "official lineup missing"
+            ]
           }
         },
         {
@@ -19803,7 +19769,7 @@
       "missingRaceCount": 0,
       "errorCount": 0,
       "totalEntryCount": 75,
-      "lineupRaceCount": 9
+      "lineupRaceCount": 8
     }
   ],
   "venueCount": 8,
@@ -19812,6 +19778,6 @@
   "missingRaceCount": 0,
   "errorCount": 0,
   "totalEntryCount": 575,
-  "lineupRaceCount": 36,
+  "lineupRaceCount": 35,
   "preservedCompleteRaceCount": 0
 }
