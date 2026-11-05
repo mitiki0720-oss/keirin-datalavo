@@ -11,18 +11,10 @@ import {
   normalizeRegistrationNo,
 } from "../lib/playerCards";
 import {
-  buildMonthlyPredictionGuidance,
-  buildMonthlyPreRaceSeed,
-  formatMonthlyPreRaceSeedLines,
-  getActiveMonthlyReview,
-  MONTHLY_TICKET_POLICY_VERSION,
-} from "../lib/monthlyReviewInsights";
-import {
   buildKeirinPredictionExport,
   downloadKeirinPredictionExport,
 } from "../lib/keirinPredictionExport";
 import {
-  buildKeirinPredictionOutputFormatContract,
   parseKeirinCanonicalPredictionBlock,
 } from "../lib/keirinPredictionCanonicalFormat";
 import {
@@ -78,7 +70,6 @@ import {
   toCompactSingleLine,
 } from "./venueFeatures/venueFeatureParsers";
 import type { VenueDetailBlock, VenueDetailSection, VenueInsightGroup, VenueInsightIndexItem } from "./venueFeatures/venueFeatureTypes";
-import type { MonthlyReviewDigest, MonthlyReviewIndexItem } from "../types/monthlyReview";
 import type {
   KurariExExactIndex,
   KurariExIndex,
@@ -4326,7 +4317,6 @@ export const buildPredictionExportText = ({
   trackAffinityText,
   dataAnalysisText,
   oddsText,
-  monthlyGuidanceText = "",
   kurariExGuidanceText = "",
   preRaceRiskSignalText = "",
 }: {
@@ -4350,7 +4340,6 @@ export const buildPredictionExportText = ({
   trackAffinityText: string;
   dataAnalysisText: string;
   oddsText: string;
-  monthlyGuidanceText?: string;
   kurariExGuidanceText?: string;
   preRaceRiskSignalText?: string;
 }) => {
@@ -4459,7 +4448,6 @@ export const buildPredictionExportText = ({
     "",
     "[M. 補足ソース]",
     buildPredictionMemoExport(exportRace, memo),
-    ...(monthlyGuidanceText.trim() ? ["", monthlyGuidanceText.trim()] : []),
     ...(kurariExGuidanceText.trim() ? ["", kurariExGuidanceText.trim()] : []),
   ].join("\n");
 };
@@ -4478,28 +4466,6 @@ const buildPredictionBatchRaceCoreText = (material: string) => {
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
-};
-
-const extractPredictionBatchMonthlyMeta = (monthlyGuidanceText: string) => {
-  const lines = monthlyGuidanceText.split(/\r?\n/);
-  const start = lines.findIndex((line) => line === "【レースごとの可変点数メタ情報】");
-  if (start < 0) {
-    const unavailableSeed = buildMonthlyPreRaceSeed({
-      monthlyReviewAvailable: false,
-    });
-    return [
-      "【R別 可変点数メタ情報】",
-      ...formatMonthlyPreRaceSeedLines(unavailableSeed),
-    ].join("\n");
-  }
-  const end = lines.findIndex((line, index) => index > start && line === "【予想依頼テンプレ】");
-  const body = lines.slice(start + 1, end < 0 ? undefined : end).join("\n").trim();
-  return body
-    ? `【R別 可変点数メタ情報】\n${body}`
-    : [
-        "【R別 可変点数メタ情報】",
-        ...formatMonthlyPreRaceSeedLines(buildMonthlyPreRaceSeed({ monthlyReviewAvailable: false })),
-      ].join("\n");
 };
 
 const extractPredictionBatchKurariExRaceMemo = (kurariExGuidanceText: string) => {
@@ -9266,9 +9232,6 @@ export function PredictionPage() {
   const [weatherByRace, setWeatherByRace] = useState<Record<string, PredictionWeatherData | null>>({});
   const [weatherStatusByRace, setWeatherStatusByRace] = useState<Record<string, string>>({});
   const [weatherLoadingVenue, setWeatherLoadingVenue] = useState("");
-  const [monthlyReviewItem, setMonthlyReviewItem] = useState<MonthlyReviewIndexItem | null>(null);
-  const [monthlyReviewDigest, setMonthlyReviewDigest] = useState<MonthlyReviewDigest | null>(null);
-  const [monthlyReviewStatus, setMonthlyReviewStatus] = useState<"loading" | "ready" | "missing" | "error">("loading");
   const [kurariExIndex, setKurariExIndex] = useState<KurariExIndex | null>(null);
   const [kurariExIndexStatus, setKurariExIndexStatus] = useState<"loading" | "ready" | "error">("loading");
   const [kurariExExactIndex, setKurariExExactIndex] = useState<KurariExExactIndex | null>(null);
@@ -9434,27 +9397,6 @@ useEffect(() => {
     };
   }, []);
 
-  useEffect(() => {
-    let isActive = true;
-
-    getActiveMonthlyReview()
-      .then(({ item, digest }) => {
-        if (!isActive) return;
-        setMonthlyReviewItem(item);
-        setMonthlyReviewDigest(digest);
-        setMonthlyReviewStatus(item && digest ? "ready" : "missing");
-      })
-      .catch(() => {
-        if (!isActive) return;
-        setMonthlyReviewItem(null);
-        setMonthlyReviewDigest(null);
-        setMonthlyReviewStatus("error");
-      });
-
-    return () => {
-      isActive = false;
-    };
-  }, []);
 
   useEffect(() => {
     let isActive = true;
@@ -10756,19 +10698,6 @@ if (
     () => buildPredictionMemoExport(selectedPredictionMaterialRace ?? { raceNo: 0 }, predictionMemo),
     [predictionMemo, selectedPredictionMaterialRace]
   );
-  const selectedPredictionMonthlyGuidanceText = useMemo(
-    () => buildMonthlyPredictionGuidance({
-      digest: monthlyReviewDigest,
-      raceTitle: selectedPredictionMaterialRace?.title || selectedPredictionMaterialRace?.sourceNote || "",
-      gradeLabel: selectedVenueGradeLabel,
-      lineup: buildPredictionLineupDisplay(selectedPredictionMaterialRace),
-      isCancelled: Boolean(selectedPredictionMaterialVenue && selectedPredictionMaterialRace && isPredictionRaceExcludedByOperation(selectedPredictionMaterialVenue, selectedPredictionMaterialRace)),
-      hasVenueMaster: selectedVenueSummary.masterDigest?.source === "bank-master",
-      hasReviewSummary: selectedVenueSummary.reviewSummaryDigest?.source === "review-summary",
-      hasRegisteredRiderMemo: selectedPredictionLinkedPlayerContexts.length > 0,
-    }),
-    [monthlyReviewDigest, selectedPredictionLinkedPlayerContexts.length, selectedPredictionMaterialRace, selectedPredictionMaterialVenue, selectedVenueGradeLabel, selectedVenueSummary.masterDigest?.source, selectedVenueSummary.reviewSummaryDigest?.source]
-  );
   const selectedKurariExRiderEntries = useMemo(() => {
     void kurariExRiderExactCacheVersion;
     return selectedKurariExRiderMatches.flatMap((match) => {
@@ -11508,11 +11437,10 @@ if (
       trackAffinityText: selectedPredictionTrackAffinityText,
       dataAnalysisText: selectedPredictionDataAnalysisText,
       oddsText: selectedPredictionOddsText,
-      monthlyGuidanceText: selectedPredictionMonthlyGuidanceText,
       kurariExGuidanceText: selectedKurariExCombinedGuidanceText,
       preRaceRiskSignalText: selectedKurariExRaceRiskText,
     });
-  }, [predictionFeed, selectedKurariExCombinedGuidanceText, selectedKurariExRaceRiskText, selectedPredictionDataAnalysisText, selectedPredictionMatchupText, selectedPredictionMaterialRace, selectedPredictionMaterialRegistrationCandidates, selectedPredictionMaterialRiders, selectedPredictionMaterialVenue, selectedPredictionMemoText, selectedPredictionMonthlyGuidanceText, selectedPredictionOddsText, selectedPredictionPlayerCardInsightText, selectedPredictionRecentPerformanceText, selectedPredictionRecentRaceText, selectedPredictionRegistrationCandidates, selectedPredictionRiderBasicText, selectedPredictionTrackAffinityText, selectedVenueGradeLabel, selectedVenueSummary, selectedWeather, selectedWeatherFallbackText]);
+  }, [predictionFeed, selectedKurariExCombinedGuidanceText, selectedKurariExRaceRiskText, selectedPredictionDataAnalysisText, selectedPredictionMatchupText, selectedPredictionMaterialRace, selectedPredictionMaterialRegistrationCandidates, selectedPredictionMaterialRiders, selectedPredictionMaterialVenue, selectedPredictionMemoText, selectedPredictionOddsText, selectedPredictionPlayerCardInsightText, selectedPredictionRecentPerformanceText, selectedPredictionRecentRaceText, selectedPredictionRegistrationCandidates, selectedPredictionRiderBasicText, selectedPredictionTrackAffinityText, selectedVenueGradeLabel, selectedVenueSummary, selectedWeather, selectedWeatherFallbackText]);
   const predictionBatchSessionLabel = selectedPredictionMaterialVenue
     ? getPredictionSessionBadge(selectedPredictionMaterialVenue)
     : "未選択";
@@ -11601,18 +11529,22 @@ if (
     const commonRequest = [
       "====================",
       "【まとめ予想依頼】",
-      `${selectedPredictionMaterialVenue.venue}競輪場${selectedVenueGradeLabel}、${predictionFeed.date}、対象R: ${startR}R〜${endR}Rを、月次振り返り反映済みの可変点数ルールでまとめて予想してください。`,
+      `${selectedPredictionMaterialVenue.venue}競輪場${selectedVenueGradeLabel}、${predictionFeed.date}、対象R: ${startR}R〜${endR}Rについて、以下の当日データを参考にRごとに分析してください。買い目の券種・点数は別途指定された適用ルールに従ってください。`,
       "====================",
       "",
-      buildKeirinPredictionOutputFormatContract({
-        date: predictionFeed.date,
-        venue: selectedPredictionMaterialVenue.venue,
-        targetRaceNumbers: targetRaces.map((race) => race.raceNo),
-      }),
+      [
+        "【対象と項目構造（買い目の指示は含まない）】",
+        `日付: ${predictionFeed.date}`,
+        `会場: ${selectedPredictionMaterialVenue.venue}`,
+        `対象R: ${targetRaces.map((race) => `${race.raceNo}R`).join("、")}`,
+        "- Rごとに独立して整理し、日付・会場・R番号・選手とsourceを保持してください。",
+        "- 出力欄を設ける場合は【出走表】【並び】【展開】【買い目】【影目】【設計メモ】の区別を保ちます。",
+        "- ただし、この素材は購入券種・買い目点数・投資額の規則を決定しません。ルールは別途確認してください。",
+      ].join("\n"),
       "",
       "====================",
       "【まとめ予想依頼テンプレ / 最重要】",
-      "{会場名}競輪場{グレード}、{日付}、対象R: {対象R範囲}を、月次振り返り反映済みの可変点数ルールでまとめて予想してください。",
+      "{会場名}競輪場{グレード}、{日付}、対象R: {対象R範囲}について、以下の当日データを参考にRごとに分析してください。買い目の券種・点数は別途指定された適用ルールに従ってください。",
       "",
       "※事前オッズは取得時刻・sourceが確認できる場合だけ採算判断に使い、展開・並び・近況・KURARI EXと併せて評価してください。",
       "※対象Rごとに、1Rずつコピーしやすい形で分けて出力してください。",
@@ -11643,26 +11575,10 @@ if (
       "====================",
       "",
       "====================",
-      "【共通ルール】",
-      `- 月次振り返り: ${monthlyReviewStatus === "ready" ? "反映済み" : "未取得・参考ルールのみ"} / 10月運用 ${MONTHLY_TICKET_POLICY_VERSION}`,
-      "- 改善根拠は9月実績: 購入的中率40.68%、購入回収率69.27%、3着だけ抜け502R。10月の達成値ではない",
-      "- 18点固定購入は禁止。3連単8〜14点可変、1点100円固定",
-      "- 各RのWeb側pre-race seedは参考値。頭候補数・主要展開・KURARI EX・オッズ・影VALUE評価後に最終判定で上書きする",
-      "- 最初にraceSelectGrade=A/B/C、purchaseDecision=BUY/VALUE_BUY/SKIPを判定する",
-      "- A/HITは8〜10点。2〜3分戦だけでAとせず、頭2人以内、主要1/2着枝、3着接続、追走不安、事前オッズ、購入採算を検査する。65〜70%は未達目標",
-      "- B/VALUEは10〜12点中心。異なる展開と3着への接続を説明できる強い根拠がある場合のみ14点",
-      "- C/SKIPは購入0点。可能なら18候補を影として保存する",
-      "- 18候補を生成後、購入候補と影買い目へ分ける。18候補と18点購入を混同しない",
-      "- 主要1着-2着の枝ごとに本線3番手、別線自力・別線番手の3着、単騎・追込、番手差しと先行残り、同じ3車の順序入替、別線頭＋本線の自然順を確認する",
-      "- 影候補はVALUE-1〜5を再評価し、3条件以上でも購入確定とせず、最大1〜2点の入れ替え昇格だけを検討する",
-      "- 昇格は低評価購入候補との入れ替えのみ。A/Bの購入上限を超えない",
-      "- 頭候補は原則2〜4人。5人以上必要ならC/SKIPを検討する",
-      "- 追加点は新しい頭ではなく2着・3着補正を優先。根拠の薄い大穴固定枠は置かない",
-      "- 2車単は10月運用では新規購入対象外。parser/過去照合は互換のため残す",
-      "- investmentYen=購入買い目数*100。影買い目は投資額に含めない",
-      "- 予想時のrace/ticket証跡は可能な範囲で本文に記録する。詳細メタ項目は簡易JSONに全件構造化保存される仕様ではない",
-      "- purchaseFinalizedAtとoddsSourceTimeは実際に確認できる時刻だけ記す。発走後なら警告し、source取得時刻で買い目確定時刻を代用しない",
-      "- 処理順: seed確認 → A/B/C最終判定 → 18候補生成 → 上限内購入選定 → 影分離 → VALUE再評価 → 最大1〜2点入れ替え → purchasePoints確定 → investmentYen算出",
+      "【適用ルールの確認（この素材に買い目ルールは含めない）】",
+      "- この文章は出走表・並び・天候・選手・オッズ等の当日分析素材です。買い目の券種・購入点数・投資額の規則は同梱しません。",
+      "- 買い目を作成する際は、当日のユーザー明示指定と別途承認された運用ルールを確認してください。参照できない場合は推測・過去ルールの流用をせず確認してください。",
+      "- 素材の取得時刻と、購入確定時刻・事後結果を混同しないでください。影目は購入と分けて扱ってください。",
       "====================",
       "",
       "====================",
@@ -11729,16 +11645,6 @@ if (
         ?? (race.raceNo === selectedPredictionMaterialRace?.raceNo ? selectedWeather : null);
       const raceWeatherFallbackText = weatherStatusByRace[raceWeatherKey]
         || (race.raceNo === selectedPredictionMaterialRace?.raceNo ? selectedWeatherFallbackText : "天気情報なし");
-      const monthlyGuidanceText = buildMonthlyPredictionGuidance({
-        digest: monthlyReviewDigest,
-        raceTitle: race.title || race.sourceNote || "",
-        gradeLabel: selectedVenueGradeLabel,
-        lineup: buildPredictionLineupDisplay(race),
-        isCancelled: isPredictionRaceExcludedByOperation(selectedPredictionMaterialVenue, race),
-        hasVenueMaster: selectedVenueSummary.masterDigest?.source === "bank-master",
-        hasReviewSummary: selectedVenueSummary.reviewSummaryDigest?.source === "review-summary",
-        hasRegisteredRiderMemo: false,
-      });
       const kurariExGuidanceText = selectedKurariExAnyReady
         ? buildKurariExPredictionMaterial(
             selectedKurariExBundle,
@@ -11799,7 +11705,6 @@ if (
         trackAffinityText: "",
         dataAnalysisText: "",
         oddsText: "",
-        monthlyGuidanceText: "",
         kurariExGuidanceText: "",
         preRaceRiskSignalText: raceRiskText,
       }));
@@ -11809,8 +11714,6 @@ if (
         material,
         "",
         riderVenueSuitabilityText,
-        "",
-        extractPredictionBatchMonthlyMeta(monthlyGuidanceText),
         "",
         extractPredictionBatchKurariExRaceMemo(kurariExGuidanceText),
         "",
@@ -11831,7 +11734,6 @@ if (
       raceCount: targetRaces.length,
     };
   }, [
-    monthlyReviewDigest,
     kurariExRiderExactCacheVersion,
     kurariExRiderExactIndex,
     kurariExFailureGuidance,
@@ -11839,7 +11741,6 @@ if (
     kurariExRaceRisk,
     kurariExRaceRiskStatus,
     kurariExHistoricalTrend,
-    monthlyReviewStatus,
     predictionBatchRange,
     predictionBatchKurariExRiderStatus,
     predictionFeed,
@@ -11871,11 +11772,6 @@ if (
     : getPredictionMaterialReady(materialRace, predictionFeed?.date, selectedVenue?.venueCode)
       ? "素材生成済み"
       : "素材補完中";
-  const monthlyReviewStateLabel = monthlyReviewStatus === "ready"
-    ? `月次振り返り: 反映済み / A/B/C + 影VALUE ${MONTHLY_TICKET_POLICY_VERSION}`
-    : monthlyReviewStatus === "loading"
-      ? "月次振り返り: 読み込み中"
-      : "月次振り返り: 未登録";
   const kurariExStateLabel = selectedKurariExStatus === "ready" && selectedKurariExExactStatus === "ready"
     ? "KURARI EX：SEED + EXACT反映済み"
     : selectedKurariExStatus === "ready"
@@ -12512,7 +12408,7 @@ if (
 })()}
                     <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "7px 12px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.12em", background: "linear-gradient(135deg, rgba(242,236,251,1) 0%, rgba(232,241,255,1) 100%)", color: "#6b57a8", border: "1px solid #ddd3f0", boxShadow: "0 8px 18px rgba(122,103,184,0.08)" }}>{predictionMaterialStateLabel}</span>
-                      <span title={monthlyReviewItem?.title ?? undefined} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.06em", background: monthlyReviewStatus === "ready" ? "rgba(236,253,245,0.9)" : "rgba(255,255,255,0.82)", color: monthlyReviewStatus === "ready" ? "#047857" : "#7a8090", border: monthlyReviewStatus === "ready" ? "1px solid #a7f3d0" : "1px solid #ebe3f3" }}>{monthlyReviewStateLabel}</span>
+                      <span data-testid="ae-monthly-free-material" title="買い目ルールは当日指示・別途承認ルールを参照" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.06em", background: "rgba(236,253,245,0.9)", color: "#047857", border: "1px solid #a7f3d0" }}>GPT素材：当日情報のみ（旧ルール非同梱）</span>
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.06em", background: selectedKurariExAnyReady ? "rgba(229, 246, 239, 0.92)" : "rgba(255,255,255,0.82)", color: selectedKurariExAnyReady ? "#276b59" : selectedKurariExStatus === "error" || selectedKurariExExactStatus === "error" ? "#9f3858" : "#7a8090", border: selectedKurariExAnyReady ? "1px solid rgba(87, 160, 132, 0.32)" : selectedKurariExStatus === "error" || selectedKurariExExactStatus === "error" ? "1px solid #f0d8df" : "1px solid #ebe3f3" }}>{kurariExStateLabel}</span>
                       {selectedKurariExRiderStatus !== "idle" ? (
                         <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "6px 11px", fontSize: "10px", fontWeight: 900, letterSpacing: "0.06em", background: selectedKurariExRiderStatus === "ready" ? "rgba(229, 246, 239, 0.92)" : "rgba(255,255,255,0.82)", color: selectedKurariExRiderStatus === "ready" ? "#276b59" : selectedKurariExRiderStatus === "error" ? "#9f3858" : "#7a8090", border: selectedKurariExRiderStatus === "ready" ? "1px solid rgba(87, 160, 132, 0.32)" : selectedKurariExRiderStatus === "error" ? "1px solid #f0d8df" : "1px solid #ebe3f3" }}>{kurariExRiderStateLabel}</span>

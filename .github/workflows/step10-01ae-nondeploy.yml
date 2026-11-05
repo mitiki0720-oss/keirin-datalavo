@@ -1,0 +1,74 @@
+# AE review-only CI: no deploy/publish, PR-only, read-only token.
+name: STEP10-01AE GPT material -- NONDEPLOY
+on:
+  pull_request:
+    paths:
+      - 'src/pages/PageImplementations.tsx'
+      - '.github/workflows/step10-01ae-nondeploy.yml'
+      - 'scripts/audit-step10-01ae-gpt-material.mjs'
+permissions:
+  contents: read
+concurrency:
+  group: step10-01ae-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+jobs:
+  baseline:
+    name: BASELINE exact PR base -- lint and build (no deployment)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run build:github
+      - run: test -z "$(git status --porcelain)"
+  candidate:
+    name: AE candidate -- source pins, negative checks, lint and build (no deployment)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Guard exact source pins and PR file scope
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git show "$BASE_SHA:src/App.tsx" | git hash-object --stdin)" = 78299e1dcc7e8edcee55ae9d919da25314738498
+          test "$(git show "$BASE_SHA:src/pages/PageImplementations.tsx" | git hash-object --stdin)" = d7f23b51f30aadb84ce27bb88295ac8914349059
+          test "$(git show "$BASE_SHA:src/pages/MonthlyReviewPage.tsx" | git hash-object --stdin)" = f38c7b7825d7909d29594c1ae88588b864e88c84
+          test "$(git show "$BASE_SHA:src/lib/monthlyReviewInsights.ts" | git hash-object --stdin)" = c7f5d9528bce593ead5823c920be2121d288937e
+          test "$(git hash-object src/pages/PageImplementations.tsx)" = 3c7575f894730d43a0265426fd7d9a2a764c258b
+          while IFS= read -r path; do
+            case "$path" in
+              src/pages/PageImplementations.tsx|.github/workflows/step10-01ae-nondeploy.yml|scripts/audit-step10-01ae-gpt-material.mjs) ;;
+              *) echo "UNEXPECTED_PR_CHANGE: $path" >&2; exit 1 ;;
+            esac
+          done < <(git diff --name-only "$BASE_SHA" HEAD)
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: AE GPT material static and TypeScript AST assertions
+        run: node scripts/audit-step10-01ae-gpt-material.mjs
+      - name: Existing source-contract regression audit
+        run: node scripts/audit-prediction-page-gpt-material-source-contract.mjs
+      - run: npm run lint
+      - run: npm run build:github
+      - name: Verify no tracked files were modified
+        run: test -z "$(git status --porcelain)"
+# Deliberately no push, workflow_run, workflow_dispatch, pages:write,
+# id-token:write, upload-pages-artifact, deploy-pages or pull_request_target.
