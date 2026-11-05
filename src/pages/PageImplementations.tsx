@@ -22,6 +22,13 @@ import {
   type PredictionRegistrationIdentityCandidate,
 } from "../lib/predictionGptSourceContract";
 import {
+  buildStrictOfficialRegistrationMaterial,
+  indexOfficialRegistrationSnapshot,
+  resolveStrictRegistration,
+  sha256Hex,
+  type StrictRegistrationEvidence,
+} from "../lib/strictOfficialRegistrationMaterial";
+import {
   buildKurariExConditionMaterial,
   buildKurariExFreshnessMaterial,
   buildKurariExPreRaceRiskSignalMaterial,
@@ -300,6 +307,10 @@ export function useIsMobile(breakpoint = 768) {
 }
 export type PredictionTodayFeed = {
   generatedAt?: string;
+  source?: {
+    officialEntriesSha256?: string;
+    officialEntriesFetchCompletedAt?: string | null;
+  };
   date: string;
   venues: PredictionVenueItem[];
 };
@@ -2437,12 +2448,29 @@ export const normalizePredictionVenueAlias = (value?: string | null) => {
 
 type KeirinJpEntriesFeed = {
   date?: string;
+  source?: {
+    provider?: string;
+    entryType?: string;
+    detailType?: string;
+    fetchCompletedAt?: string;
+  };
   venues?: Array<{
     date?: string;
     venueCode?: string | number;
     venueName?: string;
     races?: Array<{
       raceNumber?: string | number;
+      quality?: {
+        entryDetailCrosscheck?: {
+          status?: string;
+          date?: string;
+          venueCode?: string;
+          raceNo?: number;
+          rowCount?: number;
+          entryType?: string;
+          detailType?: string;
+        };
+      };
       entries?: Array<{
         carNo?: string | number;
         registrationNo?: string | number;
@@ -2450,6 +2478,7 @@ type KeirinJpEntriesFeed = {
         prefecture?: string;
         graduationTerm?: string | number;
         raceClass?: string;
+        source?: string;
       }>;
     }>;
   }>;
@@ -4304,6 +4333,7 @@ export const buildPredictionExportText = ({
   materialRace,
   materialRiders,
   registrationCandidates = [],
+  strictRegistrationEvidence,
   gradeLabel,
   venueSummary,
   weather,
@@ -4327,6 +4357,7 @@ export const buildPredictionExportText = ({
   materialRace?: PredictionRaceItem;
   materialRiders?: PredictionRiderItem[];
   registrationCandidates?: PredictionRegistrationIdentityCandidate[];
+  strictRegistrationEvidence?: StrictRegistrationEvidence | null;
   gradeLabel: string;
   venueSummary: PredictionVenueSummary;
   weather: PredictionWeatherData | null;
@@ -4347,14 +4378,33 @@ export const buildPredictionExportText = ({
   const exportRiders = materialRiders?.length
     ? materialRiders
     : getPredictionMaterialRidersForKeirinRace(exportRace, venue);
-  const exSourceContractText = buildPredictionGptMaterialSourceContract({
-    date,
-    feed,
-    venue,
-    race: exportRace,
-    riders: exportRiders,
-    registrationCandidates,
-  });
+  // Legacy candidate enrichment remains only in the default (non-AL) path.
+  // AL review never accepts name-derived candidates as registration proof.
+  const strictIndex = indexOfficialRegistrationSnapshot(strictRegistrationEvidence?.snapshot);
+  const alReview = import.meta.env.VITE_AL_STRICT_REGISTRATION_REVIEW === "1";
+  const exSourceContractText = alReview
+    ? buildStrictOfficialRegistrationMaterial({
+        date, feed, venue, race: exportRace, riders: exportRiders,
+        evidence: strictRegistrationEvidence ?? null, index: strictIndex,
+      })
+    : buildPredictionGptMaterialSourceContract({
+        date, feed, venue, race: exportRace, riders: exportRiders,
+        registrationCandidates,
+      });
+  // A single unresolved rider blocks the entire R in AL's review-only mode:
+  // ancillary materials might otherwise leak an unverified registration ID.
+  if (alReview && !isPredictionRaceExcludedByOperation(venue, exportRace)
+    && (exportRiders.length === 0 || exportRiders.some((rider) => resolveStrictRegistration({
+      date, venueCode: venue.venueCode, raceNo: exportRace.raceNo, rider,
+      evidence: strictRegistrationEvidence ?? null, index: strictIndex,
+    }).registrationNo === "null"))) {
+    return [
+      exSourceContractText,
+      "",
+      "[REGISTRATION_EVIDENCE_HOLD / 非配備レビューのみ]",
+      "このRは登録番号の照合証拠が不足しているため、他の予想用素材を出力しません。過去データへのPASS後付けは禁止です。",
+    ].join("\n");
+  }
   if (isPredictionRaceExcludedByOperation(venue, exportRace)) {
     const operationLabel = isPredictionVenueOperationExcluded(venue) ? "開催中止" : "レース中止";
     const sourceLabel = getPredictionOperationLabel(venue, exportRace) || operationLabel;
@@ -9207,6 +9257,8 @@ const PREDICTION_BATCH_RANGE_OPTIONS: Array<{
 export function PredictionPage() {
   const [isPredictionCompactLayout, setIsPredictionCompactLayout] = useState(() => (typeof window !== "undefined" ? window.innerWidth < 1080 : false));
   const [predictionFeed, setPredictionFeed] = useState<PredictionTodayFeed | null>(null);
+  const [predictionStrictOfficialRegistrationEvidence, setPredictionStrictOfficialRegistrationEvidence] =
+    useState<StrictRegistrationEvidence | null>(null);
   const [predictionError, setPredictionError] = useState<string | null>(null);
   const [selectedVenueId, setSelectedVenueId] = useState("");
   const [selectedRaceNo, setSelectedRaceNo] = useState<number>(1);
@@ -9629,9 +9681,18 @@ useEffect(() => {
           fetch(PREDICTION_VENUE_INSIGHT_INDEX_URL, { cache: "no-cache" }).catch(() => null),
         ]);
 
-        const entriesFeed = entriesResponse && "ok" in entriesResponse && entriesResponse.ok
-          ? (await entriesResponse.json()) as KeirinJpEntriesFeed
+        const officialBytes = entriesResponse?.ok ? await entriesResponse.arrayBuffer() : null;
+        const entriesFeed = officialBytes
+          ? JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(officialBytes)) as KeirinJpEntriesFeed
           : null;
+        const actualEntriesSha256 = officialBytes ? await sha256Hex(officialBytes) : "";
+        // SHA is checked against the *today* feed's source manifest, not
+        // against a SHA supplied by the separately fetched entries file.
+        const strictRegistrationEvidence: StrictRegistrationEvidence = {
+          snapshot: entriesFeed,
+          actualSha256: actualEntriesSha256,
+          expectedSha256: String(feed.source?.officialEntriesSha256 ?? ""),
+        };
         const bankIndex = bankIndexResponse.ok
           ? (await bankIndexResponse.json()) as PredictionVenueBankIndexItem[]
           : [];
@@ -9644,6 +9705,7 @@ useEffect(() => {
         const enrichedFeed = enrichPredictionFeedWithKeirinJpEntries(feed, entriesFeed);
         const sortedVenues = [...(enrichedFeed.venues ?? [])].sort(comparePredictionVenues);
 
+        setPredictionStrictOfficialRegistrationEvidence(strictRegistrationEvidence);
         setPredictionFeed({ ...enrichedFeed, venues: sortedVenues });
         setPredictionBankIndex(bankIndex);
         setPredictionInsightGroups(groupVenueInsightEntries(insightIndex));
@@ -11420,6 +11482,7 @@ if (
       race: selectedPredictionMaterialRace,
       materialRace: selectedPredictionMaterialRace,
       materialRiders: selectedPredictionMaterialRiders,
+      strictRegistrationEvidence: predictionStrictOfficialRegistrationEvidence,
       registrationCandidates: [
         ...selectedPredictionRegistrationCandidates,
         ...selectedPredictionMaterialRegistrationCandidates,
@@ -11448,7 +11511,7 @@ if (
       "",
       baseMaterial,
     ].join("\n");
-  }, [predictionFeed, selectedKurariExCombinedGuidanceText, selectedKurariExRaceRiskText, selectedPredictionDataAnalysisText, selectedPredictionMatchupText, selectedPredictionMaterialRace, selectedPredictionMaterialRegistrationCandidates, selectedPredictionMaterialRiders, selectedPredictionMaterialVenue, selectedPredictionMemoText, selectedPredictionOddsText, selectedPredictionPlayerCardInsightText, selectedPredictionRecentPerformanceText, selectedPredictionRecentRaceText, selectedPredictionRegistrationCandidates, selectedPredictionRiderBasicText, selectedPredictionTrackAffinityText, selectedVenueGradeLabel, selectedVenueSummary, selectedWeather, selectedWeatherFallbackText]);
+  }, [predictionFeed, predictionStrictOfficialRegistrationEvidence, selectedKurariExCombinedGuidanceText, selectedKurariExRaceRiskText, selectedPredictionDataAnalysisText, selectedPredictionMatchupText, selectedPredictionMaterialRace, selectedPredictionMaterialRegistrationCandidates, selectedPredictionMaterialRiders, selectedPredictionMaterialVenue, selectedPredictionMemoText, selectedPredictionOddsText, selectedPredictionPlayerCardInsightText, selectedPredictionRecentPerformanceText, selectedPredictionRecentRaceText, selectedPredictionRegistrationCandidates, selectedPredictionRiderBasicText, selectedPredictionTrackAffinityText, selectedVenueGradeLabel, selectedVenueSummary, selectedWeather, selectedWeatherFallbackText]);
   const predictionBatchSessionLabel = selectedPredictionMaterialVenue
     ? getPredictionSessionBadge(selectedPredictionMaterialVenue)
     : "未選択";
@@ -11700,6 +11763,7 @@ if (
         venue: selectedPredictionMaterialVenue,
         race,
         registrationCandidates: predictionRegistrationIdentityCandidates,
+        strictRegistrationEvidence: predictionStrictOfficialRegistrationEvidence,
         gradeLabel: selectedVenueGradeLabel,
         venueSummary: selectedVenueSummary,
         weather: raceWeather,
@@ -11732,6 +11796,21 @@ if (
       ].join("\n");
     });
 
+    // AO: In strict-review mode, an unverified rider in any R blocks the
+    // complete batch export. This prevents append-only KURARI EX rider material
+    // and shared template sections from bypassing a per-R identity hold.
+    // Legacy/default batch output is unchanged when the review flag is off.
+    if (import.meta.env.VITE_AL_STRICT_REGISTRATION_REVIEW === "1"
+      && raceMaterials.some((text) => text.includes("[REGISTRATION_EVIDENCE_HOLD"))) {
+      return {
+        text: "【まとめ素材保留 / REGISTRATION_EVIDENCE_HOLD】\n公式登録番号の同一版・R別照合証拠が未確認のため、全Rの付帯素材を出力しません。",
+        startR,
+        endR,
+        maxRaceNumber,
+        raceCount: targetRaces.length,
+      };
+    }
+
     return {
       text: targetRaces.length > 0
         ? [...commonRequest, "", ...raceMaterials].join("\n")
@@ -11753,6 +11832,7 @@ if (
     predictionBatchKurariExRiderStatus,
     predictionFeed,
     predictionRegistrationIdentityCandidates,
+    predictionStrictOfficialRegistrationEvidence,
     selectedKurariExAnyReady,
     selectedKurariExBothMissing,
     selectedKurariExBundle,
