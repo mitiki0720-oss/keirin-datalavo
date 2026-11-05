@@ -17,10 +17,7 @@ import {
 import {
   parseKeirinCanonicalPredictionBlock,
 } from "../lib/keirinPredictionCanonicalFormat";
-import {
-  buildPredictionGptMaterialSourceContract,
-  type PredictionRegistrationIdentityCandidate,
-} from "../lib/predictionGptSourceContract";
+import type { PredictionRegistrationIdentityCandidate } from "../lib/predictionGptSourceContract";
 import {
   buildStrictOfficialRegistrationMaterial,
   indexOfficialRegistrationSnapshot,
@@ -2493,8 +2490,9 @@ type KeirinJpEntryRegistrationCandidate = {
 };
 
 const normalizePredictionRegistrationNo = (value: unknown) => {
-  const digits = String(value ?? "").normalize("NFKC").replace(/\D/gu, "");
-  return /^\d{5,6}$/u.test(digits) ? digits.padStart(6, "0") : "";
+  // Explicit ASCII digits only; do not extract digits or zero-pad identifiers.
+  const digits = String(value ?? "").normalize("NFKC").trim();
+  return /^[0-9]{5,6}$/u.test(digits) ? digits : "";
 };
 
 const buildKeirinJpEntryRegistrationLookup = (feed?: KeirinJpEntriesFeed | null) => {
@@ -4378,22 +4376,16 @@ export const buildPredictionExportText = ({
   const exportRiders = materialRiders?.length
     ? materialRiders
     : getPredictionMaterialRidersForKeirinRace(exportRace, venue);
-  // Legacy candidate enrichment remains only in the default (non-AL) path.
-  // AL review never accepts name-derived candidates as registration proof.
+  // AQ: all GPT materials require official 4-key and paired-SHA proof.
+  // Legacy identity/material candidates are ignored, never used as ID proof.
+  void registrationCandidates;
   const strictIndex = indexOfficialRegistrationSnapshot(strictRegistrationEvidence?.snapshot);
-  const alReview = import.meta.env.VITE_AL_STRICT_REGISTRATION_REVIEW === "1";
-  const exSourceContractText = alReview
-    ? buildStrictOfficialRegistrationMaterial({
-        date, feed, venue, race: exportRace, riders: exportRiders,
-        evidence: strictRegistrationEvidence ?? null, index: strictIndex,
-      })
-    : buildPredictionGptMaterialSourceContract({
-        date, feed, venue, race: exportRace, riders: exportRiders,
-        registrationCandidates,
-      });
-  // A single unresolved rider blocks the entire R in AL's review-only mode:
-  // ancillary materials might otherwise leak an unverified registration ID.
-  if (alReview && !isPredictionRaceExcludedByOperation(venue, exportRace)
+  const exSourceContractText = buildStrictOfficialRegistrationMaterial({
+    date, feed, venue, race: exportRace, riders: exportRiders,
+    evidence: strictRegistrationEvidence ?? null, index: strictIndex,
+  });
+  // Fail closed for the entire race: ancillary sections can contain raw IDs.
+  if (!isPredictionRaceExcludedByOperation(venue, exportRace)
     && (exportRiders.length === 0 || exportRiders.some((rider) => resolveStrictRegistration({
       date, venueCode: venue.venueCode, raceNo: exportRace.raceNo, rider,
       evidence: strictRegistrationEvidence ?? null, index: strictIndex,
@@ -4401,8 +4393,8 @@ export const buildPredictionExportText = ({
     return [
       exSourceContractText,
       "",
-      "[REGISTRATION_EVIDENCE_HOLD / 非配備レビューのみ]",
-      "このRは登録番号の照合証拠が不足しているため、他の予想用素材を出力しません。過去データへのPASS後付けは禁止です。",
+      "[REGISTRATION_EVIDENCE_HOLD / 出典検証保留]",
+      "このRは登録番号の公式照合証拠が不足しているため、選手別の補助素材を出力しません。推測補完と過去データへのPASS後付けは禁止です。",
     ].join("\n");
   }
   if (isPredictionRaceExcludedByOperation(venue, exportRace)) {
@@ -11796,12 +11788,9 @@ if (
       ].join("\n");
     });
 
-    // AO: In strict-review mode, an unverified rider in any R blocks the
-    // complete batch export. This prevents append-only KURARI EX rider material
-    // and shared template sections from bypassing a per-R identity hold.
-    // Legacy/default batch output is unchanged when the review flag is off.
-    if (import.meta.env.VITE_AL_STRICT_REGISTRATION_REVIEW === "1"
-      && raceMaterials.some((text) => text.includes("[REGISTRATION_EVIDENCE_HOLD"))) {
+    // AQ: enforce the same safety rule for ALL build modes, not just review.
+    // Never append KURARI EX or other materials after any unverified R.
+    if (raceMaterials.some((text) => text.includes("[REGISTRATION_EVIDENCE_HOLD"))) {
       return {
         text: "【まとめ素材保留 / REGISTRATION_EVIDENCE_HOLD】\n公式登録番号の同一版・R別照合証拠が未確認のため、全Rの付帯素材を出力しません。",
         startR,
@@ -11849,6 +11838,8 @@ if (
   ]);
   const gptExportLineCount = useMemo(() => gptExportText.split(/\r?\n/).length, [gptExportText]);
   const gptExportCharCount = useMemo(() => gptExportText.length, [gptExportText]);
+  const predictionGptMaterialHeld = gptExportText.includes("[REGISTRATION_EVIDENCE_HOLD");
+  const predictionBatchMaterialHeld = predictionBatchMaterial.text.includes("【まとめ素材保留 / REGISTRATION_EVIDENCE_HOLD】");
   const selectedPredictionTargetLabel = selectedVenue && selectedRace ? `${selectedVenue.venue} ${selectedRace.raceNo}R` : "レース選択待ち";
   const selectedPredictionVenueStageLabel = selectedVenue
   ? getPredictionVenueStageLabel(selectedVenue, predictionFeed?.date ?? TODAY)
@@ -11857,6 +11848,8 @@ if (
     ? "対象未選択"
     : isPredictionRaceExcludedByOperation(selectedVenue, selectedRace)
       ? "中止NOTICE"
+    : predictionGptMaterialHeld
+      ? "登録番号の公式照合待ち"
     : getPredictionMaterialReady(materialRace, predictionFeed?.date, selectedVenue?.venueCode)
       ? "素材生成済み"
       : "素材補完中";
@@ -11881,6 +11874,10 @@ if (
   const predictionSlotSaveStateLabel = selectedSavedPredictionSlot ? "保存済み" : "未保存";
 
   const handlePredictionCopy = async () => {
+    if (gptExportText.includes("[REGISTRATION_EVIDENCE_HOLD")) {
+      setCopyStatus("公式登録番号の照合証拠が不足しています。素材をコピーできません。");
+      return;
+    }
     if (selectedKurariExRiderStatus === "loading" || selectedKurariExRiderStatus === "idle") {
       setCopyStatus("選手別EXACTを読み込み中です");
       return;
@@ -11902,6 +11899,11 @@ if (
 
     let isActive = true;
     const copyBatchMaterial = async () => {
+      if (predictionBatchMaterial.text.includes("【まとめ素材保留 / REGISTRATION_EVIDENCE_HOLD】")) {
+        setPredictionBatchCopyStatus("公式登録番号の照合証拠が不足しています。まとめ素材をコピーできません。");
+        setPendingPredictionBatchCopyRange(null);
+        return;
+      }
       if (predictionBatchMaterial.raceCount === 0) {
         setPredictionBatchCopyStatus("対象範囲にレースがありません");
         setPendingPredictionBatchCopyRange(null);
@@ -11932,6 +11934,10 @@ if (
   };
 
   const handleLegacyPredictionBatchCopy = async () => {
+    if (predictionBatchMaterial.text.includes("【まとめ素材保留 / REGISTRATION_EVIDENCE_HOLD】")) {
+      setPredictionBatchCopyStatus("公式登録番号の照合証拠が不足しています。まとめ素材をコピーできません。");
+      return;
+    }
     if (predictionBatchKurariExRiderStatus === "loading" || predictionBatchKurariExRiderStatus === "idle") {
       setPredictionBatchCopyStatus("選手別EXACTを読み込み中です");
       return;
@@ -11949,6 +11955,10 @@ if (
   };
 
   const handlePredictionDownload = () => {
+    if (gptExportText.includes("[REGISTRATION_EVIDENCE_HOLD")) {
+      setCopyStatus("公式登録番号の照合証拠が不足しています。TXT保存を保留します。");
+      return;
+    }
     if (!predictionFeed || !selectedVenue || !selectedRace) return;
     if (selectedKurariExRiderStatus === "loading" || selectedKurariExRiderStatus === "idle") {
       setCopyStatus("選手別EXACTを読み込み中です");
@@ -12432,7 +12442,7 @@ if (
                         key={range.id}
                         type="button"
                         onClick={() => handlePredictionBatchCopy(range.id)}
-                        disabled={pendingPredictionBatchCopyRange !== null}
+                        disabled={pendingPredictionBatchCopyRange !== null || predictionBatchMaterialHeld}
                         style={{ minWidth: 0, border: "none", borderRadius: "9999px", padding: "14px 16px", background: "linear-gradient(135deg, #5f46a8 0%, #405fc5 100%)", color: "#fff", fontSize: "12px", fontWeight: 900, letterSpacing: "0.03em", cursor: pendingPredictionBatchCopyRange ? "wait" : "pointer", opacity: pendingPredictionBatchCopyRange ? 0.64 : 1, boxShadow: "0 14px 26px rgba(73, 64, 153, 0.18)" }}
                       >
                         {range.startR}R〜{range.endR}Rをコピー
@@ -12482,8 +12492,8 @@ if (
                 <div style={{ display: "grid", gap: "12px", marginBottom: "16px" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
                     <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                      <button type="button" onClick={handlePredictionCopy} style={{ minWidth: "160px", border: "none", borderRadius: "9999px", padding: "13px 18px", background: "linear-gradient(135deg, #081224 0%, #162745 100%)", color: "white", fontWeight: 900, fontSize: "12px", letterSpacing: "0.04em", cursor: "pointer", boxShadow: "0 12px 26px rgba(8, 18, 36, 0.14)" }}>{isPredictionRaceExcludedByOperation(selectedVenue, selectedRace) ? "中止情報をコピー" : "コピー"}</button>
-                      <button type="button" onClick={handlePredictionDownload} style={{ minWidth: "180px", border: "1px solid #e0d6f4", borderRadius: "9999px", padding: "13px 18px", background: "linear-gradient(180deg, #fffefe 0%, #fff6fb 48%, #f6fbff 100%)", color: "#7a67b8", fontWeight: 900, fontSize: "12px", letterSpacing: "0.04em", cursor: "pointer" }}>TXTダウンロード</button>
+                      <button type="button" onClick={handlePredictionCopy} disabled={predictionGptMaterialHeld} style={{ minWidth: "160px", border: "none", borderRadius: "9999px", padding: "13px 18px", background: "linear-gradient(135deg, #081224 0%, #162745 100%)", color: "white", fontWeight: 900, fontSize: "12px", letterSpacing: "0.04em", cursor: "pointer", boxShadow: "0 12px 26px rgba(8, 18, 36, 0.14)" }}>{isPredictionRaceExcludedByOperation(selectedVenue, selectedRace) ? "中止情報をコピー" : "コピー"}</button>
+                      <button type="button" onClick={handlePredictionDownload} disabled={predictionGptMaterialHeld} style={{ minWidth: "180px", border: "1px solid #e0d6f4", borderRadius: "9999px", padding: "13px 18px", background: "linear-gradient(180deg, #fffefe 0%, #fff6fb 48%, #f6fbff 100%)", color: "#7a67b8", fontWeight: 900, fontSize: "12px", letterSpacing: "0.04em", cursor: "pointer" }}>TXTダウンロード</button>
                     </div>
 {(() => {
   if (ENABLE_PREDICTION_DEBUG_LOGS) {
@@ -12870,7 +12880,7 @@ if (
                   <textarea readOnly value={predictionBatchMaterial.text} style={{ width: "100%", minHeight: "520px", maxHeight: "760px", borderRadius: "20px", border: "1px solid #e3dcf1", background: "rgba(255,255,255,0.96)", padding: "19px 21px", resize: "vertical", fontSize: "12.5px", lineHeight: 1.95, color: "#334155", outline: "none", fontFamily: '"SFMono-Regular", "Consolas", "BIZ UDPGothic", monospace' }} />
                 </div>
 
-                <button type="button" onClick={handleLegacyPredictionBatchCopy} disabled={predictionBatchMaterial.raceCount === 0} style={{ width: "fit-content", minWidth: "190px", border: "none", borderRadius: "9999px", padding: "14px 22px", background: "linear-gradient(135deg, #5f46a8 0%, #405fc5 100%)", color: "#fff", fontSize: "13px", fontWeight: 900, letterSpacing: "0.05em", cursor: predictionBatchMaterial.raceCount > 0 ? "pointer" : "not-allowed", opacity: predictionBatchMaterial.raceCount > 0 ? 1 : 0.5, boxShadow: "0 14px 28px rgba(73, 64, 153, 0.2)" }}>まとめてコピー</button>
+                <button type="button" onClick={handleLegacyPredictionBatchCopy} disabled={predictionBatchMaterial.raceCount === 0 || predictionBatchMaterialHeld} style={{ width: "fit-content", minWidth: "190px", border: "none", borderRadius: "9999px", padding: "14px 22px", background: "linear-gradient(135deg, #5f46a8 0%, #405fc5 100%)", color: "#fff", fontSize: "13px", fontWeight: 900, letterSpacing: "0.05em", cursor: predictionBatchMaterial.raceCount > 0 ? "pointer" : "not-allowed", opacity: predictionBatchMaterial.raceCount > 0 ? 1 : 0.5, boxShadow: "0 14px 28px rgba(73, 64, 153, 0.2)" }}>まとめてコピー</button>
               </article>)}
 
           </section>

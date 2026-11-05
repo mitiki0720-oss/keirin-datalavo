@@ -16,15 +16,15 @@ assert.equal(parsed.parseDiagnostics.length,0,'review PageImplementations.tsx pa
 assert.ok(page.includes('exportRiders.length === 0 || exportRiders.some((rider) => resolveStrictRegistration'),'zero-rider hold');
 assert.ok(page.includes('raceMaterials.some((text) => text.includes("[REGISTRATION_EVIDENCE_HOLD"))'),'all-R whole-batch hold');
 assert.equal((page.match(/strictRegistrationEvidence: predictionStrictOfficialRegistrationEvidence/g)||[]).length,2,'single and batch both wired');
-const start=page.indexOf('    if (import.meta.env.VITE_AL_STRICT_REGISTRATION_REVIEW === "1"\n      && raceMaterials.some');
+const start=page.indexOf('    if (raceMaterials.some((text) => text.includes("[REGISTRATION_EVIDENCE_HOLD"))) {');
 const end=page.indexOf('\n\n    return {\n      text: targetRaces.length',start);
-assert.ok(start>=0&&end>start,'whole-batch guard must precede legacy template');
-const gate=page.slice(start,end).replace('import.meta.env.VITE_AL_STRICT_REGISTRATION_REVIEW === "1"','reviewFlag');
-const checkGate=new Function('reviewFlag','raceMaterials','startR','endR','maxRaceNumber','targetRaces',gate+'\nreturn null;');
+assert.ok(start>=0&&end>start,'unconditional whole-batch guard must precede supplemental templates');
+const gate=page.slice(start,end);
+const checkGate=new Function('raceMaterials','startR','endR','maxRaceNumber','targetRaces',gate+'\nreturn null;');
 const sentinel='PRIVATE_UNVERIFIED_RIDER_REG_NO_999999';
-assert.ok(!checkGate(true,['[REGISTRATION_EVIDENCE_HOLD]\n'+sentinel],1,7,7,[1]).text.includes(sentinel),'no unverified content in full batch');
-assert.equal(checkGate(false,['[REGISTRATION_EVIDENCE_HOLD]'],1,7,7,[1]),null,'legacy/default unaffected');
-assert.equal(checkGate(true,['verified'],1,7,7,[1]),null,'verified can continue');
+assert.ok(!checkGate(['[REGISTRATION_EVIDENCE_HOLD]\n'+sentinel],1,7,7,[1]).text.includes(sentinel),'no unverified content in full batch');
+assert.equal(checkGate(['verified'],1,7,7,[1]),null,'verified source can continue');
+assert.ok(!page.includes('VITE_AL_STRICT_REGISTRATION_REVIEW'),'no unsafe default switch');
 
 const transpiled=ts.transpileModule(txt,{compilerOptions:{target:ts.ScriptTarget.ES2023,module:ts.ModuleKind.ESNext},reportDiagnostics:true});
 assert.equal(transpiled.diagnostics?.length||0,0,'strict resolver TS syntax');
@@ -87,4 +87,4 @@ const fiveIndex=strict.indexOfficialRegistrationSnapshot(testFive);
 assert.ok(fiveIndex.valid);
 const fiveHash=crypto.createHash('sha256').update(JSON.stringify(testFive)).digest('hex');
 assert.equal(strict.resolveStrictRegistration({date:clone.date,venueCode:v.venueCode,raceNo:r.raceNumber,rider:{...rider,registrationNo:'12345'},evidence:{snapshot:testFive,expectedSha256:fiveHash,actualSha256:fiveHash},index:fiveIndex}).registrationNo,'12345','5 digit valid according to upstream validator');
-console.log(JSON.stringify({status:'AO_REVIEW_TEST_PASS',date:clone.date,officialRows:checked,originalUnverifiedRowsBlocked:blocked,syntheticAttestationRowsPassed:accepted,caseChecks:12,wholeBatchLeakBlocked:true,blankRBlocked:true,originalSourceImmutable:true,liveIndependentOfficialCheck:false}));
+console.log(JSON.stringify({status:'AO_REVIEW_TEST_PASS',date:clone.date,officialRows:checked,originalUnverifiedRowsBlocked:blocked,syntheticAttestationRowsPassed:accepted,caseChecks:12,wholeBatchLeakBlocked:true,blankRBlocked:true,defaultStrict:true,originalSourceImmutable:true,liveIndependentOfficialCheck:false}));
