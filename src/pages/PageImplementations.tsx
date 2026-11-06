@@ -101,6 +101,10 @@ export const PAGE_MAX_WIDTH = "2040px";
 
 export const DAILY_METRICS_STORAGE_KEY = "keirin-quartet-daily-metrics";
 export const PREDICTION_SLOT_STORAGE_KEY = "kurari-data-labo-prediction-slots";
+const PREDICTION_SLOT_DRAFT_SESSION_KEY = "kurari-data-labo-unsaved-prediction-draft";
+const discardPredictionDraftBackup = () => {
+  try { window.sessionStorage.removeItem(PREDICTION_SLOT_DRAFT_SESSION_KEY); } catch { /* Saved data is unaffected. */ }
+};
 export const PREDICTION_RESULT_STORAGE_KEY = "kurari-data-labo-prediction-results";
 export const HIT_NOTIFICATION_STORAGE_KEY = "kurari-data-labo-hit-notifications";
 export const HIT_NOTIFICATION_NOTIFIED_KEYS_STORAGE_KEY = "kurari-data-labo-hit-notified-keys";
@@ -1121,11 +1125,23 @@ export const MISSING_PREDICTION_VENUE_SUMMARY: PredictionVenueSummary = {
   source: "missing",
 };
 
-export const prunePredictionSlotsMap = (map: PredictionSlotMap) => {
+const knownPredictionSlotDate = (key: string, value: unknown): string | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Partial<PredictionSlotRecord>;
+  const date = record.date;
+  if (record.raceKey !== key || typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)
+    || typeof record.predictionText !== "string" || typeof record.venue !== "string"
+    || !Number.isInteger(record.raceNumber) || typeof record.savedAt !== "string") return null;
+  const parsed = new Date(`${date}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date ? date : null;
+};
+
+export const prunePredictionSlotsMap = (map: PredictionSlotMap, activeDate = getJstOperationalDate()) => {
   let changed = false;
 
   const records = Object.entries(map).reduce<PredictionSlotMap>((accumulator, [key, value]) => {
-    if (!value || typeof value !== "object") {
+    const date = knownPredictionSlotDate(key, value);
+    if (date !== null && date < activeDate) {
       changed = true;
       return accumulator;
     }
@@ -1160,8 +1176,16 @@ export const loadStoredPredictionSlots = (): PredictionSlotMap => {
     const raw = window.localStorage.getItem(PREDICTION_SLOT_STORAGE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return {};
-    return prunePredictionSlotsMap(parsed as PredictionSlotMap).records;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    const { records, changed } = prunePredictionSlotsMap(parsed as PredictionSlotMap);
+    if (changed) {
+      try {
+        window.localStorage.setItem(PREDICTION_SLOT_STORAGE_KEY, JSON.stringify(records));
+      } catch (error) {
+        console.error("[PredictionSlotStorage] cleanup failed; stored data is unchanged", error);
+      }
+    }
+    return records;
   } catch {
     return {};
   }
@@ -1170,14 +1194,61 @@ export const loadStoredPredictionSlots = (): PredictionSlotMap => {
 export const saveStoredPredictionSlots = (map: PredictionSlotMap): boolean => {
   if (typeof window === "undefined") return false;
   try {
-    const { records } = prunePredictionSlotsMap(map);
-    window.localStorage.setItem(PREDICTION_SLOT_STORAGE_KEY, JSON.stringify(records));
+    const activeDate = getJstOperationalDate();
+    const raw = window.localStorage.getItem(PREDICTION_SLOT_STORAGE_KEY);
+    const current: unknown = raw === null ? {} : JSON.parse(raw);
+    if (!current || typeof current !== "object" || Array.isArray(current)) return false;
+    const protectedEntries = Object.fromEntries(Object.entries(current).filter(([key, value]) => {
+      const date = knownPredictionSlotDate(key, value);
+      return date === null || date > activeDate;
+    }));
+    const { records } = prunePredictionSlotsMap(map, activeDate);
+    window.localStorage.setItem(PREDICTION_SLOT_STORAGE_KEY, JSON.stringify({ ...records, ...protectedEntries }));
     return true;
   } catch (error) {
     console.error("[PredictionSlotStorage] save failed", error);
     return false;
   }
 };
+
+const startPredictionSlotRollover = () => {
+  if (typeof window === "undefined") return;
+  let activeDate = getJstOperationalDate();
+  let timer: number | undefined;
+  const refresh = (notify = false) => {
+    const nextDate = getJstOperationalDate();
+    const before = window.localStorage.getItem(PREDICTION_SLOT_STORAGE_KEY);
+    loadStoredPredictionSlots();
+    const changed = before !== window.localStorage.getItem(PREDICTION_SLOT_STORAGE_KEY);
+    if (notify || changed || nextDate !== activeDate) {
+      window.dispatchEvent(new Event("kurari:prediction-slots-updated"));
+    }
+    activeDate = nextDate;
+  };
+  const schedule = () => {
+    if (timer !== undefined) window.clearTimeout(timer);
+    const parts = getJstDateTimeParts();
+    const day = Number(parts.hour) < 6 ? parts.isoDate : shiftIsoDateByDays(parts.isoDate, 1);
+    const boundary = Date.parse(`${day}T06:00:00+09:00`);
+    timer = window.setTimeout(() => {
+      refresh(true);
+      schedule();
+    }, Math.max(1, Math.min(2_147_483_647, boundary - Date.now())));
+  };
+  const onResume = () => { refresh(true); schedule(); };
+  refresh();
+  schedule();
+  window.addEventListener("focus", onResume);
+  window.addEventListener("pageshow", onResume);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") onResume();
+  });
+  window.addEventListener("storage", (event) => {
+    if (!event.key || event.key === PREDICTION_SLOT_STORAGE_KEY) refresh(true);
+  });
+};
+
+startPredictionSlotRollover();
 
 export const createDefaultPredictionResultDraft = (): PredictionResultDraft => ({
   manualHitStatus: "auto",
@@ -9247,6 +9318,8 @@ export function PredictionPage() {
   const [predictionMemo, setPredictionMemo] = useState(DEFAULT_PREDICTION_MEMO);
   const [predictionSlotDraft, setPredictionSlotDraft] = useState("");
   const [predictionSlotStatus, setPredictionSlotStatus] = useState("");
+  const draftOperationalDateRef = useRef(getJstOperationalDate());
+  const draftStateRef = useRef({ raceKey: "", text: "", savedText: "" });
   const [predictionExportStatus, setPredictionExportStatus] = useState("");
   const [publishedPredictionDates, setPublishedPredictionDates] = useState<string[]>([]);
   const [copyStatus, setCopyStatus] = useState("");
@@ -9255,6 +9328,18 @@ export function PredictionPage() {
   const [predictionBatchCopyStatus, setPredictionBatchCopyStatus] = useState("");
   const [savedPredictionSlots, setSavedPredictionSlots] = useState<PredictionSlotMap>(() => loadStoredPredictionSlots());
   const [savedPredictionResults, setSavedPredictionResults] = useState<PredictionResultMap>(() => loadStoredPredictionResults());
+  useEffect(() => {
+    const refresh = () => {
+      if (draftOperationalDateRef.current !== getJstOperationalDate()
+        && draftStateRef.current.text.trim()
+        && draftStateRef.current.text !== draftStateRef.current.savedText) {
+        setPredictionSlotStatus("営業日が切り替わりました。未保存の予想を保持しています。内容を確認してください");
+      }
+      setSavedPredictionSlots(loadStoredPredictionSlots());
+    };
+    window.addEventListener("kurari:prediction-slots-updated", refresh);
+    return () => window.removeEventListener("kurari:prediction-slots-updated", refresh);
+  }, []);
   const [hitNotifications, setHitNotifications] = useState<HitNotificationRecord[]>(() => loadHitNotifications());
   const [predictionBankIndex, setPredictionBankIndex] = useState<PredictionVenueBankIndexItem[]>([]);
   const [predictionInsightGroups, setPredictionInsightGroups] = useState<VenueInsightGroup[]>([]);
@@ -10260,10 +10345,51 @@ const resolvedPredictionSourceText = useMemo(
     [resolvedPredictionSourceText]
   );
 
-
+  draftStateRef.current = {
+    raceKey: selectedPredictionSlotRaceKey,
+    text: predictionSlotDraft,
+    savedText: selectedPredictionSlotLookup.record?.predictionText ?? "",
+  };
 
   useEffect(() => {
-    setPredictionSlotDraft(selectedPredictionSlotLookup.record?.predictionText ?? "");
+    const preserveDraft = (event: BeforeUnloadEvent) => {
+      const { raceKey, text, savedText } = draftStateRef.current;
+      if (!raceKey || !text.trim() || text === savedText) return;
+      try {
+        window.sessionStorage.setItem(PREDICTION_SLOT_DRAFT_SESSION_KEY,
+          JSON.stringify({ raceKey, text, date: draftOperationalDateRef.current }));
+      } catch {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", preserveDraft);
+    return () => window.removeEventListener("beforeunload", preserveDraft);
+  }, []);
+
+  useEffect(() => {
+    const savedText = selectedPredictionSlotLookup.record?.predictionText ?? "";
+    const { text, raceKey } = draftStateRef.current;
+    if (raceKey === selectedPredictionSlotRaceKey && text.trim() && text !== savedText
+      && draftOperationalDateRef.current !== getJstOperationalDate()) return;
+    try {
+      const raw = window.sessionStorage.getItem(PREDICTION_SLOT_DRAFT_SESSION_KEY);
+      if (raw) {
+        const draft: unknown = JSON.parse(raw);
+        if (draft && typeof draft === "object" && "raceKey" in draft && "text" in draft && "date" in draft
+          && draft.raceKey === selectedPredictionSlotRaceKey && typeof draft.text === "string"
+          && typeof draft.date === "string" && draft.text.trim() && draft.text !== savedText) {
+          draftOperationalDateRef.current = draft.date;
+          setPredictionSlotDraft(draft.text);
+          setPredictionSlotStatus("未保存の予想を復元しました。内容を確認してください");
+          window.sessionStorage.removeItem(PREDICTION_SLOT_DRAFT_SESSION_KEY);
+          return;
+        }
+      }
+    } catch {
+      // Do not overwrite an unreadable draft backup.
+    }
+    setPredictionSlotDraft(savedText);
   }, [selectedPredictionSlotLookup.record?.predictionText, selectedPredictionSlotRaceKey]);
 
   useEffect(() => {
@@ -11992,6 +12118,11 @@ if (
 
   const handlePredictionSlotSave = () => {
     if (!predictionFeed || !selectedVenue || !selectedRace || !selectedPredictionSlotRaceKey) return;
+    const activeDate = getJstOperationalDate();
+    if (draftOperationalDateRef.current !== activeDate || predictionFeed.date !== activeDate) {
+      setPredictionSlotStatus("営業日が切り替わりました。予想文は保持しています。画面を更新し、内容を確認してください");
+      return;
+    }
     if (!predictionSlotDraft.trim()) {
       setPredictionSlotStatus("予想本文を貼り付けてから保存してください");
       return;
@@ -12074,6 +12205,7 @@ if (
           setSavedPredictionResults(nextMap);
         }
       }
+      discardPredictionDraftBackup();
       setPredictionSlotStatus("保存済み");
     } catch (error) {
       console.error("[PredictionPage] slot save failed", error);
@@ -12091,6 +12223,8 @@ if (
       return;
     }
     setSavedPredictionSlots(next);
+    discardPredictionDraftBackup();
+    draftOperationalDateRef.current = getJstOperationalDate();
     setPredictionSlotDraft("");
     setPredictionSlotStatus("削除しました");
   };
@@ -12777,7 +12911,12 @@ if (
                   <div style={{ borderRadius: "24px", border: "1px solid #e7def3", background: "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(249,246,253,0.96) 100%)", padding: "13px" }}>
                     <textarea
                       value={predictionSlotDraft}
-                      onChange={(event) => setPredictionSlotDraft(event.target.value)}
+                      onChange={(event) => {
+                        if (!predictionSlotDraft.trim() || !event.target.value.trim()) {
+                          draftOperationalDateRef.current = getJstOperationalDate();
+                        }
+                        setPredictionSlotDraft(event.target.value);
+                      }}
                       placeholder={"ここにGPTの予想文を貼り付け\n例：\n本命：2 木村皆斗\n対抗：5 山岸佳太\n穴：1 纐纈洸翔\n展開：\n...\n買い目：\n..."}
                       style={{ width: "100%", minHeight: "360px", maxHeight: "560px", borderRadius: "20px", border: "1px solid #e7def3", background: "rgba(255,255,255,0.97)", padding: "17px 18px", resize: "vertical", overflow: "auto", fontSize: "13px", lineHeight: 1.92, color: "#334155", outline: "none" }}
                     />
