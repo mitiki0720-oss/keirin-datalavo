@@ -22,10 +22,10 @@ const result = () => ({
 assert.equal(officialResultToTodayRace(result(), entries)?.result.payout3tan.combination, "1-2-3");
 
 for (const mutate of [
-  (race) => { race.finishOrder[1].rank = "1"; },
   (race) => { race.finishOrder[2].rank = ""; },
   (race) => { race.payouts.trifecta.push({ combination: "1-3-2", payoutYen: 5000 }); },
   (race) => { race.payouts.trifecta[0].combination = "1-3-2"; },
+  (race) => { race.finishOrder[2].rank = "4"; },
 ]) {
   const race = result();
   mutate(race);
@@ -51,7 +51,61 @@ tiedFourth.finishOrder.push(
   { rank: "4", carNo: "5", registrationNo: "000005", name: "選手5" },
 );
 const fiveEntries = { entries: [...entries.entries, ...tiedFourth.finishOrder.slice(3)] };
-assert.equal(officialResultToTodayRace(tiedFourth, fiveEntries), null);
+const tiedFourthResult = officialResultToTodayRace(tiedFourth, fiveEntries);
+assert.deepEqual(tiedFourthResult.result.finishOrder.map((row) => row.rank), ["1", "2", "3", "4", "4"]);
+assert.equal(tiedFourthResult.result.reviewSettlementEligible, true);
+
+const topTie = result();
+topTie.finishOrder[1].rank = "1";
+topTie.finishOrder[2].rank = "3";
+topTie.payouts.trifecta.push({ combination: "2-1-3", payoutYen: 6200, popularity: 2 });
+topTie.payouts.exacta = [
+  { combination: "1-2", payoutYen: 400 },
+  { combination: "2-1", payoutYen: 520 },
+];
+const topTieResult = officialResultToTodayRace(topTie, entries);
+assert.equal(topTieResult.resultStatus, "confirmed");
+assert.equal(topTieResult.result.reviewSettlementEligible, false);
+assert.equal(topTieResult.result.payout3tan, null);
+assert.deepEqual(topTieResult.payouts.filter((row) => row.betType === "3連単")
+  .map((row) => [row.combination, row.payout]), [["1-2-3", "5000円 (1)"], ["2-1-3", "6200円 (2)"]]);
+assert.equal(topTieResult.payouts.filter((row) => row.betType === "2車単").length, 2);
+const tiedSecond = result();
+tiedSecond.finishOrder[2].rank = "2";
+tiedSecond.payouts.trifecta.push({ combination: "1-3-2", payoutYen: 7100 });
+assert.equal(officialResultToTodayRace(tiedSecond, entries)?.result.reviewSettlementEligible, false);
+const tiedThird = result();
+tiedThird.finishOrder.push({ rank: "3", carNo: "4", registrationNo: "000004", name: "選手4" });
+tiedThird.payouts.trifecta.push({ combination: "1-2-4", payoutYen: 8100 });
+assert.equal(officialResultToTodayRace(tiedThird, {
+  entries: [...entries.entries, tiedThird.finishOrder[3]],
+})?.payouts.filter((row) => row.betType === "3連単").length, 2);
+const duplicatePayout = structuredClone(topTie);
+duplicatePayout.payouts.trifecta.push({ combination: "1-2-3", payoutYen: 5000 });
+assert.equal(officialResultToTodayRace(duplicatePayout, entries), null);
+const missingPayout = result();
+missingPayout.payouts.trifecta = [];
+assert.equal(officialResultToTodayRace(missingPayout, entries)?.result.reviewSettlementEligible, false);
+
+const kochiEntries = [
+  ["5", "015169", "野口 裕史", "1"], ["3", "014576", "中田 雄喜", "2"],
+  ["7", "014835", "窓場 千加頼", "3"], ["1", "014053", "鈴木 謙太郎", "4"],
+  ["6", "014137", "房州 輝也", "4"], ["2", "015186", "南 潤", "6"],
+  ["4", "014232", "柴田 洋輔", "7"],
+].map(([carNo, registrationNo, name, rank]) => ({ carNo, registrationNo, name, rank }));
+const kochi = {
+  resultStatus: "confirmed", finishOrder: kochiEntries,
+  kimarite: "逃げ", secondKimarite: "マーク",
+  payouts: { trifecta: [{ combination: "5-3-7", payoutYen: 2660, popularity: 9 }] },
+};
+const kochiResult = officialResultToTodayRace(kochi, { entries: kochiEntries }, "2026-11-07T12:21:22.986Z");
+assert.equal(kochiResult.resultStatus, "confirmed");
+assert.deepEqual(kochiResult.result.finishOrder.map((row) => row.rank), ["1", "2", "3", "4", "4", "6", "7"]);
+assert.deepEqual(kochiResult.result.finishOrder.filter((row) => row.rank === "4").map((row) => row.carNo), ["1", "6"]);
+assert.equal(kochiResult.result.payout3tan.combination, "5-3-7");
+assert.equal(kochiResult.result.payout3tan.payout, "2660円 (9)");
+assert.equal(kochiResult.result.reviewSettlementEligible, true);
+assert.equal(kochiResult.sourceFetchedAt, "2026-11-07T12:21:22.986Z");
 
 for (const status of ["失格", "落車", "棄権"]) {
   const special = result();

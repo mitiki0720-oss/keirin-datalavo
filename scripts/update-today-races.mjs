@@ -4233,7 +4233,7 @@ function applyOfficialEntryToRace(race, officialRace, venueName) {
   };
 }
 
-function applyOfficialResultToRace(race, officialResult, officialEntry, venueName) {
+function applyOfficialResultToRace(race, officialResult, officialEntry, venueName, sourceFetchedAt = "") {
   if (!officialResult || officialResult.resultStatus !== "confirmed") {
     if (race.resultStatus === "confirmed" && race.raceOperationSource === "KEIRIN.JP:JSJ012") return race;
     return {
@@ -4243,7 +4243,7 @@ function applyOfficialResultToRace(race, officialResult, officialEntry, venueNam
   }
   if (!officialEntry) return race;
   try {
-    const result = officialResultToTodayRace(officialResult, officialEntry);
+    const result = officialResultToTodayRace(officialResult, officialEntry, sourceFetchedAt);
     if (!result) {
       if (officialResult.resultStatus !== "confirmed") return race;
       return {
@@ -4430,7 +4430,7 @@ async function main() {
           riders: Array.isArray(extra.riders) && extra.riders.length ? extra.riders : reusableRace.riders,
         });
         if (officialEntries) fetchedRaces[fetchedRaces.length - 1] = applyOfficialEntryToRace(fetchedRaces[fetchedRaces.length - 1], officialRaces.get(`${venue.venueCode}:${raceNo}`), venue.venue);
-        if (officialResults) fetchedRaces[fetchedRaces.length - 1] = applyOfficialResultToRace(fetchedRaces[fetchedRaces.length - 1], officialResultRaces.get(`${venue.venueCode}:${raceNo}`), officialRaces.get(`${venue.venueCode}:${raceNo}`), venue.venue);
+        if (officialResults) fetchedRaces[fetchedRaces.length - 1] = applyOfficialResultToRace(fetchedRaces[fetchedRaces.length - 1], officialResultRaces.get(`${venue.venueCode}:${raceNo}`), officialRaces.get(`${venue.venueCode}:${raceNo}`), venue.venue, officialResults.source?.fetchCompletedAt ?? "");
         cacheReusedCount += 1;
         console.log(`[skip] ${venue.venue} ${raceNo}R finalized complete; skip all fetch`);
         continue;
@@ -4639,7 +4639,7 @@ async function main() {
         riders: Array.isArray(extra.riders) && extra.riders.length ? extra.riders : race.riders,
       });
       if (officialEntries) fetchedRaces[fetchedRaces.length - 1] = applyOfficialEntryToRace(fetchedRaces[fetchedRaces.length - 1], officialRaces.get(`${venue.venueCode}:${raceNo}`), venue.venue);
-      if (officialResults) fetchedRaces[fetchedRaces.length - 1] = applyOfficialResultToRace(fetchedRaces[fetchedRaces.length - 1], officialResultRaces.get(`${venue.venueCode}:${raceNo}`), officialRaces.get(`${venue.venueCode}:${raceNo}`), venue.venue);
+      if (officialResults) fetchedRaces[fetchedRaces.length - 1] = applyOfficialResultToRace(fetchedRaces[fetchedRaces.length - 1], officialResultRaces.get(`${venue.venueCode}:${raceNo}`), officialRaces.get(`${venue.venueCode}:${raceNo}`), venue.venue, officialResults.source?.fetchCompletedAt ?? "");
     }
 
     venue.races = fetchedRaces;

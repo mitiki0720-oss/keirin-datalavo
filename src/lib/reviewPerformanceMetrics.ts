@@ -457,6 +457,10 @@ export function evaluateReviewRacePerformance(input: {
   const matchedShadowTickets = matchedPurchaseTickets.length === 0
     ? classification.shadowTickets.filter((ticket) => ticketMatchesResult(ticket, input.resultOrder ?? ""))
     : [];
+  if ([...matchedPurchaseTickets, ...matchedShadowTickets].some((ticket) =>
+    !Number.isFinite(input.payoutByBetType?.[ticket.betType]))) {
+    return { ...base, status: "pending" };
+  }
   const payoutFor = (ticket: ReviewTicket) => {
     const payout = Number(input.payoutByBetType?.[ticket.betType]);
     return Number.isFinite(payout) && payout >= 0 ? Math.round(payout * (unitStakeYen / 100)) : 0;

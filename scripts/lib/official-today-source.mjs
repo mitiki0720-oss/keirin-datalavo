@@ -212,7 +212,7 @@ const payoutLabels = {
   wide: "ワイド",
 };
 
-export function officialResultToTodayRace(officialResult, officialEntries) {
+export function officialResultToTodayRace(officialResult, officialEntries, sourceFetchedAt = "") {
   if (officialResult?.resultStatus !== "confirmed") return null;
   const rows = Array.isArray(officialResult.finishOrder) ? officialResult.finishOrder : [];
   if (rows.some((row) => clean(row.status) || (clean(row.rank) && !/^\d+$/.test(clean(row.rank))))) return null;
@@ -220,10 +220,16 @@ export function officialResultToTodayRace(officialResult, officialEntries) {
       new Set(rows.map((row) => clean(row.registrationNo))).size !== rows.length) {
     throw new Error("official result/entry identity conflict");
   }
-  const rankedRows = rows.filter((row) => /^\d+$/.test(clean(row.rank)));
-  if (new Set(rankedRows.map((row) => clean(row.rank))).size !== rankedRows.length) return null;
-  const top3 = rows.filter((row) => /^[123]$/.test(clean(row.rank)));
-  if (top3.length !== 3 || top3.map((row) => clean(row.rank)).join("") !== "123") return null;
+  if (rows.length < 3 || rows.some((row) => !/^\d+$/.test(clean(row.rank)))) return null;
+  let lastRank = 0;
+  for (const [index, row] of rows.entries()) {
+    const rank = Number(row.rank);
+    if (rank < lastRank || (rank !== lastRank && rank !== index + 1)) return null;
+    lastRank = rank;
+  }
+  const topRows = rows.filter((row) => Number(row.rank) <= 3);
+  if (topRows.length < 3) return null;
+  const top3 = topRows.length === 3 && topRows.map((row) => clean(row.rank)).join("") === "123" ? topRows : [];
   const entries = new Map((officialEntries?.entries ?? []).map((entry) => [clean(entry.carNo), entry]));
   if (!entries.size || rows.some((row) => {
     const entry = entries.get(clean(row.carNo));
@@ -237,12 +243,28 @@ export function officialResultToTodayRace(officialResult, officialEntries) {
       popularity: row.popularity == null ? null : String(row.popularity),
     })));
   const trifectas = payouts.filter((item) => item.betType === "3連単");
-  const top3Combination = top3.map((row) => clean(row.carNo)).join("-");
-  if (trifectas.length !== 1 || !/^\d-\d-\d$/.test(top3Combination) ||
-      new Set(top3.map((row) => clean(row.carNo))).size !== 3 ||
-      trifectas[0].combination !== top3Combination) return null;
+  const validTrifectas = new Set();
+  const visit = (order, remaining) => {
+    if (order.length === 3) {
+      validTrifectas.add(order.join("-"));
+      return;
+    }
+    const nextRank = Math.min(...remaining.map((row) => Number(row.rank)));
+    for (const row of remaining.filter((item) => Number(item.rank) === nextRank)) {
+      visit([...order, clean(row.carNo)], remaining.filter((item) => item !== row));
+    }
+  };
+  visit([], topRows);
+  const exactas = payouts.filter((item) => item.betType === "2車単");
+  const validExactas = new Set([...validTrifectas].map((item) => item.split("-").slice(0, 2).join("-")));
+  if (trifectas.some((item) => !validTrifectas.has(item.combination)) ||
+      exactas.some((item) => !validExactas.has(item.combination)) ||
+      new Set(trifectas.map((item) => item.combination)).size !== trifectas.length ||
+      new Set(exactas.map((item) => item.combination)).size !== exactas.length) return null;
+  const reviewSettlementEligible = top3.length === 3 && trifectas.length === 1 &&
+    trifectas[0].combination === top3.map((row) => clean(row.carNo)).join("-");
   const finishOrder = rows.map((row) => ({
-    rank: clean(row.rank), carNo: clean(row.carNo), name: clean(row.name),
+    rank: clean(row.rank), carNo: clean(row.carNo), name: clean(row.name), registrationNo: clean(row.registrationNo),
     agari: clean(row.agari), gap: clean(row.gap), kimarite: clean(row.kimarite),
     mark: clean(row.mark), status: clean(row.status),
   }));
@@ -254,15 +276,24 @@ export function officialResultToTodayRace(officialResult, officialEntries) {
   const byType = (betType) => payouts.filter((item) => item.betType === betType);
   return {
     resultStatus: "confirmed",
+    resultNote: reviewSettlementEligible ? undefined : "公式結果あり・購入照合保留",
+    officialResultSource: "KEIRIN.JP", sourceName: "KEIRIN.JP", sourceType: "OFFICIAL", sourceFetchedAt,
     resultTop3,
     payouts,
     result: {
       status: "confirmed", finishOrder,
+      reviewSettlementEligible,
       kimarite: clean(officialResult.kimarite), secondKimarite: clean(officialResult.secondKimarite),
       sLeaderCarNo: clean(officialResult.sLeaderCarNo), hLeaderCarNo: clean(officialResult.hLeaderCarNo), bLeaderCarNo: clean(officialResult.bLeaderCarNo),
-      payout2tan: byType("2車単")[0] ?? null, payout2fuku: byType("2車複"),
-      payout3tan: trifectas[0], payout3fuku: byType("3連複")[0] ?? null,
+      payout2tan: exactas.length === 1 ? exactas[0] : null, payout2fuku: byType("2車複"),
+      payout3tan: trifectas.length === 1 ? trifectas[0] : null, payout3fuku: byType("3連複")[0] ?? null,
       payoutWide: byType("ワイド"), finalizedAt: clean(officialResult.lastUpdateTime),
+      weatherActual: officialResult.weatherActual ? {
+        weather: clean(officialResult.weatherActual.condition),
+        windSpeed: officialResult.weatherActual.windSpeedMps == null ? undefined : String(officialResult.weatherActual.windSpeedMps),
+        source: "KEIRIN.JP", fetchedAt: sourceFetchedAt,
+      } : undefined,
+      officialResultSource: "KEIRIN.JP", sourceName: "KEIRIN.JP", sourceType: "OFFICIAL", sourceFetchedAt,
     },
   };
 }

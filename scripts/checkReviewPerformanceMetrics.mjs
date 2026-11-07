@@ -38,6 +38,12 @@ const purchaseHit = evaluate("1-2-3");
 assert.equal(purchaseHit.status, "purchase-hit");
 assert.equal(purchaseHit.actualInvestment, 1000);
 assert.equal(purchaseHit.actualPayout, 5000);
+assert.equal(metrics.evaluateReviewRacePerformance({
+  predictionJson,
+  settled: true,
+  resultOrder: "1-2-3",
+  payoutByBetType: {},
+}).status, "pending");
 
 const shadowHit = evaluate("1-3-2");
 assert.equal(shadowHit.status, "shadow-hit");

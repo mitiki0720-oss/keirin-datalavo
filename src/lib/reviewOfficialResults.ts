@@ -84,6 +84,11 @@ export function buildReviewOfficialResultsFeed(payload: OfficialSnapshot, expect
         const trifecta = trifectaRows.length === 1 ? toPayout(trifectaRows[0], "3連単") : null;
         const exactaRows = confirmed ? race.payouts?.exacta ?? [] : [];
         const exacta = exactaRows.length === 1 ? toPayout(exactaRows[0], "2車単") : null;
+        const payouts = confirmed ? ([
+          ["exacta", "2車単"], ["quinella", "2車複"], ["trifecta", "3連単"],
+          ["trio", "3連複"], ["wide", "ワイド"],
+        ] as const).flatMap(([key, betType]) =>
+          (race.payouts?.[key] ?? []).map((item) => toPayout(item, betType)).filter((item) => item !== null)) : [];
         const topThree = finishOrder.slice(0, 3);
         const reviewSettlementEligible = topThree.length === 3
           && topThree.every((entry, index) => entry.rank === String(index + 1))
@@ -99,6 +104,7 @@ export function buildReviewOfficialResultsFeed(payload: OfficialSnapshot, expect
           sourceName: "KEIRIN.JP",
           sourceType: "OFFICIAL",
           sourceFetchedAt,
+          payouts,
           riders: finishOrder.map((entry) => ({
             carNo: entry.carNo,
             name: entry.name,

@@ -1478,14 +1478,17 @@ function pickReviewTrifectaOdds(
 function buildReviewPayoutLines(feedRace?: PredictionRaceItem) {
   const result = feedRace?.result;
   const fallbackPayouts = feedRace?.payouts ?? [];
-  const payout2tan = resolveRacePayoutByBetType(feedRace, "2車単");
+  const byType = (betType: string, single?: PredictionRaceResultPayoutItem | null) => {
+    const items = dedupeReviewPayoutItems(
+      fallbackPayouts.filter((item) => normalizeBetTypeLabel(item.betType) === betType),
+    );
+    return items.length ? items : single ? [single] : [];
+  };
   const payout2fuku = dedupeReviewPayoutItems(
     result?.payout2fuku?.length
       ? result.payout2fuku
       : fallbackPayouts.filter((item) => normalizeBetTypeLabel(item.betType) === "2車複"),
   );
-  const payout3tan = resolveRacePayoutByBetType(feedRace, "3連単");
-  const payout3fuku = resolveRacePayoutByBetType(feedRace, "3連複");
   const payoutWide = dedupeReviewPayoutItems(
     result?.payoutWide?.length
       ? result.payoutWide
@@ -1499,10 +1502,10 @@ function buildReviewPayoutLines(feedRace?: PredictionRaceItem) {
     items.map(formatReviewPayoutItem).filter(Boolean).join(" / ") || "未取得";
 
   return [
-    `2車単: ${payout2tan ? formatReviewPayoutItem(payout2tan) : "未取得"}`,
+    `2車単: ${formatItems(byType("2車単", result?.payout2tan))}`,
     `2車複: ${formatItems(payout2fuku)}`,
-    `3連単: ${payout3tan ? formatReviewPayoutItem(payout3tan) : "未取得"}`,
-    `3連複: ${payout3fuku ? formatReviewPayoutItem(payout3fuku) : "未取得"}`,
+    `3連単: ${formatItems(byType("3連単", result?.payout3tan))}`,
+    `3連複: ${formatItems(byType("3連複", result?.payout3fuku))}`,
     `ワイド: ${formatItems(payoutWide)}`,
   ];
 }
@@ -2135,11 +2138,14 @@ function buildResultCopy(
     const hitBetTypeLabel = isReviewAllRefundRace(race.feedRace) ? REVIEW_ALL_REFUND_TEXT : matchedTicket?.betType ?? "--";
     const hitCombinationLabel = isReviewAllRefundRace(race.feedRace) ? REVIEW_ALL_REFUND_TEXT : matchedTicket?.combination ?? "--";
     const finishRows = getReviewFinishOrderRows(race.feedRace);
-    const topResultLabel = (index: number) => {
-      const entry = finishRows[index];
-      if (!entry) return "未取得";
-      const rider = race.feedRace?.riders?.find((item) => String(item.carNo ?? "") === String(entry.carNo ?? ""));
-      return `${entry.carNo ?? "未取得"} ${cleanReviewRiderName(entry.name || rider?.fullName || rider?.name)}`;
+    const topResultLabel = (rank: number) => {
+      const entries = finishRows.filter((entry) => entry.place === String(rank));
+      if (!entries.length) return race.feedRace?.result?.status === "confirmed" && finishRows.length
+        ? "該当なし（公式着順）" : "未取得";
+      return entries.map((entry) => {
+        const rider = race.feedRace?.riders?.find((item) => String(item.carNo ?? "") === String(entry.carNo ?? ""));
+        return `${entry.carNo ?? "未取得"} ${cleanReviewRiderName(entry.name || rider?.fullName || rider?.name)}`;
+      }).join(" / ");
     };
     const officialResultSource =
       race.feedRace?.result?.officialResultSource
@@ -2180,9 +2186,9 @@ function buildResultCopy(
 
     lines.push("【実際の結果】");
     lines.push(`着順: ${resultOrderLabel}`);
-    lines.push(`1着: ${topResultLabel(0)}`);
-    lines.push(`2着: ${topResultLabel(1)}`);
-    lines.push(`3着: ${topResultLabel(2)}`);
+    lines.push(`1着: ${topResultLabel(1)}`);
+    lines.push(`2着: ${topResultLabel(2)}`);
+    lines.push(`3着: ${topResultLabel(3)}`);
     lines.push(`決まり手: ${kimarite}`);
     lines.push(`1着の決まり手: ${kimarite}`);
     lines.push(`2着の決まり手: ${secondKimarite || "未取得"}`);
