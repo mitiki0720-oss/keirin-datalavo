@@ -1894,6 +1894,21 @@ export const formatPredictionSlotSavedAt = (value?: string | null) => {
   });
 };
 
+export const formatPredictionDataUpdatedAt = (value?: string) => {
+  if (!value) return "更新時刻未取得";
+  // Legacy feed timestamps are emitted by the UTC GitHub Actions runner.
+  const legacy = value.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  const timestamp = legacy
+    ? `${legacy[1]}-${legacy[2].padStart(2, "0")}-${legacy[3].padStart(2, "0")}T${legacy[4].padStart(2, "0")}:${legacy[5]}:${legacy[6] ?? "00"}Z`
+    : value;
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "更新時刻未取得";
+  return new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  }).format(date);
+};
+
 export const parsePredictionResultAmount = (value: string) => {
   // "1,000"  "1,000円"  "1000円"  " 1000 円 " など安全に数値化する
   const normalized = value.replace(/[,，¥￥]/g, "").replace(/円/g, "").trim();
@@ -9095,6 +9110,7 @@ return (
 function SubPageShell({
   eyebrow,
   title,
+  titleMeta,
   lead,
   heroAccessory,
   heroCardStyle,
@@ -9102,6 +9118,7 @@ function SubPageShell({
 }: {
   eyebrow: string;
   title: string;
+  titleMeta?: ReactNode;
   lead: string;
   headerAccessory?: ReactNode;
   heroAccessory?: ReactNode;
@@ -9219,6 +9236,7 @@ const subPageActiveKey: SiteHeaderActiveKey =
 >
   {title}
 </h1>
+{titleMeta}
 <p
   style={{
     margin: "16px 0 0",
@@ -12245,6 +12263,11 @@ if (
     <SubPageShell
       eyebrow="PREDICTION"
       title="今日の1R素材を整える"
+      titleMeta={predictionFeed?.generatedAt ? (
+        <p style={{ display: "inline-flex", maxWidth: "100%", margin: "16px 0 0", padding: "8px 14px", borderRadius: "999px", border: "1px solid #bae6fd", background: "#f0f9ff", color: "#0369a1", fontSize: "12px", fontWeight: 800, lineHeight: 1.6, flexWrap: "wrap" }}>
+          基本データ更新：{formatPredictionDataUpdatedAt(predictionFeed.generatedAt)}
+        </p>
+      ) : null}
       lead="会場特徴・天気・出走表・並び・オッズをまとめ、GPTへそのまま渡せる予想素材を整えるページです。"
       heroCardStyle={{
   position: "relative",
