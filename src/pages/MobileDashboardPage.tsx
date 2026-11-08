@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { raceScheduleData } from "../data/raceScheduleData";
 import type { RaceScheduleItem } from "../types/raceSchedule";
+import { getMobilePredictionPresentation } from "../lib/mobilePredictionPresentation";
 import {
   TODAY,
   EMPTY_FAVORITE_RIDER_FEED,
@@ -1257,6 +1258,7 @@ function MobileVenueCard({
 
   const selectedSavedPredictionText = clipMobilePredictionText(selectedSavedSlotLookup.record?.predictionText);
   const selectedStructuredPrediction = selectedSavedSlotLookup.record?.predictionJson;
+  const selectedPredictionPresentation = getMobilePredictionPresentation(selectedSavedSlotLookup.record);
   const selectedPredictionEvaluation = getMobilePredictionEvaluation(selectedSavedSlotLookup.record);
   const selectedHasSavedPrediction = Boolean(
     selectedSavedPredictionText || (selectedStructuredPrediction?.tickets.length ?? 0) > 0
@@ -1725,11 +1727,14 @@ const selectedResolvedHitBetType =
                       clipMobilePredictionText(raceSlotLookup.record?.predictionText) ||
                         (raceSlotLookup.record?.predictionJson?.tickets.length ?? 0) > 0
                     );
+                    const presentation = getMobilePredictionPresentation(raceSlotLookup.record);
                     const raceHasResult = venueRace.resultStatus === "confirmed" || venueRace.result?.status === "confirmed";
 
                     return (
                       <button
                         key={`${normalizedVenue}-selector-${venueRace.raceNo}`}
+                        data-testid="mobile-race-selector"
+                        data-race-no={venueRace.raceNo}
                         type="button"
                         onClick={() => {
                           setSelectedRaceNo(venueRace.raceNo);
@@ -1772,6 +1777,9 @@ const selectedResolvedHitBetType =
                           {raceHasResult ? "結果" : "待ち"}
                           {raceSavedResult || hasPrediction ? "・予想" : ""}
                         </span>
+                        {hasPrediction && <span style={{ fontSize: "10px", fontWeight: 900, lineHeight: 1.5 }}>
+                          {presentation.gradeLabel}<br />{presentation.decisionLabel}
+                        </span>}
                       </button>
                     );
                   })}
@@ -1836,6 +1844,12 @@ const selectedResolvedHitBetType =
                         >
                           {selectedVenueRace.title ?? `${race.venue} ${selectedVenueRace.raceNo}R`}
                         </div>
+                        {selectedHasSavedPrediction && (
+                          <div data-testid="mobile-race-decision" style={{ fontSize: "12px", lineHeight: 1.6, fontWeight: 900, color: selectedPredictionPresentation.decision === "SKIP" ? "#9a3412" : "#075985", overflowWrap: "anywhere" }}>
+                            {selectedPredictionPresentation.gradeLabel} / {selectedPredictionPresentation.decisionLabel}
+                            {selectedPredictionPresentation.decision ? `（${selectedPredictionPresentation.decision}）` : ""}
+                          </div>
+                        )}
                       </div>
 
                       <div
@@ -2063,6 +2077,11 @@ const selectedResolvedHitBetType =
                           )}
                         </div>
 
+                        {selectedHasSavedPrediction && (
+                          <div data-testid="mobile-prediction-summary" style={{ padding: "10px 12px", borderLeft: "3px solid #0e7490", background: "#ecfeff", color: "#164e63", fontSize: "12px", fontWeight: 850, lineHeight: 1.7, overflowWrap: "anywhere" }}>
+                            {selectedPredictionPresentation.summary}
+                          </div>
+                        )}
                         {selectedStructuredPrediction && selectedStructuredPrediction.tickets.length > 0 ? (
                           <div style={{ display: "grid", gap: "10px" }}>
                             {selectedStructuredPrediction.summary.title && (
@@ -2088,7 +2107,11 @@ const selectedResolvedHitBetType =
                                 gap: "7px",
                               }}
                             >
-                              {selectedStructuredPrediction.tickets.map((ticket) => {
+                              {selectedPredictionPresentation.groups.flatMap((group) => [
+                                <h4 key={`ticket-heading-${group.section}`} data-ticket-heading={group.section} style={{ margin: "8px 0 0", padding: "8px 0", borderBottom: "1px solid #cbd5e1", color: group.section === "shadow" ? "#475569" : "#075985", fontSize: "13px", fontWeight: 900 }}>
+                                  {group.label}（{group.tickets.length}点）
+                                </h4>,
+                                ...group.tickets.map(({ ticket, role }) => {
 const isHit =
   selectedResolvedHitStatus === "hit" &&
   getMobileBetTypeKind(selectedResolvedHitBetType) === getMobileBetTypeKind(ticket.betType) &&
@@ -2098,6 +2121,9 @@ const isHit =
                                 return (
                                   <div
                                     key={`${ticket.index}-${ticket.betType}-${ticket.combination}`}
+                                    data-testid="mobile-ticket"
+                                    data-ticket-section={group.section}
+                                    data-ticket-role={role}
                                     style={{
                                       display: "grid",
                                       gridTemplateColumns: "auto 1fr auto",
@@ -2182,31 +2208,33 @@ boxShadow: isHit
                                         <span
                                           style={{
                                             width: "fit-content",
+                                            maxWidth: "100%",
+                                            overflowWrap: "anywhere",
                                             borderRadius: "999px",
                                             padding: "3px 7px",
                                             background:
-                                              ticket.group === "厚め"
+                                              role === "厚め"
                                                 ? "#f6f0ff"
-                                                : ticket.group === "穴狙い"
+                                                : role.includes("穴")
                                                   ? "#fff7ed"
                                                   : "#f8fafc",
                                             color:
-                                              ticket.group === "厚め"
+                                              role === "厚め"
                                                 ? "#6542be"
-                                                : ticket.group === "穴狙い"
+                                                : role.includes("穴")
                                                   ? "#b45309"
                                                   : "#64748b",
                                             border:
-                                              ticket.group === "厚め"
+                                              role === "厚め"
                                                 ? "1px solid #d8c9f4"
-                                                : ticket.group === "穴狙い"
+                                                : role.includes("穴")
                                                   ? "1px solid #fed7aa"
                                                   : "1px solid #e2e8f0",
                                             fontSize: "10px",
                                             fontWeight: 900,
                                           }}
                                         >
-                                          {ticket.group}
+                                          {role}
                                         </span>
 
                                         {isHit && (
@@ -2244,7 +2272,8 @@ boxShadow: isHit
 </span>
                                   </div>
                                 );
-                              })}
+                              }),
+                              ])}
                             </div>
 
                             {(selectedStructuredPrediction.summary.lineup ||
