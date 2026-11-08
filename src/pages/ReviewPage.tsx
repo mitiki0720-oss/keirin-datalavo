@@ -69,6 +69,7 @@ type PredictionRaceResultPayoutItem = {
 
 type PredictionRaceResultEntry = {
   place?: string;
+  status?: string;
   carNo?: string;
   name?: string;
   margin?: string;
@@ -1051,6 +1052,7 @@ function getReviewFinishOrderRows(feedRace?: PredictionRaceItem) {
       }
       return {
         place: item.rank || item.status || "",
+        status: item.status,
         carNo: item.carNo,
         name: item.name,
         margin: item.gap,
@@ -1688,6 +1690,7 @@ function buildReviewFullResultLines(feedRace?: PredictionRaceItem) {
       `上がり ${entry.agari || "未取得"}`,
       `着差 ${entry.margin || "未取得"}`,
       `決まり手 ${entry.kimarite || "未取得"}`,
+      ...(entry.status ? [`状態 ${entry.status}`] : []),
     ];
 
     return `${place}: ${fields.join(" / ")}`;

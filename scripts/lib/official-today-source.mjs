@@ -212,26 +212,50 @@ const payoutLabels = {
   wide: "ワイド",
 };
 
+export function normalizeOfficialFinishStatus(row) {
+  const items = [
+    ...(row.kojinState ? [{ kojinState: row.kojinState, tyakuNote: row.tyakuNote }] : []),
+    ...(Array.isArray(row.kojinStateItemSubData) ? row.kojinStateItemSubData : []),
+  ];
+  const labels = items.map((item) => {
+    const state = clean(item.kojinState);
+    const note = clean(item.tyakuNote);
+    return state ? `${state}${note ? `（${note}）` : ""}` : note;
+  }).filter(Boolean);
+  const rank = clean(row.tyaku);
+  if (rank && !/^\d+$/.test(rank) && !labels.some((label) => label === rank || label.startsWith(`${rank}（`))) labels.unshift(rank);
+  return [...new Set(labels)].join(" / ");
+}
+
+export function isOfficialNonFinisherStatus(status) {
+  const labels = clean(status).split(" / ").map((label) => label.replace(/（.*）$/u, ""));
+  return labels.length > 0 && labels.every((label) =>
+    ["失格", "落車棄権", "落車", "棄権", "欠場", "欠車", "失", "落", "棄", "欠"].includes(label));
+}
+
 export function officialResultToTodayRace(officialResult, officialEntries, sourceFetchedAt = "") {
   if (officialResult?.resultStatus !== "confirmed") return null;
   const rows = Array.isArray(officialResult.finishOrder) ? officialResult.finishOrder : [];
-  if (rows.some((row) => clean(row.status) || (clean(row.rank) && !/^\d+$/.test(clean(row.rank))))) return null;
+  if (rows.some((row) => /^\d+$/.test(clean(row.rank))
+    ? /失格|棄権|欠場|欠車/.test(clean(row.status))
+    : !isOfficialNonFinisherStatus(row.status))) return null;
   if (new Set(rows.map((row) => clean(row.carNo))).size !== rows.length ||
       new Set(rows.map((row) => clean(row.registrationNo))).size !== rows.length) {
     throw new Error("official result/entry identity conflict");
   }
-  if (rows.length < 3 || rows.some((row) => !/^\d+$/.test(clean(row.rank)))) return null;
+  const rankedRows = rows.filter((row) => /^\d+$/.test(clean(row.rank)));
+  if (rankedRows.length < 3) return null;
   let lastRank = 0;
-  for (const [index, row] of rows.entries()) {
+  for (const [index, row] of rankedRows.entries()) {
     const rank = Number(row.rank);
     if (rank < lastRank || (rank !== lastRank && rank !== index + 1)) return null;
     lastRank = rank;
   }
-  const topRows = rows.filter((row) => Number(row.rank) <= 3);
+  const topRows = rankedRows.filter((row) => Number(row.rank) <= 3);
   if (topRows.length < 3) return null;
   const top3 = topRows.length === 3 && topRows.map((row) => clean(row.rank)).join("") === "123" ? topRows : [];
   const entries = new Map((officialEntries?.entries ?? []).map((entry) => [clean(entry.carNo), entry]));
-  if (!entries.size || rows.some((row) => {
+  if (!entries.size || entries.size !== rows.length || rows.some((row) => {
     const entry = entries.get(clean(row.carNo));
     return !entry || clean(row.registrationNo) !== clean(entry.registrationNo) || normalizedName(row.name) !== normalizedName(entry.name);
   })) throw new Error("official result/entry identity conflict");

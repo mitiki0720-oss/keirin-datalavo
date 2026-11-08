@@ -110,7 +110,9 @@ assert.equal(kochiResult.sourceFetchedAt, "2026-11-07T12:21:22.986Z");
 for (const status of ["失格", "落車", "棄権"]) {
   const special = result();
   special.finishOrder.push({ rank: status, carNo: "4", registrationNo: "000004", name: "選手4", status });
-  assert.equal(officialResultToTodayRace(special, { entries: [...entries.entries, special.finishOrder[3]] }), null);
+  const converted = officialResultToTodayRace(special, { entries: [...entries.entries, special.finishOrder[3]] });
+  assert.equal(converted.resultStatus, "confirmed");
+  assert.equal(converted.result.finishOrder[3].status, status);
 }
 
 const allRefund = { resultStatus: "confirmed", finishOrder: [], payouts: { trifecta: [{ combination: "全返還", payoutDisplay: "全返還" }] } };

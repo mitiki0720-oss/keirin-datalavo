@@ -1,5 +1,6 @@
 import path from "node:path";
-import { fetchOfficialResultJson } from "./lib/official-today-source.mjs";
+import { fileURLToPath } from "node:url";
+import { fetchOfficialResultJson, normalizeOfficialFinishStatus, isOfficialNonFinisherStatus } from "./lib/official-today-source.mjs";
 import {
   readJsonIfPresent,
   writeJsonIfChanged,
@@ -144,7 +145,7 @@ function firstUsablePayout(rows) {
   );
 }
 
-function createRaceResult(raceNumber, raceMeta, data) {
+export function createRaceResult(raceNumber, raceMeta, data) {
   const finishOrder = Array.isArray(data.tyakujyunItemSubData)
     ? data.tyakujyunItemSubData.map((row) => {
         const rank = clean(row.tyaku);
@@ -158,7 +159,7 @@ function createRaceResult(raceNumber, raceMeta, data) {
           agari: clean(row.agari),
           kimarite: clean(row.kimarite),
           mark: clean(row.BH),
-          status: /^[0-9]+$/u.test(rank) ? "" : rank,
+          status: normalizeOfficialFinishStatus(row),
         };
       })
     : [];
@@ -169,9 +170,11 @@ function createRaceResult(raceNumber, raceMeta, data) {
 
   const hasFinishOrder = finishOrder.length > 0;
   const hasTrifecta = Boolean(trifecta);
+  const hasUnresolvedFinisher = finishOrder.some((row) =>
+    !/^\d+$/.test(row.rank) && !isOfficialNonFinisherStatus(row.status));
 
   const resultStatus =
-    hasFinishOrder && hasTrifecta
+    hasFinishOrder && hasTrifecta && !hasUnresolvedFinisher
       ? "confirmed"
       : hasFinishOrder
         ? "partial"
@@ -210,6 +213,7 @@ function createRaceResult(raceNumber, raceMeta, data) {
       warnings: [
         ...(hasFinishOrder ? [] : ["finish order missing"]),
         ...(hasTrifecta ? [] : ["trifecta payout missing"]),
+        ...(hasUnresolvedFinisher ? ["finisher status unresolved"] : []),
       ],
     },
   };
@@ -297,7 +301,7 @@ function summarize(payload) {
   };
 }
 
-function mergeWithExisting(existing, candidate) {
+export function mergeWithExisting(existing, candidate) {
   if (!existing || existing.date !== candidate.date) {
     return {
       payload: candidate,
@@ -341,8 +345,12 @@ function mergeWithExisting(existing, candidate) {
         return previous;
       }
 
+      // Only fill missing official states; other settled-result changes remain conflicts.
+      const enrichedPrevious = { ...previous, finishOrder: previous.finishOrder?.map((row, index) => ({
+        ...row, status: row.status || race.finishOrder?.[index]?.status || "",
+      })) };
       if (
-        raceResultSignature(previous) !==
+        raceResultSignature(enrichedPrevious) !==
         raceResultSignature(race)
       ) {
         throw new Error(
@@ -562,7 +570,7 @@ async function main() {
   console.log(`changed: ${writeResult.changed}`);
 }
 
-main().catch((error) => {
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main().catch((error) => {
   console.error("[keirin-jp results update] failed");
   console.error(error);
   process.exitCode = 1;
