@@ -1,6 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { classifyReviewTickets } from "../src/lib/reviewPerformanceMetrics.ts";
+import { parseKeirinCanonicalPredictionBlock } from "../src/lib/keirinPredictionCanonicalFormat.ts";
+import { loadLedger, reserveNotifications, eligibleReservations, completeReservations, notificationAliases } from "./lib/slack-notification-ledger.mjs";
 
 const ROOT_DIR = process.cwd();
 
@@ -400,18 +403,25 @@ function extractPredictionBetEntries(predictionText) {
 }
 
 function resolveTickets(slot) {
-  const structuredTickets = slot?.predictionJson?.tickets;
-  if (Array.isArray(structuredTickets) && structuredTickets.length > 0) {
-    return structuredTickets
-      .map((ticket, index) => ({
-        index: ticket.index ?? String(index + 1).padStart(2, "0"),
-        betType: ticket.betType,
-        combination: normalizePredictionCombination(ticket.combination),
-      }))
-      .filter((ticket) => ticket.combination);
+  const classification = classifyReviewTickets(slot?.predictionJson, slot?.predictionText);
+  if (classification.status !== "classified" || classification.warnings.length > 0) return [];
+  const canonical = parseKeirinCanonicalPredictionBlock(slot?.predictionText);
+  if (canonical.isCanonical && !canonical.isValid) return [];
+  const identity = (ticket) => `${ticket.betType}:${ticket.combination}`;
+  for (const section of ["purchase", "shadow"]) {
+    const tickets = classification[`${section}Tickets`];
+    if (new Set(tickets.map(identity)).size !== tickets.length) return [];
+    if (canonical.isValid && tickets.map(identity).sort().join("|") !== canonical[`${section}Tickets`].map(identity).sort().join("|")) return [];
   }
-
-  return extractPredictionBetEntries(slot?.predictionText);
+  const originals = [...canonical.purchaseTickets, ...canonical.shadowTickets];
+  return ["purchase", "shadow"].flatMap((section) => classification[`${section}Tickets`].map((ticket) => {
+    const original = originals.find((item) => item.section === section && item.betType === ticket.betType && item.combination === ticket.combination);
+    const structured = slot?.predictionJson?.tickets?.find((item) => item.betType === ticket.betType && normalizePredictionCombination(item.combination) === ticket.combination);
+    const note = structured?.note?.trim();
+    const role = original?.role ?? (note && note.length <= 40 && !/[\r\n]/.test(note) ? note : undefined)
+      ?? (structured?.group !== "その他" ? structured?.group : undefined) ?? "ラベル未記載";
+    return { ...ticket, section, role, unitStake: classification.unitStakeYen ?? 100 };
+  }));
 }
 
 function summarizeTickets(tickets) {
@@ -428,13 +438,14 @@ function resolveSettledResult(slot, raceInfo) {
   if (!Array.isArray(tickets) || tickets.length === 0) return null;
 
   const resultOrder = getResultOrder(raceInfo.race);
-  if (!resultOrder || !isRaceResultConfirmed(raceInfo.race)) return null;
+  if (!resultOrder || !isRaceResultConfirmed(raceInfo.race)
+    || raceInfo.race.reviewSettlementEligible === false || raceInfo.race.result?.reviewSettlementEligible === false) return null;
 
   const resultParts = normalizeText(resultOrder).split("-").filter(Boolean);
   const resultTop3 = resultParts.slice(0, 3).join("-");
   const resultTop2 = resultParts.slice(0, 2).join("-");
 
-  const hitTicket = tickets.find((ticket) => {
+  const matchesResult = (ticket) => {
     const ticketCombination = normalizePredictionCombination(ticket.combination);
     const kind = getBetTypeKind(ticket.betType);
 
@@ -442,14 +453,32 @@ function resolveSettledResult(slot, raceInfo) {
     if (kind === "2tan") return ticketCombination === resultTop2;
 
     return false;
-  });
+  };
+  const purchaseTickets = tickets.filter((ticket) => ticket.section === "purchase");
+  const shadowTickets = tickets.filter((ticket) => ticket.section === "shadow");
+  const matchedPurchaseTickets = purchaseTickets.filter(matchesResult);
+  const matchedShadowTickets = shadowTickets.filter(matchesResult);
+  const hitTicket = matchedPurchaseTickets[0] ?? matchedShadowTickets[0];
 
   const hitKind = getBetTypeKind(hitTicket?.betType);
   const hitBetType = hitKind === "2tan" ? "2車単" : hitKind === "3tan" ? "3連単" : "";
   const payoutItem = hitTicket ? findRacePayoutForHit(raceInfo.race, hitBetType, hitTicket.combination) : null;
   const payout = hitTicket ? parsePayoutAmountYen(payoutItem) : 0;
-  const investment = tickets.length > 0 ? tickets.length * 100 : undefined;
-  const resolvedPayout = hitTicket ? (payout ?? 0) : 0;
+  if (hitTicket && (payout == null || payout <= 0)) return null;
+  const investment = purchaseTickets.reduce((sum, ticket) => sum + ticket.unitStake, 0);
+  let resolvedPayout = 0;
+  for (const ticket of matchedPurchaseTickets) {
+    const amount = parsePayoutAmountYen(findRacePayoutForHit(raceInfo.race, ticket.betType, ticket.combination));
+    if (amount == null || amount <= 0) return null;
+    resolvedPayout += amount * ticket.unitStake / 100;
+  }
+  const referenceInvestment = shadowTickets.reduce((sum, ticket) => sum + ticket.unitStake, 0);
+  let referencePayout = 0;
+  for (const ticket of matchedShadowTickets) {
+    const amount = parsePayoutAmountYen(findRacePayoutForHit(raceInfo.race, ticket.betType, ticket.combination));
+    if (amount == null || amount <= 0) return null;
+    referencePayout += amount * ticket.unitStake / 100;
+  }
   const profitLoss =
     typeof investment === "number" && typeof resolvedPayout === "number"
       ? resolvedPayout - investment
@@ -471,6 +500,16 @@ function resolveSettledResult(slot, raceInfo) {
     combination: hitTicket?.combination ?? "",
     ticketSummary: summarizeTickets(tickets),
     ticketCount: tickets.length,
+    purchaseCount: purchaseTickets.length,
+    shadowCount: shadowTickets.length,
+    hitSection: hitTicket?.section,
+    hitRoles: [...new Set((matchedPurchaseTickets.length ? matchedPurchaseTickets : matchedShadowTickets).map((ticket) => ticket.role))],
+    matchedTickets: [...matchedPurchaseTickets, ...matchedShadowTickets].map((ticket) => ({
+      betType: ticket.betType, combination: ticket.combination, role: ticket.role, section: ticket.section,
+      payoutPer100: parsePayoutAmountYen(findRacePayoutForHit(raceInfo.race, ticket.betType, ticket.combination)),
+    })),
+    referenceInvestment,
+    referencePayout,
     payout: resolvedPayout,
     investment,
     profitLoss,
@@ -768,14 +807,26 @@ function buildSlackPlainTextPayload(hitResults, meta) {
 }
 
 function buildSlackHitMessage(result) {
+  const escape = (value) => String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/[*_~`]/g, "");
+  const title = result.hitSection === "shadow" ? "影目的中"
+    : result.hitRoles?.length ? result.hitRoles.map((role) => `${escape(role)}的中`).join("・") : "HIT";
   return [
-    `*HIT* ${result.venue} ${result.raceNo}R`,
+    `*HIT / ${title}* ${escape(result.venue)} ${result.raceNo}R`,
+    ...(result.hitSection ? [`買い目（${result.purchaseCount}点） / 影目（${result.shadowCount}点）${result.purchaseCount === 0 ? "・購入なし" : ""}`] : []),
     `result: ${result.resultOrder}`,
-    `ticket: ${result.betType} ${result.combination}`,
+    ...(result.matchedTickets?.length ? result.matchedTickets.map((ticket) =>
+      `ticket: ${ticket.betType} ${ticket.combination} [${ticket.section === "shadow" ? "影目・参考" : "買い目"} / ${escape(ticket.role)}] 払戻100円あたり ${formatPlainYen(ticket.payoutPer100)}`)
+      : [`ticket: ${result.betType} ${result.combination}`]),
     `payout: ${formatPlainYen(result.payout)}`,
     `investment: ${formatPlainYen(result.investment)}`,
     `profit: ${formatYen(result.profitLoss)}`,
     `roi: ${formatRate(result.roi)}`,
+    ...(result.hitSection === "shadow" ? [
+      `影目の参考払戻: ${formatPlainYen(result.referencePayout)}`,
+      `参考投資: ${formatPlainYen(result.referenceInvestment)}`,
+      `参考損益: ${formatYen(result.referencePayout - result.referenceInvestment)}`,
+      `参考回収率: ${formatRate(result.referenceInvestment > 0 ? result.referencePayout / result.referenceInvestment * 100 : undefined)}（実収支ではありません）`,
+    ] : []),
   ].join("\n");
 }
 
@@ -805,6 +856,7 @@ async function sendSlackPayload(payload, options = {}) {
   const webhookUrl = options.webhookUrl ?? SLACK_WEBHOOK_URL;
   const response = await fetchImpl(webhookUrl, {
     method: "POST",
+    signal: AbortSignal.timeout(30000),
     headers: {
       "Content-Type": "application/json; charset=utf-8",
     },
@@ -1035,8 +1087,26 @@ async function main() {
     return;
   }
 
-  const predictionsPayload = await loadJson(PREDICTIONS_FILE, {});
-  const todayFeed = await loadJson(TODAY_RACES_FILE, null);
+  const ledgerFile = path.join(ROOT_DIR, ".github/state/slack-hit-notifications.json");
+  const planArg = process.argv.indexOf("--plan-path");
+  const planFile = planArg >= 0 ? process.argv[planArg + 1] : undefined;
+  const runId = process.env.GITHUB_RUN_ID && `${process.env.GITHUB_RUN_ID}:${process.env.GITHUB_RUN_ATTEMPT ?? "1"}`;
+  const readJson = async (file) => JSON.parse((await fs.readFile(file, "utf8")).replace(/^\uFEFF/, ""));
+  const ledger = await loadLedger(ledgerFile);
+  if (process.argv.includes("--deliver")) {
+    if (!planFile || !runId || process.env.SLACK_RESERVATION_PERSISTED !== "true") throw new Error("Persist Slack reservation before delivery");
+    const plan = await readJson(planFile);
+    const targets = eligibleReservations(ledger, plan, runId);
+    // Persisted reservations survive crashes; uncertain outcomes never auto-retry.
+    await fs.writeFile(ledgerFile, `${JSON.stringify(completeReservations(ledger, targets, []), null, 2)}\n`);
+    const delivery = await postToSlack(targets);
+    await fs.writeFile(ledgerFile, `${JSON.stringify(completeReservations(ledger, targets, delivery.successfulHitKeys), null, 2)}\n`);
+    if (delivery.failureCount > 0) throw new Error("Slack delivery incomplete; reservations held for manual review (no automatic resend)");
+    return;
+  }
+  if (!DRY_RUN && (!process.argv.includes("--prepare") || !planFile || !runId)) throw new Error("Use --prepare and persisted reservations, then --deliver; or --dry-run");
+  const predictionsPayload = await readJson(PREDICTIONS_FILE);
+  const todayFeed = await readJson(TODAY_RACES_FILE);
   const todayDate = todayFeed?.date ?? "";
   const retainedNotifiedSlackResultKeys = keepTodayDedupeKeys(
     predictionsPayload?.notifiedSlackResultKeys,
@@ -1079,6 +1149,7 @@ async function main() {
 
   const results = [];
   const migratedRaceKeys = [];
+  const historicalResults = [];
   const plannedRaceNotificationKeys = new Set();
 
   for (const slot of slots) {
@@ -1124,6 +1195,10 @@ async function main() {
       });
       continue;
     }
+    if (result.status === "hit" && notificationAliases(preparedResult).some((key) => ledger.records[key])) {
+      stats.skippedAlreadyNotifiedHits += 1;
+      continue;
+    }
     const hitNotificationState = result.status === "hit"
       ? classifyHitNotification(preparedResult, {
         result: notifiedResultKeys,
@@ -1138,6 +1213,7 @@ async function main() {
     if (alreadyHitNotified || alreadyResultProcessed) {
       stats.alreadyNotified += 1;
       if (alreadyHitNotified) {
+        historicalResults.push(preparedResult);
         stats.skippedAlreadyNotifiedHits += 1;
         if (hitNotificationState.migrateRaceNotificationKey) {
           migratedRaceKeys.push(hitNotificationState.migrateRaceNotificationKey);
@@ -1192,71 +1268,17 @@ async function main() {
     missProcessedOnlyCount: missResults.length,
   });
 
-  const shouldPruneStoredKeys =
-    retainedNotifiedSlackResultKeys.length !== (
-      Array.isArray(predictionsPayload?.notifiedSlackResultKeys)
-        ? predictionsPayload.notifiedSlackResultKeys.length
-        : 0
-    )
-    || retainedNotifiedSlackHitKeys.length !== (
-      Array.isArray(predictionsPayload?.notifiedSlackHitKeys)
-        ? predictionsPayload.notifiedSlackHitKeys.length
-        : 0
-    )
-    || retainedNotifiedSlackRaceKeys.length !== (
-      Array.isArray(predictionsPayload?.notifiedSlackRaceKeys)
-        ? predictionsPayload.notifiedSlackRaceKeys.length
-        : 0
-    );
-
-  const slackResult = await postToSlack(hitResults);
-  const nextState = buildNextNotificationState({
-    todayDate,
-    retainedResultKeys: retainedNotifiedSlackResultKeys,
-    retainedHitKeys: retainedNotifiedSlackHitKeys,
-    retainedRaceKeys: retainedNotifiedSlackRaceKeys,
-    missResults,
-    hitResults,
-    successfulHitKeys: slackResult.successfulHitKeys,
-    migratedRaceKeys,
-  });
-
-  console.log(`${LOG_PREFIX} processed key plan`, {
-    processedResultKeyCount: nextState.processedResultKeys.length,
-    successfulHitKeyCount: slackResult.successfulHitKeys.length,
-    successfulRaceKeyCount: nextState.successfulRaceKeys.length,
-    migratedRaceKeyCount: migratedRaceKeys.length,
-    failedHitKeyCount: slackResult.failedHitKeys.length,
-    dryRun: DRY_RUN,
-  });
-
   if (DRY_RUN) {
-    console.log(`${LOG_PREFIX} dry-run: skip notified key write`);
+    await postToSlack(hitResults, { dryRun: true });
+    console.log(`${LOG_PREFIX} dry-run: no delivery or file writes`);
     return;
   }
-
-  if (
-    shouldPruneStoredKeys
-    || nextState.processedResultKeys.length > 0
-    || slackResult.successfulHitKeys.length > 0
-    || migratedRaceKeys.length > 0
-  ) {
-    await writePayloadWithNotifiedKeys(
-      predictionsPayload,
-      nextState.resultKeys,
-      nextState.hitKeys,
-      nextState.raceKeys,
-    );
-    console.log(`${LOG_PREFIX} Updated notified keys`, {
-      resultKeyCount: nextState.resultKeys.length,
-      hitKeyCount: nextState.hitKeys.length,
-      raceKeyCount: nextState.raceKeys.length,
-      processedResultKeyCount: nextState.processedResultKeys.length,
-      failedHitKeyCount: slackResult.failedHitKeys.length,
-    });
-  } else {
-    console.log(`${LOG_PREFIX} No notified key update needed.`);
-  }
+  if (hitResults.length > 0 && !SLACK_WEBHOOK_URL) throw new Error("SLACK_WEBHOOK_URL missing; no reservation created");
+  const reserved = reserveNotifications(ledger, hitResults, runId, historicalResults);
+  await fs.mkdir(path.dirname(ledgerFile), { recursive: true });
+  await fs.writeFile(ledgerFile, `${JSON.stringify(reserved.ledger, null, 2)}\n`);
+  await fs.writeFile(planFile, `${JSON.stringify(reserved.plan)}\n`, { mode: 0o600 });
+  console.log(`${LOG_PREFIX} reserved ${reserved.plan.results.length} new race notifications; no Slack POST yet`);
 }
 
 export const slackDeliveryTestApi = {
@@ -1275,6 +1297,9 @@ export const slackDeliveryTestApi = {
   keepTodayDedupeKeys,
   parseRetryAfterSeconds,
   postToSlack,
+  resolveTickets,
+  resolveSettledResult,
+  buildSlackHitMessage,
 };
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
