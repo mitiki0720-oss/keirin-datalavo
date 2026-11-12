@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-12T10:29:00.901Z",
+  "generatedAt": "2026-11-12T14:34:13.059Z",
   "source": {
     "provider": "KEIRIN.JP",
     "listType": "JSJ048",
     "endpoint": "/pc/json",
     "kaisaiDateKbn": "0",
-    "fetchStartedAt": "2026-11-12T10:28:28.076Z",
-    "fetchCompletedAt": "2026-11-12T10:29:00.901Z"
+    "fetchStartedAt": "2026-11-12T14:33:37.079Z",
+    "fetchCompletedAt": "2026-11-12T14:34:13.059Z"
   },
   "date": "2026-11-12",
   "venues": [
@@ -5906,322 +5906,1479 @@
       "races": [
         {
           "raceNumber": 1,
-          "resultStatus": "pending",
-          "operationStatus": "pending",
-          "raceEnded": false,
+          "resultStatus": "confirmed",
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
-          "resultVisible": false,
-          "lastUpdateTime": "2026/11/12 11:08 更新",
+          "resultVisible": true,
+          "lastUpdateTime": "2026/11/12 21:00 更新",
           "weatherActual": {
-            "condition": "",
-            "windSpeedMps": null
+            "condition": "曇",
+            "windSpeedMps": 0.3
           },
-          "finishOrder": [],
-          "kimarite": "",
-          "secondKimarite": "",
+          "finishOrder": [
+            {
+              "rank": "1",
+              "carNo": "3",
+              "name": "平子 結菜",
+              "registrationNo": "015858",
+              "gap": "",
+              "agari": "12.8",
+              "kimarite": "差し",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "2",
+              "carNo": "1",
+              "name": "寺崎 舞織",
+              "registrationNo": "015230",
+              "gap": "3/4車身",
+              "agari": "12.9",
+              "kimarite": "捲り",
+              "mark": "B",
+              "status": ""
+            },
+            {
+              "rank": "3",
+              "carNo": "2",
+              "name": "當銘 直美",
+              "registrationNo": "015308",
+              "gap": "1 車輪",
+              "agari": "12.8",
+              "kimarite": "",
+              "mark": "H",
+              "status": ""
+            },
+            {
+              "rank": "4",
+              "carNo": "4",
+              "name": "是永 ゆうき",
+              "registrationNo": "015867",
+              "gap": "1 車身",
+              "agari": "12.8",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "5",
+              "carNo": "5",
+              "name": "山本 さくら",
+              "registrationNo": "015585",
+              "gap": "1/4車輪",
+              "agari": "12.8",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "6",
+              "carNo": "6",
+              "name": "野寺 梓",
+              "registrationNo": "015856",
+              "gap": "1/2車身",
+              "agari": "12.8",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            }
+          ],
+          "kimarite": "差し",
+          "secondKimarite": "捲り",
           "sLeaderCarNo": "",
-          "hLeaderCarNo": "",
-          "bLeaderCarNo": "",
+          "hLeaderCarNo": "2",
+          "bLeaderCarNo": "1",
           "payouts": {
-            "bracketQuinella": [],
-            "bracketExacta": [],
-            "quinella": [],
-            "exacta": [],
-            "trio": [],
-            "trifecta": [],
-            "wide": []
-          },
-          "payout2tan": null,
-          "payout3tan": null,
-          "quality": {
-            "finishOrderCount": 0,
-            "hasFinishOrder": false,
-            "hasTrifecta": false,
-            "warnings": [
-              "finish order missing",
-              "trifecta payout missing"
+            "bracketQuinella": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "bracketExacta": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "quinella": [
+              {
+                "combination": "1=3",
+                "payoutYen": 450,
+                "payoutDisplay": "450",
+                "popularity": 2
+              }
+            ],
+            "exacta": [
+              {
+                "combination": "3-1",
+                "payoutYen": 3160,
+                "payoutDisplay": "3,160",
+                "popularity": 8
+              }
+            ],
+            "trio": [
+              {
+                "combination": "1=2=3",
+                "payoutYen": 190,
+                "payoutDisplay": "190",
+                "popularity": 1
+              }
+            ],
+            "trifecta": [
+              {
+                "combination": "3-1-2",
+                "payoutYen": 4180,
+                "payoutDisplay": "4,180",
+                "popularity": 14
+              }
+            ],
+            "wide": [
+              {
+                "combination": "1=3",
+                "payoutYen": 140,
+                "payoutDisplay": "140",
+                "popularity": 2
+              },
+              {
+                "combination": "2=3",
+                "payoutYen": 220,
+                "payoutDisplay": "220",
+                "popularity": 4
+              },
+              {
+                "combination": "1=2",
+                "payoutYen": 100,
+                "payoutDisplay": "100",
+                "popularity": 1
+              }
             ]
+          },
+          "payout2tan": {
+            "combination": "3-1",
+            "payoutYen": 3160,
+            "payoutDisplay": "3,160",
+            "popularity": 8
+          },
+          "payout3tan": {
+            "combination": "3-1-2",
+            "payoutYen": 4180,
+            "payoutDisplay": "4,180",
+            "popularity": 14
+          },
+          "quality": {
+            "finishOrderCount": 6,
+            "hasFinishOrder": true,
+            "hasTrifecta": true,
+            "warnings": []
           }
         },
         {
           "raceNumber": 2,
-          "resultStatus": "pending",
-          "operationStatus": "pending",
-          "raceEnded": false,
+          "resultStatus": "confirmed",
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
-          "resultVisible": false,
-          "lastUpdateTime": "2026/11/12 11:08 更新",
+          "resultVisible": true,
+          "lastUpdateTime": "2026/11/12 21:21 更新",
           "weatherActual": {
-            "condition": "",
-            "windSpeedMps": null
+            "condition": "曇",
+            "windSpeedMps": 0.3
           },
-          "finishOrder": [],
-          "kimarite": "",
-          "secondKimarite": "",
+          "finishOrder": [
+            {
+              "rank": "1",
+              "carNo": "1",
+              "name": "尾方 真生",
+              "registrationNo": "015501",
+              "gap": "",
+              "agari": "12.0",
+              "kimarite": "捲り",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "2",
+              "carNo": "5",
+              "name": "清水 美海",
+              "registrationNo": "016033",
+              "gap": "3/4車身",
+              "agari": "12.0",
+              "kimarite": "マーク",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "3",
+              "carNo": "6",
+              "name": "金田 舞夏",
+              "registrationNo": "015774",
+              "gap": "3 車身",
+              "agari": "12.2",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "4",
+              "carNo": "3",
+              "name": "山口 優依",
+              "registrationNo": "015763",
+              "gap": "3 車身",
+              "agari": "12.8",
+              "kimarite": "",
+              "mark": "B",
+              "status": ""
+            },
+            {
+              "rank": "5",
+              "carNo": "2",
+              "name": "青木 美保",
+              "registrationNo": "015485",
+              "gap": "1/2車輪",
+              "agari": "12.8",
+              "kimarite": "",
+              "mark": "H",
+              "status": ""
+            },
+            {
+              "rank": "6",
+              "carNo": "4",
+              "name": "荒川 ひかり",
+              "registrationNo": "015135",
+              "gap": "3/4車身",
+              "agari": "12.8",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "7",
+              "carNo": "7",
+              "name": "寺本 愛花",
+              "registrationNo": "016041",
+              "gap": "1 車輪",
+              "agari": "12.9",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            }
+          ],
+          "kimarite": "捲り",
+          "secondKimarite": "マーク",
           "sLeaderCarNo": "",
-          "hLeaderCarNo": "",
-          "bLeaderCarNo": "",
+          "hLeaderCarNo": "2",
+          "bLeaderCarNo": "3",
           "payouts": {
-            "bracketQuinella": [],
-            "bracketExacta": [],
-            "quinella": [],
-            "exacta": [],
-            "trio": [],
-            "trifecta": [],
-            "wide": []
-          },
-          "payout2tan": null,
-          "payout3tan": null,
-          "quality": {
-            "finishOrderCount": 0,
-            "hasFinishOrder": false,
-            "hasTrifecta": false,
-            "warnings": [
-              "finish order missing",
-              "trifecta payout missing"
+            "bracketQuinella": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "bracketExacta": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "quinella": [
+              {
+                "combination": "1=5",
+                "payoutYen": 510,
+                "payoutDisplay": "510",
+                "popularity": 3
+              }
+            ],
+            "exacta": [
+              {
+                "combination": "1-5",
+                "payoutYen": 480,
+                "payoutDisplay": "480",
+                "popularity": 2
+              }
+            ],
+            "trio": [
+              {
+                "combination": "1=5=6",
+                "payoutYen": 7020,
+                "payoutDisplay": "7,020",
+                "popularity": 10
+              }
+            ],
+            "trifecta": [
+              {
+                "combination": "1-5-6",
+                "payoutYen": 8140,
+                "payoutDisplay": "8,140",
+                "popularity": 17
+              }
+            ],
+            "wide": [
+              {
+                "combination": "1=5",
+                "payoutYen": 250,
+                "payoutDisplay": "250",
+                "popularity": 4
+              },
+              {
+                "combination": "1=6",
+                "payoutYen": 590,
+                "payoutDisplay": "590",
+                "popularity": 8
+              },
+              {
+                "combination": "5=6",
+                "payoutYen": 3800,
+                "payoutDisplay": "3,800",
+                "popularity": 15
+              }
             ]
+          },
+          "payout2tan": {
+            "combination": "1-5",
+            "payoutYen": 480,
+            "payoutDisplay": "480",
+            "popularity": 2
+          },
+          "payout3tan": {
+            "combination": "1-5-6",
+            "payoutYen": 8140,
+            "payoutDisplay": "8,140",
+            "popularity": 17
+          },
+          "quality": {
+            "finishOrderCount": 7,
+            "hasFinishOrder": true,
+            "hasTrifecta": true,
+            "warnings": []
           }
         },
         {
           "raceNumber": 3,
-          "resultStatus": "pending",
-          "operationStatus": "pending",
-          "raceEnded": false,
+          "resultStatus": "confirmed",
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
-          "resultVisible": false,
-          "lastUpdateTime": "2026/11/12 11:08 更新",
+          "resultVisible": true,
+          "lastUpdateTime": "2026/11/12 21:40 更新",
           "weatherActual": {
-            "condition": "",
-            "windSpeedMps": null
+            "condition": "曇",
+            "windSpeedMps": 0.3
           },
-          "finishOrder": [],
-          "kimarite": "",
-          "secondKimarite": "",
+          "finishOrder": [
+            {
+              "rank": "1",
+              "carNo": "2",
+              "name": "樋口 開土",
+              "registrationNo": "015255",
+              "gap": "",
+              "agari": "11.9",
+              "kimarite": "差し",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "2",
+              "carNo": "3",
+              "name": "和田 禎嗣",
+              "registrationNo": "014732",
+              "gap": "1/2車身",
+              "agari": "11.8",
+              "kimarite": "マーク",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "3",
+              "carNo": "6",
+              "name": "小川 達也",
+              "registrationNo": "014303",
+              "gap": "3/4車身",
+              "agari": "12.2",
+              "kimarite": "",
+              "mark": "HB",
+              "status": ""
+            },
+            {
+              "rank": "4",
+              "carNo": "5",
+              "name": "平田 徹",
+              "registrationNo": "013192",
+              "gap": "1/4車輪",
+              "agari": "12.1",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "5",
+              "carNo": "1",
+              "name": "菅田 和宏",
+              "registrationNo": "013908",
+              "gap": "3/4車輪",
+              "agari": "11.8",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "6",
+              "carNo": "4",
+              "name": "渡会 啓介",
+              "registrationNo": "013575",
+              "gap": "1/2車輪",
+              "agari": "11.8",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "7",
+              "carNo": "7",
+              "name": "大泉 英則",
+              "registrationNo": "013989",
+              "gap": "1 車身",
+              "agari": "11.8",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            }
+          ],
+          "kimarite": "差し",
+          "secondKimarite": "マーク",
           "sLeaderCarNo": "",
-          "hLeaderCarNo": "",
-          "bLeaderCarNo": "",
+          "hLeaderCarNo": "6",
+          "bLeaderCarNo": "6",
           "payouts": {
-            "bracketQuinella": [],
-            "bracketExacta": [],
-            "quinella": [],
-            "exacta": [],
-            "trio": [],
-            "trifecta": [],
-            "wide": []
-          },
-          "payout2tan": null,
-          "payout3tan": null,
-          "quality": {
-            "finishOrderCount": 0,
-            "hasFinishOrder": false,
-            "hasTrifecta": false,
-            "warnings": [
-              "finish order missing",
-              "trifecta payout missing"
+            "bracketQuinella": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "bracketExacta": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "quinella": [
+              {
+                "combination": "2=3",
+                "payoutYen": 170,
+                "payoutDisplay": "170",
+                "popularity": 1
+              }
+            ],
+            "exacta": [
+              {
+                "combination": "2-3",
+                "payoutYen": 320,
+                "payoutDisplay": "320",
+                "popularity": 1
+              }
+            ],
+            "trio": [
+              {
+                "combination": "2=3=6",
+                "payoutYen": 1620,
+                "payoutDisplay": "1,620",
+                "popularity": 4
+              }
+            ],
+            "trifecta": [
+              {
+                "combination": "2-3-6",
+                "payoutYen": 4950,
+                "payoutDisplay": "4,950",
+                "popularity": 13
+              }
+            ],
+            "wide": [
+              {
+                "combination": "2=3",
+                "payoutYen": 160,
+                "payoutDisplay": "160",
+                "popularity": 1
+              },
+              {
+                "combination": "2=6",
+                "payoutYen": 870,
+                "payoutDisplay": "870",
+                "popularity": 14
+              },
+              {
+                "combination": "3=6",
+                "payoutYen": 1040,
+                "payoutDisplay": "1,040",
+                "popularity": 16
+              }
             ]
+          },
+          "payout2tan": {
+            "combination": "2-3",
+            "payoutYen": 320,
+            "payoutDisplay": "320",
+            "popularity": 1
+          },
+          "payout3tan": {
+            "combination": "2-3-6",
+            "payoutYen": 4950,
+            "payoutDisplay": "4,950",
+            "popularity": 13
+          },
+          "quality": {
+            "finishOrderCount": 7,
+            "hasFinishOrder": true,
+            "hasTrifecta": true,
+            "warnings": []
           }
         },
         {
           "raceNumber": 4,
-          "resultStatus": "pending",
-          "operationStatus": "pending",
-          "raceEnded": false,
+          "resultStatus": "confirmed",
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
-          "resultVisible": false,
-          "lastUpdateTime": "2026/11/12 11:08 更新",
+          "resultVisible": true,
+          "lastUpdateTime": "2026/11/12 22:01 更新",
           "weatherActual": {
-            "condition": "",
-            "windSpeedMps": null
+            "condition": "曇",
+            "windSpeedMps": 0.3
           },
-          "finishOrder": [],
-          "kimarite": "",
-          "secondKimarite": "",
+          "finishOrder": [
+            {
+              "rank": "1",
+              "carNo": "1",
+              "name": "鈴木 小次廊",
+              "registrationNo": "015895",
+              "gap": "",
+              "agari": "12.3",
+              "kimarite": "捲り",
+              "mark": "B",
+              "status": ""
+            },
+            {
+              "rank": "2",
+              "carNo": "6",
+              "name": "森川 剛",
+              "registrationNo": "014021",
+              "gap": "2 車身",
+              "agari": "12.2",
+              "kimarite": "差し",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "3",
+              "carNo": "5",
+              "name": "黒田 篤",
+              "registrationNo": "013925",
+              "gap": "3/4車身",
+              "agari": "12.1",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "4",
+              "carNo": "4",
+              "name": "佐々木 祐太",
+              "registrationNo": "015688",
+              "gap": "1 車身",
+              "agari": "12.3",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "5",
+              "carNo": "2",
+              "name": "副島 和人",
+              "registrationNo": "014993",
+              "gap": "1 車身",
+              "agari": "12.7",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "6",
+              "carNo": "7",
+              "name": "葉狩 伸泰",
+              "registrationNo": "013207",
+              "gap": "4 車身",
+              "agari": "12.7",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "7",
+              "carNo": "3",
+              "name": "中村 美千隆",
+              "registrationNo": "013345",
+              "gap": "3 車身",
+              "agari": "13.4",
+              "kimarite": "",
+              "mark": "H",
+              "status": ""
+            }
+          ],
+          "kimarite": "捲り",
+          "secondKimarite": "差し",
           "sLeaderCarNo": "",
-          "hLeaderCarNo": "",
-          "bLeaderCarNo": "",
+          "hLeaderCarNo": "3",
+          "bLeaderCarNo": "1",
           "payouts": {
-            "bracketQuinella": [],
-            "bracketExacta": [],
-            "quinella": [],
-            "exacta": [],
-            "trio": [],
-            "trifecta": [],
-            "wide": []
-          },
-          "payout2tan": null,
-          "payout3tan": null,
-          "quality": {
-            "finishOrderCount": 0,
-            "hasFinishOrder": false,
-            "hasTrifecta": false,
-            "warnings": [
-              "finish order missing",
-              "trifecta payout missing"
+            "bracketQuinella": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "bracketExacta": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "quinella": [
+              {
+                "combination": "1=6",
+                "payoutYen": 2110,
+                "payoutDisplay": "2,110",
+                "popularity": 7
+              }
+            ],
+            "exacta": [
+              {
+                "combination": "1-6",
+                "payoutYen": 2740,
+                "payoutDisplay": "2,740",
+                "popularity": 9
+              }
+            ],
+            "trio": [
+              {
+                "combination": "1=5=6",
+                "payoutYen": 16660,
+                "payoutDisplay": "16,660",
+                "popularity": 23
+              }
+            ],
+            "trifecta": [
+              {
+                "combination": "1-6-5",
+                "payoutYen": 49850,
+                "payoutDisplay": "49,850",
+                "popularity": 99
+              }
+            ],
+            "wide": [
+              {
+                "combination": "1=6",
+                "payoutYen": 300,
+                "payoutDisplay": "300",
+                "popularity": 4
+              },
+              {
+                "combination": "1=5",
+                "payoutYen": 810,
+                "payoutDisplay": "810",
+                "popularity": 9
+              },
+              {
+                "combination": "5=6",
+                "payoutYen": 5840,
+                "payoutDisplay": "5,840",
+                "popularity": 20
+              }
             ]
+          },
+          "payout2tan": {
+            "combination": "1-6",
+            "payoutYen": 2740,
+            "payoutDisplay": "2,740",
+            "popularity": 9
+          },
+          "payout3tan": {
+            "combination": "1-6-5",
+            "payoutYen": 49850,
+            "payoutDisplay": "49,850",
+            "popularity": 99
+          },
+          "quality": {
+            "finishOrderCount": 7,
+            "hasFinishOrder": true,
+            "hasTrifecta": true,
+            "warnings": []
           }
         },
         {
           "raceNumber": 5,
-          "resultStatus": "pending",
-          "operationStatus": "pending",
-          "raceEnded": false,
+          "resultStatus": "confirmed",
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
-          "resultVisible": false,
-          "lastUpdateTime": "2026/11/12 11:08 更新",
+          "resultVisible": true,
+          "lastUpdateTime": "2026/11/12 22:37 更新",
           "weatherActual": {
-            "condition": "",
-            "windSpeedMps": null
+            "condition": "曇",
+            "windSpeedMps": 0.3
           },
-          "finishOrder": [],
-          "kimarite": "",
-          "secondKimarite": "",
+          "finishOrder": [
+            {
+              "rank": "1",
+              "carNo": "2",
+              "name": "伊藤 温希",
+              "registrationNo": "015622",
+              "gap": "",
+              "agari": "11.9",
+              "kimarite": "差し",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "2",
+              "carNo": "7",
+              "name": "岩城 佑典",
+              "registrationNo": "015533",
+              "gap": "1 車輪",
+              "agari": "12.1",
+              "kimarite": "逃げ",
+              "mark": "HB",
+              "status": ""
+            },
+            {
+              "rank": "3",
+              "carNo": "3",
+              "name": "大川 栄二",
+              "registrationNo": "012603",
+              "gap": "3/4車身",
+              "agari": "11.7",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "4",
+              "carNo": "4",
+              "name": "金子 浩貴",
+              "registrationNo": "014479",
+              "gap": "1車身1/2",
+              "agari": "11.9",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "5",
+              "carNo": "6",
+              "name": "秋葉 大輔",
+              "registrationNo": "014070",
+              "gap": "9 車身",
+              "agari": "12.6",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "",
+              "carNo": "5",
+              "name": "本村 隆文",
+              "registrationNo": "013426",
+              "gap": "",
+              "agari": "",
+              "kimarite": "",
+              "mark": "",
+              "status": "失格（内側追い抜き）"
+            },
+            {
+              "rank": "",
+              "carNo": "1",
+              "name": "小沼 良",
+              "registrationNo": "012421",
+              "gap": "",
+              "agari": "",
+              "kimarite": "",
+              "mark": "",
+              "status": "欠場"
+            }
+          ],
+          "kimarite": "差し",
+          "secondKimarite": "逃げ",
           "sLeaderCarNo": "",
-          "hLeaderCarNo": "",
-          "bLeaderCarNo": "",
+          "hLeaderCarNo": "7",
+          "bLeaderCarNo": "7",
           "payouts": {
-            "bracketQuinella": [],
-            "bracketExacta": [],
-            "quinella": [],
-            "exacta": [],
-            "trio": [],
-            "trifecta": [],
-            "wide": []
-          },
-          "payout2tan": null,
-          "payout3tan": null,
-          "quality": {
-            "finishOrderCount": 0,
-            "hasFinishOrder": false,
-            "hasTrifecta": false,
-            "warnings": [
-              "finish order missing",
-              "trifecta payout missing"
+            "bracketQuinella": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "bracketExacta": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "quinella": [
+              {
+                "combination": "2=7",
+                "payoutYen": 170,
+                "payoutDisplay": "170",
+                "popularity": 1
+              }
+            ],
+            "exacta": [
+              {
+                "combination": "2-7",
+                "payoutYen": 330,
+                "payoutDisplay": "330",
+                "popularity": 1
+              }
+            ],
+            "trio": [
+              {
+                "combination": "2=3=7",
+                "payoutYen": 440,
+                "payoutDisplay": "440",
+                "popularity": 2
+              }
+            ],
+            "trifecta": [
+              {
+                "combination": "2-7-3",
+                "payoutYen": 1200,
+                "payoutDisplay": "1,200",
+                "popularity": 3
+              }
+            ],
+            "wide": [
+              {
+                "combination": "2=7",
+                "payoutYen": 150,
+                "payoutDisplay": "150",
+                "popularity": 1
+              },
+              {
+                "combination": "2=3",
+                "payoutYen": 380,
+                "payoutDisplay": "380",
+                "popularity": 8
+              },
+              {
+                "combination": "3=7",
+                "payoutYen": 320,
+                "payoutDisplay": "320",
+                "popularity": 6
+              }
             ]
+          },
+          "payout2tan": {
+            "combination": "2-7",
+            "payoutYen": 330,
+            "payoutDisplay": "330",
+            "popularity": 1
+          },
+          "payout3tan": {
+            "combination": "2-7-3",
+            "payoutYen": 1200,
+            "payoutDisplay": "1,200",
+            "popularity": 3
+          },
+          "quality": {
+            "finishOrderCount": 7,
+            "hasFinishOrder": true,
+            "hasTrifecta": true,
+            "warnings": []
           }
         },
         {
           "raceNumber": 6,
-          "resultStatus": "pending",
-          "operationStatus": "pending",
-          "raceEnded": false,
+          "resultStatus": "confirmed",
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
-          "resultVisible": false,
-          "lastUpdateTime": "2026/11/12 11:08 更新",
+          "resultVisible": true,
+          "lastUpdateTime": "2026/11/12 22:43 更新",
           "weatherActual": {
-            "condition": "",
-            "windSpeedMps": null
+            "condition": "曇",
+            "windSpeedMps": 0.3
           },
-          "finishOrder": [],
-          "kimarite": "",
-          "secondKimarite": "",
+          "finishOrder": [
+            {
+              "rank": "1",
+              "carNo": "2",
+              "name": "渡邉 高志",
+              "registrationNo": "013616",
+              "gap": "",
+              "agari": "11.5",
+              "kimarite": "差し",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "2",
+              "carNo": "3",
+              "name": "小浦 凪",
+              "registrationNo": "015447",
+              "gap": "1 車身",
+              "agari": "11.9",
+              "kimarite": "捲り",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "3",
+              "carNo": "1",
+              "name": "川木 敬大",
+              "registrationNo": "013645",
+              "gap": "1/4車輪",
+              "agari": "11.8",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "4",
+              "carNo": "5",
+              "name": "山本 恵介",
+              "registrationNo": "014801",
+              "gap": "3/4車輪",
+              "agari": "11.9",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "5",
+              "carNo": "6",
+              "name": "東 鉄也",
+              "registrationNo": "013952",
+              "gap": "3/4車身",
+              "agari": "11.7",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "6",
+              "carNo": "7",
+              "name": "吉村 文隆",
+              "registrationNo": "012602",
+              "gap": "1/4車輪",
+              "agari": "11.8",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "7",
+              "carNo": "4",
+              "name": "大利 航平",
+              "registrationNo": "015109",
+              "gap": "大差",
+              "agari": "13.6",
+              "kimarite": "",
+              "mark": "HB",
+              "status": ""
+            }
+          ],
+          "kimarite": "差し",
+          "secondKimarite": "捲り",
           "sLeaderCarNo": "",
-          "hLeaderCarNo": "",
-          "bLeaderCarNo": "",
+          "hLeaderCarNo": "4",
+          "bLeaderCarNo": "4",
           "payouts": {
-            "bracketQuinella": [],
-            "bracketExacta": [],
-            "quinella": [],
-            "exacta": [],
-            "trio": [],
-            "trifecta": [],
-            "wide": []
-          },
-          "payout2tan": null,
-          "payout3tan": null,
-          "quality": {
-            "finishOrderCount": 0,
-            "hasFinishOrder": false,
-            "hasTrifecta": false,
-            "warnings": [
-              "finish order missing",
-              "trifecta payout missing"
+            "bracketQuinella": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "bracketExacta": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "quinella": [
+              {
+                "combination": "2=3",
+                "payoutYen": 960,
+                "payoutDisplay": "960",
+                "popularity": 5
+              }
+            ],
+            "exacta": [
+              {
+                "combination": "2-3",
+                "payoutYen": 2280,
+                "payoutDisplay": "2,280",
+                "popularity": 12
+              }
+            ],
+            "trio": [
+              {
+                "combination": "1=2=3",
+                "payoutYen": 840,
+                "payoutDisplay": "840",
+                "popularity": 3
+              }
+            ],
+            "trifecta": [
+              {
+                "combination": "2-3-1",
+                "payoutYen": 9330,
+                "payoutDisplay": "9,330",
+                "popularity": 42
+              }
+            ],
+            "wide": [
+              {
+                "combination": "2=3",
+                "payoutYen": 540,
+                "payoutDisplay": "540",
+                "popularity": 11
+              },
+              {
+                "combination": "1=2",
+                "payoutYen": 260,
+                "payoutDisplay": "260",
+                "popularity": 1
+              },
+              {
+                "combination": "1=3",
+                "payoutYen": 300,
+                "payoutDisplay": "300",
+                "popularity": 5
+              }
             ]
+          },
+          "payout2tan": {
+            "combination": "2-3",
+            "payoutYen": 2280,
+            "payoutDisplay": "2,280",
+            "popularity": 12
+          },
+          "payout3tan": {
+            "combination": "2-3-1",
+            "payoutYen": 9330,
+            "payoutDisplay": "9,330",
+            "popularity": 42
+          },
+          "quality": {
+            "finishOrderCount": 7,
+            "hasFinishOrder": true,
+            "hasTrifecta": true,
+            "warnings": []
           }
         },
         {
           "raceNumber": 7,
-          "resultStatus": "pending",
-          "operationStatus": "pending",
-          "raceEnded": false,
+          "resultStatus": "confirmed",
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
-          "resultVisible": false,
-          "lastUpdateTime": "2026/11/12 11:08 更新",
+          "resultVisible": true,
+          "lastUpdateTime": "2026/11/12 23:01 更新",
           "weatherActual": {
-            "condition": "",
-            "windSpeedMps": null
+            "condition": "曇",
+            "windSpeedMps": 0.3
           },
-          "finishOrder": [],
-          "kimarite": "",
-          "secondKimarite": "",
+          "finishOrder": [
+            {
+              "rank": "1",
+              "carNo": "1",
+              "name": "古賀 勝大",
+              "registrationNo": "015365",
+              "gap": "",
+              "agari": "12.3",
+              "kimarite": "差し",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "2",
+              "carNo": "2",
+              "name": "松田 安綱",
+              "registrationNo": "015911",
+              "gap": "3/4車輪",
+              "agari": "12.5",
+              "kimarite": "逃げ",
+              "mark": "HB",
+              "status": ""
+            },
+            {
+              "rank": "3",
+              "carNo": "7",
+              "name": "戸塚 涼介",
+              "registrationNo": "015163",
+              "gap": "3/4車輪",
+              "agari": "12.3",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "4",
+              "carNo": "5",
+              "name": "渡邊 健",
+              "registrationNo": "013042",
+              "gap": "1/2車身",
+              "agari": "12.3",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "5",
+              "carNo": "6",
+              "name": "水書 義弘",
+              "registrationNo": "012960",
+              "gap": "1/2車輪",
+              "agari": "12.1",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "6",
+              "carNo": "4",
+              "name": "小野 裕次",
+              "registrationNo": "014455",
+              "gap": "1 車身",
+              "agari": "12.3",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "7",
+              "carNo": "3",
+              "name": "小笠原 一真",
+              "registrationNo": "015685",
+              "gap": "大差",
+              "agari": "13.3",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            }
+          ],
+          "kimarite": "差し",
+          "secondKimarite": "逃げ",
           "sLeaderCarNo": "",
-          "hLeaderCarNo": "",
-          "bLeaderCarNo": "",
+          "hLeaderCarNo": "2",
+          "bLeaderCarNo": "2",
           "payouts": {
-            "bracketQuinella": [],
-            "bracketExacta": [],
-            "quinella": [],
-            "exacta": [],
-            "trio": [],
-            "trifecta": [],
-            "wide": []
-          },
-          "payout2tan": null,
-          "payout3tan": null,
-          "quality": {
-            "finishOrderCount": 0,
-            "hasFinishOrder": false,
-            "hasTrifecta": false,
-            "warnings": [
-              "finish order missing",
-              "trifecta payout missing"
+            "bracketQuinella": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "bracketExacta": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "quinella": [
+              {
+                "combination": "1=2",
+                "payoutYen": 180,
+                "payoutDisplay": "180",
+                "popularity": 1
+              }
+            ],
+            "exacta": [
+              {
+                "combination": "1-2",
+                "payoutYen": 190,
+                "payoutDisplay": "190",
+                "popularity": 1
+              }
+            ],
+            "trio": [
+              {
+                "combination": "1=2=7",
+                "payoutYen": 820,
+                "payoutDisplay": "820",
+                "popularity": 4
+              }
+            ],
+            "trifecta": [
+              {
+                "combination": "1-2-7",
+                "payoutYen": 2020,
+                "payoutDisplay": "2,020",
+                "popularity": 5
+              }
+            ],
+            "wide": [
+              {
+                "combination": "1=2",
+                "payoutYen": 110,
+                "payoutDisplay": "110",
+                "popularity": 1
+              },
+              {
+                "combination": "1=7",
+                "payoutYen": 290,
+                "payoutDisplay": "290",
+                "popularity": 3
+              },
+              {
+                "combination": "2=7",
+                "payoutYen": 730,
+                "payoutDisplay": "730",
+                "popularity": 9
+              }
             ]
+          },
+          "payout2tan": {
+            "combination": "1-2",
+            "payoutYen": 190,
+            "payoutDisplay": "190",
+            "popularity": 1
+          },
+          "payout3tan": {
+            "combination": "1-2-7",
+            "payoutYen": 2020,
+            "payoutDisplay": "2,020",
+            "popularity": 5
+          },
+          "quality": {
+            "finishOrderCount": 7,
+            "hasFinishOrder": true,
+            "hasTrifecta": true,
+            "warnings": []
           }
         },
         {
           "raceNumber": 8,
-          "resultStatus": "pending",
-          "operationStatus": "pending",
-          "raceEnded": false,
+          "resultStatus": "confirmed",
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
-          "resultVisible": false,
-          "lastUpdateTime": "2026/11/12 11:08 更新",
+          "resultVisible": true,
+          "lastUpdateTime": "2026/11/12 23:20 更新",
           "weatherActual": {
-            "condition": "",
-            "windSpeedMps": null
+            "condition": "曇",
+            "windSpeedMps": 0.3
           },
-          "finishOrder": [],
-          "kimarite": "",
-          "secondKimarite": "",
+          "finishOrder": [
+            {
+              "rank": "1",
+              "carNo": "1",
+              "name": "仁藤 秀",
+              "registrationNo": "015442",
+              "gap": "",
+              "agari": "12.2",
+              "kimarite": "差し",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "2",
+              "carNo": "4",
+              "name": "大木 雅也",
+              "registrationNo": "013568",
+              "gap": "3/4車輪",
+              "agari": "12.1",
+              "kimarite": "マーク",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "3",
+              "carNo": "6",
+              "name": "高橋 秀吉",
+              "registrationNo": "013910",
+              "gap": "1 車輪",
+              "agari": "12.0",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "4",
+              "carNo": "3",
+              "name": "平根 優大",
+              "registrationNo": "015788",
+              "gap": "3/4車身",
+              "agari": "12.4",
+              "kimarite": "",
+              "mark": "B",
+              "status": ""
+            },
+            {
+              "rank": "5",
+              "carNo": "5",
+              "name": "原 真司",
+              "registrationNo": "013782",
+              "gap": "3/4車身",
+              "agari": "12.4",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "6",
+              "carNo": "2",
+              "name": "金澤 幸司",
+              "registrationNo": "014135",
+              "gap": "3/4車身",
+              "agari": "12.1",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "7",
+              "carNo": "7",
+              "name": "森崎 英登",
+              "registrationNo": "015812",
+              "gap": "5 車身",
+              "agari": "13.0",
+              "kimarite": "",
+              "mark": "H",
+              "status": ""
+            }
+          ],
+          "kimarite": "差し",
+          "secondKimarite": "マーク",
           "sLeaderCarNo": "",
-          "hLeaderCarNo": "",
-          "bLeaderCarNo": "",
+          "hLeaderCarNo": "7",
+          "bLeaderCarNo": "3",
           "payouts": {
-            "bracketQuinella": [],
-            "bracketExacta": [],
-            "quinella": [],
-            "exacta": [],
-            "trio": [],
-            "trifecta": [],
-            "wide": []
-          },
-          "payout2tan": null,
-          "payout3tan": null,
-          "quality": {
-            "finishOrderCount": 0,
-            "hasFinishOrder": false,
-            "hasTrifecta": false,
-            "warnings": [
-              "finish order missing",
-              "trifecta payout missing"
+            "bracketQuinella": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "bracketExacta": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "quinella": [
+              {
+                "combination": "1=4",
+                "payoutYen": 330,
+                "payoutDisplay": "330",
+                "popularity": 2
+              }
+            ],
+            "exacta": [
+              {
+                "combination": "1-4",
+                "payoutYen": 370,
+                "payoutDisplay": "370",
+                "popularity": 1
+              }
+            ],
+            "trio": [
+              {
+                "combination": "1=4=6",
+                "payoutYen": 4950,
+                "payoutDisplay": "4,950",
+                "popularity": 17
+              }
+            ],
+            "trifecta": [
+              {
+                "combination": "1-4-6",
+                "payoutYen": 4880,
+                "payoutDisplay": "4,880",
+                "popularity": 18
+              }
+            ],
+            "wide": [
+              {
+                "combination": "1=4",
+                "payoutYen": 160,
+                "payoutDisplay": "160",
+                "popularity": 1
+              },
+              {
+                "combination": "1=6",
+                "payoutYen": 380,
+                "payoutDisplay": "380",
+                "popularity": 5
+              },
+              {
+                "combination": "4=6",
+                "payoutYen": 1450,
+                "payoutDisplay": "1,450",
+                "popularity": 16
+              }
             ]
+          },
+          "payout2tan": {
+            "combination": "1-4",
+            "payoutYen": 370,
+            "payoutDisplay": "370",
+            "popularity": 1
+          },
+          "payout3tan": {
+            "combination": "1-4-6",
+            "payoutYen": 4880,
+            "payoutDisplay": "4,880",
+            "popularity": 18
+          },
+          "quality": {
+            "finishOrderCount": 7,
+            "hasFinishOrder": true,
+            "hasTrifecta": true,
+            "warnings": []
           }
         },
         {
@@ -6266,9 +7423,9 @@
         }
       ],
       "raceCount": 9,
-      "confirmedRaceCount": 0,
+      "confirmedRaceCount": 8,
       "partialRaceCount": 0,
-      "pendingRaceCount": 9,
+      "pendingRaceCount": 1,
       "errorCount": 0
     },
     {
@@ -6286,7 +7443,7 @@
           "raceButtonActive": true,
           "resultCode": 0,
           "resultVisible": true,
-          "lastUpdateTime": "2026/11/12 16:03 更新",
+          "lastUpdateTime": "2026/11/12 21:04 更新",
           "weatherActual": {
             "condition": "曇",
             "windSpeedMps": 0.2
@@ -6472,7 +7629,7 @@
           "raceButtonActive": true,
           "resultCode": 0,
           "resultVisible": true,
-          "lastUpdateTime": "2026/11/12 16:27 更新",
+          "lastUpdateTime": "2026/11/12 21:04 更新",
           "weatherActual": {
             "condition": "曇",
             "windSpeedMps": 0.2
@@ -6658,7 +7815,7 @@
           "raceButtonActive": true,
           "resultCode": 0,
           "resultVisible": true,
-          "lastUpdateTime": "2026/11/12 16:49 更新",
+          "lastUpdateTime": "2026/11/12 21:04 更新",
           "weatherActual": {
             "condition": "曇",
             "windSpeedMps": 0.2
@@ -6844,7 +8001,7 @@
           "raceButtonActive": true,
           "resultCode": 0,
           "resultVisible": true,
-          "lastUpdateTime": "2026/11/12 17:14 更新",
+          "lastUpdateTime": "2026/11/12 21:04 更新",
           "weatherActual": {
             "condition": "曇",
             "windSpeedMps": 0.2
@@ -7030,7 +8187,7 @@
           "raceButtonActive": true,
           "resultCode": 0,
           "resultVisible": true,
-          "lastUpdateTime": "2026/11/12 17:38 更新",
+          "lastUpdateTime": "2026/11/12 21:04 更新",
           "weatherActual": {
             "condition": "曇",
             "windSpeedMps": 0.2
@@ -7216,7 +8373,7 @@
           "raceButtonActive": true,
           "resultCode": 0,
           "resultVisible": true,
-          "lastUpdateTime": "2026/11/12 18:03 更新",
+          "lastUpdateTime": "2026/11/12 21:04 更新",
           "weatherActual": {
             "condition": "曇",
             "windSpeedMps": 0.2
@@ -7402,7 +8559,7 @@
           "raceButtonActive": true,
           "resultCode": 0,
           "resultVisible": true,
-          "lastUpdateTime": "2026/11/12 18:28 更新",
+          "lastUpdateTime": "2026/11/12 21:04 更新",
           "weatherActual": {
             "condition": "曇",
             "windSpeedMps": 0.2
@@ -7588,7 +8745,7 @@
           "raceButtonActive": true,
           "resultCode": 0,
           "resultVisible": true,
-          "lastUpdateTime": "2026/11/12 18:53 更新",
+          "lastUpdateTime": "2026/11/12 21:04 更新",
           "weatherActual": {
             "condition": "曇",
             "windSpeedMps": 0.2
@@ -7752,7 +8909,7 @@
           "raceButtonActive": true,
           "resultCode": 0,
           "resultVisible": true,
-          "lastUpdateTime": "2026/11/12 19:18 更新",
+          "lastUpdateTime": "2026/11/12 21:04 更新",
           "weatherActual": {
             "condition": "曇",
             "windSpeedMps": 0.2
@@ -7921,129 +9078,567 @@
         },
         {
           "raceNumber": 10,
-          "resultStatus": "pending",
-          "operationStatus": "pending",
-          "raceEnded": false,
+          "resultStatus": "confirmed",
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
-          "resultVisible": false,
-          "lastUpdateTime": "2026/11/12 07:02 更新",
+          "resultVisible": true,
+          "lastUpdateTime": "2026/11/12 21:04 更新",
           "weatherActual": {
-            "condition": "",
-            "windSpeedMps": null
+            "condition": "曇",
+            "windSpeedMps": 0.2
           },
-          "finishOrder": [],
-          "kimarite": "",
-          "secondKimarite": "",
+          "finishOrder": [
+            {
+              "rank": "1",
+              "carNo": "5",
+              "name": "吉本 卓仁",
+              "registrationNo": "014045",
+              "gap": "",
+              "agari": "12.2",
+              "kimarite": "差し",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "2",
+              "carNo": "3",
+              "name": "南部 翔大",
+              "registrationNo": "015825",
+              "gap": "1/4車輪",
+              "agari": "12.4",
+              "kimarite": "逃げ",
+              "mark": "HB",
+              "status": ""
+            },
+            {
+              "rank": "3",
+              "carNo": "2",
+              "name": "阿竹 智史",
+              "registrationNo": "014105",
+              "gap": "3/4車身",
+              "agari": "12.2",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "4",
+              "carNo": "1",
+              "name": "川口 公太朗",
+              "registrationNo": "014700",
+              "gap": "3/4車身",
+              "agari": "12.0",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "5",
+              "carNo": "4",
+              "name": "神田 龍",
+              "registrationNo": "015002",
+              "gap": "2 車身",
+              "agari": "12.3",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "6",
+              "carNo": "7",
+              "name": "吉川 起也",
+              "registrationNo": "014248",
+              "gap": "3/4車身",
+              "agari": "12.2",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "7",
+              "carNo": "6",
+              "name": "平原 啓多",
+              "registrationNo": "014582",
+              "gap": "1/4車輪",
+              "agari": "12.2",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            }
+          ],
+          "kimarite": "差し",
+          "secondKimarite": "逃げ",
           "sLeaderCarNo": "",
-          "hLeaderCarNo": "",
-          "bLeaderCarNo": "",
+          "hLeaderCarNo": "3",
+          "bLeaderCarNo": "3",
           "payouts": {
-            "bracketQuinella": [],
-            "bracketExacta": [],
-            "quinella": [],
-            "exacta": [],
-            "trio": [],
-            "trifecta": [],
-            "wide": []
-          },
-          "payout2tan": null,
-          "payout3tan": null,
-          "quality": {
-            "finishOrderCount": 0,
-            "hasFinishOrder": false,
-            "hasTrifecta": false,
-            "warnings": [
-              "finish order missing",
-              "trifecta payout missing"
+            "bracketQuinella": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "bracketExacta": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "quinella": [
+              {
+                "combination": "3=5",
+                "payoutYen": 190,
+                "payoutDisplay": "190",
+                "popularity": 1
+              }
+            ],
+            "exacta": [
+              {
+                "combination": "5-3",
+                "payoutYen": 260,
+                "payoutDisplay": "260",
+                "popularity": 1
+              }
+            ],
+            "trio": [
+              {
+                "combination": "2=3=5",
+                "payoutYen": 350,
+                "payoutDisplay": "350",
+                "popularity": 1
+              }
+            ],
+            "trifecta": [
+              {
+                "combination": "5-3-2",
+                "payoutYen": 670,
+                "payoutDisplay": "670",
+                "popularity": 1
+              }
+            ],
+            "wide": [
+              {
+                "combination": "3=5",
+                "payoutYen": 130,
+                "payoutDisplay": "130",
+                "popularity": 1
+              },
+              {
+                "combination": "2=5",
+                "payoutYen": 170,
+                "payoutDisplay": "170",
+                "popularity": 2
+              },
+              {
+                "combination": "2=3",
+                "payoutYen": 330,
+                "payoutDisplay": "330",
+                "popularity": 6
+              }
             ]
+          },
+          "payout2tan": {
+            "combination": "5-3",
+            "payoutYen": 260,
+            "payoutDisplay": "260",
+            "popularity": 1
+          },
+          "payout3tan": {
+            "combination": "5-3-2",
+            "payoutYen": 670,
+            "payoutDisplay": "670",
+            "popularity": 1
+          },
+          "quality": {
+            "finishOrderCount": 7,
+            "hasFinishOrder": true,
+            "hasTrifecta": true,
+            "warnings": []
           }
         },
         {
           "raceNumber": 11,
-          "resultStatus": "pending",
-          "operationStatus": "pending",
-          "raceEnded": false,
+          "resultStatus": "confirmed",
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
-          "resultVisible": false,
-          "lastUpdateTime": "2026/11/12 07:02 更新",
+          "resultVisible": true,
+          "lastUpdateTime": "2026/11/12 21:04 更新",
           "weatherActual": {
-            "condition": "",
-            "windSpeedMps": null
+            "condition": "曇",
+            "windSpeedMps": 0.2
           },
-          "finishOrder": [],
-          "kimarite": "",
-          "secondKimarite": "",
+          "finishOrder": [
+            {
+              "rank": "1",
+              "carNo": "6",
+              "name": "永井 哉多",
+              "registrationNo": "015610",
+              "gap": "",
+              "agari": "11.7",
+              "kimarite": "逃げ",
+              "mark": "HB",
+              "status": ""
+            },
+            {
+              "rank": "2",
+              "carNo": "3",
+              "name": "岸澤 賢太",
+              "registrationNo": "014148",
+              "gap": "1 車身",
+              "agari": "11.7",
+              "kimarite": "マーク",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "3",
+              "carNo": "2",
+              "name": "田中 晴基",
+              "registrationNo": "014081",
+              "gap": "1/4車輪",
+              "agari": "11.5",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "4",
+              "carNo": "4",
+              "name": "中村 龍吉",
+              "registrationNo": "015787",
+              "gap": "3/4車身",
+              "agari": "11.7",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "5",
+              "carNo": "7",
+              "name": "横関 裕樹",
+              "registrationNo": "014754",
+              "gap": "ﾀｲﾔ差",
+              "agari": "11.4",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "6",
+              "carNo": "1",
+              "name": "西村 光太",
+              "registrationNo": "014537",
+              "gap": "1 車身",
+              "agari": "11.7",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "7",
+              "carNo": "5",
+              "name": "青柳 靖起",
+              "registrationNo": "015473",
+              "gap": "大差",
+              "agari": "12.8",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            }
+          ],
+          "kimarite": "逃げ",
+          "secondKimarite": "マーク",
           "sLeaderCarNo": "",
-          "hLeaderCarNo": "",
-          "bLeaderCarNo": "",
+          "hLeaderCarNo": "6",
+          "bLeaderCarNo": "6",
           "payouts": {
-            "bracketQuinella": [],
-            "bracketExacta": [],
-            "quinella": [],
-            "exacta": [],
-            "trio": [],
-            "trifecta": [],
-            "wide": []
-          },
-          "payout2tan": null,
-          "payout3tan": null,
-          "quality": {
-            "finishOrderCount": 0,
-            "hasFinishOrder": false,
-            "hasTrifecta": false,
-            "warnings": [
-              "finish order missing",
-              "trifecta payout missing"
+            "bracketQuinella": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "bracketExacta": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "quinella": [
+              {
+                "combination": "3=6",
+                "payoutYen": 1790,
+                "payoutDisplay": "1,790",
+                "popularity": 7
+              }
+            ],
+            "exacta": [
+              {
+                "combination": "6-3",
+                "payoutYen": 2340,
+                "payoutDisplay": "2,340",
+                "popularity": 6
+              }
+            ],
+            "trio": [
+              {
+                "combination": "2=3=6",
+                "payoutYen": 3890,
+                "payoutDisplay": "3,890",
+                "popularity": 13
+              }
+            ],
+            "trifecta": [
+              {
+                "combination": "6-3-2",
+                "payoutYen": 12790,
+                "payoutDisplay": "12,790",
+                "popularity": 37
+              }
+            ],
+            "wide": [
+              {
+                "combination": "3=6",
+                "payoutYen": 1110,
+                "payoutDisplay": "1,110",
+                "popularity": 13
+              },
+              {
+                "combination": "2=6",
+                "payoutYen": 930,
+                "payoutDisplay": "930",
+                "popularity": 12
+              },
+              {
+                "combination": "2=3",
+                "payoutYen": 1720,
+                "payoutDisplay": "1,720",
+                "popularity": 17
+              }
             ]
+          },
+          "payout2tan": {
+            "combination": "6-3",
+            "payoutYen": 2340,
+            "payoutDisplay": "2,340",
+            "popularity": 6
+          },
+          "payout3tan": {
+            "combination": "6-3-2",
+            "payoutYen": 12790,
+            "payoutDisplay": "12,790",
+            "popularity": 37
+          },
+          "quality": {
+            "finishOrderCount": 7,
+            "hasFinishOrder": true,
+            "hasTrifecta": true,
+            "warnings": []
           }
         },
         {
           "raceNumber": 12,
-          "resultStatus": "pending",
-          "operationStatus": "pending",
-          "raceEnded": false,
+          "resultStatus": "confirmed",
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
-          "resultVisible": false,
-          "lastUpdateTime": "2026/11/12 07:02 更新",
+          "resultVisible": true,
+          "lastUpdateTime": "2026/11/12 21:04 更新",
           "weatherActual": {
-            "condition": "",
-            "windSpeedMps": null
+            "condition": "曇",
+            "windSpeedMps": 0.2
           },
-          "finishOrder": [],
-          "kimarite": "",
-          "secondKimarite": "",
+          "finishOrder": [
+            {
+              "rank": "1",
+              "carNo": "7",
+              "name": "木村 皆斗",
+              "registrationNo": "015516",
+              "gap": "",
+              "agari": "11.4",
+              "kimarite": "捲り",
+              "mark": "B",
+              "status": ""
+            },
+            {
+              "rank": "2",
+              "carNo": "1",
+              "name": "岡田 征陽",
+              "registrationNo": "013685",
+              "gap": "1 車身",
+              "agari": "11.4",
+              "kimarite": "マーク",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "3",
+              "carNo": "5",
+              "name": "今井 聡",
+              "registrationNo": "015250",
+              "gap": "1 車身",
+              "agari": "11.3",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "4",
+              "carNo": "2",
+              "name": "佐山 寛明",
+              "registrationNo": "015269",
+              "gap": "2 車身",
+              "agari": "11.3",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "5",
+              "carNo": "4",
+              "name": "藤井 昭吾",
+              "registrationNo": "014757",
+              "gap": "1/4車輪",
+              "agari": "11.4",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "6",
+              "carNo": "3",
+              "name": "望月 永悟",
+              "registrationNo": "013115",
+              "gap": "3/4車身",
+              "agari": "11.7",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "7",
+              "carNo": "6",
+              "name": "後藤 悠",
+              "registrationNo": "015325",
+              "gap": "2 車身",
+              "agari": "12.1",
+              "kimarite": "",
+              "mark": "H",
+              "status": ""
+            }
+          ],
+          "kimarite": "捲り",
+          "secondKimarite": "マーク",
           "sLeaderCarNo": "",
-          "hLeaderCarNo": "",
-          "bLeaderCarNo": "",
+          "hLeaderCarNo": "6",
+          "bLeaderCarNo": "7",
           "payouts": {
-            "bracketQuinella": [],
-            "bracketExacta": [],
-            "quinella": [],
-            "exacta": [],
-            "trio": [],
-            "trifecta": [],
-            "wide": []
-          },
-          "payout2tan": null,
-          "payout3tan": null,
-          "quality": {
-            "finishOrderCount": 0,
-            "hasFinishOrder": false,
-            "hasTrifecta": false,
-            "warnings": [
-              "finish order missing",
-              "trifecta payout missing"
+            "bracketQuinella": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "bracketExacta": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "quinella": [
+              {
+                "combination": "1=7",
+                "payoutYen": 170,
+                "payoutDisplay": "170",
+                "popularity": 1
+              }
+            ],
+            "exacta": [
+              {
+                "combination": "7-1",
+                "payoutYen": 200,
+                "payoutDisplay": "200",
+                "popularity": 1
+              }
+            ],
+            "trio": [
+              {
+                "combination": "1=5=7",
+                "payoutYen": 250,
+                "payoutDisplay": "250",
+                "popularity": 1
+              }
+            ],
+            "trifecta": [
+              {
+                "combination": "7-1-5",
+                "payoutYen": 400,
+                "payoutDisplay": "400",
+                "popularity": 1
+              }
+            ],
+            "wide": [
+              {
+                "combination": "1=7",
+                "payoutYen": 120,
+                "payoutDisplay": "120",
+                "popularity": 1
+              },
+              {
+                "combination": "5=7",
+                "payoutYen": 210,
+                "payoutDisplay": "210",
+                "popularity": 3
+              },
+              {
+                "combination": "1=5",
+                "payoutYen": 300,
+                "payoutDisplay": "300",
+                "popularity": 5
+              }
             ]
+          },
+          "payout2tan": {
+            "combination": "7-1",
+            "payoutYen": 200,
+            "payoutDisplay": "200",
+            "popularity": 1
+          },
+          "payout3tan": {
+            "combination": "7-1-5",
+            "payoutYen": 400,
+            "payoutDisplay": "400",
+            "popularity": 1
+          },
+          "quality": {
+            "finishOrderCount": 7,
+            "hasFinishOrder": true,
+            "hasTrifecta": true,
+            "warnings": []
           }
         }
       ],
       "raceCount": 12,
-      "confirmedRaceCount": 9,
+      "confirmedRaceCount": 12,
       "partialRaceCount": 0,
-      "pendingRaceCount": 3,
+      "pendingRaceCount": 0,
       "errorCount": 0
     },
     {
@@ -10320,7 +11915,7 @@
           "raceButtonActive": true,
           "resultCode": 0,
           "resultVisible": true,
-          "lastUpdateTime": "2026/11/12 16:14 更新",
+          "lastUpdateTime": "2026/11/12 20:55 更新",
           "weatherActual": {
             "condition": "曇",
             "windSpeedMps": 0.8
@@ -10506,7 +12101,7 @@
           "raceButtonActive": true,
           "resultCode": 0,
           "resultVisible": true,
-          "lastUpdateTime": "2026/11/12 16:39 更新",
+          "lastUpdateTime": "2026/11/12 20:55 更新",
           "weatherActual": {
             "condition": "曇",
             "windSpeedMps": 0.5
@@ -10692,7 +12287,7 @@
           "raceButtonActive": true,
           "resultCode": 0,
           "resultVisible": true,
-          "lastUpdateTime": "2026/11/12 17:02 更新",
+          "lastUpdateTime": "2026/11/12 20:55 更新",
           "weatherActual": {
             "condition": "曇",
             "windSpeedMps": 0.6
@@ -10878,7 +12473,7 @@
           "raceButtonActive": true,
           "resultCode": 0,
           "resultVisible": true,
-          "lastUpdateTime": "2026/11/12 17:26 更新",
+          "lastUpdateTime": "2026/11/12 20:55 更新",
           "weatherActual": {
             "condition": "晴",
             "windSpeedMps": 0.6
@@ -11064,7 +12659,7 @@
           "raceButtonActive": true,
           "resultCode": 0,
           "resultVisible": true,
-          "lastUpdateTime": "2026/11/12 17:49 更新",
+          "lastUpdateTime": "2026/11/12 20:55 更新",
           "weatherActual": {
             "condition": "曇",
             "windSpeedMps": 0.4
@@ -11250,7 +12845,7 @@
           "raceButtonActive": true,
           "resultCode": 0,
           "resultVisible": true,
-          "lastUpdateTime": "2026/11/12 18:13 更新",
+          "lastUpdateTime": "2026/11/12 20:55 更新",
           "weatherActual": {
             "condition": "曇",
             "windSpeedMps": 0.4
@@ -11436,7 +13031,7 @@
           "raceButtonActive": true,
           "resultCode": 0,
           "resultVisible": true,
-          "lastUpdateTime": "2026/11/12 18:37 更新",
+          "lastUpdateTime": "2026/11/12 20:55 更新",
           "weatherActual": {
             "condition": "曇",
             "windSpeedMps": 0.4
@@ -11622,7 +13217,7 @@
           "raceButtonActive": true,
           "resultCode": 0,
           "resultVisible": true,
-          "lastUpdateTime": "2026/11/12 19:03 更新",
+          "lastUpdateTime": "2026/11/12 20:55 更新",
           "weatherActual": {
             "condition": "曇",
             "windSpeedMps": 0.9
@@ -11802,23 +13397,101 @@
         },
         {
           "raceNumber": 9,
-          "resultStatus": "pending",
-          "operationStatus": "pending",
+          "resultStatus": "confirmed",
+          "operationStatus": "finished",
           "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
-          "resultVisible": false,
-          "lastUpdateTime": "2026/11/12 19:25 更新",
+          "resultVisible": true,
+          "lastUpdateTime": "2026/11/12 20:55 更新",
           "weatherActual": {
-            "condition": "",
-            "windSpeedMps": null
+            "condition": "曇",
+            "windSpeedMps": 0.4
           },
-          "finishOrder": [],
-          "kimarite": "",
-          "secondKimarite": "",
+          "finishOrder": [
+            {
+              "rank": "1",
+              "carNo": "5",
+              "name": "八谷 誠賢",
+              "registrationNo": "013146",
+              "gap": "",
+              "agari": "12.1",
+              "kimarite": "逃げ",
+              "mark": "HB",
+              "status": ""
+            },
+            {
+              "rank": "2",
+              "carNo": "2",
+              "name": "小林 申太",
+              "registrationNo": "014859",
+              "gap": "1車身1/2",
+              "agari": "12.1",
+              "kimarite": "マーク",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "3",
+              "carNo": "7",
+              "name": "江連 和洋",
+              "registrationNo": "013014",
+              "gap": "1/4車輪",
+              "agari": "11.9",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "4",
+              "carNo": "4",
+              "name": "佐藤 正吾",
+              "registrationNo": "013907",
+              "gap": "1 車輪",
+              "agari": "11.8",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "5",
+              "carNo": "3",
+              "name": "井手 健",
+              "registrationNo": "013298",
+              "gap": "1 車身",
+              "agari": "11.6",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "6",
+              "carNo": "6",
+              "name": "飯塚 隼人",
+              "registrationNo": "014492",
+              "gap": "4 車身",
+              "agari": "12.0",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "7",
+              "carNo": "1",
+              "name": "内山 拓",
+              "registrationNo": "013971",
+              "gap": "1/2車身",
+              "agari": "12.6",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            }
+          ],
+          "kimarite": "逃げ",
+          "secondKimarite": "マーク",
           "sLeaderCarNo": "",
-          "hLeaderCarNo": "",
-          "bLeaderCarNo": "",
+          "hLeaderCarNo": "5",
+          "bLeaderCarNo": "5",
           "payouts": {
             "bracketQuinella": [
               {
@@ -11902,99 +13575,389 @@
             "popularity": 14
           },
           "quality": {
-            "finishOrderCount": 0,
-            "hasFinishOrder": false,
+            "finishOrderCount": 7,
+            "hasFinishOrder": true,
             "hasTrifecta": true,
-            "warnings": [
-              "finish order missing"
-            ]
+            "warnings": []
           }
         },
         {
           "raceNumber": 10,
-          "resultStatus": "pending",
-          "operationStatus": "pending",
-          "raceEnded": false,
+          "resultStatus": "confirmed",
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
-          "resultVisible": false,
-          "lastUpdateTime": "2026/11/12 07:02 更新",
+          "resultVisible": true,
+          "lastUpdateTime": "2026/11/12 20:55 更新",
           "weatherActual": {
-            "condition": "",
-            "windSpeedMps": null
+            "condition": "曇",
+            "windSpeedMps": 0.4
           },
-          "finishOrder": [],
-          "kimarite": "",
-          "secondKimarite": "",
+          "finishOrder": [
+            {
+              "rank": "1",
+              "carNo": "5",
+              "name": "守安 政雄",
+              "registrationNo": "014408",
+              "gap": "",
+              "agari": "11.7",
+              "kimarite": "差し",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "2",
+              "carNo": "1",
+              "name": "宗崎 世連",
+              "registrationNo": "014849",
+              "gap": "1/2車身",
+              "agari": "11.9",
+              "kimarite": "逃げ",
+              "mark": "HB",
+              "status": ""
+            },
+            {
+              "rank": "3",
+              "carNo": "6",
+              "name": "甲斐下 智",
+              "registrationNo": "012132",
+              "gap": "3/4車輪",
+              "agari": "11.7",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "4",
+              "carNo": "3",
+              "name": "白石 大輔",
+              "registrationNo": "013916",
+              "gap": "3 車身",
+              "agari": "11.9",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "5",
+              "carNo": "2",
+              "name": "田代 匠",
+              "registrationNo": "015650",
+              "gap": "2 車身",
+              "agari": "12.3",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "",
+              "carNo": "4",
+              "name": "泉 文人",
+              "registrationNo": "014717",
+              "gap": "",
+              "agari": "",
+              "kimarite": "",
+              "mark": "",
+              "status": "落車棄権"
+            },
+            {
+              "rank": "",
+              "carNo": "7",
+              "name": "安谷屋 将志",
+              "registrationNo": "014566",
+              "gap": "",
+              "agari": "",
+              "kimarite": "",
+              "mark": "",
+              "status": "失格（外帯線内進入）"
+            }
+          ],
+          "kimarite": "差し",
+          "secondKimarite": "逃げ",
           "sLeaderCarNo": "",
-          "hLeaderCarNo": "",
-          "bLeaderCarNo": "",
+          "hLeaderCarNo": "1",
+          "bLeaderCarNo": "1",
           "payouts": {
-            "bracketQuinella": [],
-            "bracketExacta": [],
-            "quinella": [],
-            "exacta": [],
-            "trio": [],
-            "trifecta": [],
-            "wide": []
-          },
-          "payout2tan": null,
-          "payout3tan": null,
-          "quality": {
-            "finishOrderCount": 0,
-            "hasFinishOrder": false,
-            "hasTrifecta": false,
-            "warnings": [
-              "finish order missing",
-              "trifecta payout missing"
+            "bracketQuinella": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "bracketExacta": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "quinella": [
+              {
+                "combination": "1=5",
+                "payoutYen": 330,
+                "payoutDisplay": "330",
+                "popularity": 1
+              }
+            ],
+            "exacta": [
+              {
+                "combination": "5-1",
+                "payoutYen": 780,
+                "payoutDisplay": "780",
+                "popularity": 3
+              }
+            ],
+            "trio": [
+              {
+                "combination": "1=5=6",
+                "payoutYen": 2380,
+                "payoutDisplay": "2,380",
+                "popularity": 11
+              }
+            ],
+            "trifecta": [
+              {
+                "combination": "5-1-6",
+                "payoutYen": 5830,
+                "payoutDisplay": "5,830",
+                "popularity": 23
+              }
+            ],
+            "wide": [
+              {
+                "combination": "1=5",
+                "payoutYen": 260,
+                "payoutDisplay": "260",
+                "popularity": 2
+              },
+              {
+                "combination": "5=6",
+                "payoutYen": 2140,
+                "payoutDisplay": "2,140",
+                "popularity": 16
+              },
+              {
+                "combination": "1=6",
+                "payoutYen": 2590,
+                "payoutDisplay": "2,590",
+                "popularity": 17
+              }
             ]
+          },
+          "payout2tan": {
+            "combination": "5-1",
+            "payoutYen": 780,
+            "payoutDisplay": "780",
+            "popularity": 3
+          },
+          "payout3tan": {
+            "combination": "5-1-6",
+            "payoutYen": 5830,
+            "payoutDisplay": "5,830",
+            "popularity": 23
+          },
+          "quality": {
+            "finishOrderCount": 7,
+            "hasFinishOrder": true,
+            "hasTrifecta": true,
+            "warnings": []
           }
         },
         {
           "raceNumber": 11,
-          "resultStatus": "pending",
-          "operationStatus": "pending",
-          "raceEnded": false,
+          "resultStatus": "confirmed",
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
-          "resultVisible": false,
-          "lastUpdateTime": "2026/11/12 07:02 更新",
+          "resultVisible": true,
+          "lastUpdateTime": "2026/11/12 20:55 更新",
           "weatherActual": {
-            "condition": "",
-            "windSpeedMps": null
+            "condition": "曇",
+            "windSpeedMps": 0.6
           },
-          "finishOrder": [],
-          "kimarite": "",
-          "secondKimarite": "",
+          "finishOrder": [
+            {
+              "rank": "1",
+              "carNo": "6",
+              "name": "寺沼 伊織",
+              "registrationNo": "015348",
+              "gap": "",
+              "agari": "11.8",
+              "kimarite": "差し",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "2",
+              "carNo": "7",
+              "name": "杉山 悠也",
+              "registrationNo": "013994",
+              "gap": "1/8車輪",
+              "agari": "11.7",
+              "kimarite": "マーク",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "3",
+              "carNo": "2",
+              "name": "蕗澤 鴻太郎",
+              "registrationNo": "015162",
+              "gap": "3/4車輪",
+              "agari": "12.0",
+              "kimarite": "",
+              "mark": "HB",
+              "status": ""
+            },
+            {
+              "rank": "4",
+              "carNo": "5",
+              "name": "吉田 智哉",
+              "registrationNo": "015204",
+              "gap": "1/2車身",
+              "agari": "11.6",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "5",
+              "carNo": "4",
+              "name": "江守 昇",
+              "registrationNo": "012811",
+              "gap": "1/2車身",
+              "agari": "11.7",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "6",
+              "carNo": "1",
+              "name": "滝本 泰行",
+              "registrationNo": "015060",
+              "gap": "3/4車輪",
+              "agari": "11.6",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "7",
+              "carNo": "3",
+              "name": "野口 大誠",
+              "registrationNo": "015015",
+              "gap": "1車身1/2",
+              "agari": "11.6",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            }
+          ],
+          "kimarite": "差し",
+          "secondKimarite": "マーク",
           "sLeaderCarNo": "",
-          "hLeaderCarNo": "",
-          "bLeaderCarNo": "",
+          "hLeaderCarNo": "2",
+          "bLeaderCarNo": "2",
           "payouts": {
-            "bracketQuinella": [],
-            "bracketExacta": [],
-            "quinella": [],
-            "exacta": [],
-            "trio": [],
-            "trifecta": [],
-            "wide": []
-          },
-          "payout2tan": null,
-          "payout3tan": null,
-          "quality": {
-            "finishOrderCount": 0,
-            "hasFinishOrder": false,
-            "hasTrifecta": false,
-            "warnings": [
-              "finish order missing",
-              "trifecta payout missing"
+            "bracketQuinella": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "bracketExacta": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "quinella": [
+              {
+                "combination": "6=7",
+                "payoutYen": 400,
+                "payoutDisplay": "400",
+                "popularity": 2
+              }
+            ],
+            "exacta": [
+              {
+                "combination": "6-7",
+                "payoutYen": 890,
+                "payoutDisplay": "890",
+                "popularity": 3
+              }
+            ],
+            "trio": [
+              {
+                "combination": "2=6=7",
+                "payoutYen": 290,
+                "payoutDisplay": "290",
+                "popularity": 1
+              }
+            ],
+            "trifecta": [
+              {
+                "combination": "6-7-2",
+                "payoutYen": 1350,
+                "payoutDisplay": "1,350",
+                "popularity": 3
+              }
+            ],
+            "wide": [
+              {
+                "combination": "6=7",
+                "payoutYen": 170,
+                "payoutDisplay": "170",
+                "popularity": 2
+              },
+              {
+                "combination": "2=6",
+                "payoutYen": 150,
+                "payoutDisplay": "150",
+                "popularity": 1
+              },
+              {
+                "combination": "2=7",
+                "payoutYen": 190,
+                "payoutDisplay": "190",
+                "popularity": 3
+              }
             ]
+          },
+          "payout2tan": {
+            "combination": "6-7",
+            "payoutYen": 890,
+            "payoutDisplay": "890",
+            "popularity": 3
+          },
+          "payout3tan": {
+            "combination": "6-7-2",
+            "payoutYen": 1350,
+            "payoutDisplay": "1,350",
+            "popularity": 3
+          },
+          "quality": {
+            "finishOrderCount": 7,
+            "hasFinishOrder": true,
+            "hasTrifecta": true,
+            "warnings": []
           }
         }
       ],
       "raceCount": 11,
-      "confirmedRaceCount": 8,
+      "confirmedRaceCount": 11,
       "partialRaceCount": 0,
-      "pendingRaceCount": 3,
+      "pendingRaceCount": 0,
       "errorCount": 0
     },
     {
@@ -12006,376 +13969,1690 @@
       "races": [
         {
           "raceNumber": 1,
-          "resultStatus": "pending",
-          "operationStatus": "pending",
-          "raceEnded": false,
+          "resultStatus": "confirmed",
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
-          "resultVisible": false,
-          "lastUpdateTime": "2026/11/12 12:17 更新",
+          "resultVisible": true,
+          "lastUpdateTime": "2026/11/12 20:51 更新",
           "weatherActual": {
-            "condition": "",
-            "windSpeedMps": null
+            "condition": "晴",
+            "windSpeedMps": 0
           },
-          "finishOrder": [],
-          "kimarite": "",
-          "secondKimarite": "",
+          "finishOrder": [
+            {
+              "rank": "1",
+              "carNo": "1",
+              "name": "田中 弘章",
+              "registrationNo": "012479",
+              "gap": "",
+              "agari": "12.3",
+              "kimarite": "差し",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "2",
+              "carNo": "3",
+              "name": "川本 琢也",
+              "registrationNo": "014842",
+              "gap": "3/4車輪",
+              "agari": "12.5",
+              "kimarite": "逃げ",
+              "mark": "HB",
+              "status": ""
+            },
+            {
+              "rank": "3",
+              "carNo": "5",
+              "name": "木本 賢二",
+              "registrationNo": "012529",
+              "gap": "1/2車輪",
+              "agari": "12.1",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "4",
+              "carNo": "6",
+              "name": "白崎 芳典",
+              "registrationNo": "013788",
+              "gap": "1/2車身",
+              "agari": "12.1",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "5",
+              "carNo": "2",
+              "name": "赤松 秀展",
+              "registrationNo": "013063",
+              "gap": "5 車身",
+              "agari": "13.0",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "6",
+              "carNo": "7",
+              "name": "曽我部 匡史",
+              "registrationNo": "013508",
+              "gap": "1/2車輪",
+              "agari": "12.6",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "7",
+              "carNo": "4",
+              "name": "楠本 政明",
+              "registrationNo": "015739",
+              "gap": "2 車身",
+              "agari": "13.1",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            }
+          ],
+          "kimarite": "差し",
+          "secondKimarite": "逃げ",
           "sLeaderCarNo": "",
-          "hLeaderCarNo": "",
-          "bLeaderCarNo": "",
+          "hLeaderCarNo": "3",
+          "bLeaderCarNo": "3",
           "payouts": {
-            "bracketQuinella": [],
-            "bracketExacta": [],
-            "quinella": [],
-            "exacta": [],
-            "trio": [],
-            "trifecta": [],
-            "wide": []
-          },
-          "payout2tan": null,
-          "payout3tan": null,
-          "quality": {
-            "finishOrderCount": 0,
-            "hasFinishOrder": false,
-            "hasTrifecta": false,
-            "warnings": [
-              "finish order missing",
-              "trifecta payout missing"
+            "bracketQuinella": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "bracketExacta": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "quinella": [
+              {
+                "combination": "1=3",
+                "payoutYen": 430,
+                "payoutDisplay": "430",
+                "popularity": 2
+              }
+            ],
+            "exacta": [
+              {
+                "combination": "1-3",
+                "payoutYen": 1690,
+                "payoutDisplay": "1,690",
+                "popularity": 6
+              }
+            ],
+            "trio": [
+              {
+                "combination": "1=3=5",
+                "payoutYen": 1200,
+                "payoutDisplay": "1,200",
+                "popularity": 4
+              }
+            ],
+            "trifecta": [
+              {
+                "combination": "1-3-5",
+                "payoutYen": 8550,
+                "payoutDisplay": "8,550",
+                "popularity": 31
+              }
+            ],
+            "wide": [
+              {
+                "combination": "1=3",
+                "payoutYen": 300,
+                "payoutDisplay": "300",
+                "popularity": 3
+              },
+              {
+                "combination": "1=5",
+                "payoutYen": 490,
+                "payoutDisplay": "490",
+                "popularity": 9
+              },
+              {
+                "combination": "3=5",
+                "payoutYen": 360,
+                "payoutDisplay": "360",
+                "popularity": 6
+              }
             ]
+          },
+          "payout2tan": {
+            "combination": "1-3",
+            "payoutYen": 1690,
+            "payoutDisplay": "1,690",
+            "popularity": 6
+          },
+          "payout3tan": {
+            "combination": "1-3-5",
+            "payoutYen": 8550,
+            "payoutDisplay": "8,550",
+            "popularity": 31
+          },
+          "quality": {
+            "finishOrderCount": 7,
+            "hasFinishOrder": true,
+            "hasTrifecta": true,
+            "warnings": []
           }
         },
         {
           "raceNumber": 2,
-          "resultStatus": "pending",
-          "operationStatus": "pending",
-          "raceEnded": false,
+          "resultStatus": "confirmed",
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
-          "resultVisible": false,
-          "lastUpdateTime": "2026/11/12 12:17 更新",
+          "resultVisible": true,
+          "lastUpdateTime": "2026/11/12 21:12 更新",
           "weatherActual": {
-            "condition": "",
-            "windSpeedMps": null
+            "condition": "晴",
+            "windSpeedMps": 0
           },
-          "finishOrder": [],
-          "kimarite": "",
-          "secondKimarite": "",
+          "finishOrder": [
+            {
+              "rank": "1",
+              "carNo": "1",
+              "name": "財満 伊織",
+              "registrationNo": "016021",
+              "gap": "",
+              "agari": "11.9",
+              "kimarite": "捲り",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "2",
+              "carNo": "5",
+              "name": "後田 康成",
+              "registrationNo": "012997",
+              "gap": "1車身1/2",
+              "agari": "11.8",
+              "kimarite": "マーク",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "3",
+              "carNo": "2",
+              "name": "大林 亮介",
+              "registrationNo": "013802",
+              "gap": "3 車身",
+              "agari": "12.6",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "4",
+              "carNo": "4",
+              "name": "磯村 蓮太",
+              "registrationNo": "015355",
+              "gap": "3/4車身",
+              "agari": "12.8",
+              "kimarite": "",
+              "mark": "HB",
+              "status": ""
+            },
+            {
+              "rank": "5",
+              "carNo": "3",
+              "name": "梶原 秀庸",
+              "registrationNo": "013128",
+              "gap": "1/8車輪",
+              "agari": "12.6",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "6",
+              "carNo": "7",
+              "name": "中野 彰人",
+              "registrationNo": "014319",
+              "gap": "1/2車身",
+              "agari": "12.5",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "7",
+              "carNo": "6",
+              "name": "白井 一機",
+              "registrationNo": "012206",
+              "gap": "3 車身",
+              "agari": "13.1",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            }
+          ],
+          "kimarite": "捲り",
+          "secondKimarite": "マーク",
           "sLeaderCarNo": "",
-          "hLeaderCarNo": "",
-          "bLeaderCarNo": "",
+          "hLeaderCarNo": "4",
+          "bLeaderCarNo": "4",
           "payouts": {
-            "bracketQuinella": [],
-            "bracketExacta": [],
-            "quinella": [],
-            "exacta": [],
-            "trio": [],
-            "trifecta": [],
-            "wide": []
-          },
-          "payout2tan": null,
-          "payout3tan": null,
-          "quality": {
-            "finishOrderCount": 0,
-            "hasFinishOrder": false,
-            "hasTrifecta": false,
-            "warnings": [
-              "finish order missing",
-              "trifecta payout missing"
+            "bracketQuinella": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "bracketExacta": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "quinella": [
+              {
+                "combination": "1=5",
+                "payoutYen": 150,
+                "payoutDisplay": "150",
+                "popularity": 1
+              }
+            ],
+            "exacta": [
+              {
+                "combination": "1-5",
+                "payoutYen": 230,
+                "payoutDisplay": "230",
+                "popularity": 1
+              }
+            ],
+            "trio": [
+              {
+                "combination": "1=2=5",
+                "payoutYen": 140,
+                "payoutDisplay": "140",
+                "popularity": 1
+              }
+            ],
+            "trifecta": [
+              {
+                "combination": "1-5-2",
+                "payoutYen": 320,
+                "payoutDisplay": "320",
+                "popularity": 1
+              }
+            ],
+            "wide": [
+              {
+                "combination": "1=5",
+                "payoutYen": 130,
+                "payoutDisplay": "130",
+                "popularity": 1
+              },
+              {
+                "combination": "1=2",
+                "payoutYen": 150,
+                "payoutDisplay": "150",
+                "popularity": 3
+              },
+              {
+                "combination": "2=5",
+                "payoutYen": 130,
+                "payoutDisplay": "130",
+                "popularity": 2
+              }
             ]
+          },
+          "payout2tan": {
+            "combination": "1-5",
+            "payoutYen": 230,
+            "payoutDisplay": "230",
+            "popularity": 1
+          },
+          "payout3tan": {
+            "combination": "1-5-2",
+            "payoutYen": 320,
+            "payoutDisplay": "320",
+            "popularity": 1
+          },
+          "quality": {
+            "finishOrderCount": 7,
+            "hasFinishOrder": true,
+            "hasTrifecta": true,
+            "warnings": []
           }
         },
         {
           "raceNumber": 3,
-          "resultStatus": "pending",
-          "operationStatus": "pending",
-          "raceEnded": false,
+          "resultStatus": "confirmed",
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
-          "resultVisible": false,
-          "lastUpdateTime": "2026/11/12 12:17 更新",
+          "resultVisible": true,
+          "lastUpdateTime": "2026/11/12 21:36 更新",
           "weatherActual": {
-            "condition": "",
-            "windSpeedMps": null
+            "condition": "曇",
+            "windSpeedMps": 0
           },
-          "finishOrder": [],
-          "kimarite": "",
-          "secondKimarite": "",
+          "finishOrder": [
+            {
+              "rank": "1",
+              "carNo": "1",
+              "name": "戸田 康平",
+              "registrationNo": "014885",
+              "gap": "",
+              "agari": "12.6",
+              "kimarite": "逃げ",
+              "mark": "HB",
+              "status": ""
+            },
+            {
+              "rank": "2",
+              "carNo": "4",
+              "name": "龍門 慎太郎",
+              "registrationNo": "014550",
+              "gap": "3/4車身",
+              "agari": "12.4",
+              "kimarite": "マーク",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "3",
+              "carNo": "6",
+              "name": "田山 誠",
+              "registrationNo": "014559",
+              "gap": "3 車身",
+              "agari": "12.5",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "4",
+              "carNo": "5",
+              "name": "原 清孝",
+              "registrationNo": "014652",
+              "gap": "大差",
+              "agari": "14.6",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "",
+              "carNo": "2",
+              "name": "木曽田 晃大",
+              "registrationNo": "015998",
+              "gap": "",
+              "agari": "",
+              "kimarite": "",
+              "mark": "",
+              "status": "落車棄権"
+            },
+            {
+              "rank": "",
+              "carNo": "3",
+              "name": "藤井 準也",
+              "registrationNo": "015000",
+              "gap": "",
+              "agari": "",
+              "kimarite": "",
+              "mark": "",
+              "status": "落車棄権"
+            },
+            {
+              "rank": "",
+              "carNo": "7",
+              "name": "三登 誉哲",
+              "registrationNo": "014844",
+              "gap": "",
+              "agari": "",
+              "kimarite": "",
+              "mark": "",
+              "status": "失格（斜行）"
+            }
+          ],
+          "kimarite": "逃げ",
+          "secondKimarite": "マーク",
           "sLeaderCarNo": "",
-          "hLeaderCarNo": "",
-          "bLeaderCarNo": "",
+          "hLeaderCarNo": "1",
+          "bLeaderCarNo": "1",
           "payouts": {
-            "bracketQuinella": [],
-            "bracketExacta": [],
-            "quinella": [],
-            "exacta": [],
-            "trio": [],
-            "trifecta": [],
-            "wide": []
-          },
-          "payout2tan": null,
-          "payout3tan": null,
-          "quality": {
-            "finishOrderCount": 0,
-            "hasFinishOrder": false,
-            "hasTrifecta": false,
-            "warnings": [
-              "finish order missing",
-              "trifecta payout missing"
+            "bracketQuinella": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "bracketExacta": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "quinella": [
+              {
+                "combination": "1=4",
+                "payoutYen": 6900,
+                "payoutDisplay": "6,900",
+                "popularity": 8
+              }
+            ],
+            "exacta": [
+              {
+                "combination": "1-4",
+                "payoutYen": 5080,
+                "payoutDisplay": "5,080",
+                "popularity": 14
+              }
+            ],
+            "trio": [
+              {
+                "combination": "1=4=6",
+                "payoutYen": 24180,
+                "payoutDisplay": "24,180",
+                "popularity": 31
+              }
+            ],
+            "trifecta": [
+              {
+                "combination": "1-4-6",
+                "payoutYen": 99700,
+                "payoutDisplay": "99,700",
+                "popularity": 137
+              }
+            ],
+            "wide": [
+              {
+                "combination": "1=4",
+                "payoutYen": 520,
+                "payoutDisplay": "520",
+                "popularity": 8
+              },
+              {
+                "combination": "1=6",
+                "payoutYen": 4250,
+                "payoutDisplay": "4,250",
+                "popularity": 20
+              },
+              {
+                "combination": "4=6",
+                "payoutYen": 670,
+                "payoutDisplay": "670",
+                "popularity": 11
+              }
             ]
+          },
+          "payout2tan": {
+            "combination": "1-4",
+            "payoutYen": 5080,
+            "payoutDisplay": "5,080",
+            "popularity": 14
+          },
+          "payout3tan": {
+            "combination": "1-4-6",
+            "payoutYen": 99700,
+            "payoutDisplay": "99,700",
+            "popularity": 137
+          },
+          "quality": {
+            "finishOrderCount": 7,
+            "hasFinishOrder": true,
+            "hasTrifecta": true,
+            "warnings": []
           }
         },
         {
           "raceNumber": 4,
-          "resultStatus": "pending",
-          "operationStatus": "pending",
-          "raceEnded": false,
+          "resultStatus": "confirmed",
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
-          "resultVisible": false,
-          "lastUpdateTime": "2026/11/12 12:17 更新",
+          "resultVisible": true,
+          "lastUpdateTime": "2026/11/12 21:52 更新",
           "weatherActual": {
-            "condition": "",
-            "windSpeedMps": null
+            "condition": "曇",
+            "windSpeedMps": 0
           },
-          "finishOrder": [],
-          "kimarite": "",
-          "secondKimarite": "",
+          "finishOrder": [
+            {
+              "rank": "1",
+              "carNo": "1",
+              "name": "高佐 龍太郎",
+              "registrationNo": "016025",
+              "gap": "",
+              "agari": "11.9",
+              "kimarite": "逃げ",
+              "mark": "HB",
+              "status": ""
+            },
+            {
+              "rank": "2",
+              "carNo": "7",
+              "name": "宮田 龍一",
+              "registrationNo": "016002",
+              "gap": "1/2車輪",
+              "agari": "11.8",
+              "kimarite": "マーク",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "3",
+              "carNo": "4",
+              "name": "窪田 陽介",
+              "registrationNo": "014093",
+              "gap": "1車身1/2",
+              "agari": "11.8",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "4",
+              "carNo": "6",
+              "name": "古閑 良介",
+              "registrationNo": "012847",
+              "gap": "1/2車身",
+              "agari": "11.7",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "5",
+              "carNo": "5",
+              "name": "塚本 貴雄",
+              "registrationNo": "012597",
+              "gap": "1/2車身",
+              "agari": "11.4",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "6",
+              "carNo": "2",
+              "name": "森川 康輔",
+              "registrationNo": "015177",
+              "gap": "1/2車輪",
+              "agari": "11.6",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "7",
+              "carNo": "3",
+              "name": "松丸 裕紀",
+              "registrationNo": "013767",
+              "gap": "大差",
+              "agari": "13.8",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            }
+          ],
+          "kimarite": "逃げ",
+          "secondKimarite": "マーク",
           "sLeaderCarNo": "",
-          "hLeaderCarNo": "",
-          "bLeaderCarNo": "",
+          "hLeaderCarNo": "1",
+          "bLeaderCarNo": "1",
           "payouts": {
-            "bracketQuinella": [],
-            "bracketExacta": [],
-            "quinella": [],
-            "exacta": [],
-            "trio": [],
-            "trifecta": [],
-            "wide": []
-          },
-          "payout2tan": null,
-          "payout3tan": null,
-          "quality": {
-            "finishOrderCount": 0,
-            "hasFinishOrder": false,
-            "hasTrifecta": false,
-            "warnings": [
-              "finish order missing",
-              "trifecta payout missing"
+            "bracketQuinella": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "bracketExacta": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "quinella": [
+              {
+                "combination": "1=7",
+                "payoutYen": 740,
+                "payoutDisplay": "740",
+                "popularity": 3
+              }
+            ],
+            "exacta": [
+              {
+                "combination": "1-7",
+                "payoutYen": 1070,
+                "payoutDisplay": "1,070",
+                "popularity": 4
+              }
+            ],
+            "trio": [
+              {
+                "combination": "1=4=7",
+                "payoutYen": 1180,
+                "payoutDisplay": "1,180",
+                "popularity": 6
+              }
+            ],
+            "trifecta": [
+              {
+                "combination": "1-7-4",
+                "payoutYen": 2450,
+                "payoutDisplay": "2,450",
+                "popularity": 9
+              }
+            ],
+            "wide": [
+              {
+                "combination": "1=7",
+                "payoutYen": 440,
+                "payoutDisplay": "440",
+                "popularity": 5
+              },
+              {
+                "combination": "1=4",
+                "payoutYen": 440,
+                "payoutDisplay": "440",
+                "popularity": 6
+              },
+              {
+                "combination": "4=7",
+                "payoutYen": 1030,
+                "payoutDisplay": "1,030",
+                "popularity": 13
+              }
             ]
+          },
+          "payout2tan": {
+            "combination": "1-7",
+            "payoutYen": 1070,
+            "payoutDisplay": "1,070",
+            "popularity": 4
+          },
+          "payout3tan": {
+            "combination": "1-7-4",
+            "payoutYen": 2450,
+            "payoutDisplay": "2,450",
+            "popularity": 9
+          },
+          "quality": {
+            "finishOrderCount": 7,
+            "hasFinishOrder": true,
+            "hasTrifecta": true,
+            "warnings": []
           }
         },
         {
           "raceNumber": 5,
-          "resultStatus": "pending",
-          "operationStatus": "pending",
-          "raceEnded": false,
+          "resultStatus": "confirmed",
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
-          "resultVisible": false,
-          "lastUpdateTime": "2026/11/12 12:17 更新",
+          "resultVisible": true,
+          "lastUpdateTime": "2026/11/12 22:09 更新",
           "weatherActual": {
-            "condition": "",
-            "windSpeedMps": null
+            "condition": "曇",
+            "windSpeedMps": 0
           },
-          "finishOrder": [],
-          "kimarite": "",
-          "secondKimarite": "",
+          "finishOrder": [
+            {
+              "rank": "1",
+              "carNo": "2",
+              "name": "三浦 稔希",
+              "registrationNo": "013041",
+              "gap": "",
+              "agari": "11.7",
+              "kimarite": "差し",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "2",
+              "carNo": "5",
+              "name": "中村 泰輔",
+              "registrationNo": "015459",
+              "gap": "1/2車輪",
+              "agari": "11.9",
+              "kimarite": "捲り",
+              "mark": "B",
+              "status": ""
+            },
+            {
+              "rank": "3",
+              "carNo": "1",
+              "name": "林 明宏",
+              "registrationNo": "013296",
+              "gap": "3/4車身",
+              "agari": "11.9",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "4",
+              "carNo": "3",
+              "name": "小川 将人",
+              "registrationNo": "012971",
+              "gap": "1 車身",
+              "agari": "11.9",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "5",
+              "carNo": "6",
+              "name": "山本 貴章",
+              "registrationNo": "013056",
+              "gap": "1/4車輪",
+              "agari": "11.9",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "6",
+              "carNo": "4",
+              "name": "辻 力",
+              "registrationNo": "012681",
+              "gap": "1 車身",
+              "agari": "11.9",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "7",
+              "carNo": "7",
+              "name": "中岡 海",
+              "registrationNo": "015736",
+              "gap": "大差",
+              "agari": "14.1",
+              "kimarite": "",
+              "mark": "H",
+              "status": ""
+            }
+          ],
+          "kimarite": "差し",
+          "secondKimarite": "捲り",
           "sLeaderCarNo": "",
-          "hLeaderCarNo": "",
-          "bLeaderCarNo": "",
+          "hLeaderCarNo": "7",
+          "bLeaderCarNo": "5",
           "payouts": {
-            "bracketQuinella": [],
-            "bracketExacta": [],
-            "quinella": [],
-            "exacta": [],
-            "trio": [],
-            "trifecta": [],
-            "wide": []
-          },
-          "payout2tan": null,
-          "payout3tan": null,
-          "quality": {
-            "finishOrderCount": 0,
-            "hasFinishOrder": false,
-            "hasTrifecta": false,
-            "warnings": [
-              "finish order missing",
-              "trifecta payout missing"
+            "bracketQuinella": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "bracketExacta": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "quinella": [
+              {
+                "combination": "2=5",
+                "payoutYen": 440,
+                "payoutDisplay": "440",
+                "popularity": 2
+              }
+            ],
+            "exacta": [
+              {
+                "combination": "2-5",
+                "payoutYen": 480,
+                "payoutDisplay": "480",
+                "popularity": 2
+              }
+            ],
+            "trio": [
+              {
+                "combination": "1=2=5",
+                "payoutYen": 780,
+                "payoutDisplay": "780",
+                "popularity": 3
+              }
+            ],
+            "trifecta": [
+              {
+                "combination": "2-5-1",
+                "payoutYen": 3400,
+                "payoutDisplay": "3,400",
+                "popularity": 11
+              }
+            ],
+            "wide": [
+              {
+                "combination": "2=5",
+                "payoutYen": 230,
+                "payoutDisplay": "230",
+                "popularity": 2
+              },
+              {
+                "combination": "1=2",
+                "payoutYen": 290,
+                "payoutDisplay": "290",
+                "popularity": 4
+              },
+              {
+                "combination": "1=5",
+                "payoutYen": 490,
+                "payoutDisplay": "490",
+                "popularity": 8
+              }
             ]
+          },
+          "payout2tan": {
+            "combination": "2-5",
+            "payoutYen": 480,
+            "payoutDisplay": "480",
+            "popularity": 2
+          },
+          "payout3tan": {
+            "combination": "2-5-1",
+            "payoutYen": 3400,
+            "payoutDisplay": "3,400",
+            "popularity": 11
+          },
+          "quality": {
+            "finishOrderCount": 7,
+            "hasFinishOrder": true,
+            "hasTrifecta": true,
+            "warnings": []
           }
         },
         {
           "raceNumber": 6,
-          "resultStatus": "pending",
-          "operationStatus": "pending",
-          "raceEnded": false,
+          "resultStatus": "confirmed",
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
-          "resultVisible": false,
-          "lastUpdateTime": "2026/11/12 12:17 更新",
+          "resultVisible": true,
+          "lastUpdateTime": "2026/11/12 22:30 更新",
           "weatherActual": {
-            "condition": "",
-            "windSpeedMps": null
+            "condition": "曇",
+            "windSpeedMps": 0
           },
-          "finishOrder": [],
-          "kimarite": "",
-          "secondKimarite": "",
+          "finishOrder": [
+            {
+              "rank": "1",
+              "carNo": "4",
+              "name": "別所 英幸",
+              "registrationNo": "013595",
+              "gap": "",
+              "agari": "12.1",
+              "kimarite": "差し",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "2",
+              "carNo": "6",
+              "name": "船曳 義之",
+              "registrationNo": "013587",
+              "gap": "3/4車輪",
+              "agari": "12.1",
+              "kimarite": "マーク",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "3",
+              "carNo": "1",
+              "name": "山田 晃久",
+              "registrationNo": "013121",
+              "gap": "1/4車輪",
+              "agari": "11.8",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "4",
+              "carNo": "5",
+              "name": "小山 峻汰",
+              "registrationNo": "015844",
+              "gap": "1/2車輪",
+              "agari": "12.3",
+              "kimarite": "",
+              "mark": "HB",
+              "status": ""
+            },
+            {
+              "rank": "5",
+              "carNo": "3",
+              "name": "石黒 健",
+              "registrationNo": "013434",
+              "gap": "1/2車輪",
+              "agari": "12.0",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "6",
+              "carNo": "2",
+              "name": "永井 清史",
+              "registrationNo": "013951",
+              "gap": "1/4車輪",
+              "agari": "11.7",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "7",
+              "carNo": "7",
+              "name": "牛田 樹希斗",
+              "registrationNo": "015534",
+              "gap": "3 車身",
+              "agari": "12.1",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            }
+          ],
+          "kimarite": "差し",
+          "secondKimarite": "マーク",
           "sLeaderCarNo": "",
-          "hLeaderCarNo": "",
-          "bLeaderCarNo": "",
+          "hLeaderCarNo": "5",
+          "bLeaderCarNo": "5",
           "payouts": {
-            "bracketQuinella": [],
-            "bracketExacta": [],
-            "quinella": [],
-            "exacta": [],
-            "trio": [],
-            "trifecta": [],
-            "wide": []
-          },
-          "payout2tan": null,
-          "payout3tan": null,
-          "quality": {
-            "finishOrderCount": 0,
-            "hasFinishOrder": false,
-            "hasTrifecta": false,
-            "warnings": [
-              "finish order missing",
-              "trifecta payout missing"
+            "bracketQuinella": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "bracketExacta": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "quinella": [
+              {
+                "combination": "4=6",
+                "payoutYen": 2680,
+                "payoutDisplay": "2,680",
+                "popularity": 13
+              }
+            ],
+            "exacta": [
+              {
+                "combination": "4-6",
+                "payoutYen": 3160,
+                "payoutDisplay": "3,160",
+                "popularity": 12
+              }
+            ],
+            "trio": [
+              {
+                "combination": "1=4=6",
+                "payoutYen": 3480,
+                "payoutDisplay": "3,480",
+                "popularity": 13
+              }
+            ],
+            "trifecta": [
+              {
+                "combination": "4-6-1",
+                "payoutYen": 10270,
+                "payoutDisplay": "10,270",
+                "popularity": 29
+              }
+            ],
+            "wide": [
+              {
+                "combination": "4=6",
+                "payoutYen": 740,
+                "payoutDisplay": "740",
+                "popularity": 9
+              },
+              {
+                "combination": "1=4",
+                "payoutYen": 630,
+                "payoutDisplay": "630",
+                "popularity": 8
+              },
+              {
+                "combination": "1=6",
+                "payoutYen": 1080,
+                "payoutDisplay": "1,080",
+                "popularity": 12
+              }
             ]
+          },
+          "payout2tan": {
+            "combination": "4-6",
+            "payoutYen": 3160,
+            "payoutDisplay": "3,160",
+            "popularity": 12
+          },
+          "payout3tan": {
+            "combination": "4-6-1",
+            "payoutYen": 10270,
+            "payoutDisplay": "10,270",
+            "popularity": 29
+          },
+          "quality": {
+            "finishOrderCount": 7,
+            "hasFinishOrder": true,
+            "hasTrifecta": true,
+            "warnings": []
           }
         },
         {
           "raceNumber": 7,
-          "resultStatus": "pending",
-          "operationStatus": "pending",
-          "raceEnded": false,
+          "resultStatus": "confirmed",
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
-          "resultVisible": false,
-          "lastUpdateTime": "2026/11/12 12:17 更新",
+          "resultVisible": true,
+          "lastUpdateTime": "2026/11/12 22:50 更新",
           "weatherActual": {
-            "condition": "",
-            "windSpeedMps": null
+            "condition": "曇",
+            "windSpeedMps": 0
           },
-          "finishOrder": [],
-          "kimarite": "",
-          "secondKimarite": "",
+          "finishOrder": [
+            {
+              "rank": "1",
+              "carNo": "1",
+              "name": "田中 和磨",
+              "registrationNo": "015278",
+              "gap": "",
+              "agari": "11.8",
+              "kimarite": "差し",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "2",
+              "carNo": "2",
+              "name": "藤原 浩",
+              "registrationNo": "013890",
+              "gap": "3/4車身",
+              "agari": "11.8",
+              "kimarite": "マーク",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "3",
+              "carNo": "7",
+              "name": "川野 正芳",
+              "registrationNo": "013374",
+              "gap": "1/2車身",
+              "agari": "11.6",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "4",
+              "carNo": "4",
+              "name": "中川 繁樹",
+              "registrationNo": "014314",
+              "gap": "1/2車身",
+              "agari": "12.1",
+              "kimarite": "",
+              "mark": "HB",
+              "status": ""
+            },
+            {
+              "rank": "5",
+              "carNo": "5",
+              "name": "四元 慎也",
+              "registrationNo": "013155",
+              "gap": "1/2車身",
+              "agari": "11.9",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "6",
+              "carNo": "3",
+              "name": "寺師 幸成",
+              "registrationNo": "015847",
+              "gap": "1車身1/2",
+              "agari": "11.9",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "7",
+              "carNo": "6",
+              "name": "山田 哲也",
+              "registrationNo": "014749",
+              "gap": "3/4車輪",
+              "agari": "12.1",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            }
+          ],
+          "kimarite": "差し",
+          "secondKimarite": "マーク",
           "sLeaderCarNo": "",
-          "hLeaderCarNo": "",
-          "bLeaderCarNo": "",
+          "hLeaderCarNo": "4",
+          "bLeaderCarNo": "4",
           "payouts": {
-            "bracketQuinella": [],
-            "bracketExacta": [],
-            "quinella": [],
-            "exacta": [],
-            "trio": [],
-            "trifecta": [],
-            "wide": []
-          },
-          "payout2tan": null,
-          "payout3tan": null,
-          "quality": {
-            "finishOrderCount": 0,
-            "hasFinishOrder": false,
-            "hasTrifecta": false,
-            "warnings": [
-              "finish order missing",
-              "trifecta payout missing"
+            "bracketQuinella": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "bracketExacta": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "quinella": [
+              {
+                "combination": "1=2",
+                "payoutYen": 150,
+                "payoutDisplay": "150",
+                "popularity": 1
+              }
+            ],
+            "exacta": [
+              {
+                "combination": "1-2",
+                "payoutYen": 150,
+                "payoutDisplay": "150",
+                "popularity": 1
+              }
+            ],
+            "trio": [
+              {
+                "combination": "1=2=7",
+                "payoutYen": 2650,
+                "payoutDisplay": "2,650",
+                "popularity": 9
+              }
+            ],
+            "trifecta": [
+              {
+                "combination": "1-2-7",
+                "payoutYen": 3820,
+                "payoutDisplay": "3,820",
+                "popularity": 8
+              }
+            ],
+            "wide": [
+              {
+                "combination": "1=2",
+                "payoutYen": 150,
+                "payoutDisplay": "150",
+                "popularity": 1
+              },
+              {
+                "combination": "1=7",
+                "payoutYen": 1010,
+                "payoutDisplay": "1,010",
+                "popularity": 15
+              },
+              {
+                "combination": "2=7",
+                "payoutYen": 1940,
+                "payoutDisplay": "1,940",
+                "popularity": 19
+              }
             ]
+          },
+          "payout2tan": {
+            "combination": "1-2",
+            "payoutYen": 150,
+            "payoutDisplay": "150",
+            "popularity": 1
+          },
+          "payout3tan": {
+            "combination": "1-2-7",
+            "payoutYen": 3820,
+            "payoutDisplay": "3,820",
+            "popularity": 8
+          },
+          "quality": {
+            "finishOrderCount": 7,
+            "hasFinishOrder": true,
+            "hasTrifecta": true,
+            "warnings": []
           }
         },
         {
           "raceNumber": 8,
-          "resultStatus": "pending",
-          "operationStatus": "pending",
-          "raceEnded": false,
+          "resultStatus": "confirmed",
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
-          "resultVisible": false,
-          "lastUpdateTime": "2026/11/12 12:17 更新",
+          "resultVisible": true,
+          "lastUpdateTime": "2026/11/12 23:10 更新",
           "weatherActual": {
-            "condition": "",
-            "windSpeedMps": null
+            "condition": "曇",
+            "windSpeedMps": 0
           },
-          "finishOrder": [],
-          "kimarite": "",
-          "secondKimarite": "",
+          "finishOrder": [
+            {
+              "rank": "1",
+              "carNo": "5",
+              "name": "鶴 淳志",
+              "registrationNo": "015929",
+              "gap": "",
+              "agari": "11.8",
+              "kimarite": "捲り",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "2",
+              "carNo": "3",
+              "name": "阿部 兼士",
+              "registrationNo": "014333",
+              "gap": "3/4車輪",
+              "agari": "11.7",
+              "kimarite": "マーク",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "3",
+              "carNo": "2",
+              "name": "常次 勇人",
+              "registrationNo": "015632",
+              "gap": "3/4車輪",
+              "agari": "11.6",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "4",
+              "carNo": "1",
+              "name": "小嶋 敬二",
+              "registrationNo": "012895",
+              "gap": "1 車輪",
+              "agari": "11.5",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "5",
+              "carNo": "7",
+              "name": "山口 幸太郎",
+              "registrationNo": "014782",
+              "gap": "2 車身",
+              "agari": "12.0",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "6",
+              "carNo": "4",
+              "name": "松本 昂大",
+              "registrationNo": "015843",
+              "gap": "1/2車身",
+              "agari": "12.1",
+              "kimarite": "",
+              "mark": "HB",
+              "status": ""
+            },
+            {
+              "rank": "7",
+              "carNo": "6",
+              "name": "屋良 朝春",
+              "registrationNo": "014374",
+              "gap": "3/4車身",
+              "agari": "11.9",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            }
+          ],
+          "kimarite": "捲り",
+          "secondKimarite": "マーク",
           "sLeaderCarNo": "",
-          "hLeaderCarNo": "",
-          "bLeaderCarNo": "",
+          "hLeaderCarNo": "4",
+          "bLeaderCarNo": "4",
           "payouts": {
-            "bracketQuinella": [],
-            "bracketExacta": [],
-            "quinella": [],
-            "exacta": [],
-            "trio": [],
-            "trifecta": [],
-            "wide": []
-          },
-          "payout2tan": null,
-          "payout3tan": null,
-          "quality": {
-            "finishOrderCount": 0,
-            "hasFinishOrder": false,
-            "hasTrifecta": false,
-            "warnings": [
-              "finish order missing",
-              "trifecta payout missing"
+            "bracketQuinella": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "bracketExacta": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "quinella": [
+              {
+                "combination": "3=5",
+                "payoutYen": 1450,
+                "payoutDisplay": "1,450",
+                "popularity": 5
+              }
+            ],
+            "exacta": [
+              {
+                "combination": "5-3",
+                "payoutYen": 2900,
+                "payoutDisplay": "2,900",
+                "popularity": 8
+              }
+            ],
+            "trio": [
+              {
+                "combination": "2=3=5",
+                "payoutYen": 1570,
+                "payoutDisplay": "1,570",
+                "popularity": 4
+              }
+            ],
+            "trifecta": [
+              {
+                "combination": "5-3-2",
+                "payoutYen": 10480,
+                "payoutDisplay": "10,480",
+                "popularity": 27
+              }
+            ],
+            "wide": [
+              {
+                "combination": "3=5",
+                "payoutYen": 230,
+                "payoutDisplay": "230",
+                "popularity": 2
+              },
+              {
+                "combination": "2=5",
+                "payoutYen": 400,
+                "payoutDisplay": "400",
+                "popularity": 7
+              },
+              {
+                "combination": "2=3",
+                "payoutYen": 280,
+                "payoutDisplay": "280",
+                "popularity": 4
+              }
             ]
+          },
+          "payout2tan": {
+            "combination": "5-3",
+            "payoutYen": 2900,
+            "payoutDisplay": "2,900",
+            "popularity": 8
+          },
+          "payout3tan": {
+            "combination": "5-3-2",
+            "payoutYen": 10480,
+            "payoutDisplay": "10,480",
+            "popularity": 27
+          },
+          "quality": {
+            "finishOrderCount": 7,
+            "hasFinishOrder": true,
+            "hasTrifecta": true,
+            "warnings": []
           }
         },
         {
           "raceNumber": 9,
-          "resultStatus": "pending",
-          "operationStatus": "pending",
-          "raceEnded": false,
+          "resultStatus": "confirmed",
+          "operationStatus": "finished",
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
-          "resultVisible": false,
-          "lastUpdateTime": "2026/11/12 12:17 更新",
+          "resultVisible": true,
+          "lastUpdateTime": "2026/11/12 23:33 更新",
           "weatherActual": {
-            "condition": "",
-            "windSpeedMps": null
+            "condition": "曇",
+            "windSpeedMps": 0
           },
-          "finishOrder": [],
-          "kimarite": "",
-          "secondKimarite": "",
+          "finishOrder": [
+            {
+              "rank": "1",
+              "carNo": "5",
+              "name": "石口 慶多",
+              "registrationNo": "014949",
+              "gap": "",
+              "agari": "12.5",
+              "kimarite": "逃げ",
+              "mark": "B",
+              "status": ""
+            },
+            {
+              "rank": "2",
+              "carNo": "6",
+              "name": "田中 俊充",
+              "registrationNo": "013047",
+              "gap": "1 車輪",
+              "agari": "12.5",
+              "kimarite": "マーク",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "3",
+              "carNo": "3",
+              "name": "徳永 泰粋",
+              "registrationNo": "015750",
+              "gap": "1/2車輪",
+              "agari": "12.0",
+              "kimarite": "",
+              "mark": "H",
+              "status": ""
+            },
+            {
+              "rank": "4",
+              "carNo": "4",
+              "name": "大瀬戸潤一郎",
+              "registrationNo": "014486",
+              "gap": "1/2車身",
+              "agari": "11.9",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "5",
+              "carNo": "1",
+              "name": "今野 大輔",
+              "registrationNo": "015202",
+              "gap": "1/4車輪",
+              "agari": "12.0",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "6",
+              "carNo": "7",
+              "name": "安東 宏高",
+              "registrationNo": "014116",
+              "gap": "1車身1/2",
+              "agari": "11.9",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            },
+            {
+              "rank": "7",
+              "carNo": "2",
+              "name": "樫山 恭柄",
+              "registrationNo": "014263",
+              "gap": "6 車身",
+              "agari": "12.7",
+              "kimarite": "",
+              "mark": "",
+              "status": ""
+            }
+          ],
+          "kimarite": "逃げ",
+          "secondKimarite": "マーク",
           "sLeaderCarNo": "",
-          "hLeaderCarNo": "",
-          "bLeaderCarNo": "",
+          "hLeaderCarNo": "3",
+          "bLeaderCarNo": "5",
           "payouts": {
-            "bracketQuinella": [],
-            "bracketExacta": [],
-            "quinella": [],
-            "exacta": [],
-            "trio": [],
-            "trifecta": [],
-            "wide": []
-          },
-          "payout2tan": null,
-          "payout3tan": null,
-          "quality": {
-            "finishOrderCount": 0,
-            "hasFinishOrder": false,
-            "hasTrifecta": false,
-            "warnings": [
-              "finish order missing",
-              "trifecta payout missing"
+            "bracketQuinella": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "bracketExacta": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "quinella": [
+              {
+                "combination": "5=6",
+                "payoutYen": 4140,
+                "payoutDisplay": "4,140",
+                "popularity": 10
+              }
+            ],
+            "exacta": [
+              {
+                "combination": "5-6",
+                "payoutYen": 7030,
+                "payoutDisplay": "7,030",
+                "popularity": 15
+              }
+            ],
+            "trio": [
+              {
+                "combination": "3=5=6",
+                "payoutYen": 13650,
+                "payoutDisplay": "13,650",
+                "popularity": 24
+              }
+            ],
+            "trifecta": [
+              {
+                "combination": "5-6-3",
+                "payoutYen": 47970,
+                "payoutDisplay": "47,970",
+                "popularity": 95
+              }
+            ],
+            "wide": [
+              {
+                "combination": "5=6",
+                "payoutYen": 2200,
+                "payoutDisplay": "2,200",
+                "popularity": 16
+              },
+              {
+                "combination": "3=5",
+                "payoutYen": 2440,
+                "payoutDisplay": "2,440",
+                "popularity": 17
+              },
+              {
+                "combination": "3=6",
+                "payoutYen": 3260,
+                "payoutDisplay": "3,260",
+                "popularity": 19
+              }
             ]
+          },
+          "payout2tan": {
+            "combination": "5-6",
+            "payoutYen": 7030,
+            "payoutDisplay": "7,030",
+            "popularity": 15
+          },
+          "payout3tan": {
+            "combination": "5-6-3",
+            "payoutYen": 47970,
+            "payoutDisplay": "47,970",
+            "popularity": 95
+          },
+          "quality": {
+            "finishOrderCount": 7,
+            "hasFinishOrder": true,
+            "hasTrifecta": true,
+            "warnings": []
           }
         }
       ],
       "raceCount": 9,
-      "confirmedRaceCount": 0,
+      "confirmedRaceCount": 9,
       "partialRaceCount": 0,
-      "pendingRaceCount": 9,
+      "pendingRaceCount": 0,
       "errorCount": 0
     }
   ],
   "venueCount": 8,
   "raceCount": 83,
-  "confirmedRaceCount": 59,
+  "confirmedRaceCount": 82,
   "partialRaceCount": 0,
-  "pendingRaceCount": 24,
+  "pendingRaceCount": 1,
   "errorCount": 0
 }
