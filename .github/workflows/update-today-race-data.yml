@@ -309,6 +309,8 @@ jobs:
       - name: Commit updated race data
         if: steps.write_window.outputs.run_update == 'true'
         id: commit_updated_data
+        env:
+          UPDATE_TARGET_DATE: ${{ steps.update_plan.outputs.date }}
         run: |
           check_current_feed_date() {
             node --input-type=module <<'NODE'
@@ -319,6 +321,7 @@ jobs:
             timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit",
           }).format(new Date());
           assertCurrentDayWriteDate(feed.date, jstDate, "workflow publish");
+          assertCurrentDayWriteDate(feed.date, process.env.UPDATE_TARGET_DATE, "workflow planned date");
           NODE
           }
           check_current_feed_date

@@ -152,6 +152,7 @@ await test("partial CTC output is never staged; publish retries are bounded", ()
   const run = steps.find((s) => s.name === "Commit updated race data").run;
   assert.match(run, /if \[ .*upcoming_schedule.outcome.* = "success" \]; then\n  git add public\/data\/races\/upcoming/);
   assert.match(run, /for attempt in 1 2 3/); assert.ok(!run.includes("--force"));
+  assert.match(run, /assertCurrentDayWriteDate\(feed\.date, process\.env\.UPDATE_TARGET_DATE/);
   assert.deepEqual(current.concurrency, previous.concurrency);
 });
 await test("manual past-date request stops planner before source execution/output", () => {
