@@ -93,7 +93,7 @@ const timeoutMs = Number(getArgValue("--timeout-ms", "15000"));
 const delayMs = Number(getArgValue("--delay-ms", "120"));
 const expectedDate = clean(getArgValue("--expect-date", ""));
 
-if (expectedDate && !/^\d{4}-\d{2}-\d{2}$/u.test(expectedDate)) {
+if (expectedDate && !isIsoDate(expectedDate)) {
   throw new Error(`invalid --expect-date: ${expectedDate}`);
 }
 
@@ -108,6 +108,92 @@ async function fetchJson(url) {
     timeoutMs,
     label: `KEIRIN.JP ${url.searchParams.get("type") || "result"}`,
   });
+}
+
+function isIsoDate(value) {
+  return /^\d{4}-\d{2}-\d{2}$/u.test(value) && Number.isFinite(Date.parse(value))
+    && new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) === value;
+}
+
+function jstDate(now = new Date()) {
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Tokyo" }).format(now);
+}
+
+function venueName(value) {
+  return clean(value).normalize("NFKC").replace(/\s/gu, "").replace(/競輪場$/u, "");
+}
+
+export function getOfficialResultListDates(data) {
+  if (data?.resultCd !== 0 || !Array.isArray(data.RaceList) || !data.RaceList.length) {
+    throw new Error("OFFICIAL_LIST_INVALID_OR_EMPTY; output was not written.");
+  }
+  const codes = new Set(), parameters = new Set();
+  const dates = data.RaceList.map((venue) => {
+    if (!venue || typeof venue !== "object") throw new Error("OFFICIAL_LIST_IDENTITY_INVALID; output was not written.");
+    const date = normalizeDate(venue.kaisaiDate ?? venue.selKaisai ?? venue.kaisaiDateDisp ?? venue.kaisaiBi);
+    const code = clean(venue.naibuKeirinCd), parameter = clean(venue.touhyouLivePara);
+    if (!isIsoDate(date) || !/^\d{2}$/u.test(code) || !venueName(venue.keirinjoName)
+      || !parameter || codes.has(code) || parameters.has(parameter)) {
+      throw new Error("OFFICIAL_LIST_IDENTITY_INVALID; output was not written.");
+    }
+    codes.add(code); parameters.add(parameter); return date;
+  });
+  const unique = [...new Set(dates)].sort();
+  if (unique.length !== 1) throw new Error(`OFFICIAL_LIST_MIXED_DATES: ${unique.join(",")}; output was not written.`);
+  return unique;
+}
+
+export async function fetchExpectedListData({ url = listUrl, now = new Date(), targetDate = expectedDate || jstDate(now), fetchImpl = fetchJson } = {}) {
+  if (!isIsoDate(targetDate)) throw new Error(`invalid target date: ${targetDate}`);
+  const base = new URL(url);
+  if (base.origin !== "https://keirin.jp" || base.username || base.password || base.pathname !== "/pc/json" || base.searchParams.get("type") !== "JSJ048") {
+    throw new Error("KEIRIN.JP公式のJSJ048 URLを指定してください。");
+  }
+  const candidates = [...new Set([clean(base.searchParams.get("kaisaibikbn")), "1", "0", "-1", "2"].filter(Boolean))];
+  const attempts = [];
+  for (const kbn of candidates) {
+    const candidateUrl = new URL(base); candidateUrl.searchParams.set("kaisaibikbn", kbn);
+    const data = await fetchImpl(candidateUrl);
+    const dates = getOfficialResultListDates(data);
+    attempts.push({ kaisaiDateKbn: kbn, dates, venueCount: data.RaceList.length, url: candidateUrl.href });
+    if (dates[0] === targetDate) return { data, url: candidateUrl, kaisaiDateKbn: kbn, attempts, targetDate };
+  }
+  throw new Error(`OFFICIAL_TARGET_DATE_UNAVAILABLE: expected ${targetDate}; attempts=${JSON.stringify(attempts)}; output was not written.`);
+}
+
+export function validateOfficialResultIdentity({ raceNumber, date, venueCode, data, entries, detail }) {
+  if (data?.resultCd !== 0 || typeof data.tyakujyunDispFlg !== "boolean" || typeof data.haraiGakuDispFlg !== "boolean"
+    || (data.tyakujyunItemSubData != null && !Array.isArray(data.tyakujyunItemSubData))) throw new Error("OFFICIAL_RESULT_RESPONSE_INVALID");
+  const rows = data.tyakujyunItemSubData ?? [];
+  if (!data.haraiGakuDispFlg && data.haraiGakuSubData && Object.values(data.haraiGakuSubData).some(value => Array.isArray(value) && value.length)) throw new Error("OFFICIAL_UNPUBLISHED_PAYOUT_CONTRADICTION");
+  if (!rows.length) {
+    const refundOnly = data.haraiGakuDispFlg && data.haraiGakuSubData && Object.values(data.haraiGakuSubData).every(value => !Array.isArray(value) || value.every(row => clean(row.kumiBan) === "全返還"));
+    if (data.tyakujyunDispFlg || (data.haraiGakuDispFlg && !refundOnly)) throw new Error("OFFICIAL_RESULT_ROWS_MISSING");
+    return;
+  }
+  const header = detail?.C0201data;
+  if (!data.tyakujyunDispFlg || entries?.resultCd !== 0 || detail?.resultCd !== 0
+    || normalizeDate(header?.selKaisai) !== date || clean(header?.selKjyoCd) !== venueCode
+    || integerValue(header?.selRaceNo) !== raceNumber || clean(entries?.bKeirinjyoCd) !== venueCode) throw new Error("OFFICIAL_RESULT_RACE_IDENTITY_MISMATCH");
+  const starters = Array.isArray(entries.sensyuTypeInfo) ? entries.sensyuTypeInfo : [];
+  const detailRows = header?.C0201racedtl?.C0201sensyu;
+  if (!starters.length || !Array.isArray(detailRows) || starters.length !== rows.length || detailRows.length !== rows.length) throw new Error("OFFICIAL_RESULT_RIDER_COUNT_MISMATCH");
+  const byCar = new Map(), registrations = new Set();
+  for (const rider of starters) {
+    const car = clean(rider.syaban), registration = clean(rider.sensyuRegistNo);
+    if (!/^[1-9]$/u.test(car) || !/^\d{6}$/u.test(registration) || !clean(rider.sensyuName) || byCar.has(car) || registrations.has(registration)) throw new Error("OFFICIAL_RESULT_ENTRY_IDENTITY_INVALID");
+    byCar.set(car, rider); registrations.add(registration);
+  }
+  const detailByCar = new Map(detailRows.map(row => [clean(row.carNum), clean(row.numPlayer)]));
+  const seen = new Set();
+  if (detailByCar.size !== rows.length) throw new Error("OFFICIAL_RESULT_DETAIL_DUPLICATE");
+  for (const row of rows) {
+    const car = clean(row.syaban), starter = byCar.get(car);
+    if (!starter || seen.has(car) || clean(row.sensyuRegistNo) !== clean(starter.sensyuRegistNo)
+      || detailByCar.get(car) !== clean(row.sensyuRegistNo)
+      || clean(row.sensyuName).normalize("NFKC").replace(/\s/gu, "") !== clean(starter.sensyuName).normalize("NFKC").replace(/\s/gu, "")) throw new Error("OFFICIAL_RESULT_RIDER_IDENTITY_MISMATCH");
+    seen.add(car);
+  }
 }
 
 function payoutRows(data, key) {
@@ -371,7 +457,7 @@ export function mergeWithExisting(existing, candidate) {
   };
 }
 
-async function fetchVenue(venue) {
+export async function fetchVenue(venue, { targetDate = expectedDate || jstDate(), fetchImpl = fetchJson, sleepImpl = sleep } = {}) {
   const venueEntryParameter = clean(venue.touhyouLivePara);
 
   if (!venueEntryParameter) {
@@ -380,7 +466,7 @@ async function fetchVenue(venue) {
     );
   }
 
-  const indexData = await fetchJson(
+  const indexData = await fetchImpl(
     buildJsonUrl(venueEntryParameter, "JSJ001"),
   );
 
@@ -389,15 +475,26 @@ async function fetchVenue(venue) {
     ? venueData.C0201race
     : [];
 
+  if (indexData?.resultCd !== 0 || normalizeDate(venue.kaisaiDate) !== targetDate
+    || normalizeDate(venueData.selKaisai) !== targetDate || clean(venueData.selKjyoCd) !== clean(venue.naibuKeirinCd)
+    || venueName(venueData.joName) !== venueName(venue.keirinjoName) || !raceList.length) throw new Error("OFFICIAL_VENUE_DATE_OR_IDENTITY_MISMATCH; output was not written.");
+
   const races = [];
+  const seenRaces = new Set(), seenParameters = new Set();
 
   for (const [index, raceMeta] of raceList.entries()) {
+    const explicitNumbers = [raceMeta.raceNo, raceMeta.raceNum].map(clean).filter(Boolean);
+    if (explicitNumbers.some(number => !/^\d{1,2}$/u.test(number)) || new Set(explicitNumbers.map(Number)).size > 1) throw new Error("OFFICIAL_RACE_MAPPING_INVALID; output was not written.");
     const raceNumber =
       integerValue(raceMeta.raceNo) ??
       integerValue(raceMeta.raceNum) ??
       index + 1;
 
     const raceParameter = clean(raceMeta.encParaR);
+
+    if (!Number.isInteger(raceNumber) || raceNumber < 1 || raceNumber > 12 || seenRaces.has(raceNumber)
+      || (raceParameter && seenParameters.has(raceParameter))) throw new Error("OFFICIAL_RACE_MAPPING_INVALID; output was not written.");
+    seenRaces.add(raceNumber); if (raceParameter) seenParameters.add(raceParameter);
 
     if (!raceParameter) {
       races.push(
@@ -411,9 +508,16 @@ async function fetchVenue(venue) {
     }
 
     try {
-      const resultData = await fetchJson(
+      const resultData = await fetchImpl(
         buildJsonUrl(raceParameter, "JSJ012"),
       );
+
+      let entries, detail;
+      if (Array.isArray(resultData.tyakujyunItemSubData) && resultData.tyakujyunItemSubData.length) {
+        entries = await fetchImpl(buildJsonUrl(raceParameter, "JSJ006"));
+        detail = await fetchImpl(buildJsonUrl(raceParameter, "JSJ001"));
+      }
+      validateOfficialResultIdentity({ raceNumber, date: targetDate, venueCode: clean(venue.naibuKeirinCd), data: resultData, entries, detail });
 
       races.push(
         createRaceResult(
@@ -433,7 +537,7 @@ async function fetchVenue(venue) {
       );
     }
 
-    await sleep(delayMs);
+    await sleepImpl(delayMs);
   }
 
   return {
@@ -462,7 +566,10 @@ async function main() {
   }
 
   const fetchStartedAt = new Date().toISOString();
-  const listData = await fetchJson(listUrl);
+  const targetDate = expectedDate || jstDate();
+  const resolvedList = await fetchExpectedListData({ targetDate });
+  const listData = resolvedList.data;
+  console.log(`[official date] expected=${targetDate} selected=${resolvedList.kaisaiDateKbn} attempts=${resolvedList.attempts.length}`);
 
   const venueList = Array.isArray(listData.RaceList)
     ? listData.RaceList
@@ -477,7 +584,7 @@ async function main() {
   const venues = [];
 
   for (const venue of venueList) {
-    venues.push(await fetchVenue(venue));
+    venues.push(await fetchVenue(venue, { targetDate }));
     await sleep(delayMs);
   }
 
@@ -500,9 +607,9 @@ async function main() {
     );
   }
 
-  if (expectedDate && dates[0] !== expectedDate) {
+  if (dates[0] !== targetDate) {
     throw new Error(
-      `KEIRIN.JP date mismatch: expected ${expectedDate}, actual ${dates[0]}; output was not written.`,
+      `KEIRIN.JP date mismatch: expected ${targetDate}, actual ${dates[0]}; output was not written.`,
     );
   }
   const candidate = summarize({
@@ -512,7 +619,10 @@ async function main() {
       provider: "KEIRIN.JP",
       listType: "JSJ048",
       endpoint: "/pc/json",
-      kaisaiDateKbn: clean(listData.kaisaiDateKbn),
+      kaisaiDateKbn: resolvedList.kaisaiDateKbn,
+      expectedDate: targetDate,
+      listUrl: resolvedList.url.href,
+      listResolutionAttempts: resolvedList.attempts,
       fetchStartedAt,
       fetchCompletedAt: new Date().toISOString(),
     },
