@@ -3,6 +3,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { load } from "cheerio";
 import { execFileSync } from "node:child_process";
+import { pathToFileURL } from "node:url";
+import { automaticUpdatePhase } from "./lib/today-update-plan.mjs";
 import { fetchWithRetry } from "./lib/fetch-with-retry.mjs";
 import { classifyOddsPage, classifyRacecardFailure, createOddsAcquisition, hasConflictingTrifectaPrices, reusableVerifiedOdds, validateKdreamsRaceLink, validateTrifectaOdds } from "./lib/odds-acquisition.mjs";
 import { assertCurrentDayWriteDate, attachKdreamsDetailLinks, buildOfficialTodayVenues, indexOfficialTodayRaces, indexOfficialTodayResults, isFreshOfficialResultSnapshot, mergeOfficialTodayRiders, officialResultToTodayRace, validateOfficialTodayEntries } from "./lib/official-today-source.mjs";
@@ -129,36 +131,17 @@ function getJstNowParts(base = new Date()) {
   };
 }
 
-function resolveUpdatePhase(base = new Date()) {
+function resolveUpdatePhase(base = new Date(), phase = requestedPhase) {
   const now = getJstNowParts(base);
-  const normalizedPhase = ["auto", "lineup", "odds", "result", "final", "backfill"].includes(requestedPhase)
-    ? requestedPhase
+  const normalizedPhase = ["auto", "lineup", "odds", "result", "final", "backfill"].includes(phase)
+    ? phase
     : "auto";
 
   if (normalizedPhase !== "auto") {
     return { phase: normalizedPhase, session: "all", jst: now.isoDateTime, explicit: true };
   }
 
-  if (now.hour === 23 && now.minute >= 40) {
-    return { phase: now.minute >= 53 ? "backfill" : "final", session: "all", jst: now.isoDateTime, explicit: false };
-  }
-  if (now.hour >= 19 && now.hour < 21) {
-    return { phase: "odds", session: "midnight", jst: now.isoDateTime, explicit: false };
-  }
-  if (now.hour >= 16 && now.hour < 18) {
-    return { phase: "lineup", session: "midnight", jst: now.isoDateTime, explicit: false };
-  }
-  if (now.hour >= 13 && now.hour < 15) {
-    return { phase: "odds", session: "night", jst: now.isoDateTime, explicit: false };
-  }
-  if (now.hour >= 9 && now.hour < 11) {
-    return { phase: "odds", session: "day", jst: now.isoDateTime, explicit: false };
-  }
-  if (now.hour >= 7 && now.hour < 9) {
-    return { phase: "lineup", session: "day", jst: now.isoDateTime, explicit: false };
-  }
-
-  return { phase: "result", session: "all", jst: now.isoDateTime, explicit: false };
+  return automaticUpdatePhase(base);
 }
 
 function compactDate(dateIso) {
@@ -1012,11 +995,12 @@ function prepareCachedRaceForReuse(cachedRace, raceNo) {
 }
 
 function isVenueInPhaseSession(venue, updatePhase) {
-  return updatePhase.session === "all" || venue?.session === updatePhase.session;
+  return updatePhase.catchUp || updatePhase.session === "all" || venue?.session === updatePhase.session;
 }
 
 function shouldFetchLineupForRace(race, venue, updatePhase) {
   if (!isVenueInPhaseSession(venue, updatePhase)) return false;
+  if (updatePhase.catchUp && !hasLineupValue(race)) return true;
   if (!(["lineup", "backfill", "final"].includes(updatePhase.phase))) return false;
   return !hasLineupValue(race) || !isRaceLineupCheckedOrComplete(race);
 }
@@ -1031,7 +1015,7 @@ function shouldFetchRiderDetailForRace(race, venue, updatePhase) {
     || (SOURCE_POLICY.kdreams && race.riders.some((rider) => !hasKdreamsRiderMaterial(rider)))
     || !isRaceRiderDetailCheckedOrComplete(race);
   if (!riderMissing) return false;
-  if (["lineup", "backfill", "final"].includes(updatePhase.phase)) return true;
+  if (updatePhase.catchUp || ["lineup", "backfill", "final"].includes(updatePhase.phase)) return true;
   if (updatePhase.phase === "result") {
     console.log(`[fetch] ${venue?.venue ?? ""} riders missing; kdreams detail/racecard`);
     return true;
@@ -1041,6 +1025,9 @@ function shouldFetchRiderDetailForRace(race, venue, updatePhase) {
 
 function shouldFetchOddsForRace(race, venue, updatePhase) {
   if (!isVenueInPhaseSession(venue, updatePhase)) return false;
+  if (updatePhase.catchUp) {
+    return !(isRaceOddsComplete(race) && race?.resultStatus === "confirmed");
+  }
   if (["result", "backfill", "final"].includes(updatePhase.phase)) return true;
   if (isRaceOddsComplete(race)) return false;
   if (updatePhase.phase === "odds") return true;
@@ -4276,7 +4263,7 @@ async function main() {
   const activeSources = [
     "keirin-jp",
     SOURCE_POLICY.kdreams ? "kdreams" : "",
-    SOURCE_POLICY.chariloto && ["lineup", "backfill", "final"].includes(updatePhase.phase) ? "chariloto" : "",
+    SOURCE_POLICY.chariloto && (updatePhase.catchUp || ["lineup", "backfill", "final"].includes(updatePhase.phase)) ? "chariloto" : "",
     SOURCE_POLICY.netkeirin ? "netkeirin" : "",
     SOURCE_POLICY.oddspark ? "oddspark" : "",
     SOURCE_POLICY.winticket ? "winticket" : "",
@@ -4303,7 +4290,7 @@ async function main() {
   const operationUpdatedAt = `${getJstNowParts().isoDateTime}+09:00`;
   const officialEntries = await loadOfficialTodayEntries(todayIso);
   const officialRaces = officialEntries ? indexOfficialTodayRaces(officialEntries) : new Map();
-  const officialResultsLoad = officialEntries && ["result", "final", "backfill"].includes(updatePhase.phase)
+  const officialResultsLoad = officialEntries && (updatePhase.catchUp || ["result", "final", "backfill"].includes(updatePhase.phase))
     ? await loadOfficialTodayResults(todayIso, ["final", "backfill"].includes(updatePhase.phase))
     : null;
   const officialResults = officialResultsLoad?.payload ?? null;
@@ -4824,7 +4811,9 @@ async function main() {
 
 const entrypoint = debugKdreamsOdds ? runKdreamsOddsDebug : main;
 
-entrypoint().catch((error) => {
+export const todayUpdateTestApi = { resolveUpdatePhase, shouldFetchLineupForRace, shouldFetchRiderDetailForRace, shouldFetchOddsForRace, shouldFetchResultForRace, applyOfficialResultToRace, mergeRaceDetailWithFallback };
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) entrypoint().catch((error) => {
   console.error(error);
   process.exit(1);
 });

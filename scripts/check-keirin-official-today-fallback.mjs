@@ -81,7 +81,12 @@ const threeEntries = [entry, { ...entry, carNo: "2", registrationNo: "015673", n
 const resultRows = threeEntries.map((rider, index) => ({ rank: String(index + 1), carNo: rider.carNo, registrationNo: rider.registrationNo, name: rider.name }));
 const result = { resultStatus: "confirmed", finishOrder: resultRows, payouts: { trifecta: [{ combination: "1-2-3", payoutYen: 5000, popularity: 4 }] } };
 assert.equal(officialResultToTodayRace(result, { entries: threeEntries }).result.payout3tan.payout, "5000円 (4)");
-assert.equal(officialResultToTodayRace({ ...result, finishOrder: resultRows.map((row) => ({ ...row, rank: "1" })) }, { entries: threeEntries }), null);
+const tiedResult = officialResultToTodayRace({ ...result, finishOrder: resultRows.map((row) => ({ ...row, rank: "1" })) }, { entries: threeEntries });
+assert.deepEqual(tiedResult.result.finishOrder.map((row) => row.rank), ["1", "1", "1"]);
+assert.equal(tiedResult.result.reviewSettlementEligible, false);
+assert.deepEqual(tiedResult.resultTop3, []);
+assert.equal(tiedResult.payouts.length, 1);
+assert.equal(tiedResult.officialResultSource, "KEIRIN.JP");
 assert.throws(() => officialResultToTodayRace({ ...result, finishOrder: [{ ...resultRows[0], registrationNo: "99999" }, ...resultRows.slice(1)] }, { entries: threeEntries }), /identity conflict/);
 const resultsPayload = { date, source: { provider: "KEIRIN.JP" }, venues: [{ date, venueCode: "13", races: [{ ...result, raceNumber: 1 }] }] };
 assert.equal(indexOfficialTodayResults(resultsPayload, date).size, 1);
