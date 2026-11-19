@@ -229,8 +229,11 @@ export function normalizeOfficialFinishStatus(row) {
 
 export function isOfficialNonFinisherStatus(status) {
   const labels = clean(status).split(" / ").map((label) => label.replace(/（.*）$/u, ""));
+  const hasDisqualification = labels.some((label) => ["失格", "失"].includes(label));
+  // Re-entry describes the incident, not a final placing: accept it only with an explicit disqualification.
   return labels.length > 0 && labels.every((label) =>
-    ["失格", "落車棄権", "落車", "棄権", "欠場", "欠車", "失", "落", "棄", "欠"].includes(label));
+    ["失格", "落車棄権", "落車", "棄権", "欠場", "欠車", "失", "落", "棄", "欠"].includes(label)
+    || (label === "落再入" && hasDisqualification));
 }
 
 export function officialResultToTodayRace(officialResult, officialEntries, sourceFetchedAt = "") {
