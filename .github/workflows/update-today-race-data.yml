@@ -37,6 +37,7 @@ on:
         type: string
 
 permissions:
+  actions: read
   contents: write
 
 concurrency:
@@ -48,26 +49,88 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check scheduled final/backfill execution window
+        id: execution_window
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const minutes = { '47 14 * * *': 47, '53 14 * * *': 53 };
+            const minute = context.eventName === 'schedule' ? minutes[context.payload.schedule] : undefined;
+            let targetDate = '';
+            let expired = false;
+            if (minute !== undefined) {
+              const { data: run } = await github.rest.actions.getWorkflowRun({
+                ...context.repo, run_id: context.runId,
+              });
+              const created = new Date(run.created_at);
+              const now = new Date();
+              if (!Number.isFinite(created.getTime())) throw new Error('Missing workflow creation time');
+              // The latest scheduled JST occurrence before run creation also covers delayed event delivery.
+              const offset = 9 * 60 * 60 * 1000;
+              const scheduled = new Date(created.getTime() + offset);
+              scheduled.setUTCHours(23, minute, 0, 0);
+              if (scheduled.getTime() > created.getTime() + offset) scheduled.setUTCDate(scheduled.getUTCDate() - 1);
+              targetDate = scheduled.toISOString().slice(0, 10);
+              const currentDate = new Date(now.getTime() + offset).toISOString().slice(0, 10);
+              expired = targetDate !== currentDate;
+              if (expired) {
+                core.notice('Expired final/backfill skipped: ' + targetDate + ' != ' + currentDate + ' JST');
+                await core.summary.addHeading('期限切れのfinal/backfillを安全にスキップ')
+                  .addTable([
+                    ['項目', '値'],
+                    ['schedule', context.payload.schedule],
+                    ['対象日 (JST)', targetDate],
+                    ['実行日 (JST)', currentDate],
+                    ['run created_at (UTC)', run.created_at],
+                  ])
+                  .addRaw('\n日付が異なるため、データ更新・アーカイブ・Gitコミットは実行しません。\n')
+                  .write();
+              }
+            }
+            core.setOutput('target_date', targetDate);
+            core.setOutput('run_update', String(!expired));
+
       - name: Checkout
+        if: steps.execution_window.outputs.run_update == 'true'
         uses: actions/checkout@v4
         with:
           ref: main
           persist-credentials: true
 
       - name: Setup Node
+        if: steps.execution_window.outputs.run_update == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
 
       - name: Install dependencies
+        if: steps.execution_window.outputs.run_update == 'true'
         run: npm ci
 
       - name: Sync latest main
+        if: steps.execution_window.outputs.run_update == 'true'
         run: |
           git pull --ff-only origin main
 
+      - name: Recheck date before updating data
+        if: steps.execution_window.outputs.run_update == 'true'
+        id: write_window
+        env:
+          SCHEDULED_TARGET_DATE: ${{ steps.execution_window.outputs.target_date }}
+        run: |
+          JST_DATE="$(TZ=Asia/Tokyo date +%F)"
+          if [ -n "$SCHEDULED_TARGET_DATE" ] && [ "$SCHEDULED_TARGET_DATE" != "$JST_DATE" ]; then
+            echo "run_update=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::final/backfill expired during setup; skipping data updates"
+            echo "### final/backfillを安全にスキップ" >> "$GITHUB_STEP_SUMMARY"
+            echo "準備中に日付が切り替わりました。対象日: $SCHEDULED_TARGET_DATE / 実行日: $JST_DATE (JST)。更新・アーカイブ・コミットは実行しません。" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "run_update=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Update today race data
+        if: steps.write_window.outputs.run_update == 'true'
         env:
           REQUESTED_TARGET_DATE: ${{ github.event.inputs.target_date || '' }}
         run: |
@@ -118,6 +181,7 @@ jobs:
           fi
 
       - name: Validate today race data is not empty
+        if: steps.write_window.outputs.run_update == 'true'
         run: |
           node - <<'NODE'
           const fs = require("node:fs");
@@ -145,21 +209,21 @@ jobs:
           NODE
 
       - name: Resolve KEIRIN.JP expected entry date
-        if: (github.event_name == 'workflow_dispatch' && github.event.inputs.phase != 'backfill') || github.event.schedule == '10 21 * * *' || github.event.schedule == '0 23 * * *' || github.event.schedule == '0 1 * * *' || github.event.schedule == '0 3 * * *' || github.event.schedule == '0 5 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 8 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 11 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *'
+        if: steps.write_window.outputs.run_update == 'true' && ((github.event_name == 'workflow_dispatch' && github.event.inputs.phase != 'backfill') || github.event.schedule == '10 21 * * *' || github.event.schedule == '0 23 * * *' || github.event.schedule == '0 1 * * *' || github.event.schedule == '0 3 * * *' || github.event.schedule == '0 5 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 8 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 11 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *')
         shell: bash
         run: |
           echo "KEIRIN_JP_EXPECT_ENTRY_DATE=$(TZ=Asia/Tokyo date +%F)" >> "$GITHUB_ENV"
 
       - name: Update KEIRIN.JP official entries
-        if: (github.event_name == 'workflow_dispatch' && github.event.inputs.phase != 'backfill') || github.event.schedule == '10 21 * * *' || github.event.schedule == '0 23 * * *' || github.event.schedule == '0 1 * * *' || github.event.schedule == '0 3 * * *' || github.event.schedule == '0 5 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 8 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 11 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *'
+        if: steps.write_window.outputs.run_update == 'true' && ((github.event_name == 'workflow_dispatch' && github.event.inputs.phase != 'backfill') || github.event.schedule == '10 21 * * *' || github.event.schedule == '0 23 * * *' || github.event.schedule == '0 1 * * *' || github.event.schedule == '0 3 * * *' || github.event.schedule == '0 5 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 8 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 11 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *')
         run: npm run update:keirin-jp-entries:write -- --expect-date="$KEIRIN_JP_EXPECT_ENTRY_DATE"
 
       - name: Validate KEIRIN.JP official entries
-        if: (github.event_name == 'workflow_dispatch' && github.event.inputs.phase != 'backfill') || github.event.schedule == '10 21 * * *' || github.event.schedule == '0 23 * * *' || github.event.schedule == '0 1 * * *' || github.event.schedule == '0 3 * * *' || github.event.schedule == '0 5 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 8 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 11 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *'
+        if: steps.write_window.outputs.run_update == 'true' && ((github.event_name == 'workflow_dispatch' && github.event.inputs.phase != 'backfill') || github.event.schedule == '10 21 * * *' || github.event.schedule == '0 23 * * *' || github.event.schedule == '0 1 * * *' || github.event.schedule == '0 3 * * *' || github.event.schedule == '0 5 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 8 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 11 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *')
         run: npm run check:keirin-jp-entries -- --expect-date="$KEIRIN_JP_EXPECT_ENTRY_DATE" --require-complete
 
       - name: Generate KURARI EX race risk for current day
-        if: (github.event_name == 'workflow_dispatch' && github.event.inputs.phase != 'backfill') || github.event.schedule == '10 21 * * *' || github.event.schedule == '0 23 * * *' || github.event.schedule == '0 1 * * *' || github.event.schedule == '0 3 * * *' || github.event.schedule == '0 5 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 8 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 11 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *'
+        if: steps.write_window.outputs.run_update == 'true' && ((github.event_name == 'workflow_dispatch' && github.event.inputs.phase != 'backfill') || github.event.schedule == '10 21 * * *' || github.event.schedule == '0 23 * * *' || github.event.schedule == '0 1 * * *' || github.event.schedule == '0 3 * * *' || github.event.schedule == '0 5 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 8 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 11 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *')
         run: |
           node - <<'NODE'
           const fs = require("node:fs");
@@ -182,7 +246,7 @@ jobs:
           node scripts/check-kurari-ex-race-risk-history.mjs
 
       - name: Resolve KEIRIN.JP expected result date
-        if: github.event.schedule == '0 3 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.phase == 'final' || github.event.inputs.phase == 'backfill'))
+        if: steps.write_window.outputs.run_update == 'true' && (github.event.schedule == '0 3 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.phase == 'final' || github.event.inputs.phase == 'backfill')))
         env:
           TARGET_DATE: ${{ github.event.inputs.target_date || '' }}
         shell: bash
@@ -195,11 +259,11 @@ jobs:
             echo "KEIRIN_JP_EXPECT_DATE=$(TZ=Asia/Tokyo date +%F)" >> "$GITHUB_ENV"
           fi
       - name: Update KEIRIN.JP official results
-        if: github.event.schedule == '0 3 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.phase == 'final' || github.event.inputs.phase == 'backfill'))
+        if: steps.write_window.outputs.run_update == 'true' && (github.event.schedule == '0 3 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.phase == 'final' || github.event.inputs.phase == 'backfill')))
         run: npm run update:keirin-jp-results:write -- --expect-date="$KEIRIN_JP_EXPECT_DATE"
 
       - name: Validate KEIRIN.JP official results
-        if: github.event.schedule == '0 3 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.phase == 'final' || github.event.inputs.phase == 'backfill'))
+        if: steps.write_window.outputs.run_update == 'true' && (github.event.schedule == '0 3 * * *' || github.event.schedule == '0 6 * * *' || github.event.schedule == '0 9 * * *' || github.event.schedule == '0 12 * * *' || github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.phase == 'final' || github.event.inputs.phase == 'backfill')))
         shell: bash
         run: |
           # Late official publication must not discard already confirmed races.
@@ -207,7 +271,7 @@ jobs:
           npm run check:keirin-jp-results -- --expect-date="$KEIRIN_JP_EXPECT_DATE" --require-no-errors
       - name: Archive Review official results
         id: review_official_archive
-        if: github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *'
+        if: steps.write_window.outputs.run_update == 'true' && (github.event.schedule == '47 14 * * *' || github.event.schedule == '53 14 * * *')
         continue-on-error: true
         shell: bash
         run: |
@@ -216,13 +280,13 @@ jobs:
           echo "REVIEW_OFFICIAL_ARCHIVE_DATE=$KEIRIN_JP_EXPECT_DATE" >> "$GITHUB_ENV"
 
       - name: Report Review official archive failure
-        if: always() && steps.review_official_archive.outcome == 'failure'
+        if: steps.write_window.outputs.run_update == 'true' && (always() && steps.review_official_archive.outcome == 'failure')
         run: |
           echo "::warning title=Review official archive unavailable::The daily Review archive was not created or changed; inspect the preceding date, completeness, source, identity, or write-once error. Validated today data will continue to its commit gate."
           echo "Review official archive: FAILED / not updated. Check the archive step before treating this date as available in Review." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Generate KURARI EX prediction performance
-        if: github.event.schedule == '47 14 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.phase == 'final')
+        if: steps.write_window.outputs.run_update == 'true' && (github.event.schedule == '47 14 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.phase == 'final'))
         shell: bash
         run: |
           echo "PERFORMANCE_GENERATED=false" >> "$GITHUB_ENV"
@@ -261,17 +325,18 @@ jobs:
           echo "PERFORMANCE_DATE=$KEIRIN_JP_EXPECT_DATE" >> "$GITHUB_ENV"
       - name: Update upcoming race schedule
         id: upcoming_schedule
-        if: github.event.schedule == '10 21 * * *'
+        if: steps.write_window.outputs.run_update == 'true' && (github.event.schedule == '10 21 * * *')
         continue-on-error: true
         run: npm run update:schedule:upcoming
 
       - name: Report upcoming schedule failure
-        if: always() && steps.upcoming_schedule.outcome == 'failure'
+        if: steps.write_window.outputs.run_update == 'true' && (always() && steps.upcoming_schedule.outcome == 'failure')
         run: |
           echo "::warning title=CTC schedule unavailable::Upcoming schedule was not updated; validated today race data will continue to the commit gate. See the preceding CTC HTTP/error log."
           echo "CTC upcoming schedule: FAILED / not updated. Today race data has a separate validation and commit gate." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Commit updated race data
+        if: steps.write_window.outputs.run_update == 'true'
         id: commit_updated_data
         run: |
           check_current_feed_date() {
