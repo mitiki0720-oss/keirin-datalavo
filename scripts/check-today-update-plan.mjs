@@ -7,7 +7,7 @@ import yaml from "js-yaml";
 import { automaticUpdatePhase, buildTodayUpdatePlan, reportUpdateState } from "./lib/today-update-plan.mjs";
 import { todayUpdateTestApi as api } from "./update-today-races.mjs";
 import { mergeWithExisting } from "./update-keirin-jp-results.mjs";
-import { updateUpcomingSchedule } from "./update-keirin-upcoming-schedule.mjs";
+import { runScheduledUpcomingSchedule, buildRange } from "./update-keirin-upcoming-schedule.mjs";
 
 const cases = [];
 async function test(name, callback) { await callback(); cases.push(name); }
@@ -92,20 +92,26 @@ await test("official confirmed today result survives pending official overlay", 
   assert.deepEqual(api.applyOfficialResultToRace(cached, { resultStatus: "pending" }, null, "fixture"), cached);
 });
 const temp = await fs.mkdtemp(path.join(os.tmpdir(), "keirin-stability-"));
-await test("CTC 403 is one failed attempt and existing schedule stays byte-identical", async () => {
+await test("official HTTP 403 fails each required month and existing schedule stays byte-identical", async () => {
   const file = path.join(temp, "upcoming.json"); const bytes = '{"protected":"fixture"}\n'; await fs.writeFile(file, bytes);
   let calls = 0;
-  await assert.rejects(updateUpcomingSchedule({ outputPath: file, fetchImpl: async () => { calls++; return new Response("Forbidden", { status: 403 }); } }), /403/);
-  assert.equal(calls, 1); assert.equal(await fs.readFile(file, "utf8"), bytes);
+  await assert.rejects(runScheduledUpcomingSchedule({ outputFile: file, asOf: date, clock: () => now("11:29"), fetchImpl: async url => {
+    calls++; const response = new Response("Forbidden", { status: 403, headers: { "content-type": "text/html" } });
+    Object.defineProperty(response, "url", { value: String(url) }); return response;
+  } }), /403/);
+  assert.equal(calls, buildRange(date).months.length); assert.equal(await fs.readFile(file, "utf8"), bytes);
 });
 await test("CTC partial failure is explicit in Summary, with snapshot date and publish result", async () => {
   let text = ""; await reportUpdateState({ append: async (s) => { text += s; }, upcomingOutcome: "failure", upcomingLog: "Failed to fetch CTC schedule: 403", snapshots: { results: snapshot("11:28") }, publishOutcome: "success", publishChanged: "true" });
   for (const value of ["FAILED / not updated", "HTTP 403", date, "Git公開ステップ: success"]) assert.ok(text.includes(value));
 });
-await test("CTC fresh data is not fetched again; stale date remains a retry candidate", () => {
-  const upcoming = { source: "https://ctc.gr.jp/schedule/", generatedAt: now("08:18").toISOString(), range: { from: date, to: "2026-12-19" }, items: [{}] };
-  assert.equal(buildTodayUpdatePlan({ now: now("11:29"), upcoming }).upcoming, false);
-  assert.equal(buildTodayUpdatePlan({ now: now("11:29"), upcoming: { ...upcoming, generatedAt: "2026-11-18T01:00:00Z" } }).upcoming, true);
+await test("official fresh data is not fetched again; stale date and CTC remain retry candidates", async () => {
+  assert.ok(process.env.SCHEDULE_CANDIDATE_JSON, "saved official candidate required");
+  const upcoming = JSON.parse(await fs.readFile(process.env.SCHEDULE_CANDIDATE_JSON, "utf8"));
+  const scheduleNow = new Date(Date.parse(upcoming.generatedAt) + 60_000);
+  assert.equal(buildTodayUpdatePlan({ now: scheduleNow, upcoming }).upcoming, false);
+  assert.equal(buildTodayUpdatePlan({ now: scheduleNow, upcoming: { ...upcoming, generatedAt: "2026-11-18T01:00:00Z" } }).upcoming, true);
+  assert.equal(buildTodayUpdatePlan({ now: scheduleNow, upcoming: { ...upcoming, source: "https://ctc.gr.jp/schedule/" } }).upcoming, true);
 });
 const file = ".github/workflows/update-today-race-data.yml";
 const current = yaml.load(await fs.readFile(file, "utf8"));
@@ -146,7 +152,9 @@ await test("cron UTC/JST cadence retained, no 00/30 congestion or duplicate matc
 await test("expiry guards, terminal archives, Pages/Slack and EX workflows untouched", async () => {
   for (const id of ["execution_window", "write_window"]) assert.deepEqual(steps.find((s) => s.id === id), previous.jobs["update-race-data"].steps.find((s) => s.id === id));
   for (const name of ["Archive Review official results", "Generate KURARI EX prediction performance"]) assert.deepEqual(steps.find((s) => s.name === name), previous.jobs["update-race-data"].steps.find((s) => s.name === name));
-  const diff = execFileSync("git", ["diff", "--name-only", "--", "public", "src", ".github/workflows/deploy.yml", ".github/workflows/notify-slack-hits.yml", ".github/workflows/update-kurari-ex-nightly.yml", ".github/workflows/check-kurari-ex-nightly-stale.yml"], { encoding: "utf8" }); assert.equal(diff, "");
+  const diff = execFileSync("git", ["diff", "--name-only", "--", "public", "src", ".github/workflows/deploy.yml", ".github/workflows/notify-slack-hits.yml", ".github/workflows/update-kurari-ex-nightly.yml", ".github/workflows/check-kurari-ex-nightly-stale.yml"], { encoding: "utf8" });
+  const allowed = new Set(["src/types/raceSchedule.ts", "src/pages/PageImplementations.tsx", "src/pages/RacesPage.tsx"]);
+  assert.deepEqual(diff.trim().split(/\r?\n/).filter(Boolean).filter(file => !allowed.has(file)), []);
 });
 await test("partial CTC output is never staged; publish retries are bounded", () => {
   const run = steps.find((s) => s.name === "Commit updated race data").run;

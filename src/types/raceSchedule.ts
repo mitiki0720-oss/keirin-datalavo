@@ -1,8 +1,17 @@
 export type RaceGrade = "GP" | "GI" | "GII" | "GIII" | "F1" | "F2";
 
-export type RaceSession = "day" | "night" | "midnight";
+export type RaceSession = "morning" | "day" | "night" | "midnight" | "unknown";
 
-export type RaceScheduleSource = "ctc" | "manual";
+export type RaceScheduleSource = "ctc" | "manual" | "keirin-jp" | "unknown";
+
+export type RaceScheduleProvenance = {
+  provider?: string;
+  url?: string;
+  requestedMonth?: string;
+  fetchedAt?: string;
+  rawSha256?: string;
+  rawBytes?: number;
+};
 
 export type RaceScheduleItem = {
   id: string;
@@ -14,5 +23,10 @@ export type RaceScheduleItem = {
   session: RaceSession;
   hasGirls: boolean;
   source: RaceScheduleSource;
+  venueCode?: string;
+  provenance?: RaceScheduleProvenance[];
+  operationStatus?: string;
+  periodStatus?: string;
+  validationStatus?: string;
   note?: string;
 };

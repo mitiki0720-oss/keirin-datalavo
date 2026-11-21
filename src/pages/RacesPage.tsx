@@ -450,9 +450,11 @@ const compareRaces = (a: RaceScheduleItem, b: RaceScheduleItem) => {
 
 const compareTodayRacesBySession = (a: RaceScheduleItem, b: RaceScheduleItem) => {
   const sessionPriority: Record<RaceScheduleItem["session"], number> = {
+    morning: 0,
     day: 1,
     night: 2,
     midnight: 3,
+    unknown: 99,
   };
 
   const morningBoost = (race: RaceScheduleItem) =>

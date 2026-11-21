@@ -3,7 +3,7 @@ import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import yaml from "js-yaml";
-import { updateUpcomingSchedule } from "./update-keirin-upcoming-schedule.mjs";
+import { runScheduledUpcomingSchedule } from "./update-keirin-upcoming-schedule.mjs";
 import { assertCurrentDayWriteDate } from "./lib/official-today-source.mjs";
 
 const workflow = yaml.load(await readFile(".github/workflows/update-today-race-data.yml", "utf8"));
@@ -16,7 +16,8 @@ assert.equal(schedule.if, "steps.write_window.outputs.run_update == 'true' && st
 assert.match(byName("Plan current-day updates from time and snapshots").run, /today-update-plan/);
 assert.equal(schedule["continue-on-error"], true);
 assert.match(report.if, /steps\.upcoming_schedule\.outcome == 'failure'/u);
-assert.match(report.run, /::warning.*CTC/u);
+assert.match(report.run, /::warning.*KEIRIN\.JP/u);
+assert.match(schedule.run, /set -o pipefail/u);
 assert.ok(steps.indexOf(schedule) < steps.indexOf(commit));
 assert.ok(steps.indexOf(report) < steps.indexOf(commit));
 const reachesCommitAfterFailure = (failedStep) =>
@@ -44,39 +45,39 @@ const tempRoot = await mkdtemp(path.join(tmpdir(), "keirin-ctc-schedule-audit-")
 const outputPath = path.join(tempRoot, "upcoming-schedule.generated.json");
 const sentinel = "unchanged schedule fixture\n";
 await writeFile(outputPath, sentinel);
-const now = new Date("2026-10-24T00:00:00Z");
+const now = new Date("2026-11-19T07:00:00Z");
 const fetchFixture = (body, status = 200) => async (url) => {
-  assert.equal(url, "https://ctc.gr.jp/schedule/");
-  return new Response(body, { status });
+  assert.equal(new URL(url).origin, "https://www.keirin.jp");
+  const response = new Response(body, { status, headers: { "content-type": "text/html" } });
+  Object.defineProperty(response, "url", { value: String(url) }); return response;
 };
-const run = (fetchImpl) => updateUpcomingSchedule({ fetchImpl, outputPath, now });
+const run = (fetchImpl) => runScheduledUpcomingSchedule({ fetchImpl, outputFile: outputPath, asOf: "2026-11-19", clock: () => new Date(now) });
 
-await assert.rejects(run(fetchFixture("Forbidden", 403)), /CTC schedule: 403/u);
+await assert.rejects(run(fetchFixture("Forbidden", 403)), /HTTP_403/u);
 assert.equal(await readFile(outputPath, "utf8"), sentinel);
-await assert.rejects(run(fetchFixture("", 200)), /No upcoming race schedule items/u);
+await assert.rejects(run(fetchFixture("", 200)), /OFFICIAL_SCHEDULE_FETCH_FAILED/u);
 assert.equal(await readFile(outputPath, "utf8"), sentinel);
-await assert.rejects(run(fetchFixture("<html><body>maintenance</body></html>")), /No upcoming race schedule items/u);
+await assert.rejects(run(fetchFixture("<html><body>maintenance</body></html>")), /OFFICIAL_SCHEDULE_FETCH_FAILED/u);
 assert.equal(await readFile(outputPath, "utf8"), sentinel);
 
-const html = `<!doctype html><div id="racelist"><li class="race">
-  <a href="/race?id=53202610240000">
-    <div class="place"><p>奈良</p></div>
-    <div class="name"><h2><span>F1</span>開催</h2><p>10/24～10/26</p></div>
-    <ul class="attr"><li class="night">ナイター</li></ul>
-  </a></li></div>`;
-const generated = await run(fetchFixture(html));
-assert.equal(generated.range.from, "2026-10-24");
-assert.equal(generated.source, "https://ctc.gr.jp/schedule/");
-assert.equal(generated.items.length, 1);
-assert.equal(generated.items[0].venue, "奈良");
-assert.equal(JSON.parse(await readFile(outputPath, "utf8")).items.length, 1);
+assert.ok(process.env.SCHEDULE_RAW_DIR, "saved official monthly originals required");
+await run(async url => {
+  const query = new URL(url).searchParams, month = `${query.get("scyy")}-${query.get("scym")}`;
+  return fetchFixture(await readFile(path.join(process.env.SCHEDULE_RAW_DIR, month + ".html")))(url);
+});
+const generated = JSON.parse(await readFile(outputPath, "utf8"));
+assert.equal(generated.range.from, "2026-11-19");
+assert.equal(generated.source, "https://www.keirin.jp/sp/raceschedule");
+assert.equal(generated.items.length, 155);
+assert.equal(generated.provider, "KEIRIN.JP");
+assert.equal(generated.acceptancePassed, true);
 const completed = await readFile(outputPath, "utf8");
-await assert.rejects(run(fetchFixture("Forbidden", 403)), /CTC schedule: 403/u);
+await assert.rejects(run(fetchFixture("Forbidden", 403)), /HTTP_403/u);
 assert.equal(await readFile(outputPath, "utf8"), completed);
 
 console.log(JSON.stringify({
   result: "PASS",
-  cases: ["CTC 403", "CTC 200", "empty response", "changed HTML", "CTC failure reaches commit gate", "required official failure blocks commit", "JST date mismatch"],
+  cases: ["official HTTP 403", "official HTTP 200", "empty response", "changed HTML", "schedule failure reaches commit gate", "required official failure blocks commit", "JST date mismatch"],
   scheduleFailure: "warning, no schedule write, commit gate remains reachable",
   fixtureOutput: outputPath,
 }));

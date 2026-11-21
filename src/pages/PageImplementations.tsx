@@ -2,7 +2,7 @@
 import { raceScheduleData } from "../data/raceScheduleData";
 import { useRef } from "react";
 import type { DailyMetricItem } from "../types/dailyMetrics";
-import type { RaceGrade, RaceScheduleItem, RaceScheduleSource, RaceSession } from "../types/raceSchedule";
+import type { RaceGrade, RaceScheduleItem, RaceScheduleProvenance, RaceScheduleSource, RaceSession } from "../types/raceSchedule";
 import { getRaceEventDayLabel } from "../utils/raceEventDay";
 import {
   findPlayerCardByRegistrationNo,
@@ -5488,10 +5488,12 @@ export const formatShortDateRange = (startDate: string, endDate: string) => {
   return `${start} - ${end}`;
 };
 
-export const getSessionLabel = (session: "day" | "night" | "midnight") => {
+export const getSessionLabel = (session: unknown) => {
+  if (session === "morning") return "モーニング";
   if (session === "day") return "デイ";
   if (session === "night") return "ナイター";
-  return "ミッドナイト";
+  if (session === "midnight") return "ミッドナイト";
+  return "時間帯未確認";
 };
 
 export const getGradeBadgeTone = (grade: RaceScheduleItem["grade"] | string) => {
@@ -5635,13 +5637,15 @@ export const compareRaces = (a: RaceScheduleItem, b: RaceScheduleItem) => {
 
 export const compareTodayRacesBySession = (a: RaceScheduleItem, b: RaceScheduleItem) => {
   const sessionPriority: Record<RaceScheduleItem["session"], number> = {
+    morning: 0,
     day: 1,
     night: 2,
     midnight: 3,
+    unknown: 99,
   };
 
   const morningBoost = (race: RaceScheduleItem) =>
-    race.note?.includes("モーニング") ? 0 : 1;
+    race.session === "morning" || (race.session === "day" && (race.source === "ctc" || race.source === "manual") && race.note?.includes("モーニング")) ? 0 : 1;
 
   const aMorning = morningBoost(a);
   const bMorning = morningBoost(b);
@@ -5790,6 +5794,10 @@ export const todayRaces = raceScheduleData
 
 export type UpcomingScheduleFeed = {
   generatedAt?: string;
+  source?: string;
+  provider?: string;
+  candidateOnly?: boolean;
+  dataValidationPassed?: boolean;
   range?: {
     from?: string;
     to?: string;
@@ -5804,6 +5812,7 @@ export type UpcomingScheduleState = {
   rangeFrom?: string;
   rangeTo?: string;
   status: "fallback" | "loaded" | "error";
+  notices?: string[];
 };
 
 const UPCOMING_SCHEDULE_RANGE_DAYS = 60;
@@ -5869,60 +5878,132 @@ export const fallbackUpcomingScheduleRaces = raceScheduleData
   .filter(isGradedRaceScheduleItem)
   .sort(compareUpcomingScheduleRaces);
 
-const normalizeScheduleGrade = (value: unknown): RaceGrade => {
-  const text = normalizeGradedRaceText(readString(value));
+export const normalizeScheduleGrade = (value: unknown): RaceGrade | null => {
+  const text = normalizeGradedRaceText(readString(value).trim());
   if (text === "G1") return "GI";
   if (text === "G2") return "GII";
   if (text === "G3") return "GIII";
+  if (text === "FI") return "F1";
+  if (text === "FII") return "F2";
   if (text === "GP" || text === "GI" || text === "GII" || text === "GIII" || text === "F1" || text === "F2") return text;
-  return "F2";
+  return null;
 };
 
-const normalizeScheduleSession = (value: unknown, note = ""): RaceSession => {
+export const normalizeScheduleSession = (value: unknown, note = "", source: RaceScheduleSource = "unknown"): RaceSession => {
   const text = readString(value);
-  if (text === "midnight" || note.includes("ミッドナイト")) return "midnight";
-  if (text === "night" || note.includes("ナイター")) return "night";
-  return "day";
+  if (text === "unknown") return "unknown";
+  // Legacy CTC/manual morning records use session=day plus an explicit note.
+  if ((source === "ctc" || source === "manual") && (text === "day" || text === "")) {
+    const noted = [
+      note.includes("モーニング") ? "morning" : null,
+      note.includes("ミッドナイト") ? "midnight" : null,
+      note.includes("ナイター") ? "night" : null,
+    ].filter((session): session is "morning" | "midnight" | "night" => session !== null);
+    if (noted.length > 1) return "unknown";
+    if (noted.length === 1) return noted[0];
+  }
+  return text === "morning" || text === "day" || text === "night" || text === "midnight" ? text : "unknown";
 };
 
-const normalizeScheduleSource = (value: unknown): RaceScheduleSource =>
-  readString(value) === "manual" ? "manual" : "ctc";
+export const normalizeScheduleSource = (value: unknown): RaceScheduleSource =>
+  value === "ctc" || value === "manual" || value === "keirin-jp" ? value : "unknown";
 
-const normalizeUpcomingScheduleItem = (value: unknown): RaceScheduleItem | null => {
+export const getScheduleSourceLabel = (source: unknown) =>
+  source === "keirin-jp" ? "KEIRIN.JP公式" : source === "ctc" ? "CTC" : source === "manual" ? "手入力" : "出典未確認";
+
+export const getScheduleTitleLabel = (race: Pick<RaceScheduleItem, "title">) => race.title || "名称未公表";
+
+export const hasValidSchedulePeriod = (race: Pick<RaceScheduleItem, "startDate" | "endDate" | "periodStatus" | "validationStatus">) => {
+  const valid = (date: string) => /^\d{4}-\d{2}-\d{2}$/.test(date)
+    && Number.isFinite(Date.parse(date)) && new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10) === date;
+  return valid(race.startDate) && valid(race.endDate) && race.startDate <= race.endDate
+    && !["conflict", "held", "unknown"].includes(race.periodStatus ?? "")
+    && !["conflict", "held"].includes(race.validationStatus ?? "");
+};
+
+const normalizeScheduleProvenance = (value: unknown): RaceScheduleProvenance[] | undefined => {
+  if (!Array.isArray(value)) return undefined;
+  return value.filter(isRecord).map((entry) => {
+    const result: RaceScheduleProvenance = {};
+    for (const key of ["provider", "url", "requestedMonth", "fetchedAt", "rawSha256"] as const) {
+      if (typeof entry[key] === "string") result[key] = entry[key];
+    }
+    if (typeof entry.rawBytes === "number" && Number.isFinite(entry.rawBytes)) result.rawBytes = entry.rawBytes;
+    return result;
+  }).filter((entry) => Object.keys(entry).length > 0);
+};
+
+export const normalizeUpcomingScheduleItem = (value: unknown): RaceScheduleItem | null => {
   if (!isRecord(value)) return null;
 
   const startDate = readString(value.startDate);
   const endDate = readString(value.endDate);
   const venue = readString(value.venue) || readString(value.venueName);
-  if (!startDate || !endDate || !venue) return null;
+  const periodStatus = readString(value.periodStatus);
+  const validationStatus = readString(value.validationStatus);
+  if (!venue || !hasValidSchedulePeriod({ startDate, endDate, periodStatus, validationStatus })) return null;
 
   const note = readString(value.note);
   const grade = normalizeScheduleGrade(value.grade);
-  const title = readString(value.title) || `${venue}開催`;
+  if (!grade) return null;
+  const title = readString(value.title);
+  const source = normalizeScheduleSource(value.source);
+  const provenance = normalizeScheduleProvenance(value.provenance);
 
   return {
-    id: readString(value.id) || `${startDate}-${venue}-${grade}-${title}`,
+    id: readString(value.id) || `${source}-${startDate}-${endDate}-${venue}`,
     venue,
     title,
     grade,
     startDate,
     endDate,
-    session: normalizeScheduleSession(value.session, note),
+    session: normalizeScheduleSession(value.session, note, source),
     hasGirls: value.hasGirls === true || note.includes("ガールズ"),
-    source: normalizeScheduleSource(value.source),
+    source,
+    ...(typeof value.venueCode === "string" ? { venueCode: value.venueCode } : {}),
+    ...(provenance ? { provenance } : {}),
+    ...(typeof value.operationStatus === "string" ? { operationStatus: value.operationStatus } : {}),
+    ...(periodStatus ? { periodStatus } : {}),
+    ...(validationStatus ? { validationStatus } : {}),
     ...(note ? { note } : {}),
   };
 };
 
-const normalizeUpcomingScheduleFeed = (feed: UpcomingScheduleFeed) =>
-  (feed.items ?? [])
+export const normalizeUpcomingScheduleFeed = (feed: UpcomingScheduleFeed, from = TODAY, to = UPCOMING_SCHEDULE_TO) =>
+  (feed.dataValidationPassed === false || (feed.candidateOnly && feed.dataValidationPassed !== true) ? [] : Array.isArray(feed.items) ? feed.items : [])
     .map(normalizeUpcomingScheduleItem)
     .filter((item): item is RaceScheduleItem => Boolean(item))
-    .filter((item) => item.endDate >= TODAY && item.startDate <= UPCOMING_SCHEDULE_TO)
+    .filter((item) => item.endDate >= from && item.startDate <= to)
     .sort(compareUpcomingScheduleRaces);
 
-const getScheduleDisplaySessionLabel = (race: RaceScheduleItem) =>
-  race.note?.includes("モーニング") ? "モーニング" : getSessionLabel(race.session);
+export const getScheduleDisplaySessionLabel = (race: RaceScheduleItem) =>
+  getSessionLabel(normalizeScheduleSession(race.session, race.note, race.source));
+
+export const getScheduleFeedNotices = (feed: UpcomingScheduleFeed, items: RaceScheduleItem[], now = new Date()) => {
+  const notices: string[] = [];
+  if (feed.candidateOnly) notices.push("隔離検証用の候補データです。本番切替は未実施です。");
+  if (feed.dataValidationPassed === false || (feed.candidateOnly && feed.dataValidationPassed !== true)) {
+    notices.push("検証未完了の開催データは表示を保留しています。");
+  }
+  const held = Array.isArray(feed.items) ? feed.items.filter((item) => !normalizeUpcomingScheduleItem(item)).length : 0;
+  if (held) notices.push(`情報未確認・日程矛盾のある${held}開催は表示を保留しています。`);
+  const feedSource = feed.source === "https://ctc.gr.jp/schedule/" ? "ctc"
+    : feed.source === "https://www.keirin.jp/sp/raceschedule" ? "keirin-jp" : normalizeScheduleSource(feed.source);
+  const timestamps = items.flatMap((item) => item.provenance?.length
+    ? item.provenance.map((entry) => entry.fetchedAt)
+    : [item.source !== "unknown" && item.source === feedSource ? feed.generatedAt : undefined]);
+  const jstDate = (date: Date) => new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Tokyo" }).format(date);
+  if (!timestamps.length || timestamps.some((value) => !value || !Number.isFinite(Date.parse(value)) || Date.parse(value) > now.getTime())) {
+    notices.push("取得日時未確認の開催予定が含まれます。");
+  }
+  if (timestamps.some((value) => value && Number.isFinite(Date.parse(value)) && jstDate(new Date(value)) < jstDate(now))) {
+    notices.push("古い取得日時の開催予定が含まれます。最新の開催状況は公式情報で確認してください。");
+  }
+  if (items.some((item) => item.source === "keirin-jp" && item.operationStatus !== "scheduled")) {
+    notices.push("中止・順延・日程変更の確認は未完了です。掲載日程は予定として表示しています。");
+  }
+  return notices;
+};
 
 const getScheduleSupplementNote = (race: RaceScheduleItem) =>
   race.note
@@ -5930,10 +6011,10 @@ const getScheduleSupplementNote = (race: RaceScheduleItem) =>
     .filter((part) => part !== "デイ" && part !== "ナイター" && part !== "ミッドナイト" && part !== "モーニング")
     .join("・") || "";
 
-const getScheduleTargetDate = (race: RaceScheduleItem) => {
-  if (TODAY < race.startDate) return race.startDate;
-  if (TODAY > race.endDate) return race.startDate;
-  return TODAY;
+const getScheduleTargetDate = (race: RaceScheduleItem, today = TODAY) => {
+  if (today < race.startDate) return race.startDate;
+  if (today > race.endDate) return race.startDate;
+  return today;
 };
 
 const getDaysBetweenIso = (from: string, to: string) => {
@@ -5942,13 +6023,13 @@ const getDaysBetweenIso = (from: string, to: string) => {
   return Math.floor((toDate.getTime() - fromDate.getTime()) / (24 * 60 * 60 * 1000));
 };
 
-const getUpcomingScheduleDayLabel = (race: RaceScheduleItem) => {
-  const targetDate = getScheduleTargetDate(race);
+export const getUpcomingScheduleDayLabel = (race: RaceScheduleItem, today = TODAY) => {
+  if (!hasValidSchedulePeriod(race) || ["conflict", "held", "cancelled", "postponed", "changed"].includes(race.operationStatus ?? "")) return "日程未確認";
+  const targetDate = getScheduleTargetDate(race, today);
   const currentDay = getDaysBetweenIso(race.startDate, targetDate) + 1;
   const totalDays = getDaysBetweenIso(race.startDate, race.endDate) + 1;
-  if (currentDay <= 1) return "初日";
-  if (currentDay >= totalDays) return `${totalDays}日目・最終日`;
-  return `${currentDay}日目`;
+  const label = currentDay <= 1 ? "初日" : currentDay >= totalDays ? `${totalDays}日目・最終日` : `${currentDay}日目`;
+  return race.source === "keirin-jp" || race.operationStatus === "unverified" ? `予定・${label}` : label;
 };
 
 const formatUpcomingScheduleGeneratedAt = (generatedAt?: string) => {
@@ -6477,7 +6558,7 @@ export function CalendarSectionInApp({ favoriteRiderFeed }: { favoriteRiderFeed:
           <div style={{ display: "grid", gap: hasFinderFilters ? "8px" : "10px" }}>
             <h2 style={{ margin: 0, fontSize: "36px", lineHeight: 1.14, color: "#081224", letterSpacing: "-0.02em" }}>開催カレンダー</h2>
             <p style={{ margin: 0, maxWidth: "980px", color: "#5b6b7f", fontSize: "16px", lineHeight: 1.95 }}>
-              CTC由来の開催データを日付単位で確認できるカレンダーです。
+              開催予定を出典別に表示しています。中止・順延・変更は公式情報で確認してください。
               日付を選ぶと、その日に開催されているレース一覧と成績メモを右側に表示します。
             </p>
           </div>
@@ -6726,13 +6807,14 @@ export function CalendarSectionInApp({ favoriteRiderFeed }: { favoriteRiderFeed:
                   </div>
 
                   <div style={{ color: "#334155", fontSize: hasFinderFilters ? "13px" : "14px", fontWeight: 700, lineHeight: 1.8, marginBottom: "10px" }}>
-                    {event.title}
+                    {getScheduleTitleLabel(event)}
                   </div>
+                  <div style={{ color: "#64748b", fontSize: "12px", marginBottom: "10px" }}>出典：{getScheduleSourceLabel(event.source)}</div>
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
                     <div style={{ borderRadius: "16px", padding: hasFinderFilters ? "8px 10px" : "10px 12px", background: "#faf8fd", border: "1px solid #ede7f5" }}>
                       <div style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "0.16em", color: "#64748b", marginBottom: "4px" }}>時間帯</div>
-                      <div style={{ fontSize: "12px", fontWeight: 700, color: "#081224" }}>{getSessionLabel(event.session)}</div>
+                      <div style={{ fontSize: "12px", fontWeight: 700, color: "#081224" }}>{getScheduleDisplaySessionLabel(event)}</div>
                     </div>
 
                     <div style={{ borderRadius: "16px", padding: hasFinderFilters ? "8px 10px" : "10px 12px", background: "#faf8fd", border: "1px solid #ede7f5" }}>
@@ -7027,6 +7109,7 @@ export function DashboardPage() {
     rangeFrom: TODAY,
     rangeTo: UPCOMING_SCHEDULE_TO,
     status: "fallback",
+    notices: getScheduleFeedNotices({}, fallbackUpcomingScheduleRaces),
   });
   const dashboardNow = useDashboardNow();
   const isMobile = useIsMobile();
@@ -7079,12 +7162,17 @@ export function DashboardPage() {
         const feed = await response.json() as UpcomingScheduleFeed;
         const items = normalizeUpcomingScheduleFeed(feed);
         if (!isActive) return;
+        const usingFallback = items.length === 0;
         setUpcomingScheduleState({
-          items: items.length > 0 ? items : fallbackUpcomingScheduleRaces,
-          generatedAt: feed.generatedAt,
-          rangeFrom: feed.range?.from ?? TODAY,
-          rangeTo: feed.range?.to ?? UPCOMING_SCHEDULE_TO,
-          status: items.length > 0 ? "loaded" : "fallback",
+          items: usingFallback ? fallbackUpcomingScheduleRaces : items,
+          generatedAt: usingFallback ? undefined : feed.generatedAt,
+          rangeFrom: usingFallback ? TODAY : feed.range?.from ?? TODAY,
+          rangeTo: usingFallback ? UPCOMING_SCHEDULE_TO : feed.range?.to ?? UPCOMING_SCHEDULE_TO,
+          status: usingFallback ? "fallback" : "loaded",
+          notices: [...new Set([
+            ...getScheduleFeedNotices(feed, items),
+            ...(usingFallback ? ["対象データを表示できないため、保存済みの開催予定を表示しています。", ...getScheduleFeedNotices({}, fallbackUpcomingScheduleRaces)] : []),
+          ])],
         });
       } catch {
         if (!isActive) return;
@@ -7093,6 +7181,7 @@ export function DashboardPage() {
           rangeFrom: TODAY,
           rangeTo: UPCOMING_SCHEDULE_TO,
           status: "error",
+          notices: getScheduleFeedNotices({}, fallbackUpcomingScheduleRaces),
         });
       }
     };
@@ -7473,7 +7562,10 @@ export function DashboardPage() {
               </div>
             )}
 
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(5, minmax(0, 1fr))", gap: "20px" }}>
+            <div data-testid="upcoming-schedule-notices" style={{ marginBottom: "12px", color: "#9a3412", fontSize: "12px", lineHeight: 1.7 }}>
+              {upcomingScheduleState.notices?.map((notice) => <p key={notice} style={{ margin: "4px 0" }}>{notice}</p>)}
+            </div>
+            <div data-testid="upcoming-schedule-list" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(5, minmax(0, 1fr))", gap: "20px" }}>
             {featuredUpcomingScheduleRaces.map((item) => {
               const scheduleFavoriteItems = featuredScheduleFavoriteRaceMap.get(item.id) ?? [];
               const hasScheduleFavorite = scheduleFavoriteItems.length > 0;
@@ -7481,14 +7573,15 @@ export function DashboardPage() {
               const supplementNote = getScheduleSupplementNote(item);
 
               return (
-              <article key={item.id} style={{ background: hasScheduleFavorite ? "linear-gradient(180deg, #fffdfd 0%, #ffffff 100%)" : "linear-gradient(180deg, #ffffff 0%, #fcfbfe 100%)", border: hasScheduleFavorite ? "1px solid #f1cada" : "1px solid #ece6f5", borderRadius: "32px", padding: "24px", boxShadow: hasScheduleFavorite ? "0 18px 38px rgba(176, 74, 120, 0.08)" : "0 16px 34px rgba(15, 23, 42, 0.05)", minHeight: "188px", position: "relative", overflow: "hidden" }}>
+              <article key={item.id} data-schedule-id={item.id} data-schedule-source={item.source} style={{ background: hasScheduleFavorite ? "linear-gradient(180deg, #fffdfd 0%, #ffffff 100%)" : "linear-gradient(180deg, #ffffff 0%, #fcfbfe 100%)", border: hasScheduleFavorite ? "1px solid #f1cada" : "1px solid #ece6f5", borderRadius: "32px", padding: "24px", boxShadow: hasScheduleFavorite ? "0 18px 38px rgba(176, 74, 120, 0.08)" : "0 16px 34px rgba(15, 23, 42, 0.05)", minHeight: "188px", position: "relative", overflow: "hidden" }}>
                 <div style={{ position: "absolute", inset: "0 auto auto 0", width: "100%", height: "4px", background: hasScheduleFavorite ? "linear-gradient(90deg, rgba(235,149,181,0.9) 0%, rgba(255,255,255,0) 72%)" : "linear-gradient(90deg, rgba(122,103,184,0.22) 0%, rgba(255,255,255,0) 72%)" }} />
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", marginBottom: "10px", position: "relative" }}>
                   <div style={{ fontSize: "20px", fontWeight: 800, color: "#081224" }}>{item.venue}</div>
                   <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9999px", padding: "4px 8px", fontSize: "10px", fontWeight: 800, background: getGradeBadgeTone(item.grade).background, color: getGradeBadgeTone(item.grade).text, border: `1px solid ${getGradeBadgeTone(item.grade).border}`, boxShadow: getGradeBadgeTone(item.grade).shadow, whiteSpace: "nowrap" }}>{item.grade}</span>
                 </div>
 
-                <div style={{ fontSize: "14px", fontWeight: 700, color: "#334155", marginBottom: "10px", minHeight: "48px", lineHeight: 1.7 }}>{item.title}</div>
+                <div style={{ fontSize: "14px", fontWeight: 700, color: "#334155", marginBottom: "10px", minHeight: "48px", lineHeight: 1.7 }}>{getScheduleTitleLabel(item)}</div>
+                <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "8px" }}>出典：{getScheduleSourceLabel(item.source)}</div>
 
                 <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minHeight: "36px", borderRadius: "9999px", padding: hasFinderFilters ? "6px 10px" : "8px 12px", fontSize: "11px", fontWeight: 800, color: "#526072", lineHeight: 1.2, background: "linear-gradient(180deg, #ffffff 0%, #fbf8fe 100%)", border: "1px solid #e9e1f2", boxShadow: "0 6px 14px rgba(15, 23, 42, 0.03)" }}>
                   {formatShortDateRange(item.startDate, item.endDate)}

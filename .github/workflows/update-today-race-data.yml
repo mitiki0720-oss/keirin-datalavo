@@ -173,13 +173,14 @@ jobs:
         shell: bash
         run: |
           mkdir -p .tmp
-          npm run update:schedule:upcoming 2>&1 | tee .tmp/ctc-upcoming.log
+          set -o pipefail
+          npm run update:schedule:upcoming 2>&1 | tee .tmp/keirin-schedule-upcoming.log
 
       - name: Report upcoming schedule failure
         if: steps.write_window.outputs.run_update == 'true' && (always() && steps.upcoming_schedule.outcome == 'failure')
         run: |
-          echo "::warning title=CTC schedule unavailable::Upcoming schedule was not updated; validated today race data will continue to the commit gate. See the preceding CTC HTTP/error log."
-          echo "CTC upcoming schedule: FAILED / not updated. Today race data has a separate validation and commit gate." >> "$GITHUB_STEP_SUMMARY"
+          echo "::warning title=KEIRIN.JP schedule unavailable::Upcoming schedule was not updated; validated today race data will continue to the commit gate. See the preceding official schedule HTTP/error log."
+          echo "KEIRIN.JP upcoming schedule: FAILED / not updated. Existing data was retained. Today race data has a separate validation and commit gate." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Update today race data
         if: steps.write_window.outputs.run_update == 'true'
