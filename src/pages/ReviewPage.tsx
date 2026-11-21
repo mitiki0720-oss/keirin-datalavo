@@ -38,6 +38,38 @@ type PredictionSlotRecord = {
 
 type PredictionResultHitStatus = "hit" | "miss" | "pending";
 
+// Read-only receipt data; a prediction or an old payout is never a refund confirmation.
+type ReviewRefundConfirmation = {
+  status: "confirmed";
+  sourceType: "OFFICIAL";
+  sourceName: string;
+  sourceUrl: string;
+  purchaseId: string;
+  date: string;
+  venueCode: string;
+  raceNumber: number;
+  purchaseAmountYen: number;
+  refundAmountYen: number;
+  refundedAt: string;
+};
+
+type ReviewRefundEvidence = {
+  date: string;
+  venueCode: string;
+  venueName: string;
+  raceNumber: number;
+};
+
+type ReviewRefundSettlement = {
+  status: "pending" | "confirmed";
+  recordedInvestmentYen?: number;
+  plannedInvestmentYen?: number;
+  refundAmountYen?: number;
+  netProfitYen?: number;
+};
+
+type ReviewRacePerformanceView = ReviewRacePerformance & { refund?: ReviewRefundSettlement };
+
 type PredictionResultRecord = {
   raceKey: string;
   raceId: string;
@@ -55,6 +87,7 @@ type PredictionResultRecord = {
   payout?: number;
   profitLoss?: number;
   roi?: number;
+  refundConfirmation?: ReviewRefundConfirmation;
   weatherActual?: PredictionRaceResultWeatherActual;
   memo: string;
   savedAt: string;
@@ -170,6 +203,7 @@ type PredictionFinalTrifectaFavorite = {
 
 type PredictionRaceItem = {
   raceNo: number;
+  reviewRefundEvidence?: ReviewRefundEvidence;
   time?: string;
   title?: string;
   lineup?: string;
@@ -296,7 +330,7 @@ type VenueReviewRace = {
   predictionSummary: string;
   feedRace?: PredictionRaceItem;
   resultRecord?: PredictionResultRecord;
-  performance: ReviewRacePerformance;
+  performance: ReviewRacePerformanceView;
 };
 
 type VenueReviewGroup = {
@@ -328,6 +362,7 @@ const toPublicPath = (path: string) => {
 };
 
 const PREDICTION_TODAY_DATA_URL = toPublicPath("/data/races/today.generated.json");
+const REVIEW_CURRENT_OFFICIAL_RESULTS_URL = toPublicPath("/data/races/keirin-jp-results.generated.json");
 const PREDICTION_SAVED_DATA_URL = toPublicPath("/data/predictions/saved-predictions.generated.json");
 const REVIEW_FILE_INDEX_URL = toPublicPath("/data/reviews/index.json");
 const REVIEW_OFFICIAL_RESULTS_URL = (date: string) =>
@@ -338,7 +373,12 @@ async function fetchReviewTodayFeed(cacheMode: RequestCache = "no-cache") {
   const suffix = cacheMode === "no-store" ? `?v=${Date.now()}` : "";
   const response = await fetch(`${PREDICTION_TODAY_DATA_URL}${suffix}`, { cache: cacheMode });
   if (!response.ok) throw new Error(`review-feed-${response.status}`);
-  return response.json() as Promise<PredictionTodayFeed>;
+  const feed = await response.json() as PredictionTodayFeed;
+  try {
+    const official = await fetch(`${REVIEW_CURRENT_OFFICIAL_RESULTS_URL}${suffix}`, { cache: cacheMode, signal: AbortSignal.timeout(8_000) });
+    if (official.ok) return attachReviewOfficialRefundEvidence(feed, await official.json());
+  } catch { /* Unverified refund claims stay on hold; normal results remain available. */ }
+  return feed;
 }
 
 async function fetchReviewOfficialResults(date: string): Promise<PredictionTodayFeed | null> {
@@ -346,7 +386,8 @@ async function fetchReviewOfficialResults(date: string): Promise<PredictionToday
   const response = await fetch(REVIEW_OFFICIAL_RESULTS_URL(date), { cache: "no-cache" });
   if (response.status === 404) return null;
   if (!response.ok) throw new Error(`review-official-results-${response.status}`);
-  return buildReviewOfficialResultsFeed(await response.json(), date);
+  const payload = await response.json();
+  return attachReviewOfficialRefundEvidence(buildReviewOfficialResultsFeed(payload, date), payload);
 }
 
 type SavedPredictionPayload = {
@@ -947,6 +988,7 @@ function mergeReviewRaceWithSnapshot(
   return {
     ...snapshotRace,
     ...feedRace,
+    reviewRefundEvidence: feedRace.reviewRefundEvidence,
     time: feedRace.time || snapshotRace.time,
     title: feedRace.title || snapshotRace.title,
     lineup: feedRace.lineup || snapshotRace.lineup,
@@ -960,9 +1002,9 @@ function mergeReviewRaceWithSnapshot(
     favoriteOdds: feedRace.favoriteOdds ?? snapshotRace.favoriteOdds,
     favoriteCombination: feedRace.favoriteCombination || snapshotRace.favoriteCombination,
     resultStatus: feedRace.resultStatus || snapshotRace.resultStatus,
-    resultTop3: feedRace.resultTop3?.length ? feedRace.resultTop3 : snapshotRace.resultTop3,
+    resultTop3: isReviewAllRefundRace(feedRace) ? [] : feedRace.resultTop3?.length ? feedRace.resultTop3 : snapshotRace.resultTop3,
     payouts: feedRace.payouts ?? snapshotRace.payouts,
-    result: mergePredictionRaceResult(feedRace.result, snapshotRace.result),
+    result: isReviewAllRefundRace(feedRace) ? feedRace.result : mergePredictionRaceResult(feedRace.result, snapshotRace.result),
     riders: feedRace.riders?.length ? feedRace.riders : snapshotRace.riders,
     officialResultSource: feedRace.officialResultSource || snapshotRace.officialResultSource,
     sourceName: feedRace.sourceName || snapshotRace.sourceName,
@@ -1513,25 +1555,112 @@ function buildReviewPayoutLines(feedRace?: PredictionRaceItem) {
 }
 
 const REVIEW_ALL_REFUND_TEXT = "\u5168\u8fd4\u9084";
-const REVIEW_CANCEL_TEXT = "\u30ec\u30fc\u30b9\u4e2d\u6b62";
 const REVIEW_ALL_REFUND_STATUS_LABEL = "\u30ec\u30fc\u30b9\u4e2d\u6b62\u30fb\u5168\u8fd4\u9084";
 const REVIEW_ALL_REFUND_ORDER_LABEL = "\u5168\u8fd4\u9084\uff08\u7740\u9806\u7167\u5408\u306a\u3057\uff09";
 const REVIEW_ALL_REFUND_HIT_LABEL = "\u5168\u8fd4\u9084\uff08\u8cfc\u5165\u7121\u52b9\uff09";
+const verifiedReviewRefundEvidence = new WeakSet<ReviewRefundEvidence>();
+
+function reviewRefundObject(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function isReviewRefundTimestamp(value: unknown): value is string {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)
+    && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === (value.includes(".") ? value : value.replace("Z", ".000Z"));
+}
+
+function attachReviewOfficialRefundEvidence(feed: PredictionTodayFeed, payload: unknown): PredictionTodayFeed {
+  const root = reviewRefundObject(payload), source = reviewRefundObject(root?.source);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(feed.date) || !Number.isFinite(Date.parse(feed.date)) || new Date(feed.date).toISOString().slice(0, 10) !== feed.date
+    || root?.schemaVersion !== 1 || root.date !== feed.date || source?.provider !== "KEIRIN.JP"
+    || source.listType !== "JSJ048" || source.expectedDate !== feed.date || root.errorCount !== 0
+    || !Array.isArray(root.venues) || !Array.isArray(feed.venues)) return feed;
+  try {
+    const url = new URL(String(source.listUrl));
+    if (url.origin !== "https://keirin.jp" || url.pathname !== "/pc/json" || url.username || url.password
+      || url.searchParams.get("type") !== "JSJ048" || !isReviewRefundTimestamp(source.fetchCompletedAt)
+      || Date.parse(source.fetchCompletedAt) < Date.parse(`${feed.date}T00:00:00+09:00`)
+      || Date.parse(source.fetchCompletedAt) > Date.now() + 120_000) return feed;
+  } catch { return feed; }
+  const keys = new Set<string>();
+  const refunds = new Map<string, { evidence: ReviewRefundEvidence; payouts: PredictionRaceResultPayoutItem[] }>();
+  const labels = { bracketQuinella: "枠複", bracketExacta: "枠単", quinella: "2車複", exacta: "2車単", trio: "3連複", trifecta: "3連単", wide: "ワイド" };
+  for (const rawVenue of root.venues) {
+    const venue = reviewRefundObject(rawVenue);
+    if (!venue || venue.date !== feed.date || !/^\d{2}$/.test(String(venue.venueCode)) || typeof venue.venueName !== "string" || !normalizeVenueName(venue.venueName) || !Array.isArray(venue.races)) return feed;
+    for (const rawRace of venue.races) {
+      const race = reviewRefundObject(rawRace);
+      const raceNumber = Number(race?.raceNumber), key = `${venue.venueCode}:${raceNumber}`;
+      if (!race || !Number.isInteger(raceNumber) || raceNumber < 1 || raceNumber > 12 || keys.has(key)) return feed;
+      keys.add(key);
+      if (race.operationStatus !== "cancelled") continue;
+      const state = reviewRefundObject(race.officialPublicationState), payouts = reviewRefundObject(race.payouts);
+      if (race.resultStatus !== "pending" || race.resultCode !== 0 || race.resultVisible !== false
+        || !Array.isArray(race.finishOrder) || race.finishOrder.length || race.payout2tan !== null || race.payout3tan !== null
+        || state?.kind !== "cancelled" || !payouts || Object.keys(payouts).some(key => !Object.hasOwn(labels, key))) return feed;
+      const cancelled = [...String(state.note ?? "").normalize("NFKC").matchAll(/(\d+(?:\s*[,、・]\s*\d+)*)\s*(?:レース|R)\s*は中止(?:となりました|となります|です)?[。.]?/gu)]
+        .some(match => match[1].split(/\s*[,、・]\s*/).map(Number).includes(raceNumber));
+      if (!cancelled) return feed;
+      const items: PredictionRaceResultPayoutItem[] = [];
+      for (const [key, betType] of Object.entries(labels)) {
+        const rows = payouts[key];
+        const row = Array.isArray(rows) && rows.length === 1 ? reviewRefundObject(rows[0]) : null;
+        if (!row || row.combination !== "" || row.payoutYen !== null || !["【全返還】", "【未発売】"].includes(String(row.payoutDisplay))) return feed;
+        if (row.payoutDisplay === "【全返還】") items.push({ betType, combination: REVIEW_ALL_REFUND_TEXT, payout: REVIEW_ALL_REFUND_TEXT });
+      }
+      if (!items.length) return feed;
+      refunds.set(key, { evidence: { date: feed.date, venueCode: String(venue.venueCode), venueName: venue.venueName, raceNumber }, payouts: items });
+    }
+  }
+  return { ...feed, venues: feed.venues.map(venue => ({ ...venue, races: venue.races.map(race => {
+    const match = refunds.get(`${venue.venueCode}:${race.raceNo}`);
+    if (!match || normalizeVenueName(venue.venue) !== normalizeVenueName(match.evidence.venueName)) return race;
+    verifiedReviewRefundEvidence.add(match.evidence);
+    return { ...race, reviewRefundEvidence: match.evidence, resultStatus: "pending", resultTop3: [],
+      raceOperationStatus: "cancelled", resultNote: REVIEW_ALL_REFUND_STATUS_LABEL, payouts: match.payouts,
+      officialResultSource: "KEIRIN.JP", sourceName: "KEIRIN.JP", sourceType: "OFFICIAL", sourceFetchedAt: String(source.fetchCompletedAt),
+      result: { ...race.result, status: "pending", reviewSettlementEligible: false, finishOrder: [],
+        officialResultSource: "KEIRIN.JP", sourceName: "KEIRIN.JP", sourceType: "OFFICIAL", sourceFetchedAt: String(source.fetchCompletedAt),
+        payout2tan: match.payouts.find(item => item.betType === "2車単") ?? null,
+        payout3tan: match.payouts.find(item => item.betType === "3連単") ?? null,
+        payout2fuku: match.payouts.filter(item => item.betType === "2車複"), payout3fuku: match.payouts.find(item => item.betType === "3連複") ?? null,
+        payoutWide: match.payouts.filter(item => item.betType === "ワイド") } };
+  }) })) };
+}
 
 function isReviewAllRefundRace(feedRace?: PredictionRaceItem) {
-  const noteText = String(feedRace?.resultNote ?? "");
-  if (noteText.includes(REVIEW_ALL_REFUND_TEXT) || noteText.includes(REVIEW_CANCEL_TEXT)) return true;
+  const evidence = feedRace?.reviewRefundEvidence;
+  return Boolean(evidence && verifiedReviewRefundEvidence.has(evidence) && evidence.raceNumber === feedRace?.raceNo);
+}
 
-  const payoutText = JSON.stringify([
-    feedRace?.payouts,
-    feedRace?.result?.payout2tan,
-    feedRace?.result?.payout2fuku,
-    feedRace?.result?.payout3tan,
-    feedRace?.result?.payout3fuku,
-    feedRace?.result?.payoutWide,
-  ]);
+function hasUnverifiedReviewRefund(feedRace?: PredictionRaceItem) {
+  if (isReviewAllRefundRace(feedRace)) return false;
+  const items = [...(Array.isArray(feedRace?.payouts) ? feedRace.payouts : []), feedRace?.result?.payout2tan, feedRace?.result?.payout3tan,
+    ...(Array.isArray(feedRace?.result?.payout2fuku) ? feedRace.result.payout2fuku : []), feedRace?.result?.payout3fuku,
+    ...(Array.isArray(feedRace?.result?.payoutWide) ? feedRace.result.payoutWide : [])];
+  return items.some(item => /返還/.test(String(item?.payout ?? "")) || /返還/.test(String(item?.combination ?? "")));
+}
 
-  return payoutText.includes(REVIEW_ALL_REFUND_TEXT);
+function resolveReviewRefundSettlement(performance: ReviewRacePerformance, record: PredictionResultRecord | undefined, race: PredictionRaceItem): ReviewRefundSettlement {
+  const recordedInvestmentYen = typeof record?.investment === "number" && Number.isFinite(record.investment) && record.investment >= 0 ? record.investment : undefined;
+  const pending: ReviewRefundSettlement = { status: "pending", recordedInvestmentYen, plannedInvestmentYen: performance.classification.declaredInvestmentYen };
+  const confirmation = record?.refundConfirmation, evidence = race.reviewRefundEvidence;
+  if (!confirmation || !evidence || record?.date !== evidence.date || normalizeVenueName(record.venue) !== normalizeVenueName(evidence.venueName)
+    || record.raceNumber !== evidence.raceNumber || record.investmentSource !== "manual" || confirmation.status !== "confirmed"
+    || confirmation.sourceType !== "OFFICIAL" || typeof confirmation.sourceName !== "string" || !confirmation.sourceName.trim()
+    || typeof confirmation.purchaseId !== "string" || !confirmation.purchaseId.trim()
+    || confirmation.date !== evidence.date || confirmation.venueCode !== evidence.venueCode || confirmation.raceNumber !== evidence.raceNumber
+    || !Number.isSafeInteger(confirmation.purchaseAmountYen) || confirmation.purchaseAmountYen <= 0
+    || confirmation.purchaseAmountYen !== recordedInvestmentYen || confirmation.refundAmountYen !== confirmation.purchaseAmountYen
+    || !isReviewRefundTimestamp(confirmation.refundedAt) || Date.parse(confirmation.refundedAt) < Date.parse(`${evidence.date}T00:00:00+09:00`)
+    || Date.parse(confirmation.refundedAt) > Date.now() + 120_000) return pending;
+  try { const url = new URL(confirmation.sourceUrl); if (url.protocol !== "https:" || url.username || url.password) return pending; }
+  catch { return pending; }
+  return { ...pending, status: "confirmed", refundAmountYen: confirmation.refundAmountYen, netProfitYen: 0 };
+}
+
+function getReviewRefundLabel(performance: ReviewRacePerformanceView) {
+  return performance.refund?.status === "confirmed" ? "レース中止・全返還／購入無効／返還後収支0円（通常集計対象外）" : "レース中止・全返還／購入無効／精算保留（返還額未確認）";
 }
 
 const EMPTY_REVIEW_VALUES = new Set([
@@ -1604,9 +1733,11 @@ function isResultTextReady(value: unknown): boolean {
 
 function isResultReviewReady(race?: VenueReviewRace, fallbackText = ""): boolean {
   const feedRace = race?.feedRace;
+  if (isReviewAllRefundRace(feedRace)) return true;
+  if (hasUnverifiedReviewRefund(feedRace)) return false;
   const resultStatus = feedRace?.result?.status ?? feedRace?.resultStatus;
   if (resultStatus === "pending") return false;
-  if (isReviewAllRefundRace(feedRace) || resultStatus === "confirmed") return true;
+  if (resultStatus === "confirmed") return true;
 
   if (hasRealReviewValue(race?.resultRecord?.resultOrder)) return true;
 
@@ -1886,7 +2017,13 @@ function resolveReviewRacePerformance(
   slot: Pick<PredictionSlotRecord, "predictionText" | "predictionJson"> | undefined,
   resultRecord: PredictionResultRecord | undefined,
   feedRace: PredictionRaceItem | undefined,
-) {
+): ReviewRacePerformanceView {
+  if (isReviewAllRefundRace(feedRace) || hasUnverifiedReviewRefund(feedRace)) {
+    const performance = evaluateReviewRacePerformance({ predictionJson: slot?.predictionJson, predictionText: slot?.predictionText, settled: false });
+    return isReviewAllRefundRace(feedRace) && feedRace
+      ? { ...performance, refund: resolveReviewRefundSettlement(performance, resultRecord, feedRace) }
+      : performance;
+  }
   const resultOrder = getResultOrder(resultRecord, feedRace);
   const settled = feedRace?.result?.reviewSettlementEligible !== false && isResultReviewReady({
     venue: "",
@@ -1982,10 +2119,15 @@ function buildVenueGroups(
     const fileGroup = fileGroupMap.get(source.venueKey);
     const venue = feedVenue?.venue ?? slot?.venue ?? resultRecord?.venue ?? fileGroup?.venue ?? source.venueKey;
     const snapshotKey = buildReviewRaceResultSnapshotKey(date, venue, source.raceNumber);
-    const feedRace = mergeReviewRaceWithSnapshot(
+    let feedRace = mergeReviewRaceWithSnapshot(
       source.feed,
       raceResultSnapshotMap[snapshotKey],
     );
+    const refundEvidence = feedRace?.reviewRefundEvidence;
+    if (feedRace && refundEvidence && (refundEvidence.date !== date || refundEvidence.venueCode !== feedVenue?.venueCode
+      || normalizeVenueName(refundEvidence.venueName) !== normalizeVenueName(venue))) {
+      feedRace = { ...feedRace, reviewRefundEvidence: undefined };
+    }
     const current = groups.get(source.venueKey) ?? {
       venue,
       venueSlug: feedVenue?.slug ?? getReviewVenueSlugFromSourceFiles(
@@ -2106,10 +2248,11 @@ function buildResultCopy(
     const resolvedMetrics = race.performance;
     const resultOrder = getResultOrder(race.resultRecord, race.feedRace);
     const hitStatus = resolvedMetrics.status;
-    const investment = formatYen(resolvedMetrics.actualInvestment);
-    const payout = formatYen(resolvedMetrics.actualPayout);
-    const profit = formatProfit(resolvedMetrics.actualProfit);
-    const roi = formatRate(resolvedMetrics.actualRoi);
+    const refund = resolvedMetrics.refund;
+    const investment = refund ? "通常集計対象外（購入無効）" : formatYen(resolvedMetrics.actualInvestment);
+    const payout = refund ? "通常集計対象外（返還は別記）" : formatYen(resolvedMetrics.actualPayout);
+    const profit = refund ? "通常集計対象外" : formatProfit(resolvedMetrics.actualProfit);
+    const roi = refund ? "対象外（購入無効）" : formatRate(resolvedMetrics.actualRoi);
     const kimarite = getKimarite(race.resultRecord, race.feedRace);
     const secondKimarite = getSecondKimarite(race.feedRace);
     const sbText = getSBMarkText(race.feedRace);
@@ -2122,7 +2265,7 @@ function buildResultCopy(
     const finalOddsReference = resolveReviewFinalOddsReference(latestFeedRace, race.feedRace);
     const resultStatusLabel = getReviewResultStatusLabel(race.feedRace);
     const resultOrderLabel = getReviewResultOrderLabel(race.feedRace, resultOrder);
-    const hitStatusLabel = !race.hasPrediction
+    const hitStatusLabel = refund ? getReviewRefundLabel(resolvedMetrics) : !race.hasPrediction
       ? "予想未保存 / 的中・収支未判定"
       : isReviewAllRefundRace(race.feedRace)
       ? REVIEW_ALL_REFUND_HIT_LABEL
@@ -2138,10 +2281,11 @@ function buildResultCopy(
               ? "購入/影目分類なし"
               : "結果待ち";
     const matchedTicket = resolvedMetrics.matchedPurchaseTickets[0] ?? resolvedMetrics.matchedShadowTickets[0];
-    const hitBetTypeLabel = isReviewAllRefundRace(race.feedRace) ? REVIEW_ALL_REFUND_TEXT : matchedTicket?.betType ?? "--";
-    const hitCombinationLabel = isReviewAllRefundRace(race.feedRace) ? REVIEW_ALL_REFUND_TEXT : matchedTicket?.combination ?? "--";
+    const hitBetTypeLabel = isReviewAllRefundRace(race.feedRace) ? "対象外（購入無効）" : matchedTicket?.betType ?? "--";
+    const hitCombinationLabel = isReviewAllRefundRace(race.feedRace) ? "対象外（着順照合なし）" : matchedTicket?.combination ?? "--";
     const finishRows = getReviewFinishOrderRows(race.feedRace);
     const topResultLabel = (rank: number) => {
+      if (refund) return "該当なし（レース中止）";
       const entries = finishRows.filter((entry) => entry.place === String(rank));
       if (!entries.length) return race.feedRace?.result?.status === "confirmed" && finishRows.length
         ? "該当なし（公式着順）" : "未取得";
@@ -2181,6 +2325,12 @@ function buildResultCopy(
     lines.push(`払戻: ${payout}`);
     lines.push(`収支: ${profit}`);
     lines.push(`回収率: ${roi}`);
+    if (refund) {
+      lines.push(`記録済み投資額（履歴）: ${formatYen(refund.recordedInvestmentYen)}`);
+      lines.push(`予想の購入予定額（実購入未確認）: ${formatYen(refund.plannedInvestmentYen)}`);
+      lines.push(`返還額: ${refund.status === "confirmed" ? formatYen(refund.refundAmountYen) : "未確認・精算保留"}`);
+      lines.push(`返還後の正味収支: ${refund.status === "confirmed" ? "0円（購入・全額返還確認済み）" : "精算保留"}`);
+    }
     lines.push(`購入/影目分類source: ${resolvedMetrics.classification.source}`);
     if (resolvedMetrics.shadowOnlyHit) {
       lines.push(`影目参考払戻（実収支対象外）: ${formatYen(resolvedMetrics.shadowReferencePayout)}`);
@@ -2868,7 +3018,8 @@ export default function ReviewPage() {
   const todaySummary = useMemo(() => {
     const groups = venueGroups;
     const performance = aggregateReviewPerformance(groups.flatMap((group) => group.races));
-    return { venueCount: groups.length, raceCount: groups.reduce((sum, group) => sum + group.races.length, 0), ...performance };
+    const refundCount = groups.flatMap(group => group.races).filter(race => race.hasPrediction && isReviewAllRefundRace(race.feedRace)).length;
+    return { venueCount: groups.length, raceCount: groups.reduce((sum, group) => sum + group.races.length, 0), refundCount, ...performance };
   }, [venueGroups]);
 
   const reviewFileSummary = useMemo(() => {
@@ -3145,7 +3296,7 @@ export default function ReviewPage() {
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "10px" }}>
                 <ReviewVenueMetric label="予想R" value={`${todaySummary.predictionRaceCount}R`} sub="保存予想" />
-                <ReviewVenueMetric label="結果確定R" value={`${todaySummary.settledRaceCount}R`} sub={`${todaySummary.pendingCount}R 結果待ち`} />
+                <ReviewVenueMetric label="結果確定R" value={`${todaySummary.settledRaceCount}R`} sub={todaySummary.refundCount ? `${todaySummary.pendingCount - todaySummary.refundCount}R 結果待ち / ${todaySummary.refundCount}R 中止・全返還（通常集計対象外）` : `${todaySummary.pendingCount}R 結果待ち`} />
                 <ReviewVenueMetric label="実購入的中" value={`${todaySummary.purchaseHitCount}/${todaySummary.purchasedSettledRaceCount}R`} sub="SKIP除外" />
                 <ReviewVenueMetric label="実投資" value={todaySummary.purchasedSettledRaceCount > 0 ? formatYen(todaySummary.actualInvestment) : "--"} sub="購入済み確定分のみ" />
                 <ReviewVenueMetric label="実払戻" value={todaySummary.purchasedSettledRaceCount > 0 ? formatYen(todaySummary.actualPayout) : "--"} sub="購入HITのみ" />
@@ -3479,13 +3630,13 @@ export default function ReviewPage() {
                       return (
                         <details key={race.raceKey} style={{ borderBottom: "1px solid #e5e7eb", padding: "8px 0" }}>
                           <summary style={{ cursor: "pointer", fontWeight: 700 }}>
-                            {race.raceNumber}R · {confirmed ? "公式結果確定" : "公式結果未取得"}
+                            {race.raceNumber}R · {isReviewAllRefundRace(race.feedRace) ? getReviewRefundLabel(race.performance) : confirmed ? "公式結果確定" : "公式結果未取得"}
                             {confirmed && payout ? ` · 3連単 ${payout.combination} ${formatYen(Number(payout.payout))}` : ""}
                             {race.feedRace?.resultNote ? ` · ${race.feedRace.resultNote}` : ""}
                           </summary>
                           <div style={{ padding: "8px 0", fontSize: "12px", lineHeight: 1.8 }}>
                             <div>{race.hasPrediction ? "保存予想あり" : "予想未保存・的中/投資/収支/ROI未判定"}</div>
-                            {confirmed ? buildReviewFullResultLines(race.feedRace).map((line, index) => (
+                            {confirmed || isReviewAllRefundRace(race.feedRace) ? buildReviewFullResultLines(race.feedRace).map((line, index) => (
                               <div key={`${race.raceKey}:${index}`}>{line}</div>
                             )) : <div>着順・払戻は未取得</div>}
                             <div>出典: {race.feedRace?.sourceName ?? "未取得"} / 取得完了: {race.feedRace?.sourceFetchedAt ?? "未取得"}</div>
@@ -3498,8 +3649,12 @@ export default function ReviewPage() {
 
                 {isLocalReviewSelected && selectedVenueGroup ? (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "16px" }}>
-                    {selectedVenueGroup.races.filter((race) => race.hasPrediction).map((race) => {
-                      const presentation = race.performance.status === "purchase-hit"
+                    {selectedVenueGroup.races.filter((race) => race.hasPrediction || isReviewAllRefundRace(race.feedRace)).map((race) => {
+                      const presentation = isReviewAllRefundRace(race.feedRace)
+                        ? { label: getReviewRefundLabel(race.performance), color: "#687080", background: "rgba(119,128,145,0.07)", border: "rgba(119,128,145,0.2)" }
+                        : hasUnverifiedReviewRefund(race.feedRace)
+                          ? { label: "返還情報未照合・精算保留", color: "#687080", background: "rgba(119,128,145,0.07)", border: "rgba(119,128,145,0.2)" }
+                        : race.performance.status === "purchase-hit"
                         ? { label: "実購入的中", color: "#166b4f", background: "rgba(38,153,106,0.11)", border: "rgba(38,153,106,0.3)" }
                         : race.performance.status === "shadow-hit"
                           ? { label: "影目のみHIT", color: "#6b4bb7", background: "rgba(123,91,227,0.11)", border: "rgba(123,91,227,0.28)" }

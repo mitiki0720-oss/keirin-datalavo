@@ -161,14 +161,83 @@ export async function fetchExpectedListData({ url = listUrl, now = new Date(), t
   throw new Error(`OFFICIAL_TARGET_DATE_UNAVAILABLE: expected ${targetDate}; attempts=${JSON.stringify(attempts)}; output was not written.`);
 }
 
+const PAYOUT_GROUPS = ["WH2HaraiGakuDispItemSubData", "WT2HaraiGakuDispItemSubData", "SH2HaraiGakuDispItemSubData", "ST2HaraiGakuDispItemSubData", "RH3HaraiGakuDispItemSubData", "RT3HaraiGakuDispItemSubData", "WHaraiGakuDispItemSubData"];
+
+function validateUnrankedContext({ raceNumber, date, venueCode, entries, detail }) {
+  const header = detail?.C0201data;
+  if (!isIsoDate(date) || !Number.isInteger(raceNumber) || raceNumber < 1 || raceNumber > 12
+    || entries?.resultCd !== 0 || detail?.resultCd !== 0 || normalizeDate(header?.selKaisai) !== date
+    || clean(header?.selKjyoCd) !== venueCode || integerValue(header?.selRaceNo) !== raceNumber
+    || clean(entries?.bKeirinjyoCd) !== venueCode) throw new Error("OFFICIAL_RESULT_RACE_IDENTITY_MISMATCH");
+  const starters = entries.sensyuTypeInfo, details = header?.C0201racedtl?.C0201sensyu;
+  if (!Array.isArray(starters) || !starters.length || !Array.isArray(details) || starters.length !== details.length) throw new Error("OFFICIAL_RESULT_RIDER_COUNT_MISMATCH");
+  const byCar = new Map(details.map(row => [clean(row.carNum), clean(row.numPlayer)]));
+  const cars = new Set(), registrations = new Set();
+  if (byCar.size !== details.length) throw new Error("OFFICIAL_RESULT_DETAIL_DUPLICATE");
+  for (const rider of starters) {
+    const car = clean(rider.syaban), registration = clean(rider.sensyuRegistNo);
+    if (!/^[1-9]$/u.test(car) || !/^\d{6}$/u.test(registration) || !clean(rider.sensyuName)
+      || cars.has(car) || registrations.has(registration) || byCar.get(car) !== registration) throw new Error("OFFICIAL_RESULT_ENTRY_IDENTITY_INVALID");
+    cars.add(car); registrations.add(registration);
+  }
+  return header;
+}
+
+function classifyUnrankedPublication(context) {
+  const { data, raceNumber } = context;
+  const header = validateUnrankedContext(context);
+  const payouts = data.haraiGakuSubData;
+  if (!payouts || typeof payouts !== "object" || payouts.APartReturnDispFlg !== false
+    || PAYOUT_GROUPS.some(key => !Array.isArray(payouts[key]) || !payouts[key].length)
+    || Object.keys(payouts).some(key => key !== "APartReturnDispFlg" && !PAYOUT_GROUPS.includes(key))) throw new Error("OFFICIAL_UNRANKED_PAYOUT_FORMAT_INVALID");
+  let refunded = 0, numeric = 0;
+  for (const key of PAYOUT_GROUPS) {
+    for (const row of payouts[key]) {
+      if (!row || typeof row !== "object") throw new Error("OFFICIAL_UNRANKED_PAYOUT_FORMAT_INVALID");
+      const display = clean(row.haraiGaku), combination = clean(row.kumiBan);
+      if (["【全返還】", "【未発売】"].includes(display)) {
+        if (payouts[key].length !== 1 || combination || row.kumiDispFlg !== false || row.ninkiDispFlg !== false) throw new Error("OFFICIAL_REFUND_PAYOUT_CONTRADICTION");
+        if (display === "【全返還】") refunded += 1;
+      } else {
+        const separator = ["WT2HaraiGakuDispItemSubData", "ST2HaraiGakuDispItemSubData", "RT3HaraiGakuDispItemSubData"].includes(key) ? "-" : "=";
+        const count = ["RH3HaraiGakuDispItemSubData", "RT3HaraiGakuDispItemSubData"].includes(key) ? 3 : 2;
+        const cars = combination.split(separator);
+        if (!/^(?:\d+|\d{1,3}(?:,\d{3})+)$/u.test(display) || numberValue(display) <= 0
+          || cars.length !== count || cars.some(car => !/^[1-9]$/u.test(car)) || new Set(cars).size !== cars.length
+          || row.kumiDispFlg !== true || typeof row.ninkiDispFlg !== "boolean") throw new Error("OFFICIAL_UNRANKED_PAYOUT_FORMAT_INVALID");
+        numeric += 1;
+      }
+    }
+  }
+  if (refunded && numeric) throw new Error("OFFICIAL_REFUND_PAYOUT_CONTRADICTION");
+  if (refunded) {
+    const note = clean(header.hhMessage).normalize("NFKC");
+    const cancelled = [...note.matchAll(/(\d+(?:\s*[,、・]\s*\d+)*)\s*(?:レース|R)\s*は中止(?:となりました|となります|です)?[。.]?/gu)]
+      .some(match => match[1].split(/\s*[,、・]\s*/u).map(Number).includes(raceNumber));
+    if (!cancelled || !(header.flgRaceCancel === true || header.flgSectionCancel === true)) throw new Error("OFFICIAL_CANCELLATION_EVIDENCE_MISSING");
+    return { kind: "cancelled", note: clean(header.hhMessage) };
+  }
+  const meta = header.C0201race?.[raceNumber - 1];
+  if (!numeric || header.flgRaceCancel !== false || header.flgSectionCancel !== false
+    || clean(meta?.rcvKekka) !== "0" || clean(meta?.rcvRefund) !== "1") throw new Error("OFFICIAL_FINISH_PUBLICATION_STATE_INVALID");
+  return { kind: "awaiting-finish" };
+}
+
 export function validateOfficialResultIdentity({ raceNumber, date, venueCode, data, entries, detail }) {
   if (data?.resultCd !== 0 || typeof data.tyakujyunDispFlg !== "boolean" || typeof data.haraiGakuDispFlg !== "boolean"
     || (data.tyakujyunItemSubData != null && !Array.isArray(data.tyakujyunItemSubData))) throw new Error("OFFICIAL_RESULT_RESPONSE_INVALID");
   const rows = data.tyakujyunItemSubData ?? [];
   if (!data.haraiGakuDispFlg && data.haraiGakuSubData && Object.values(data.haraiGakuSubData).some(value => Array.isArray(value) && value.length)) throw new Error("OFFICIAL_UNPUBLISHED_PAYOUT_CONTRADICTION");
   if (!rows.length) {
-    const refundOnly = data.haraiGakuDispFlg && data.haraiGakuSubData && Object.values(data.haraiGakuSubData).every(value => !Array.isArray(value) || value.every(row => clean(row.kumiBan) === "全返還"));
-    if (data.tyakujyunDispFlg || (data.haraiGakuDispFlg && !refundOnly)) throw new Error("OFFICIAL_RESULT_ROWS_MISSING");
+    const refundOnly = data.haraiGakuDispFlg && data.haraiGakuSubData
+      && Object.entries(data.haraiGakuSubData).some(([key, value]) => PAYOUT_GROUPS.includes(key) && Array.isArray(value) && value.length)
+      && Object.entries(data.haraiGakuSubData).every(([key, value]) => key === "APartReturnDispFlg" ? value === false
+        : PAYOUT_GROUPS.includes(key) && Array.isArray(value) && value.length > 0
+          && value.every(row => clean(row.kumiBan) === "全返還" && clean(row.haraiGaku) === "全返還"));
+    if (data.tyakujyunDispFlg) throw new Error("OFFICIAL_RESULT_ROWS_MISSING");
+    if (data.haraiGakuDispFlg && !refundOnly) return classifyUnrankedPublication({ raceNumber, date, venueCode, data, entries, detail });
+    // Keep the pre-existing legacy refund-only validator contract; live acquisition still checks its race context.
+    if (refundOnly && (date || entries || detail)) validateUnrankedContext({ raceNumber, date, venueCode, entries, detail });
     return;
   }
   const header = detail?.C0201data;
@@ -231,7 +300,7 @@ function firstUsablePayout(rows) {
   );
 }
 
-export function createRaceResult(raceNumber, raceMeta, data) {
+export function createRaceResult(raceNumber, raceMeta, data, publicationState) {
   const finishOrder = Array.isArray(data.tyakujyunItemSubData)
     ? data.tyakujyunItemSubData.map((row) => {
         const rank = clean(row.tyaku);
@@ -269,8 +338,9 @@ export function createRaceResult(raceNumber, raceMeta, data) {
   return {
     raceNumber,
     resultStatus,
-    operationStatus:
-      resultStatus === "confirmed" ? "finished" : "pending",
+    operationStatus: publicationState?.kind === "cancelled" ? "cancelled"
+      : resultStatus === "confirmed" ? "finished" : "pending",
+    ...(publicationState ? { officialPublicationState: publicationState } : {}),
     raceEnded: Boolean(raceMeta?.flgRaceEnd),
     raceButtonActive: Boolean(raceMeta?.flgActvRaceBtn),
     resultCode: data.resultCd ?? null,
@@ -297,6 +367,7 @@ export function createRaceResult(raceNumber, raceMeta, data) {
       hasFinishOrder,
       hasTrifecta,
       warnings: [
+        ...(publicationState ? [`official publication: ${publicationState.kind}`] : []),
         ...(hasFinishOrder ? [] : ["finish order missing"]),
         ...(hasTrifecta ? [] : ["trifecta payout missing"]),
         ...(hasUnresolvedFinisher ? ["finisher status unresolved"] : []),
@@ -330,6 +401,17 @@ function createErrorRace(raceNumber, message) {
       warnings: ["official result fetch failed"],
     },
   };
+}
+
+function reportRaceError(raceId, apiType, error) {
+  const reason = clean(error instanceof Error ? error.message : String(error));
+  const category = /IDENTITY|MISMATCH|DUPLICATE/u.test(reason) ? "IDENTITY_MISMATCH"
+    : /request failed: \d{3}/u.test(reason) ? "HTTP_ERROR"
+      : error?.name === "TimeoutError" || error?.name === "AbortError" ? "NETWORK_TIMEOUT"
+        : error instanceof SyntaxError ? "RESPONSE_PARSE_ERROR"
+          : error instanceof TypeError ? "NETWORK_ERROR"
+            : /^OFFICIAL_/u.test(reason) ? "RESPONSE_CONTRADICTION" : "UNKNOWN_ERROR";
+  console.error(JSON.stringify({ event: "official-result-error", raceId, apiType, category, reason }));
 }
 
 function raceResultSignature(race) {
@@ -368,6 +450,7 @@ function summarize(payload) {
     errorCount: races.filter(
       (race) => race.resultStatus === "error",
     ).length,
+    cancelledRaceCount: races.filter((race) => race.operationStatus === "cancelled").length,
     venues: payload.venues.map((venue) => ({
       ...venue,
       raceCount: venue.races.length,
@@ -383,6 +466,7 @@ function summarize(payload) {
       errorCount: venue.races.filter(
         (race) => race.resultStatus === "error",
       ).length,
+      cancelledRaceCount: venue.races.filter((race) => race.operationStatus === "cancelled").length,
     })),
   };
 }
@@ -497,6 +581,7 @@ export async function fetchVenue(venue, { targetDate = expectedDate || jstDate()
     seenRaces.add(raceNumber); if (raceParameter) seenParameters.add(raceParameter);
 
     if (!raceParameter) {
+      reportRaceError(`${targetDate}:${clean(venue.naibuKeirinCd)}:${raceNumber}`, "JSJ001", new Error("encParaR missing"));
       races.push(
         createErrorRace(
           raceNumber,
@@ -507,26 +592,33 @@ export async function fetchVenue(venue, { targetDate = expectedDate || jstDate()
       continue;
     }
 
+    let apiType = "JSJ012";
     try {
       const resultData = await fetchImpl(
         buildJsonUrl(raceParameter, "JSJ012"),
       );
 
       let entries, detail;
-      if (Array.isArray(resultData.tyakujyunItemSubData) && resultData.tyakujyunItemSubData.length) {
+      if ((Array.isArray(resultData.tyakujyunItemSubData) && resultData.tyakujyunItemSubData.length)
+        || resultData.haraiGakuDispFlg === true) {
+        apiType = "JSJ006";
         entries = await fetchImpl(buildJsonUrl(raceParameter, "JSJ006"));
+        apiType = "JSJ001";
         detail = await fetchImpl(buildJsonUrl(raceParameter, "JSJ001"));
       }
-      validateOfficialResultIdentity({ raceNumber, date: targetDate, venueCode: clean(venue.naibuKeirinCd), data: resultData, entries, detail });
+      apiType = "JSJ012/JSJ006/JSJ001";
+      const publicationState = validateOfficialResultIdentity({ raceNumber, date: targetDate, venueCode: clean(venue.naibuKeirinCd), data: resultData, entries, detail });
 
       races.push(
         createRaceResult(
           raceNumber,
           raceMeta,
           resultData,
+          publicationState,
         ),
       );
     } catch (error) {
+      reportRaceError(`${targetDate}:${clean(venue.naibuKeirinCd)}:${raceNumber}`, apiType, error);
       races.push(
         createErrorRace(
           raceNumber,
@@ -637,6 +729,10 @@ async function main() {
   }
 
   if (shouldWritePublic && candidate.errorCount > 0) {
+    console.error(JSON.stringify({ event: "official-result-summary", date: targetDate,
+      normal: candidate.confirmedRaceCount + candidate.partialRaceCount,
+      pending: candidate.pendingRaceCount - candidate.cancelledRaceCount,
+      cancelled: candidate.cancelledRaceCount, errors: candidate.errorCount }));
     throw new Error(
       `KEIRIN.JP result feed has ${candidate.errorCount} fetch errors; public output was not written.`,
     );
@@ -678,6 +774,10 @@ async function main() {
     `preserved settled: ${preservedSettledRaceCount}`,
   );
   console.log(`changed: ${writeResult.changed}`);
+  console.log(JSON.stringify({ event: "official-result-summary", date: targetDate,
+    normal: writeResult.value.confirmedRaceCount + writeResult.value.partialRaceCount,
+    pending: writeResult.value.pendingRaceCount - writeResult.value.cancelledRaceCount,
+    cancelled: writeResult.value.cancelledRaceCount, errors: writeResult.value.errorCount }));
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main().catch((error) => {
