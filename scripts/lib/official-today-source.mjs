@@ -1,5 +1,6 @@
 import { normalizeVenueName, venueMap } from "../kurari-ex-history-common.mjs";
 import { fetchWithRetry, isRetryableHttpStatus } from "./fetch-with-retry.mjs";
+import { isOfficialResultOnHold, withOfficialResultHold } from "../../src/lib/officialResultConflict.mjs";
 
 const slugByName = new Map(Object.entries(venueMap).map(([slug, name]) => [normalizeVenueName(name), slug]));
 
@@ -31,7 +32,11 @@ export async function fetchOfficialResultJson(url, options = {}, retryOptions = 
         if (!isRetryableHttpStatus(response.status)) throw lastError;
       } else {
         try {
-          return await response.json();
+          if (!retryOptions.onResponse) return await response.json();
+          const bytes = new Uint8Array(await response.arrayBuffer());
+          const value = JSON.parse(new TextDecoder().decode(bytes));
+          await retryOptions.onResponse(response, bytes, value);
+          return value;
         } catch (error) {
           lastError = error;
         }
@@ -237,6 +242,7 @@ export function isOfficialNonFinisherStatus(status) {
 }
 
 export function officialResultToTodayRace(officialResult, officialEntries, sourceFetchedAt = "") {
+  if (isOfficialResultOnHold(officialResult)) return withOfficialResultHold({}, officialResult.officialResultConflict);
   if (officialResult?.resultStatus !== "confirmed") return null;
   const rows = Array.isArray(officialResult.finishOrder) ? officialResult.finishOrder : [];
   if (rows.some((row) => /^\d+$/.test(clean(row.rank))
@@ -303,6 +309,7 @@ export function officialResultToTodayRace(officialResult, officialEntries, sourc
   const byType = (betType) => payouts.filter((item) => item.betType === betType);
   return {
     resultStatus: "confirmed",
+    officialResultConflict: officialResult.officialResultConflict,
     resultNote: reviewSettlementEligible ? undefined : "公式結果あり・購入照合保留",
     officialResultSource: "KEIRIN.JP", sourceName: "KEIRIN.JP", sourceType: "OFFICIAL", sourceFetchedAt,
     resultTop3,

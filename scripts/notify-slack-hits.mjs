@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { isOfficialResultOnHold } from "../src/lib/officialResultConflict.mjs";
 import { classifyReviewTickets } from "../src/lib/reviewPerformanceMetrics.ts";
 import { parseKeirinCanonicalPredictionBlock } from "../src/lib/keirinPredictionCanonicalFormat.ts";
 import { loadLedger, reserveNotifications, eligibleReservations, completeReservations, notificationAliases } from "./lib/slack-notification-ledger.mjs";
@@ -260,6 +261,7 @@ function buildRaceIndex(todayFeed) {
 }
 
 function isRaceResultConfirmed(race) {
+  if (isOfficialResultOnHold(race)) return false;
   const resultOrder = getResultOrder(race);
   if (!resultOrder) return false;
 

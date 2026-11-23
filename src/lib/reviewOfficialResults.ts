@@ -1,3 +1,6 @@
+import { isOfficialResultOnHold, withOfficialResultHold } from "./officialResultConflict.mjs";
+import type { OfficialResultConflictSummary } from "./officialResultConflict.mjs";
+
 type OfficialPayout = {
   combination?: string;
   payoutYen?: number | null;
@@ -7,6 +10,7 @@ type OfficialPayout = {
 type OfficialRace = {
   raceNumber: number;
   resultStatus: string;
+  officialResultConflict?: OfficialResultConflictSummary;
   finishOrder?: Array<{
     rank: string;
     carNo: string;
@@ -72,7 +76,8 @@ export function buildReviewOfficialResultsFeed(payload: OfficialSnapshot, expect
           throw new Error("review-official-results-duplicate-race");
         }
         seen.add(key);
-        const confirmed = race.resultStatus === "confirmed";
+        const held = isOfficialResultOnHold(race);
+        const confirmed = race.resultStatus === "confirmed" && !held;
         const finishOrder = confirmed && Array.isArray(race.finishOrder)
           ? race.finishOrder.map((entry) => ({
             ...entry,
@@ -94,8 +99,9 @@ export function buildReviewOfficialResultsFeed(payload: OfficialSnapshot, expect
           && topThree.every((entry, index) => entry.rank === String(index + 1))
           && trifecta?.combination === topThree.map((entry) => entry.carNo).join("-");
         const sourceFetchedAt = payload.source?.fetchCompletedAt;
-        return {
+        const feedRace = {
           raceNo: race.raceNumber,
+          officialResultConflict: race.officialResultConflict,
           resultStatus: confirmed ? "confirmed" as const : "pending" as const,
           resultNote: confirmed
             ? (reviewSettlementEligible ? undefined : "公式結果あり・購入照合保留")
@@ -138,6 +144,7 @@ export function buildReviewOfficialResultsFeed(payload: OfficialSnapshot, expect
             sourceFetchedAt,
           } : { status: "pending" as const },
         };
+        return held ? withOfficialResultHold(feedRace, race.officialResultConflict) : feedRace;
       }),
     };
   });

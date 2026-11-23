@@ -51,6 +51,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            core.setOutput('artifact_audit_started_at', new Date().toISOString());
             const minutes = { '47 14 * * *': 47, '53 14 * * *': 53 };
             const minute = context.eventName === 'schedule' ? minutes[context.payload.schedule] : undefined;
             let targetDate = '';
@@ -158,6 +159,15 @@ jobs:
         if: steps.write_window.outputs.run_update == 'true' && steps.update_plan.outputs.results == 'true'
         run: npm run update:keirin-jp-results:write -- --expect-date="$KEIRIN_JP_EXPECT_DATE"
 
+      - name: Preserve official result conflict evidence
+        if: always() && steps.write_window.outputs.run_update == 'true' && steps.update_plan.outputs.results == 'true'
+        uses: ./.github/actions/official-conflict-artifact
+        with:
+          target-date: ${{ steps.update_plan.outputs.date }}
+          prior-job-status: ${{ job.status }}
+          run-started-at: ${{ steps.execution_window.outputs.artifact_audit_started_at }}
+          retention-days: 7
+
       - name: Validate KEIRIN.JP official results
         if: steps.write_window.outputs.run_update == 'true' && steps.update_plan.outputs.results == 'true'
         shell: bash
@@ -230,6 +240,8 @@ jobs:
           NODE
 
       - name: Generate KURARI EX race risk for current day
+        id: ex_race_risk
+        continue-on-error: true
         if: steps.write_window.outputs.run_update == 'true' && steps.update_plan.outputs.entries == 'true'
         run: |
           node - <<'NODE'
@@ -269,6 +281,8 @@ jobs:
           echo "Review official archive: FAILED / not updated. Check the archive step before treating this date as available in Review." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Generate KURARI EX prediction performance
+        id: ex_prediction_performance
+        continue-on-error: true
         if: steps.write_window.outputs.run_update == 'true' && (github.event.schedule == '47 14 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.phase == 'final'))
         shell: bash
         run: |
@@ -343,10 +357,14 @@ jobs:
             fi
             git add -- "public/data/review-page/official-results/${REVIEW_OFFICIAL_ARCHIVE_DATE}.generated.json"
           fi
-          git add public/data/analytics/kurari-ex/race-risk/index.generated.json
-          RISK_DATE="$(node -e 'const fs=require("fs"); const data=JSON.parse(fs.readFileSync("public/data/analytics/kurari-ex/race-risk/index.generated.json","utf8")); if(!/^\d{4}-\d{2}-\d{2}$/.test(data.period?.date || "")) process.exit(1); process.stdout.write(data.period.date);')"
-          git add "public/data/analytics/kurari-ex/race-risk-history/${RISK_DATE}.generated.json"
-          if [ "${PERFORMANCE_GENERATED:-false}" = "true" ]; then
+          if [ "${{ steps.ex_race_risk.outcome }}" = "success" ]; then
+            git add public/data/analytics/kurari-ex/race-risk/index.generated.json
+            RISK_DATE="$(node -e 'const fs=require("fs"); const data=JSON.parse(fs.readFileSync("public/data/analytics/kurari-ex/race-risk/index.generated.json","utf8")); if(!/^\d{4}-\d{2}-\d{2}$/.test(data.period?.date || "")) process.exit(1); process.stdout.write(data.period.date);')"
+            git add "public/data/analytics/kurari-ex/race-risk-history/${RISK_DATE}.generated.json"
+          else
+            echo "KURARI EX race-risk was skipped or failed; its files are not staged."
+          fi
+          if [ "${{ steps.ex_prediction_performance.outcome }}" = "success" ] && [ "${PERFORMANCE_GENERATED:-false}" = "true" ]; then
             PERFORMANCE_DATE="$(node -e 'const fs=require("fs"); const expected=process.env.PERFORMANCE_DATE; const index=JSON.parse(fs.readFileSync("public/data/analytics/kurari-ex/prediction-performance/index.generated.json","utf8")); if(!expected || index.latestDate !== expected) process.exit(1); process.stdout.write(index.latestDate);')"
             git add "public/data/analytics/kurari-ex/prediction-performance/index.generated.json"
             git add "public/data/analytics/kurari-ex/prediction-performance/daily/${PERFORMANCE_DATE:0:7}/${PERFORMANCE_DATE}.generated.json"

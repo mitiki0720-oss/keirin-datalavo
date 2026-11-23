@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { buildReviewOfficialResultsFeed } from "../lib/reviewOfficialResults";
+import { attachOfficialConflictHolds, isOfficialResultOnHold, withOfficialResultHold, conflictSummary, OFFICIAL_CONFLICT_HOLD_LABEL } from "../lib/officialResultConflict.mjs";
+import type { OfficialResultConflictSummary } from "../lib/officialResultConflict.mjs";
 import {
   SiteHeader,
   fetchPredictionVenueWeather,
@@ -156,6 +158,7 @@ type PredictionRaceFinishOrderItem = {
 };
 
 type PredictionRaceResult = {
+  officialResultConflict?: OfficialResultConflictSummary;
   status?: "pending" | "confirmed";
   reviewSettlementEligible?: boolean;
   finishOrder?: Array<string | PredictionRaceFinishOrderItem>;
@@ -202,6 +205,7 @@ type PredictionFinalTrifectaFavorite = {
 };
 
 type PredictionRaceItem = {
+  officialResultConflict?: OfficialResultConflictSummary;
   raceNo: number;
   reviewRefundEvidence?: ReviewRefundEvidence;
   time?: string;
@@ -376,7 +380,10 @@ async function fetchReviewTodayFeed(cacheMode: RequestCache = "no-cache") {
   const feed = await response.json() as PredictionTodayFeed;
   try {
     const official = await fetch(`${REVIEW_CURRENT_OFFICIAL_RESULTS_URL}${suffix}`, { cache: cacheMode, signal: AbortSignal.timeout(8_000) });
-    if (official.ok) return attachReviewOfficialRefundEvidence(feed, await official.json());
+    if (official.ok) {
+      const snapshot = await official.json();
+      return attachOfficialConflictHolds(attachReviewOfficialRefundEvidence(feed, snapshot), snapshot);
+    }
   } catch { /* Unverified refund claims stay on hold; normal results remain available. */ }
   return feed;
 }
@@ -387,7 +394,12 @@ async function fetchReviewOfficialResults(date: string): Promise<PredictionToday
   if (response.status === 404) return null;
   if (!response.ok) throw new Error(`review-official-results-${response.status}`);
   const payload = await response.json();
-  return attachReviewOfficialRefundEvidence(buildReviewOfficialResultsFeed(payload, date), payload);
+  const feed = attachReviewOfficialRefundEvidence(buildReviewOfficialResultsFeed(payload, date), payload);
+  try {
+    const registryResponse = await fetch(REVIEW_CURRENT_OFFICIAL_RESULTS_URL, { cache: "no-store", signal: AbortSignal.timeout(8_000) });
+    if (registryResponse.ok) return attachOfficialConflictHolds(feed, await registryResponse.json());
+  } catch { /* Existing cached holds remain fail-closed when registry retrieval is unavailable. */ }
+  return feed;
 }
 
 type SavedPredictionPayload = {
@@ -921,6 +933,7 @@ function compactReviewRaceResultSnapshot(race: PredictionRaceItem): PredictionRa
     favoriteOdds: race.favoriteOdds,
     favoriteCombination: race.favoriteCombination,
     resultStatus: race.resultStatus,
+    officialResultConflict: race.officialResultConflict ? conflictSummary(race.officialResultConflict) : undefined,
     resultTop3: race.resultTop3,
     payouts: race.payouts,
     result: race.result,
@@ -984,6 +997,10 @@ function mergeReviewRaceWithSnapshot(
   if (!feedRace && !snapshotRace) return undefined;
   if (!feedRace) return snapshotRace;
   if (!snapshotRace) return feedRace;
+  if (isOfficialResultOnHold(feedRace)) return feedRace;
+  if (isOfficialResultOnHold(snapshotRace) && !feedRace.officialResultConflict) {
+    return withOfficialResultHold({ ...snapshotRace, ...feedRace }, snapshotRace.officialResultConflict);
+  }
 
   return {
     ...snapshotRace,
@@ -1732,6 +1749,7 @@ function isResultTextReady(value: unknown): boolean {
 }
 
 function isResultReviewReady(race?: VenueReviewRace, fallbackText = ""): boolean {
+  if (isOfficialResultOnHold(race?.feedRace)) return false;
   const feedRace = race?.feedRace;
   if (isReviewAllRefundRace(feedRace)) return true;
   if (hasUnverifiedReviewRefund(feedRace)) return false;
@@ -1777,6 +1795,7 @@ function isResultReviewReady(race?: VenueReviewRace, fallbackText = ""): boolean
 }
 
 function getReviewResultStatusLabel(feedRace?: PredictionRaceItem) {
+  if (isOfficialResultOnHold(feedRace)) return OFFICIAL_CONFLICT_HOLD_LABEL;
   if (isReviewAllRefundRace(feedRace)) return REVIEW_ALL_REFUND_STATUS_LABEL;
   return feedRace?.result?.status ?? feedRace?.resultStatus ?? "\u63a5\u7d9a\u5f85\u3061";
 }
@@ -2018,6 +2037,8 @@ function resolveReviewRacePerformance(
   resultRecord: PredictionResultRecord | undefined,
   feedRace: PredictionRaceItem | undefined,
 ): ReviewRacePerformanceView {
+  if (isOfficialResultOnHold(feedRace)) return evaluateReviewRacePerformance({
+    predictionJson: slot?.predictionJson, predictionText: slot?.predictionText, settled: false });
   if (isReviewAllRefundRace(feedRace) || hasUnverifiedReviewRefund(feedRace)) {
     const performance = evaluateReviewRacePerformance({ predictionJson: slot?.predictionJson, predictionText: slot?.predictionText, settled: false });
     return isReviewAllRefundRace(feedRace) && feedRace
@@ -2226,7 +2247,7 @@ function buildResultCopy(
   latestFeed?: PredictionTodayFeed | null,
 ) {
   const resultRaces = group.races.filter((race) => isResultReviewReady(race));
-  if (resultRaces.length === 0) return "";
+  if (resultRaces.length === 0 && !group.races.some(race => isOfficialResultOnHold(race.feedRace))) return "";
 
   const raceNumbers = resultRaces.map((race) => race.raceNumber);
   const targetRaceLabel = raceNumbers.length > 0
@@ -2238,6 +2259,8 @@ function buildResultCopy(
     `対象日: ${group.date || "未取得"}`,
     `対象会場: ${group.venue || "未取得"}`,
     `対象R: ${targetRaceLabel}`,
+    ...group.races.filter(race => isOfficialResultOnHold(race.feedRace))
+      .map(race => `保留R: ${race.raceNumber}R ${OFFICIAL_CONFLICT_HOLD_LABEL}（精算・的中判定対象外）`),
     "用途: summary作成用",
     "fake補完禁止: 素材にない結果・登録番号・source情報は未取得のまま扱う",
     "====================",
@@ -3630,7 +3653,7 @@ export default function ReviewPage() {
                       return (
                         <details key={race.raceKey} style={{ borderBottom: "1px solid #e5e7eb", padding: "8px 0" }}>
                           <summary style={{ cursor: "pointer", fontWeight: 700 }}>
-                            {race.raceNumber}R · {isReviewAllRefundRace(race.feedRace) ? getReviewRefundLabel(race.performance) : confirmed ? "公式結果確定" : "公式結果未取得"}
+                            {race.raceNumber}R · {isOfficialResultOnHold(race.feedRace) ? OFFICIAL_CONFLICT_HOLD_LABEL : isReviewAllRefundRace(race.feedRace) ? getReviewRefundLabel(race.performance) : confirmed ? "公式結果確定" : "公式結果未取得"}
                             {confirmed && payout ? ` · 3連単 ${payout.combination} ${formatYen(Number(payout.payout))}` : ""}
                             {race.feedRace?.resultNote ? ` · ${race.feedRace.resultNote}` : ""}
                           </summary>

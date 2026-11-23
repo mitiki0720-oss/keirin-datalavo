@@ -1,4 +1,6 @@
 import { loadKurariExHistoricalResultTrendLabHistory } from "./kurariExHistoricalResultLab";
+import { isOfficialResultOnHold } from "./officialResultConflict.mjs";
+import type { OfficialResultConflictSummary } from "./officialResultConflict.mjs";
 import type {
   KurariExHistoricalAvailabilitySummary,
   KurariExHistoricalRace,
@@ -753,6 +755,7 @@ type OfficialFinishRow = {
 };
 
 type OfficialResultRace = {
+  officialResultConflict?: unknown;
   raceNumber?: unknown;
   resultStatus?: unknown;
   operationStatus?: unknown;
@@ -781,6 +784,7 @@ type OfficialResultVenue = {
 };
 
 type OfficialResultFeed = {
+  officialResultConflictRegistry?: Array<OfficialResultConflictSummary & { date: string; venueCode: string; raceNumber: number }>;
   date?: unknown;
   generatedAt?: unknown;
   source?: {
@@ -1371,7 +1375,7 @@ function buildKurariExWindDecisionV1(
       exclude("cancelled-or-no-race");
       return;
     }
-    if (clean(race.resultStatus) !== "confirmed") {
+    if (isOfficialResultOnHold(race) || clean(race.resultStatus) !== "confirmed") {
       exclude("not-confirmed");
       return;
     }
@@ -1625,7 +1629,7 @@ function buildKurariExVenueBiasV1(
       exclude("cancelled-or-no-race");
       return;
     }
-    if (clean(race.resultStatus) !== "confirmed") {
+    if (isOfficialResultOnHold(race) || clean(race.resultStatus) !== "confirmed") {
       exclude("not-confirmed");
       return;
     }
@@ -1890,7 +1894,7 @@ function buildKurariExTodayFlowV1(
   const confirmedDates = sourceIsOfficial
     ? candidates
       .filter(({ race, date }) =>
-        clean(race.resultStatus) === "confirmed"
+        !isOfficialResultOnHold(race) && clean(race.resultStatus) === "confirmed"
         && !["cancelled", "no-race"].includes(clean(race.operationStatus).toLowerCase())
         && /^\d{4}-\d{2}-\d{2}$/u.test(date),
       )
@@ -1944,7 +1948,7 @@ function buildKurariExTodayFlowV1(
       exclude("cancelled-or-no-race");
       return;
     }
-    if (clean(race.resultStatus) !== "confirmed") {
+    if (isOfficialResultOnHold(race) || clean(race.resultStatus) !== "confirmed") {
       exclude("not-confirmed");
       return;
     }
@@ -2049,7 +2053,7 @@ function buildKurariExTodayFlowV1(
       if (!date || !venueKey || !Number.isInteger(raceNumber) || raceNumber <= 0 || !raceKey) return;
       if ((baselineKeyCounts.get(raceKey) ?? 0) !== 1) return;
       if (["cancelled", "no-race"].includes(clean(race.operationStatus).toLowerCase())) return;
-      if (clean(race.resultStatus) !== "confirmed") return;
+      if (isOfficialResultOnHold(race) || clean(race.resultStatus) !== "confirmed") return;
       const ranked = (race.finishOrder ?? [])
         .map((row) => ({ rank: Number(clean(row.rank)), carNo: validCarNo(row.carNo) }))
         .filter((row) => Number.isInteger(row.rank) && row.rank >= 1 && row.rank <= 3)
@@ -2428,7 +2432,7 @@ export function buildKurariExTrifectaTrendV1(
       exclude("cancelled-or-no-race", index);
       return;
     }
-    if (clean(race.resultStatus) !== "confirmed") {
+    if (isOfficialResultOnHold(race) || clean(race.resultStatus) !== "confirmed") {
       exclude("not-confirmed", index);
       return;
     }
@@ -3165,11 +3169,20 @@ async function loadKurariExTrifectaTrendV1Uncached() {
     && clean(currentFeed.source?.listType) === "JSJ048"
     && /^\d{4}-\d{2}-\d{2}$/u.test(currentSourceDate)
     && !Number.isNaN(Date.parse(clean(currentFeed.generatedAt)));
+  const heldKeys = new Set(currentCandidates.filter(({ race }) => isOfficialResultOnHold(race)).map(({ raceKey }) => raceKey));
+  for (const entry of currentFeed.officialResultConflictRegistry ?? []) {
+    const key = `${entry.date}|${entry.venueCode}|${entry.raceNumber}`;
+    const current = currentCandidates.find(row => row.raceKey === key)?.race;
+    const accepted = entry.status === "resolved" && current && !isOfficialResultOnHold(current)
+      && (current.officialResultConflict as OfficialResultConflictSummary | undefined)?.candidateSignatureSha256 === entry.candidateSignatureSha256;
+    if (!accepted) heldKeys.add(key);
+  }
   let crossSourceDuplicateCount = 0;
   const currentVenues = (currentFeed.venues ?? []).map((venue) => ({
     ...venue,
     races: (venue.races ?? []).filter((race) => {
       const raceKey = officialRaceKey(venue, race, currentSourceDate);
+      if (heldKeys.has(raceKey)) return false;
       if (raceKey && historicalKeys.has(raceKey)) {
         crossSourceDuplicateCount += 1;
         return false;
@@ -3187,7 +3200,7 @@ async function loadKurariExTrifectaTrendV1Uncached() {
   const currentExcludedRaceCount =
     currentRaceCount - currentIncludedRaceCount - crossSourceDuplicateCount;
 
-  const historicalTrendRaces = history.races.filter(isHistoricalTrendEligible);
+  const historicalTrendRaces = history.races.filter(race => isHistoricalTrendEligible(race) && !heldKeys.has(race.raceKey));
   const historicalVenueGroups = new Map<string, OfficialResultVenue>();
   historicalTrendRaces.forEach((race) => {
     const grade = clean(race.category.grade);
@@ -3260,6 +3273,7 @@ function officialRaceKey(
 }
 
 function isCurrentTrendEligible(race: OfficialResultRace) {
+  if (isOfficialResultOnHold(race)) return false;
   if (["cancelled", "no-race"].includes(clean(race.operationStatus).toLowerCase())) return false;
   if (clean(race.resultStatus) !== "confirmed") return false;
   const ranked = (race.finishOrder ?? [])

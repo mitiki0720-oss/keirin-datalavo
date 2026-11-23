@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import { raceScheduleData } from "../data/raceScheduleData";
+import { isOfficialResultOnHold } from "../lib/officialResultConflict.mjs";
 import { useRef } from "react";
 import type { DailyMetricItem } from "../types/dailyMetrics";
 import type { RaceGrade, RaceScheduleItem, RaceScheduleProvenance, RaceScheduleSource, RaceSession } from "../types/raceSchedule";
@@ -1688,6 +1689,7 @@ export const resolvePredictionRaceGeneratedResult = (
   predictionText: string,
 ) => {
   if (!venue || !race) return null;
+  if (isOfficialResultOnHold(race)) return null;
   const raceKey = buildPredictionSlotRaceKey(date, venue, race);
   if (!raceKey) return null;
   const resultOrder = extractPredictionRaceResultOrder(race);

@@ -1,5 +1,7 @@
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
+import { isOfficialResultOnHold } from "../src/lib/officialResultConflict.mjs";
+import { verifyStoredOfficialConflict, validateOfficialConflictRegistry } from "./plan-official-result-conflict-isolation.mjs";
 
 const args = process.argv.slice(2);
 
@@ -71,6 +73,12 @@ const races = venues.flatMap((venue) =>
   (Array.isArray(venue.races) ? venue.races : [])
     .map((race) => ({ venue, race })),
 );
+const conflictRaces = races.filter(({ race }) => isOfficialResultOnHold(race));
+try { validateOfficialConflictRegistry(payload); } catch (error) { errors.push(error.message); }
+for (const { venue, race } of races) if (race.officialResultConflict) {
+  try { verifyStoredOfficialConflict(race, `${payload.date}:${venue.venueCode}:${race.raceNumber}`); }
+  catch (error) { errors.push(`official conflict evidence invalid: ${error.message}`); }
+}
 
 pushError(
   errors,
@@ -333,8 +341,12 @@ if (requireNoErrors) {
   pushError(errors, errorRaceCount === 0,
     `fetch errors are not allowed: ${errorRaceCount}`);
 }
+if (payload.conflictRaceCount != null) pushError(errors, payload.conflictRaceCount === conflictRaces.length, "conflictRaceCount mismatch");
+if (payload.verifiedConfirmedRaceCount != null) pushError(errors,
+  payload.verifiedConfirmedRaceCount === confirmedRaceCount - conflictRaces.length, "verifiedConfirmedRaceCount mismatch");
 
 if (requireComplete) {
+  pushError(errors, conflictRaces.length === 0, `complete feed required: unresolved conflicts=${conflictRaces.length}`);
   pushError(
     errors,
     confirmedRaceCount === races.length,
@@ -375,6 +387,8 @@ console.log(`confirmed: ${confirmedRaceCount}`);
 console.log(`partial: ${partialRaceCount}`);
 console.log(`pending: ${pendingRaceCount}`);
 console.log(`errors: ${errorRaceCount}`);
+console.log(`unresolved conflicts (not fresh confirmed): ${conflictRaces.length}`);
+console.log(`verified confirmed: ${confirmedRaceCount - conflictRaces.length}`);
 console.log(`finish order rows: ${finishOrderRowCount}`);
 console.log(`full finish order races: ${fullFinishOrderRaceCount}`);
 console.log(`registration numbers: ${registrationNoCount}`);

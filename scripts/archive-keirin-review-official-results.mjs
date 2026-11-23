@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import { readFile, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { isOfficialResultOnHold } from "../src/lib/officialResultConflict.mjs";
+import { verifyStoredOfficialConflict } from "./plan-official-result-conflict-isolation.mjs";
 
 const RESULT_FILE = "public/data/races/keirin-jp-results.generated.json";
 const ENTRIES_FILE = "public/data/races/keirin-jp-entries.generated.json";
@@ -71,6 +73,8 @@ export function verifyReviewOfficialArchive(results, entries, date) {
   const entryRaces = raceMap(entries, date, "entries");
   if (resultRaces.size !== entryRaces.size) throw new Error("official race sets differ");
   for (const [key, { venue, race }] of resultRaces) {
+    if (race.officialResultConflict) verifyStoredOfficialConflict(race, `${date}:${key}`);
+    if (isOfficialResultOnHold(race)) throw new Error(`unresolved official result conflict: ${date}:${key}`);
     const officialEntry = entryRaces.get(key);
     if (!officialEntry || cleanName(venue.venueName) !== cleanName(officialEntry.venue.venueName)
       || race.resultStatus !== "confirmed" || race.operationStatus !== "finished"

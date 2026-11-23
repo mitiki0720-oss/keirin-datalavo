@@ -1,6 +1,8 @@
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { isOfficialResultOnHold, conflictSummary } from "../../src/lib/officialResultConflict.mjs";
+import { verifyStoredOfficialConflict, validateOfficialConflictRegistry } from "../plan-official-result-conflict-isolation.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..", "..");
@@ -147,8 +149,9 @@ function normalizeHistoryResultRace(race, sourceFile) {
   };
 }
 
-function normalizeCurrentResultRace(venue, race, sourceFile, date) {
-  const confirmed = race?.resultStatus === "confirmed" && race?.operationStatus === "finished";
+export function normalizeCurrentResultRace(venue, race, sourceFile, date) {
+  const held = isOfficialResultOnHold(race);
+  const confirmed = !held && race?.resultStatus === "confirmed" && race?.operationStatus === "finished";
   return {
     raceKey: resultRaceKey({ date, venueCode: venue?.venueCode, raceNumber: race?.raceNumber }),
     date,
@@ -158,10 +161,11 @@ function normalizeCurrentResultRace(venue, race, sourceFile, date) {
     sourceType: "keirin-jp-current-results",
     sourceFile,
     confirmed,
-    status: String(race?.resultStatus ?? ""),
+    status: held ? "official-conflict-hold" : String(race?.resultStatus ?? ""),
+    officialResultConflict: race.officialResultConflict ? conflictSummary(race.officialResultConflict) : undefined,
     storageEligible: confirmed,
     trendEligible: null,
-    officialTrifectaResults: collectOfficialTrifectaResults(race),
+    officialTrifectaResults: held ? [] : collectOfficialTrifectaResults(race),
     deadHeat: null,
     provenance: {
       result: {
@@ -170,6 +174,27 @@ function normalizeCurrentResultRace(venue, race, sourceFile, date) {
       },
     },
   };
+}
+
+export function overlayOfficialPerformanceHolds(resultMap, official, sourceFile, dates) {
+  if (official?.source?.provider !== "KEIRIN.JP") return;
+  for (const venue of official.venues ?? []) for (const race of venue.races ?? []) {
+    if (!dates.includes(official.date)) continue;
+    if (!race.officialResultConflict) continue;
+    verifyStoredOfficialConflict(race, `${official.date}:${venue.venueCode}:${race.raceNumber}`);
+    if (!isOfficialResultOnHold(race)) continue;
+    const normalized = normalizeCurrentResultRace(venue, race, sourceFile, official.date);
+    resultMap.set(normalized.raceKey, normalized);
+  }
+  for (const entry of validateOfficialConflictRegistry(official)) {
+    if (!dates.includes(entry.date)) continue;
+    const raceKey = resultRaceKey(entry), previous = resultMap.get(raceKey);
+    if (entry.status === "resolved" && previous?.officialResultConflict?.status === "resolved"
+      && previous.officialResultConflict.candidateSignatureSha256 === entry.candidateSignatureSha256) continue;
+    resultMap.set(raceKey, { ...previous, raceKey, date: entry.date, venueCode: entry.venueCode, raceNumber: entry.raceNumber,
+      sourceType: "official-conflict-registry", sourceFile, confirmed: false, status: "official-conflict-hold",
+      storageEligible: false, officialTrifectaResults: [], officialResultConflict: { ...entry, status: "unresolved" } });
+  }
 }
 
 async function loadResultHistoryIndex() {
@@ -243,6 +268,9 @@ async function loadResultMapForDates(dates, options = {}) {
         sourceByDate.set(date, "keirin-jp-current-results");
       }
     }
+  }
+  if (await fileExists(currentResultPath)) {
+    overlayOfficialPerformanceHolds(resultMap, await readJson(currentResultPath), currentResultPath, dates);
   }
   return { resultMap, sourceByDate };
 }

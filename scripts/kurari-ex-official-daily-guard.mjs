@@ -2,6 +2,8 @@ import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import { projectRoot, venueMap } from "./kurari-ex-history-common.mjs";
+import { isOfficialResultOnHold, conflictSummary } from "../src/lib/officialResultConflict.mjs";
+import { verifyStoredOfficialConflict } from "./plan-official-result-conflict-isolation.mjs";
 
 const raceRoot = path.join(projectRoot, "public", "data", "races");
 const resultPath = path.join(raceRoot, "keirin-jp-results.generated.json");
@@ -79,7 +81,7 @@ function singlePayout(items, label) {
   return { combination: item.combination, payoutYen: Number(item.payoutYen) };
 }
 
-export function verifyOfficialDailySource(source, results, entries, targetDate) {
+export function verifyOfficialDailySource(source, results, entries, targetDate, { allowConflictExclusion = false } = {}) {
   const resultByKey = flatten(results, targetDate, "results");
   const entryByKey = flatten(entries, targetDate, "entries");
   if (resultByKey.size !== entryByKey.size || resultByKey.size !== source.races.length) {
@@ -87,6 +89,7 @@ export function verifyOfficialDailySource(source, results, entries, targetDate) 
   }
   const feedVenueByKey = onePerKey(source.feed.venues ?? [], (venue) => String(venue.venueCode ?? ""), "today venues");
   const registrations = new Map();
+  const excludedRaceIds = [];
   const verified = source.races.map((race) => {
     if (race.date !== targetDate || !race.venueKey || !race.raceNumber) throw new Error("today race identity unavailable");
     const feedVenue = feedVenueByKey.get(String((source.feed.venues ?? []).find((v) => v.slug === race.venueKey)?.venueCode ?? ""));
@@ -124,6 +127,17 @@ export function verifyOfficialDailySource(source, results, entries, targetDate) 
       return { carNo, name: row.name, registrationNo: reg, identityStatus: "registration-no" };
     }).sort((a, b) => a.carNo - b.carNo);
     const official = result.race;
+    if (official.officialResultConflict) verifyStoredOfficialConflict(official, `${targetDate}:${key}`);
+    if (isOfficialResultOnHold(official)) {
+      const rows = onePerKey(official.finishOrder, row => carNumber(row.carNo), `held finish ${race.raceKey}`);
+      if (rows.size !== entryByCar.size || starters.some(starter => {
+        const row = rows.get(starter.carNo);
+        return !row || row.registrationNo !== starter.registrationNo || cleanName(row.name) !== cleanName(starter.name);
+      })) throw new Error(`held result identity mismatch: ${race.raceKey}`);
+      if (!allowConflictExclusion) throw new Error(`unresolved official result conflict; formal EX archive withheld: ${targetDate}:${key}`);
+      excludedRaceIds.push({ raceId: `${targetDate}:${key}`, conflict: conflictSummary(official.officialResultConflict) });
+      return null;
+    }
     if (official.resultStatus === "cancelled" && official.operationStatus === "cancelled"
       && race.operationStatus === "cancelled") {
       if ((official.finishOrder ?? []).length || (official.payouts?.trifecta ?? []).some((item) => item.payoutYen != null)) {
@@ -186,11 +200,14 @@ export function verifyOfficialDailySource(source, results, entries, targetDate) 
         resultGeneratedAt: results.generatedAt ?? null, entryGeneratedAt: entries.generatedAt ?? null,
         actualFetchedAt: null, rawHttpResponseHash: null } };
   });
-  const keys = verified.map((race) => race.raceKey);
-  if (new Set(keys).size !== keys.length || resultByKey.size !== verified.length) {
+  const available = verified.filter(Boolean);
+  const keys = available.map((race) => race.raceKey);
+  if (new Set(keys).size !== keys.length || resultByKey.size !== available.length + excludedRaceIds.length) {
     throw new Error("duplicate or unmatched raceKey");
   }
-  return { ...source, races: verified };
+  return excludedRaceIds.length
+    ? { ...source, races: available, excludedRaceIds, incomplete: true, publicationAllowed: false }
+    : { ...source, races: available };
 }
 
 export async function loadAndVerifyOfficialDailySource(source, targetDate, paths = {}) {

@@ -1,0 +1,38 @@
+name: Preserve redacted official result conflict evidence
+description: Validate and redact acquired conflict evidence, then upload only its explicit file list.
+inputs:
+  target-date:
+    required: true
+    description: Planned official result date, in JST.
+  prior-job-status:
+    required: true
+    description: Job status before this evidence-preservation step.
+  run-started-at:
+    required: true
+    description: Timestamp captured before the update pipeline starts.
+  retention-days:
+    default: '7'
+    description: Exactly seven days; repository retention must allow it.
+runs:
+  using: composite
+  steps:
+    - name: Prepare privacy-filtered conflict evidence
+      id: prepare
+      if: always()
+      shell: bash
+      env:
+        CONFLICT_TARGET_DATE: ${{ inputs.target-date }}
+        CONFLICT_PRIOR_JOB_STATUS: ${{ inputs.prior-job-status }}
+        CONFLICT_RUN_STARTED_AT: ${{ inputs.run-started-at }}
+        CONFLICT_RETENTION_DAYS: ${{ inputs.retention-days }}
+      run: node "$GITHUB_ACTION_PATH/../../../scripts/prepare-official-conflict-artifact.mjs"
+    - name: Upload acquired conflict evidence
+      if: always() && steps.prepare.outcome == 'success' && steps.prepare.outputs.has_evidence == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: official-result-conflicts-${{ github.run_id }}-${{ github.run_attempt }}
+        path: ${{ steps.prepare.outputs.files }}
+        retention-days: 7
+        if-no-files-found: error
+        include-hidden-files: false
+        overwrite: false

@@ -8,6 +8,7 @@ import { automaticUpdatePhase } from "./lib/today-update-plan.mjs";
 import { fetchWithRetry } from "./lib/fetch-with-retry.mjs";
 import { classifyOddsPage, classifyRacecardFailure, createOddsAcquisition, hasConflictingTrifectaPrices, reusableVerifiedOdds, validateKdreamsRaceLink, validateTrifectaOdds } from "./lib/odds-acquisition.mjs";
 import { assertCurrentDayWriteDate, attachKdreamsDetailLinks, buildOfficialTodayVenues, indexOfficialTodayRaces, indexOfficialTodayResults, isFreshOfficialResultSnapshot, mergeOfficialTodayRiders, officialResultToTodayRace, validateOfficialTodayEntries } from "./lib/official-today-source.mjs";
+import { isOfficialResultOnHold, withOfficialResultHold } from "../src/lib/officialResultConflict.mjs";
 import { probeVenueOfficialSite } from "./lib/venue-official-sources.mjs";
 
 const KDREAMS_RACECARD_URL = "https://keirin.kdreams.jp/racecard/";
@@ -4221,6 +4222,7 @@ function applyOfficialEntryToRace(race, officialRace, venueName) {
 }
 
 function applyOfficialResultToRace(race, officialResult, officialEntry, venueName, sourceFetchedAt = "") {
+  if (isOfficialResultOnHold(officialResult)) return withOfficialResultHold(race, officialResult.officialResultConflict);
   if (!officialResult || officialResult.resultStatus !== "confirmed") {
     if (race.resultStatus === "confirmed" && race.raceOperationSource === "KEIRIN.JP:JSJ012") return race;
     return {

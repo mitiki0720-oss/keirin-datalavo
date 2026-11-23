@@ -1,5 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createHash } from "node:crypto";
+import { isOfficialResultOnHold } from "../src/lib/officialResultConflict.mjs";
 import { fetchOfficialResultJson, normalizeOfficialFinishStatus, isOfficialNonFinisherStatus } from "./lib/official-today-source.mjs";
 import {
   readJsonIfPresent,
@@ -97,6 +99,11 @@ if (expectedDate && !isIsoDate(expectedDate)) {
   throw new Error(`invalid --expect-date: ${expectedDate}`);
 }
 
+const rawResponses = new WeakMap();
+export const OFFICIAL_RESULT_PROOF = Symbol("official-result-proof");
+const publicOutputRelative = path.relative(path.resolve("public"), outputPath);
+const isPublicOutput = !publicOutputRelative.startsWith("..") && !path.isAbsolute(publicOutputRelative);
+
 async function fetchJson(url) {
   return fetchOfficialResultJson(url, {
     method: "GET",
@@ -107,6 +114,12 @@ async function fetchJson(url) {
   }, {
     timeoutMs,
     label: `KEIRIN.JP ${url.searchParams.get("type") || "result"}`,
+    onResponse: (response, bytes, value) => {
+      const body = Buffer.from(bytes), sha256 = createHash("sha256").update(body).digest("hex");
+      rawResponses.set(value, { type: url.searchParams.get("type"), url: url.href,
+        finalUrl: response.url || url.href, status: response.status, fetchedAt: new Date().toISOString(),
+        file: `${url.searchParams.get("type")}-${sha256}.json`, sha256, bodyBase64: body.toString("base64") });
+    },
   });
 }
 
@@ -414,7 +427,7 @@ function reportRaceError(raceId, apiType, error) {
   console.error(JSON.stringify({ event: "official-result-error", raceId, apiType, category, reason }));
 }
 
-function raceResultSignature(race) {
+export function raceResultSignature(race) {
   return JSON.stringify({
     operationStatus: race.operationStatus,
     finishOrder: race.finishOrder,
@@ -427,11 +440,20 @@ function raceResultSignature(race) {
   });
 }
 
+export function describeSettledResultConflict(raceId, previous, candidate) {
+  const before = JSON.parse(raceResultSignature(previous)), after = JSON.parse(raceResultSignature(candidate));
+  const fields = [...new Set([...Object.keys(before), ...Object.keys(after)])].map(field => ({ field,
+    equal: JSON.stringify(before[field]) === JSON.stringify(after[field]),
+    previous: before[field], candidate: after[field] }));
+  return { event: "settled-official-result-conflict", raceId, resolution: "blocked; existing file retained",
+    changedFields: fields.filter(row => !row.equal).map(row => row.field), fields };
+}
+
 function raceKey(venue, race) {
   return `${venue.date}:${venue.venueCode}:${race.raceNumber}`;
 }
 
-function summarize(payload) {
+export function summarize(payload) {
   const races = payload.venues.flatMap((venue) => venue.races);
 
   return {
@@ -523,9 +545,10 @@ export function mergeWithExisting(existing, candidate) {
         raceResultSignature(enrichedPrevious) !==
         raceResultSignature(race)
       ) {
-        throw new Error(
-          `settled official result conflict: ${raceKey(venue, race)}`,
-        );
+        throw Object.assign(new Error(`settled official result conflict: ${raceKey(venue, race)}`), {
+          code: "SETTLED_OFFICIAL_RESULT_CONFLICT", raceId: raceKey(venue, race),
+          conflict: describeSettledResultConflict(raceKey(venue, race), previous, race),
+        });
       }
 
       return race;
@@ -541,7 +564,7 @@ export function mergeWithExisting(existing, candidate) {
   };
 }
 
-export async function fetchVenue(venue, { targetDate = expectedDate || jstDate(), fetchImpl = fetchJson, sleepImpl = sleep } = {}) {
+export async function fetchVenue(venue, { targetDate = expectedDate || jstDate(), fetchImpl = fetchJson, sleepImpl = sleep, collectConflictEvidence = false, onConfirmedRace } = {}) {
   const venueEntryParameter = clean(venue.touhyouLivePara);
 
   if (!venueEntryParameter) {
@@ -609,14 +632,24 @@ export async function fetchVenue(venue, { targetDate = expectedDate || jstDate()
       apiType = "JSJ012/JSJ006/JSJ001";
       const publicationState = validateOfficialResultIdentity({ raceNumber, date: targetDate, venueCode: clean(venue.naibuKeirinCd), data: resultData, entries, detail });
 
-      races.push(
-        createRaceResult(
+      const normalized = createRaceResult(
           raceNumber,
           raceMeta,
           resultData,
           publicationState,
-        ),
-      );
+        );
+      if (collectConflictEvidence && normalized.resultStatus === "confirmed") {
+        const records = [resultData, entries, detail].map(value => rawResponses.get(value));
+        if (records.some(record => !record)) throw new Error("OFFICIAL_RESPONSE_PROOF_MISSING");
+        const { createOfficialConflictProof } = await import("./plan-official-result-conflict-isolation.mjs");
+        Object.defineProperty(normalized, OFFICIAL_RESULT_PROOF, { value: createOfficialConflictProof(
+          { date: targetDate, venueCode: clean(venue.naibuKeirinCd), raceNumber },
+          { JSJ012: resultData, JSJ006: entries, JSJ001: detail }, records) });
+      }
+      if (normalized.resultStatus === "confirmed") await onConfirmedRace?.({
+        date: targetDate, venueCode: clean(venueData.selKjyoCd), venueName: clean(venueData.joName),
+      }, normalized);
+      races.push(normalized);
     } catch (error) {
       reportRaceError(`${targetDate}:${clean(venue.naibuKeirinCd)}:${raceNumber}`, apiType, error);
       races.push(
@@ -659,6 +692,8 @@ async function main() {
 
   const fetchStartedAt = new Date().toISOString();
   const targetDate = expectedDate || jstDate();
+  if (isPublicOutput && targetDate !== jstDate()) throw new Error("PAST_DATE_PUBLIC_OUTPUT_PROHIBITED");
+  if (targetDate !== jstDate() && !getArgValue("--output")) throw new Error("PAST_DATE_REQUIRES_EXPLICIT_OUTPUT");
   const resolvedList = await fetchExpectedListData({ targetDate });
   const listData = resolvedList.data;
   console.log(`[official date] expected=${targetDate} selected=${resolvedList.kaisaiDateKbn} attempts=${resolvedList.attempts.length}`);
@@ -673,10 +708,39 @@ async function main() {
     );
   }
 
+  let existing, existingReadError;
+  try { existing = readJsonIfPresent(outputPath); }
+  catch (error) { existingReadError = error; }
+  const { mergeOfficialResultsWithConflictIsolation, persistOfficialConflictEvidence, verifyConflictRegistryImport } = await import("./plan-official-result-conflict-isolation.mjs");
+  const persistedEvidence = new Set();
+  const persistEvidence = async bundles => {
+    const pending = bundles.filter(row => !persistedEvidence.has(row.sha256));
+    if (!pending.length) return;
+    const files = await persistOfficialConflictEvidence(pending);
+    for (const row of pending) persistedEvidence.add(row.sha256);
+    for (const file of files) console.log(JSON.stringify({ event: "official-conflict-evidence-saved", ...file }));
+  };
+  // Persist each validated conflict before another race can abort the acquisition.
+  // The full-feed validation and public write gates below remain unchanged.
+  const onConfirmedRace = async (venue, race) => {
+    if (existing?.date !== targetDate) return;
+    const previousVenues = existing.venues?.filter(row => row.venueCode === venue.venueCode) ?? [];
+    if (previousVenues.length !== 1) return;
+    const previousRaces = previousVenues[0].races?.filter(row => row.raceNumber === race.raceNumber) ?? [];
+    if (previousRaces.length !== 1 || previousRaces[0].resultStatus !== "confirmed"
+      || raceResultSignature(previousRaces[0]) === raceResultSignature(race)) return;
+    const before = summarize({ ...existing, venues: [{ ...previousVenues[0], races: [previousRaces[0]] }] });
+    const after = summarize({ ...before, venues: [{ ...venue, races: [race] }] });
+    const isolated = mergeOfficialResultsWithConflictIsolation(before, after, [race[OFFICIAL_RESULT_PROOF]]);
+    await persistEvidence(isolated.evidenceBundles);
+    for (const conflict of isolated.conflicts) console.warn(JSON.stringify({
+      event: "official-result-conflict-acquired", ...conflict, settlement: "hold; public output not committed",
+    }));
+  };
   const venues = [];
 
   for (const venue of venueList) {
-    venues.push(await fetchVenue(venue, { targetDate }));
+    venues.push(await fetchVenue(venue, { targetDate, collectConflictEvidence: true, onConfirmedRace }));
     await sleep(delayMs);
   }
 
@@ -738,12 +802,26 @@ async function main() {
     );
   }
 
-  const existing = readJsonIfPresent(outputPath);
-
+  if (existingReadError) throw existingReadError;
+  const proofs = venues.flatMap(venue => venue.races.map(race => race[OFFICIAL_RESULT_PROOF]).filter(Boolean));
+  const approvalsFile = getArgValue("--conflict-approvals");
+  const approvals = approvalsFile ? readJsonIfPresent(path.resolve(approvalsFile)) : [];
+  const resolutionFile = getArgValue("--conflict-registry-snapshot");
+  const resolutionSnapshot = resolutionFile ? readJsonIfPresent(path.resolve(resolutionFile)) : undefined;
+  if (resolutionFile && !resolutionSnapshot) throw new Error("CONFLICT_RESOLUTION_SNAPSHOT_MISSING");
+  if (!Array.isArray(approvals)) throw new Error("INVALID_CONFLICT_APPROVALS");
+  if (resolutionSnapshot) await verifyConflictRegistryImport(resolutionSnapshot, targetDate);
   const {
     payload,
     preservedSettledRaceCount,
-  } = mergeWithExisting(existing, candidate);
+    conflicts,
+    evidenceBundles,
+  } = mergeOfficialResultsWithConflictIsolation(existing, candidate, proofs, approvals, { resolutionSnapshot });
+  // Private raw evidence must be persisted successfully before the public normalized snapshot can change.
+  await persistEvidence(evidenceBundles);
+  for (const conflict of conflicts) console.warn(JSON.stringify({ event: "official-result-quarantined", ...conflict, settlement: "hold; previous official value retained" }));
+  // Recheck the day after acquisition; historical replays require an explicit non-public output.
+  if (isPublicOutput && targetDate !== jstDate()) throw new Error("PAST_DATE_PUBLIC_OUTPUT_PROHIBITED");
 
   const writeResult = writeJsonIfChanged(
     outputPath,
@@ -774,14 +852,19 @@ async function main() {
     `preserved settled: ${preservedSettledRaceCount}`,
   );
   console.log(`changed: ${writeResult.changed}`);
+  console.log(`unresolved conflicts: ${writeResult.value.venues.flatMap(venue => venue.races).filter(isOfficialResultOnHold).length}`);
+  console.log(`verified confirmed (excluding held races): ${writeResult.value.verifiedConfirmedRaceCount}`);
+  console.log(`historical unresolved holds (metadata only): ${(writeResult.value.officialResultConflictRegistry ?? []).filter(row => row.date !== targetDate && row.status === "unresolved").length}`);
   console.log(JSON.stringify({ event: "official-result-summary", date: targetDate,
-    normal: writeResult.value.confirmedRaceCount + writeResult.value.partialRaceCount,
+    normal: writeResult.value.confirmedRaceCount - conflicts.length + writeResult.value.partialRaceCount,
+    unresolvedConflicts: conflicts.length,
     pending: writeResult.value.pendingRaceCount - writeResult.value.cancelledRaceCount,
     cancelled: writeResult.value.cancelledRaceCount, errors: writeResult.value.errorCount }));
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main().catch((error) => {
   console.error("[keirin-jp results update] failed");
+  if (error.conflict) console.error(JSON.stringify(error.conflict));
   console.error(error);
   process.exitCode = 1;
 });
