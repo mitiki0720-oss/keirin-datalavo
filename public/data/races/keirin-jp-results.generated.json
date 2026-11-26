@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-25T23:33:05.890Z",
+  "generatedAt": "2026-11-26T00:03:14.783Z",
   "source": {
     "provider": "KEIRIN.JP",
     "listType": "JSJ048",
@@ -18,8 +18,8 @@
         "url": "https://keirin.jp/pc/json?kaisaibikbn=0&kanyusyaflg=false&shccp=0&dispid=PJ0326&type=JSJ048"
       }
     ],
-    "fetchStartedAt": "2026-11-25T23:32:34.942Z",
-    "fetchCompletedAt": "2026-11-25T23:33:05.890Z"
+    "fetchStartedAt": "2026-11-26T00:02:45.273Z",
+    "fetchCompletedAt": "2026-11-26T00:03:14.783Z"
   },
   "date": "2026-11-26",
   "venues": [
@@ -2349,11 +2349,14 @@
           "raceNumber": 1,
           "resultStatus": "pending",
           "operationStatus": "pending",
-          "raceEnded": false,
+          "officialPublicationState": {
+            "kind": "awaiting-finish"
+          },
+          "raceEnded": true,
           "raceButtonActive": true,
           "resultCode": 0,
           "resultVisible": false,
-          "lastUpdateTime": "2026/11/26 07:03 更新",
+          "lastUpdateTime": "2026/11/26 08:55 更新",
           "weatherActual": {
             "condition": "",
             "windSpeedMps": null
@@ -2365,23 +2368,94 @@
           "hLeaderCarNo": "",
           "bLeaderCarNo": "",
           "payouts": {
-            "bracketQuinella": [],
-            "bracketExacta": [],
-            "quinella": [],
-            "exacta": [],
-            "trio": [],
-            "trifecta": [],
-            "wide": []
+            "bracketQuinella": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "bracketExacta": [
+              {
+                "combination": "",
+                "payoutYen": null,
+                "payoutDisplay": "【未発売】",
+                "popularity": null
+              }
+            ],
+            "quinella": [
+              {
+                "combination": "1=5",
+                "payoutYen": 5640,
+                "payoutDisplay": "5,640",
+                "popularity": 9
+              }
+            ],
+            "exacta": [
+              {
+                "combination": "1-5",
+                "payoutYen": 6020,
+                "payoutDisplay": "6,020",
+                "popularity": 11
+              }
+            ],
+            "trio": [
+              {
+                "combination": "1=5=7",
+                "payoutYen": 2080,
+                "payoutDisplay": "2,080",
+                "popularity": 5
+              }
+            ],
+            "trifecta": [
+              {
+                "combination": "1-5-7",
+                "payoutYen": 11650,
+                "payoutDisplay": "11,650",
+                "popularity": 21
+              }
+            ],
+            "wide": [
+              {
+                "combination": "1=5",
+                "payoutYen": 430,
+                "payoutDisplay": "430",
+                "popularity": 5
+              },
+              {
+                "combination": "1=7",
+                "payoutYen": 100,
+                "payoutDisplay": "100",
+                "popularity": 1
+              },
+              {
+                "combination": "5=7",
+                "payoutYen": 1620,
+                "payoutDisplay": "1,620",
+                "popularity": 12
+              }
+            ]
           },
-          "payout2tan": null,
-          "payout3tan": null,
+          "payout2tan": {
+            "combination": "1-5",
+            "payoutYen": 6020,
+            "payoutDisplay": "6,020",
+            "popularity": 11
+          },
+          "payout3tan": {
+            "combination": "1-5-7",
+            "payoutYen": 11650,
+            "payoutDisplay": "11,650",
+            "popularity": 21
+          },
           "quality": {
             "finishOrderCount": 0,
             "hasFinishOrder": false,
-            "hasTrifecta": false,
+            "hasTrifecta": true,
             "warnings": [
-              "finish order missing",
-              "trifecta payout missing"
+              "official publication: awaiting-finish",
+              "finish order missing"
             ]
           }
         },
